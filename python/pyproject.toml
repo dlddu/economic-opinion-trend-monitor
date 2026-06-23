@@ -1,0 +1,41 @@
+[project]
+name = "econ-monitor"
+version = "0.0.0"
+description = "Economic Opinion Trend Monitor — Python batch pipelines (uv workspace root)."
+requires-python = ">=3.11"
+dependencies = [
+    "econ-core",
+    "econ-ingestion",
+    "econ-analysis",
+    "econ-aggregation",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+econ-core = { workspace = true }
+econ-ingestion = { workspace = true }
+econ-analysis = { workspace = true }
+econ-aggregation = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Generated models carry the schema's (long) docstrings verbatim.
+"packages/core/src/econ_core/models/*" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+addopts = "-q"

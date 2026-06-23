@@ -1,0 +1,58 @@
+{
+  "type": "record",
+  "name": "Analysis",
+  "namespace": "econ.silver",
+  "doc": "Silver record — LLM analysis of one Bronze news item (PRD analysis, AC2.1-AC2.6).",
+  "x-layer": "silver",
+  "fields": [
+    {
+      "name": "record_id",
+      "type": "string",
+      "doc": "Bronze tracking key this analysis derives from (AC2.6)."
+    },
+    {
+      "name": "source_url",
+      "type": "string",
+      "doc": "Denormalized Bronze link for trace-back convenience (AC1.4, AC2.6)."
+    },
+    {
+      "name": "target_countries",
+      "type": { "type": "array", "items": "string" },
+      "doc": "Content target countries; may be multiple or GLOBAL (AC2.1)."
+    },
+    {
+      "name": "narrative_subjects",
+      "type": { "type": "array", "items": "string" },
+      "doc": "Normalized narrative subject keys; aggregation groups on these (AC2.2)."
+    },
+    {
+      "name": "sentiment",
+      "type": [
+        "null",
+        { "type": "enum", "name": "Sentiment", "symbols": ["positive", "neutral", "negative", "mixed"] }
+      ],
+      "default": null,
+      "doc": "Sentiment label; null when unanalyzed (AC2.3, AC2.5)."
+    },
+    {
+      "name": "analysis_status",
+      "type": { "type": "enum", "name": "AnalysisStatus", "symbols": ["analyzed", "low_confidence", "unanalyzed"] },
+      "doc": "Analysis confidence state; aggregation separates low/unanalyzed (AC2.5)."
+    },
+    {
+      "name": "confidence",
+      "type": "double",
+      "doc": "Model confidence in [0, 1]."
+    },
+    {
+      "name": "analyzed_at",
+      "type": "string",
+      "doc": "Analysis timestamp."
+    },
+    {
+      "name": "analyzer_version",
+      "type": "string",
+      "doc": "Analyzer logic version; bump enables reprocessing of the same Bronze (AC2.6)."
+    }
+  ]
+}

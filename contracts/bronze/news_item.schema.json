@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://econ-opinion-monitor/contracts/bronze/news_item.schema.json",
+  "title": "NewsItem",
+  "description": "Bronze record — a raw collected news item preserved with provenance metadata (PRD ingestion, AC1.1-AC1.6).",
+  "x-layer": "bronze",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "source_id",
+    "axis",
+    "source_url",
+    "collected_at",
+    "collection_cycle"
+  ],
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "description": "Bronze tracking key; Silver/Gold join back to this (V5, AC2.6)."
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Identifier of the collecting source (AC1.5)."
+    },
+    "axis": {
+      "type": "string",
+      "enum": ["KR", "US", "GLOBAL"],
+      "x-enum-name": "Axis",
+      "description": "Source axis tag — Korea / US / Global (AC1.3)."
+    },
+    "rank": {
+      "type": "integer",
+      "description": "Position within the source's top-N collection (AC1.2, AC1.5)."
+    },
+    "view_count": {
+      "type": "integer",
+      "description": "View count used for top-N ranking (AC1.5)."
+    },
+    "title": {
+      "type": "string",
+      "description": "Article headline."
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Original article link; always stored even if body capture fails (AC1.4)."
+    },
+    "raw_text": {
+      "type": "string",
+      "description": "Full original text; empty string when the body could not be captured (AC1.4)."
+    },
+    "body_available": {
+      "type": "boolean",
+      "description": "Whether the full body was captured (AC1.4)."
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Collection timestamp; identifies the cycle time bucket (AC1.5)."
+    },
+    "collection_cycle": {
+      "type": "string",
+      "description": "Collection cycle identifier, e.g. 2026-06-23T14:00 (AC1.1, AC1.5)."
+    }
+  }
+}
