@@ -18,6 +18,7 @@ venv/
 node_modules/
 /web/dist/
 /web/.vite/
+*.tsbuildinfo
 npm-debug.log*
 
 # ---- Data lake (local) — keep the layer dirs, ignore their contents ----

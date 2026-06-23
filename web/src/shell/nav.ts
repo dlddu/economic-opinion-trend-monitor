@@ -1,0 +1,24 @@
+// The 7 screens (mockup index) -> client routes. The dashboard is the only
+// fully-built screen; the rest are placeholders (shell + dashboard only scope).
+
+export interface ScreenDef {
+  id: string;
+  path: string;
+  label: string;
+  journey: string;
+  group: "observer" | "operator";
+  /** Serving API endpoint backing this screen. */
+  api: string;
+}
+
+export const SCREENS: ScreenDef[] = [
+  { id: "dash", path: "/dashboard", label: "추세 대시보드", journey: "J1", group: "observer", api: "dashboard" },
+  { id: "trend", path: "/trend", label: "대상 추세 상세", journey: "J1", group: "observer", api: "trend" },
+  { id: "compare", path: "/compare", label: "3축 비교", journey: "J2", group: "observer", api: "compare" },
+  { id: "sentiment", path: "/sentiment", label: "분위기 분포", journey: "J3", group: "observer", api: "sentiment" },
+  { id: "fairness", path: "/fairness", label: "공정성·원천 추적", journey: "J4", group: "observer", api: "fairness" },
+  { id: "trace", path: "/trace", label: "원문 추적 상세", journey: "J4", group: "observer", api: "trace" },
+  { id: "reprocess", path: "/reprocess", label: "재처리 콘솔", journey: "J5", group: "operator", api: "reprocess" },
+];
+
+export const SCREENS_BY_PATH = new Map(SCREENS.map((s) => [s.path, s]));
