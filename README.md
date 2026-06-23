@@ -81,7 +81,7 @@ make run       # 서빙 기동 (API + web/dist 정적 서빙)
 ### 골격 한 바퀴 돌려보기
 
 ```bash
-make gen && make setup
+make setup && make gen
 # 배치 파이프라인: 페이크 입력 -> bronze -> silver -> gold (data/ 에 더미 레코드)
 cd python && uv run python -m econ_ingestion && uv run python -m econ_analysis && uv run python -m econ_aggregation && cd ..
 make build-web                 # web/dist 생성
