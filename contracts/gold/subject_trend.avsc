@@ -1,0 +1,49 @@
+{
+  "type": "record",
+  "name": "SubjectTrend",
+  "namespace": "econ.gold",
+  "doc": "Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8).",
+  "x-layer": "gold",
+  "fields": [
+    {
+      "name": "subject",
+      "type": "string",
+      "doc": "Narrative subject key; variants are unified to one key (AC3.2)."
+    },
+    {
+      "name": "axis",
+      "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
+      "doc": "Source axis (AC3.4, AC3.7)."
+    },
+    {
+      "name": "bucket_unit",
+      "type": { "type": "enum", "name": "BucketUnit", "symbols": ["hour", "day", "week"] },
+      "doc": "Time bucket unit; hour rolls up to day/week (AC3.3)."
+    },
+    {
+      "name": "time_bucket",
+      "type": "string",
+      "doc": "Bucket label, e.g. 2026-06-23T14 (AC3.3)."
+    },
+    {
+      "name": "raw_count",
+      "type": "long",
+      "doc": "Raw collected count before normalization, shown alongside the share (AC3.8)."
+    },
+    {
+      "name": "normalized_share",
+      "type": "double",
+      "doc": "Source-deviation-normalized interest share (AC3.1, AC3.8)."
+    },
+    {
+      "name": "delta",
+      "type": "double",
+      "doc": "Change vs the previous bucket, in percentage points (AC3.5)."
+    },
+    {
+      "name": "spark",
+      "type": { "type": "array", "items": "double" },
+      "doc": "Recent share values for the sparkline (AC3.5)."
+    }
+  ]
+}

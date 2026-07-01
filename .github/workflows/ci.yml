@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Set up uv (and Python)
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.17"
+
+      - name: Install dependencies
+        run: make setup
+
+      - name: Codegen is up to date
+        run: make gen-check
+
+      - name: Lint
+        run: make lint
+
+      - name: Test
+        run: make test

@@ -1,0 +1,46 @@
+from econ_analysis.fake_llm import analyze, normalize_subject
+
+
+def _bronze(**overrides) -> dict:
+    item = {
+        "record_id": "r",
+        "source_id": "s",
+        "axis": "KR",
+        "rank": 1,
+        "view_count": 1,
+        "title": "[삼성전자] 관련 보도 — positive 신호",
+        "source_url": "u",
+        "raw_text": "삼성전자. tone=positive. 대상국=KR,US.",
+        "body_available": True,
+        "collected_at": "2026-06-23T14:00:00+00:00",
+        "collection_cycle": "c",
+    }
+    item.update(overrides)
+    return item
+
+
+def test_analyze_extracts_sentiment_subjects_countries() -> None:
+    a = analyze(_bronze())
+    assert a.sentiment == "positive"  # AC2.3
+    assert a.analysis_status == "analyzed"
+    assert a.narrative_subjects == ["삼성전자"]  # AC2.2
+    assert a.target_countries == ["KR", "US"]  # AC2.1 (multi-country)
+    assert a.record_id == "r"  # Bronze tracking key preserved (AC2.6)
+
+
+def test_unanalyzed_when_body_missing() -> None:
+    a = analyze(_bronze(raw_text="", body_available=False))
+    assert a.sentiment is None
+    assert a.analysis_status == "unanalyzed"  # AC2.5
+
+
+def test_low_confidence_on_mixed_tone() -> None:
+    a = analyze(_bronze(title="[전기요금] x", raw_text="x. tone=mixed. 대상국=KR."))
+    assert a.sentiment == "mixed"
+    assert a.analysis_status == "low_confidence"  # AC2.5
+
+
+def test_alias_unification() -> None:
+    # Surface variants collapse to one canonical key (AC2.2).
+    assert normalize_subject("Samsung rallies on chips") == "삼성전자"
+    assert normalize_subject("the Fed holds rates") == "Federal Reserve"

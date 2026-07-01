@@ -1,0 +1,19 @@
+[project]
+name = "econ-analysis"
+version = "0.0.0"
+description = "Analysis batch — LLM enrichment of Bronze into the Silver layer (fakes/stubs)."
+requires-python = ">=3.11"
+dependencies = ["econ-core"]
+
+[project.scripts]
+econ-analysis = "econ_analysis.cli:main"
+
+[tool.uv.sources]
+econ-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/econ_analysis"]
