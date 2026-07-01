@@ -29,6 +29,10 @@ npm-debug.log*
 !/data/silver/.gitkeep
 !/data/gold/.gitkeep
 
+# ---- e2e (Playwright) ----
+/tests/e2e/playwright-report/
+/tests/e2e/test-results/
+
 # ---- Editor / OS ----
 .DS_Store
 .idea/
