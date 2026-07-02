@@ -1,0 +1,18 @@
+# e2e overlay of deploy/base: the image is built locally and side-loaded with
+# `kind load docker-image` (imagePullPolicy: Never — no registry involved),
+# and fixture Gold is mounted from the `gold-fixtures` ConfigMap that run.sh
+# creates from tests/e2e/fixtures/gold. Applying this overlay in CI also
+# keeps the deployable base honest.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../deploy/base
+
+images:
+  - name: ghcr.io/dlddu/economic-opinion-trend-monitor
+    newName: econ-monitor
+    newTag: e2e
+
+patches:
+  - path: e2e-patch.yaml

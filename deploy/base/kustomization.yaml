@@ -1,0 +1,14 @@
+# Deployable serving stack (environment-agnostic): the Go API binary with the
+# web bundle baked in, reading Gold from an emptyDir at /data. Overlays swap
+# the data volume (prod: PVC, e2e: fixture ConfigMap) and pin the image.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+labels:
+  - includeSelectors: true
+    pairs:
+      app: econ-serving

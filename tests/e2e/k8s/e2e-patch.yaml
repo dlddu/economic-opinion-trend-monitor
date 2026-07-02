@@ -1,0 +1,21 @@
+# Strategic-merge patch: never pull the side-loaded image, and mount the
+# fixture ConfigMap at /data/gold (on top of the base emptyDir at /data)
+# because the store reads <ECON_DATA_ROOT>/gold/*.jsonl.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: econ-serving
+spec:
+  template:
+    spec:
+      containers:
+        - name: serving
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: gold
+              mountPath: /data/gold
+              readOnly: true
+      volumes:
+        - name: gold
+          configMap:
+            name: gold-fixtures
