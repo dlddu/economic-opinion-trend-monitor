@@ -1,0 +1,12 @@
+{
+  "name": "econ-monitor-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Economic Opinion Trend Monitor — kind-based e2e specs for the serving path.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0"
+  }
+}

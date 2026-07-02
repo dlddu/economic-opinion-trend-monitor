@@ -20,13 +20,13 @@ GEN_PATHS  := go/gen python/packages/core/src/econ_core/models
 
 .PHONY: help setup gen gen-check \
         build build-go build-web \
-        test test-py test-go test-web test-cross \
+        test test-py test-go test-web test-cross e2e \
         lint lint-py lint-go lint-web \
         fmt run clean
 
 help: ## Show this help
 	@echo "Economic Opinion Trend Monitor — make targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| sort | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Install all toolchain dependencies (uv / go / npm)
@@ -68,6 +68,10 @@ test-web: ## Run web (vitest) tests
 
 test-cross: ## Cross-language smoke: Python writes Gold -> Go serves it
 	./tests/smoke.sh
+
+## --- e2e (not part of `test`: needs docker + kind + kubectl) --------------
+e2e: ## kind e2e: fixture Gold -> in-cluster serving -> Playwright (docker/kind/kubectl)
+	./tests/e2e/run.sh
 
 ## --- lint ----------------------------------------------------------------
 lint: lint-py lint-go lint-web ## Lint all languages

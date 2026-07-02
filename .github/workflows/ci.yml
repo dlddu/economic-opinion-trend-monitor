@@ -39,3 +39,35 @@ jobs:
 
       - name: Test
         run: make test
+
+  # Serving-path e2e on a kind cluster (fixture Gold -> Go API + web render).
+  # Parallel to `build`; docker is preinstalled on ubuntu-latest.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install kind + kubectl
+        uses: helm/kind-action@v1
+        with:
+          version: v0.30.0
+          install_only: true
+
+      - name: Run kind e2e
+        run: make e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          retention-days: 7
