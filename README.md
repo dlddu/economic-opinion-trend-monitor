@@ -102,7 +102,7 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 ```
 deploy/
   base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
-  overlays/prod/   네임스페이스(econ-monitor) + PVC(gold 영속화) + Traefik Ingress
+  overlays/prod/   네임스페이스(econ-monitor) + PVC(gold 영속화)
 ```
 
 ```bash
@@ -111,8 +111,8 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
 
 - Gold 스토어는 파일이 없으면 빈 데이터셋으로 처리하므로, 배치 파이프라인이
   클러스터에 올라가기 전에도 서빙은 정상 기동한다(빈 대시보드).
-- `deploy/overlays/prod/ingress.yaml`의 `host`는 클러스터가 라우팅하는 실제
-  도메인으로 바꿔서 적용한다.
+- 외부 노출(Ingress 등)은 클러스터 쪽 구성에 맡긴다 — 이 오버레이는
+  `econ-serving` Service(8080)까지만 만든다.
 - kind e2e(`tests/e2e/k8s/`)는 같은 `deploy/base`의 오버레이라서, e2e가 돌 때마다
   배포 base가 실제 클러스터에서 검증된다.
 - 배치(수집·분석·집계) CronJob 배선과 원격 스토리지는 후속 작업이다
