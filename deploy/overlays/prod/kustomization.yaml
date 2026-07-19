@@ -11,13 +11,8 @@ kind: Kustomization
 namespace: econ-monitor
 
 resources:
-  - namespace.yaml
   - ../../base
   - pvc.yaml
-
-images:
-  - name: ghcr.io/dlddu/economic-opinion-trend-monitor
-    newTag: latest
 
 patches:
   # Swap the data emptyDir for the PVC, and use Recreate so a rolling update
