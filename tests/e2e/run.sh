@@ -41,9 +41,9 @@ docker build -t "$IMAGE" "$ROOT"
 kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" --wait 120s
 kind load docker-image "$IMAGE" --name "$CLUSTER"
 
-# 2) Fixture Gold as a ConfigMap + the serving Deployment/Service.
+# 2) Fixture Gold as a ConfigMap + the serving stack (e2e overlay of deploy/base).
 kubectl --context "$CTX" create configmap gold-fixtures --from-file="$E2E_DIR/fixtures/gold"
-kubectl --context "$CTX" apply -f "$E2E_DIR/k8s/serving.yaml"
+kubectl --context "$CTX" apply -k "$E2E_DIR/k8s"
 if ! kubectl --context "$CTX" rollout status deployment/econ-serving --timeout=120s; then
   echo "[e2e] FAIL: serving rollout not ready — pod state follows" >&2
   kubectl --context "$CTX" describe pods -l app=econ-serving >&2 || true

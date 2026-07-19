@@ -1,0 +1,54 @@
+# One serving Pod: API + static web at :8080. The store reads
+# <ECON_DATA_ROOT>/gold/*.jsonl and treats missing files as empty datasets,
+# so the base runs (empty dashboard) even before any pipeline writes Gold.
+# The `data` emptyDir is the overlay seam — prod replaces it with a PVC,
+# the kind e2e mounts fixture Gold on top of it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: econ-serving
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: serving
+          image: ghcr.io/dlddu/economic-opinion-trend-monitor:latest
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true
+      securityContext:
+        runAsNonRoot: true
+      volumes:
+        - name: data
+          emptyDir: {}

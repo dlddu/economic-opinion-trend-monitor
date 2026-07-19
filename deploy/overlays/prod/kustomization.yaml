@@ -1,0 +1,34 @@
+# Production overlay for an external cluster:
+#   kubectl apply -k deploy/overlays/prod
+# (or point a Flux Kustomization at this path).
+#
+# Adds the app namespace and replaces the base emptyDir with a PVC so Gold
+# survives Pod restarts (a future batch CronJob writes into the same claim).
+# Exposure (Ingress etc.) is left to the cluster's own config.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: econ-monitor
+
+resources:
+  - namespace.yaml
+  - ../../base
+  - pvc.yaml
+
+patches:
+  # Swap the data emptyDir for the PVC, and use Recreate so a rolling update
+  # never tries to attach the RWO volume from two Pods at once.
+  - target:
+      kind: Deployment
+      name: econ-serving
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: data
+          persistentVolumeClaim:
+            claimName: econ-serving-data
+      - op: add
+        path: /spec/strategy
+        value:
+          type: Recreate

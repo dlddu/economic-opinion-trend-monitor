@@ -53,6 +53,7 @@ go/          Go 모듈 (서빙)
   gen/                  contracts -> Go 생성물
 web/         Vite + React — 디자인 토큰(CSS) · 셸(PAT-screen-shell) · 대시보드 1화면 · API fetch 스텁
 data/        로컬 데이터 레이크 (bronze/silver/gold) — 내용은 git-ignore, 구조만 .gitkeep
+deploy/      kustomize 배포 매니페스트 (base + overlays/prod) — 외부 k8s 클러스터 배포용
 tests/       교차 언어 스모크 + kind e2e (tests/e2e: 픽스처 Gold -> 클러스터 서빙 검증)
 ```
 
@@ -91,6 +92,31 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 ```
 
 개발 중 프론트는 `cd web && npm run dev` (Vite, `/api`는 8080의 Go 서버로 프록시)로 띄운다.
+
+## 배포 (외부 k8s + kustomize)
+
+서빙 이미지는 `main` 푸시마다 CI(`.github/workflows/image.yml`)가
+`ghcr.io/dlddu/economic-opinion-trend-monitor`로 발행한다
+(`latest` + 불변 `sha-<commit>` 태그).
+
+```
+deploy/
+  base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
+  overlays/prod/   네임스페이스(econ-monitor) + PVC(gold 영속화)
+```
+
+```bash
+kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 지정
+```
+
+- Gold 스토어는 파일이 없으면 빈 데이터셋으로 처리하므로, 배치 파이프라인이
+  클러스터에 올라가기 전에도 서빙은 정상 기동한다(빈 대시보드).
+- 외부 노출(Ingress 등)은 클러스터 쪽 구성에 맡긴다 — 이 오버레이는
+  `econ-serving` Service(8080)까지만 만든다.
+- kind e2e(`tests/e2e/k8s/`)는 같은 `deploy/base`의 오버레이라서, e2e가 돌 때마다
+  배포 base가 실제 클러스터에서 검증된다.
+- 배치(수집·분석·집계) CronJob 배선과 원격 스토리지는 후속 작업이다
+  (스케줄러 배선 자체가 골격 범위 밖 — 아래 [범위](#범위) 참조).
 
 ## 범위
 
