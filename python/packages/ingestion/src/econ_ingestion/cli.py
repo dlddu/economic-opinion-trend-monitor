@@ -12,6 +12,7 @@ from pathlib import Path
 
 from econ_core import domain, open_store
 
+from econ_ingestion.feeds import http_fetcher, load_feed_configs, run_feed_ingestion
 from econ_ingestion.sources import run_ingestion
 
 
@@ -31,13 +32,41 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Collection cycle id, e.g. 2026-06-23T14:00 (default: current UTC hour).",
     )
+    parser.add_argument(
+        "--source",
+        choices=("fake", "feed"),
+        default="fake",
+        help="Collection source: deterministic 'fake' catalog (default) or real "
+        "RSS/Atom 'feed'.",
+    )
+    parser.add_argument(
+        "--feeds",
+        type=Path,
+        default=None,
+        help="Feed source config JSON (required with --source feed): "
+        "[{source_id, axis, feed_url, limit}].",
+    )
+    parser.add_argument(
+        "--fetch-timeout",
+        type=float,
+        default=15.0,
+        help="Per-feed HTTP fetch timeout in seconds (--source feed).",
+    )
     args = parser.parse_args(argv)
 
     now = datetime.now(UTC)
     cycle = args.cycle or now.strftime("%Y-%m-%dT%H:00")
     collected_at = now.replace(microsecond=0).isoformat()
 
-    items, stats = run_ingestion(cycle, collected_at)
+    if args.source == "feed":
+        if args.feeds is None:
+            parser.error("--source feed requires --feeds <config.json>")
+        configs = load_feed_configs(args.feeds)
+        items, stats = run_feed_ingestion(
+            configs, cycle, collected_at, http_fetcher(args.fetch_timeout)
+        )
+    else:
+        items, stats = run_ingestion(cycle, collected_at)
     store = open_store(args.data)
     written = store.write_records(domain.BRONZE, domain.DS_NEWS_ITEM, items)
 
