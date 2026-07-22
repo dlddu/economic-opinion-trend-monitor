@@ -36,8 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         "--source",
         choices=("fake", "feed"),
         default="fake",
-        help="Collection source: deterministic 'fake' catalog (default) or real "
-        "RSS/Atom 'feed'.",
+        help="Collection source: deterministic 'fake' catalog (default) or real RSS/Atom 'feed'.",
     )
     parser.add_argument(
         "--feeds",

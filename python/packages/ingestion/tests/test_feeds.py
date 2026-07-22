@@ -7,7 +7,6 @@ captured RSS/Atom fixtures, covering ingestion AC1.2–AC1.6.
 from pathlib import Path
 
 import pytest
-
 from econ_ingestion.feeds import FeedConfig, collect_feed, parse_feed, run_feed_ingestion
 
 FIXTURES = Path(__file__).parent / "fixtures"
