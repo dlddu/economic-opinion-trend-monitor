@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://econ-opinion-monitor/contracts/bronze/news_body.schema.json",
+  "title": "NewsBody",
+  "description": "Bronze record — one immutable body version, stored once and content-addressed by SHA-256; unchanged bodies are never re-stored and edited bodies append a new version (PRD ingestion, AC1.4, AC1.7).",
+  "x-layer": "bronze",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "body_hash",
+    "raw_text",
+    "first_seen_at",
+    "first_seen_cycle"
+  ],
+  "properties": {
+    "body_hash": {
+      "type": "string",
+      "description": "Content address — SHA-256 (hex) over the exact UTF-8 bytes of raw_text; storage key news_item.body_hash resolves to (AC1.7)."
+    },
+    "raw_text": {
+      "type": "string",
+      "description": "Full original text of this body version; never empty — uncaptured bodies are not stored here (AC1.4)."
+    },
+    "first_seen_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this body version was first observed (AC1.7)."
+    },
+    "first_seen_cycle": {
+      "type": "string",
+      "description": "Collection cycle in which this body version was first observed (AC1.7)."
+    }
+  }
+}

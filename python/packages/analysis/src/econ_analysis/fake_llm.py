@@ -86,8 +86,13 @@ def _parse_countries(body: str) -> list[str]:
     return [c.strip() for c in match.group(1).split(",") if c.strip()]
 
 
-def analyze(item: dict, analyzer_version: str = ANALYZER_VERSION) -> Analysis:
-    """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis``."""
+def analyze(item: dict, body: str | None, analyzer_version: str = ANALYZER_VERSION) -> Analysis:
+    """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis``.
+
+    ``body`` is the raw text resolved from the content-addressed body store via
+    ``item["body_hash"]`` (AC1.4, AC1.7); ``None``/empty means the body was
+    never captured or cannot be resolved -> unanalyzed (AC2.5).
+    """
     subjects = extract_subjects(item["title"])
     base = {
         "record_id": item["record_id"],
@@ -97,7 +102,7 @@ def analyze(item: dict, analyzer_version: str = ANALYZER_VERSION) -> Analysis:
         "analyzer_version": analyzer_version,
     }
 
-    body = item.get("raw_text") or ""
+    body = body or ""
     if not item.get("body_available") or not body:
         # No body -> cannot judge sentiment; flag unanalyzed (AC2.5).
         return Analysis(

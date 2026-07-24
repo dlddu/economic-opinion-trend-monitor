@@ -7,6 +7,7 @@ on where records land. Field-level types come from the generated
 
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 
@@ -17,12 +18,25 @@ GOLD = "gold"
 
 # Dataset (file) names within each layer — one dataset per generated record type.
 DS_NEWS_ITEM = "news_item"  # bronze  -> models.NewsItem
+DS_NEWS_BODY = "news_body"  # bronze  -> models.NewsBody (content-addressed bodies)
 DS_ANALYSIS = "analysis"  # silver  -> models.Analysis
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
 DS_AXIS_SENTIMENT = "axis_sentiment"  # gold    -> models.AxisSentiment
 
 # Environment override for the local lake root.
 ENV_DATA_ROOT = "ECON_DATA_ROOT"
+
+
+def body_hash(raw_text: str) -> str:
+    """Content address of a captured body: SHA-256 hex over its exact UTF-8 bytes.
+
+    Bronze stores bodies unprocessed, so no normalization happens here (that is
+    Silver's job). Identical bodies — across cycles or across sources — collapse
+    to one key; any edit yields a new key, so edited bodies land as separate,
+    append-only versions (AC1.7). ``news_item.body_hash`` resolves into the
+    ``news_body`` dataset through this function's output.
+    """
+    return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
 
 
 def default_data_root() -> Path:

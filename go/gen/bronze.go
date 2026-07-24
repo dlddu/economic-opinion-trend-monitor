@@ -2,7 +2,15 @@
 
 package gen
 
-// NewsItem Bronze record — a raw collected news item preserved with provenance metadata (PRD ingestion, AC1.1-AC1.6).
+// NewsBody Bronze record — one immutable body version, stored once and content-addressed by SHA-256; unchanged bodies are never re-stored and edited bodies append a new version (PRD ingestion, AC1.4, AC1.7).
+type NewsBody struct {
+	BodyHash       string `json:"body_hash"`
+	RawText        string `json:"raw_text"`
+	FirstSeenAt    string `json:"first_seen_at"`
+	FirstSeenCycle string `json:"first_seen_cycle"`
+}
+
+// NewsItem Bronze record — one collection observation of a news item with provenance metadata; the body itself lives in news_body, referenced by hash (PRD ingestion, AC1.1-AC1.7).
 type NewsItem struct {
 	RecordID        string `json:"record_id"`
 	SourceID        string `json:"source_id"`
@@ -11,7 +19,7 @@ type NewsItem struct {
 	ViewCount       int64  `json:"view_count"`
 	Title           string `json:"title"`
 	SourceURL       string `json:"source_url"`
-	RawText         string `json:"raw_text"`
+	BodyHash        string `json:"body_hash"`
 	BodyAvailable   bool   `json:"body_available"`
 	CollectedAt     string `json:"collected_at"`
 	CollectionCycle string `json:"collection_cycle"`
