@@ -10,7 +10,7 @@ def _bronze(**overrides) -> dict:
         "view_count": 1,
         "title": "[삼성전자] 관련 보도 — positive 신호",
         "source_url": "u",
-        "raw_text": "삼성전자. tone=positive. 대상국=KR,US.",
+        "body_hash": "h",
         "body_available": True,
         "collected_at": "2026-06-23T14:00:00+00:00",
         "collection_cycle": "c",
@@ -19,8 +19,11 @@ def _bronze(**overrides) -> dict:
     return item
 
 
+BODY = "삼성전자. tone=positive. 대상국=KR,US."
+
+
 def test_analyze_extracts_sentiment_subjects_countries() -> None:
-    a = analyze(_bronze())
+    a = analyze(_bronze(), BODY)
     assert a.sentiment == "positive"  # AC2.3
     assert a.analysis_status == "analyzed"
     assert a.narrative_subjects == ["삼성전자"]  # AC2.2
@@ -29,13 +32,20 @@ def test_analyze_extracts_sentiment_subjects_countries() -> None:
 
 
 def test_unanalyzed_when_body_missing() -> None:
-    a = analyze(_bronze(raw_text="", body_available=False))
+    a = analyze(_bronze(body_hash="", body_available=False), None)
+    assert a.sentiment is None
+    assert a.analysis_status == "unanalyzed"  # AC2.5
+
+
+def test_unanalyzed_when_body_hash_dangles() -> None:
+    # body_available says captured but the hash resolves to nothing -> unanalyzed, not a crash.
+    a = analyze(_bronze(), None)
     assert a.sentiment is None
     assert a.analysis_status == "unanalyzed"  # AC2.5
 
 
 def test_low_confidence_on_mixed_tone() -> None:
-    a = analyze(_bronze(title="[전기요금] x", raw_text="x. tone=mixed. 대상국=KR."))
+    a = analyze(_bronze(title="[전기요금] x"), "x. tone=mixed. 대상국=KR.")
     assert a.sentiment == "mixed"
     assert a.analysis_status == "low_confidence"  # AC2.5
 

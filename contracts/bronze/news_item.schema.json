@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://econ-opinion-monitor/contracts/bronze/news_item.schema.json",
   "title": "NewsItem",
-  "description": "Bronze record — a raw collected news item preserved with provenance metadata (PRD ingestion, AC1.1-AC1.6).",
+  "description": "Bronze record — one collection observation of a news item with provenance metadata; the body itself lives in news_body, referenced by hash (PRD ingestion, AC1.1-AC1.7).",
   "x-layer": "bronze",
   "type": "object",
   "additionalProperties": false,
@@ -46,9 +46,9 @@
       "format": "uri",
       "description": "Original article link; always stored even if body capture fails (AC1.4)."
     },
-    "raw_text": {
+    "body_hash": {
       "type": "string",
-      "description": "Full original text; empty string when the body could not be captured (AC1.4)."
+      "description": "SHA-256 (hex) of the captured body, resolving into bronze/news_body; empty string when the body could not be captured (AC1.4, AC1.7)."
     },
     "body_available": {
       "type": "boolean",

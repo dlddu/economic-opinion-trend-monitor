@@ -29,7 +29,9 @@
   (로컬 데이터 레이크)                       대시보드 + 셸
 ```
 
-- **Bronze** (수집 원문 보존): 원문 링크 + 원문 전체 + 수집 메타데이터 — `contracts/bronze/*.schema.json` (JSON Schema)
+- **Bronze** (수집 원문 보존): 관측 레코드 `news_item`(원문 링크 + 수집 메타데이터 + 본문 해시 참조)과
+  content-addressed 본문 저장소 `news_body`(동일 본문은 1회만 저장, 수정 본문은 새 버전 append)로 분리 —
+  `contracts/bronze/*.schema.json` (JSON Schema)
 - **Silver** (LLM 분석): 대상 국가 · 핵심 서술 대상 · 분위기 — `contracts/silver/*.avsc` (Avro)
 - **Gold** (정규화·집계·서빙): 서술 대상 기준 추세/비율, 수집원 편차 보정 — `contracts/gold/*.avsc` (Avro)
 

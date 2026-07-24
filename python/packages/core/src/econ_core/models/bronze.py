@@ -9,8 +9,27 @@ from econ_core.models.enums import Axis
 
 
 @dataclass(kw_only=True)
+class NewsBody:
+    """Bronze record — one immutable body version, stored once and content-addressed by SHA-256; unchanged bodies are never re-stored and edited bodies append a new version (PRD ingestion, AC1.4, AC1.7)."""
+
+    body_hash: str
+    raw_text: str
+    first_seen_at: str
+    first_seen_cycle: str
+
+    @classmethod
+    def from_dict(cls, d: dict) -> NewsBody:
+        return cls(
+            body_hash=d["body_hash"],
+            raw_text=d["raw_text"],
+            first_seen_at=d["first_seen_at"],
+            first_seen_cycle=d["first_seen_cycle"],
+        )
+
+
+@dataclass(kw_only=True)
 class NewsItem:
-    """Bronze record — a raw collected news item preserved with provenance metadata (PRD ingestion, AC1.1-AC1.6)."""
+    """Bronze record — one collection observation of a news item with provenance metadata; the body itself lives in news_body, referenced by hash (PRD ingestion, AC1.1-AC1.7)."""
 
     record_id: str
     source_id: str
@@ -19,7 +38,7 @@ class NewsItem:
     view_count: int
     title: str
     source_url: str
-    raw_text: str
+    body_hash: str
     body_available: bool
     collected_at: str
     collection_cycle: str
@@ -34,7 +53,7 @@ class NewsItem:
             view_count=d["view_count"],
             title=d["title"],
             source_url=d["source_url"],
-            raw_text=d["raw_text"],
+            body_hash=d["body_hash"],
             body_available=d["body_available"],
             collected_at=d["collected_at"],
             collection_cycle=d["collection_cycle"],

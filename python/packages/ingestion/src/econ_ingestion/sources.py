@@ -15,7 +15,8 @@ import hashlib
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 
-from econ_core.models import NewsItem
+from econ_core.domain import body_hash
+from econ_core.models import NewsBody, NewsItem
 
 
 @dataclass(frozen=True)
@@ -117,15 +118,23 @@ def _body(article: FakeArticle) -> str:
     return f"{article.subject}. tone={article.tone}. 대상국={countries}."
 
 
-def collect_source(source: FakeSource, cycle: str, collected_at: str) -> Iterator[NewsItem]:
-    """Yield ranked ``NewsItem``s for one source, honoring its top-N cap (AC1.2)."""
+def collect_source(
+    source: FakeSource, cycle: str, collected_at: str
+) -> Iterator[tuple[NewsItem, str | None]]:
+    """Yield ranked ``(NewsItem, body)`` pairs for one source, honoring its top-N cap (AC1.2).
+
+    The observation record carries only the body's content address; the body
+    text itself (``None`` when not captured) is stored separately so unchanged
+    bodies deduplicate and edited bodies version (AC1.4, AC1.7).
+    """
     if source.broken:
         raise SourceError(f"source '{source.source_id}' failed to respond")
     take = min(source.limit, source.available, len(source.articles))
     ranked = sorted(source.articles, key=lambda a: a.base_views, reverse=True)[:take]
     for rank, article in enumerate(ranked, start=1):
         url = _url(article.subject)
-        yield NewsItem(
+        body = _body(article) if article.body_available else None
+        item = NewsItem(
             record_id=_record_id(source.source_id, url, cycle),
             source_id=source.source_id,
             axis=source.axis,
@@ -133,11 +142,12 @@ def collect_source(source: FakeSource, cycle: str, collected_at: str) -> Iterato
             view_count=article.base_views,
             title=_title(article),
             source_url=url,
-            raw_text=_body(article) if article.body_available else "",
+            body_hash=body_hash(body) if body is not None else "",
             body_available=article.body_available,
             collected_at=collected_at,
             collection_cycle=cycle,
         )
+        yield item, body
 
 
 @dataclass
@@ -151,11 +161,17 @@ def run_ingestion(
     cycle: str,
     collected_at: str,
     sources: list[FakeSource] | None = None,
-) -> tuple[list[dict], IngestStats]:
-    """Collect across all sources, de-duplicating by URL and isolating failures."""
+) -> tuple[list[dict], list[dict], IngestStats]:
+    """Collect across all sources, de-duplicating by URL and isolating failures.
+
+    Returns ``(news_item dicts, news_body dicts, stats)``. Bodies are already
+    unique by content hash within the run (same body via different URLs stores
+    once, AC1.7); cross-run dedup happens at the store via ``merge_records``.
+    """
     sources = CATALOG if sources is None else sources
     seen: set[str] = set()
     items: list[dict] = []
+    bodies: dict[str, dict] = {}
     stats = IngestStats()
     for source in sources:
         try:
@@ -163,11 +179,20 @@ def run_ingestion(
         except SourceError:
             stats.failed_sources.append(source.source_id)
             continue
-        for item in produced:
+        for item, body in produced:
             if item.source_url in seen:
                 stats.duplicates += 1
                 continue
             seen.add(item.source_url)
             items.append(asdict(item))
             stats.collected += 1
-    return items, stats
+            if body is not None and item.body_hash not in bodies:
+                bodies[item.body_hash] = asdict(
+                    NewsBody(
+                        body_hash=item.body_hash,
+                        raw_text=body,
+                        first_seen_at=collected_at,
+                        first_seen_cycle=cycle,
+                    )
+                )
+    return items, list(bodies.values()), stats

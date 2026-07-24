@@ -31,7 +31,13 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
-    analyses = [asdict(analyze(item, args.analyzer_version)) for item in bronze]
+    # Bodies live once in the content-addressed store; observations resolve by hash (AC1.4, AC1.7).
+    body_records = store.read_records(domain.BRONZE, domain.DS_NEWS_BODY)
+    bodies = {b["body_hash"]: b["raw_text"] for b in body_records}
+    analyses = [
+        asdict(analyze(item, bodies.get(item.get("body_hash") or ""), args.analyzer_version))
+        for item in bronze
+    ]
     written = store.write_records(domain.SILVER, domain.DS_ANALYSIS, analyses)
 
     unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")
