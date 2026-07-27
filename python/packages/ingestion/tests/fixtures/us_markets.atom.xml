@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>US Markets Desk</title>
+  <entry>
+    <title>Federal Reserve holds rates steady</title>
+    <link rel="alternate" href="https://news.example/us/fed"/>
+    <content type="html">The Federal Reserve held its policy rate steady.</content>
+  </entry>
+  <entry>
+    <title>원/달러 환율 (reprint)</title>
+    <link rel="alternate" href="https://news.example/kr/fx"/>
+    <summary>환율 급등 관련 재보도.</summary>
+  </entry>
+</feed>
