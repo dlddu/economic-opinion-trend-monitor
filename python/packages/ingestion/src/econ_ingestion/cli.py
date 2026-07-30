@@ -1,12 +1,16 @@
 """``econ-ingestion`` CLI — collect news into the Bronze layer.
 
-This is the scheduler trigger point: a real deployment would invoke this on a
-cron/interval (AC1.1). The skeleton just runs one cycle on demand.
+This is the scheduler trigger point: a real deployment invokes this on a
+cron/interval (AC1.1), passing the cycle window in via ``--cycle``; the CLI runs
+one cycle on demand and is idempotent per cycle. Wiring the actual schedule (a
+Kubernetes CronJob) remains a deployment follow-up.
 
 Two collection sources share the identical Bronze output path (``news_item`` +
-content-addressed ``news_body``): the deterministic ``fake`` catalog (default,
-keeps the cross-language smoke pinned) and the real ``feed`` source that fetches
-configured RSS/Atom endpoints (``--source feed``).
+content-addressed ``news_body``): the real ``feed`` source that fetches the
+configured RSS/Atom endpoints (the operational default; uses the checked-in
+``default_feeds.json`` when ``--feeds`` is omitted) and the deterministic
+``fake`` catalog (``--source fake``) that keeps the cross-language smoke and
+offline tests pinned.
 """
 
 from __future__ import annotations
@@ -17,11 +21,16 @@ from pathlib import Path
 
 from econ_core import domain, open_store
 
-from econ_ingestion.feeds import http_fetcher, load_feed_configs, run_feed_ingestion
+from econ_ingestion.feeds import (
+    default_feeds_path,
+    http_fetcher,
+    load_feed_configs,
+    run_feed_ingestion,
+)
 from econ_ingestion.sources import run_ingestion
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="econ-ingestion",
         description="Collect top-viewed news into the Bronze layer.",
@@ -39,16 +48,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--source",
-        choices=("fake", "feed"),
-        default="fake",
-        help="Collection source: deterministic 'fake' catalog (default) or real RSS/Atom 'feed'.",
+        choices=("feed", "fake"),
+        default="feed",
+        help="Collection source: real RSS/Atom 'feed' (default) or the deterministic "
+        "'fake' catalog used by the offline smoke/tests.",
     )
     parser.add_argument(
         "--feeds",
         type=Path,
         default=None,
-        help="Feed source config JSON (required with --source feed): "
-        "[{source_id, axis, feed_url, limit}].",
+        help="Feed source config JSON for --source feed "
+        "(default: packaged default_feeds.json): [{source_id, axis, feed_url, limit}].",
     )
     parser.add_argument(
         "--fetch-timeout",
@@ -56,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
         default=15.0,
         help="Per-feed HTTP fetch timeout in seconds (--source feed).",
     )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
     args = parser.parse_args(argv)
 
     now = datetime.now(UTC)
@@ -63,9 +78,8 @@ def main(argv: list[str] | None = None) -> int:
     collected_at = now.replace(microsecond=0).isoformat()
 
     if args.source == "feed":
-        if args.feeds is None:
-            parser.error("--source feed requires --feeds <config.json>")
-        configs = load_feed_configs(args.feeds)
+        feeds_path = args.feeds or default_feeds_path()
+        configs = load_feed_configs(feeds_path)
         items, bodies, stats = run_feed_ingestion(
             configs, cycle, collected_at, http_fetcher(args.fetch_timeout)
         )
