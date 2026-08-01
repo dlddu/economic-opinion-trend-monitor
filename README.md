@@ -44,7 +44,7 @@
 contracts/   스키마(단일 소스) + 코드젠 — bronze/*.schema.json, silver|gold/*.avsc, codegen.py
 python/      uv 워크스페이스 (배치)
   packages/core         공유 도메인 + 생성 모델 + 스토리지 추상화(로컬 FS 구현)
-  packages/ingestion    CLI 엔트리 · 페이크 뉴스 소스 · Bronze writer (스텁)
+  packages/ingestion    CLI 엔트리 · 실 RSS/Atom 피드 소스(기본) + 페이크 카탈로그 · Bronze writer
   packages/analysis     CLI 엔트리 · 페이크 LLM · Silver writer (스텁)
   packages/aggregation  CLI 엔트리 · Gold builder (정규화 스텁)
 go/          Go 모듈 (서빙)
@@ -88,7 +88,8 @@ make e2e       # kind e2e: 픽스처 Gold -> 클러스터 내 서빙 -> Playwrig
 ```bash
 make setup && make gen
 # 배치 파이프라인: 페이크 입력 -> bronze -> silver -> gold (data/ 에 더미 레코드)
-cd python && uv run python -m econ_ingestion && uv run python -m econ_analysis && uv run python -m econ_aggregation && cd ..
+# ingestion 기본 소스는 실 RSS/Atom 피드(네트워크). 오프라인 데모는 --source fake 로 고정한다.
+cd python && uv run python -m econ_ingestion --source fake && uv run python -m econ_analysis && uv run python -m econ_aggregation && cd ..
 make build-web                 # web/dist 생성
 make run                       # http://localhost:8080  (대시보드 + /api/* 스텁)
 ```
@@ -130,7 +131,7 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
 - 교차 언어 스모크 + 언어별 단위 테스트 1개 + CI
 
 **범위 밖 (후속 기능 작업):**
-- 실제 뉴스 API·실제 LLM 연동 (페이크로 대체)
+- 실제 LLM 연동 (페이크로 대체) — 수집은 실 RSS/Atom 피드가 기본으로 배선됨(피드 목록은 큐레이션 대상)
 - 실제 정규화 수식·집계 로직 (시그니처/스텁만)
 - 프론트 7화면 전부 (셸 + 대시보드만; 나머지 6화면은 플레이스홀더)
 - 원격(S3 등) 스토리지 (인터페이스 + 로컬 FS만)

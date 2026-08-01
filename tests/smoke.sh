@@ -20,7 +20,9 @@ echo "[smoke] lake: $DATA  port: $PORT"
 # 1) Python: fake ingestion -> analysis -> aggregation into the temp lake.
 (
   cd "$ROOT/python"
-  uv run --quiet python -m econ_ingestion --data "$DATA" --cycle 2026-06-23T14:00
+  # Pinned to the deterministic fake source: the operational default is now the
+  # real RSS/Atom feed, but the smoke must stay offline and deterministic.
+  uv run --quiet python -m econ_ingestion --source fake --data "$DATA" --cycle 2026-06-23T14:00
   uv run --quiet python -m econ_analysis --data "$DATA"
   uv run --quiet python -m econ_aggregation --data "$DATA"
 )
