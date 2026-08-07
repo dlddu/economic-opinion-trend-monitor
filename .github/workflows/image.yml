@@ -4,7 +4,7 @@
 #   ghcr.io/dlddu/economic-opinion-trend-monitor         serving (Dockerfile)
 #     -> deploy/base/deployment.yaml
 #   ghcr.io/dlddu/economic-opinion-trend-monitor-batch   batch   (Dockerfile.batch)
-#     -> deploy/batch/cronjob-ingestion.yaml (AC1.1 scheduled ingestion)
+#     -> deploy/batch/workflow-template.yaml (AC1.1 scheduled ingestion)
 name: Image
 
 on:
