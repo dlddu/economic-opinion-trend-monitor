@@ -1,0 +1,76 @@
+# AC1.1 — 정기 수집 스케줄링 (주기 설정 가능).
+#
+# Runs one ingestion cycle per schedule tick. `econ-ingestion` derives the
+# cycle id from the current UTC hour when --cycle is omitted and is idempotent
+# per cycle, so a tick that runs late still lands in the right cycle bucket.
+#
+# The three AC1.1 obligations map onto concrete fields:
+#   * "정해진 주기로 자동 실행"  -> spec.schedule (default: hourly)
+#   * "주기를 설정으로 변경"     -> overlay patch on /spec/schedule (see
+#                                  overlays/prod/kustomization.yaml)
+#   * "실행 누락 시 재시도/보정" -> startingDeadlineSeconds (a tick missed
+#                                  because the controller was down still
+#                                  starts, up to 30m late) + backoffLimit
+#                                  (per-run retries) + concurrencyPolicy:
+#                                  Forbid (a late run never overlaps the next)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: econ-ingestion
+spec:
+  # Default cadence per PRD-1: 매시간. Override per environment with a patch.
+  schedule: "0 * * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  # Catch up a start missed by up to 30 minutes instead of skipping the cycle.
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Retry a failed cycle a few times; give up well before the next tick so
+      # Forbid never blocks it.
+      backoffLimit: 3
+      activeDeadlineSeconds: 3000
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            # Make the shared data volume group-writable for the batch user;
+            # the serving Pod reads the same volume as the same nonroot UID.
+            fsGroup: 65532
+          containers:
+            - name: ingestion
+              image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:latest
+              # No args: the default source is the real feed list and the cycle
+              # defaults to the current UTC hour. Add e.g.
+              # ["--cycle", "2026-06-23T14:00"] to backfill a specific window.
+              args: []
+              env:
+                - name: ECON_DATA_ROOT
+                  value: /data
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            # Overlay seam — prod swaps this for the serving PVC.
+            - name: data
+              emptyDir: {}
+            - name: tmp
+              emptyDir: {}

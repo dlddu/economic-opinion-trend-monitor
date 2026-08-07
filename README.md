@@ -105,7 +105,8 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 ```
 deploy/
   base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
-  overlays/prod/   네임스페이스(econ-monitor) + PVC(gold 영속화)
+  batch/           환경 무관 배치 스케줄 (수집 CronJob, /data는 emptyDir)
+  overlays/prod/   네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
 ```
 
 ```bash
@@ -118,8 +119,12 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   `econ-serving` Service(8080)까지만 만든다.
 - kind e2e(`tests/e2e/k8s/`)는 같은 `deploy/base`의 오버레이라서, e2e가 돌 때마다
   배포 base가 실제 클러스터에서 검증된다.
-- 배치(수집·분석·집계) CronJob 배선과 원격 스토리지는 후속 작업이다
-  (스케줄러 배선 자체가 골격 범위 밖 — 아래 [범위](#범위) 참조).
+- 수집 배치는 `deploy/batch`의 CronJob으로 배선돼 있다(기본 매시간 = AC1.1).
+  주기는 오버레이 패치(`/spec/schedule`)로 환경별로 바꾼다. 배치 이미지는
+  `Dockerfile.batch`에서 빌드돼 `…-batch` 이름으로 같이 발행된다.
+  `deploy/batch`는 `deploy/base`가 아니라 prod 오버레이가 직접 포함한다 —
+  base는 서빙 스택 계약이고 kind e2e가 그 base를 그대로 상속하기 때문이다.
+- 분석·집계 CronJob과 원격 스토리지는 후속 작업이다.
 
 ## 범위
 

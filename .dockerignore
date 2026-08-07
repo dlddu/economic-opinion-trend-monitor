@@ -1,10 +1,17 @@
-# The image build only needs go/ and web/ sources — keep the context minimal
-# and keep host build artifacts out of the image (it builds its own).
+# Two images build from this context:
+#   Dockerfile        serving  — needs go/ and web/
+#   Dockerfile.batch  batch    — needs python/ (the uv workspace)
+# Keep everything else out, and keep host build artifacts / caches out of the
+# image (each build makes its own).
 *
 !go
 !web
+!python
 go/bin
 web/node_modules
 web/dist
 web/.vite
 **/*.tsbuildinfo
+python/.venv
+**/__pycache__
+**/*.pyc

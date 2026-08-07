@@ -2,8 +2,10 @@
 
 This is the scheduler trigger point: a real deployment invokes this on a
 cron/interval (AC1.1), passing the cycle window in via ``--cycle``; the CLI runs
-one cycle on demand and is idempotent per cycle. Wiring the actual schedule (a
-Kubernetes CronJob) remains a deployment follow-up.
+one cycle on demand and is idempotent per cycle. The schedule itself is wired in
+``deploy/batch/cronjob-ingestion.yaml`` (hourly by default, per-environment
+override via a kustomize patch on ``/spec/schedule``), which runs this CLI with
+no arguments so the cycle falls out of the current UTC hour.
 
 Two collection sources share the identical Bronze output path (``news_item`` +
 content-addressed ``news_body``): the real ``feed`` source that fetches the

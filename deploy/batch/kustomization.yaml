@@ -1,0 +1,18 @@
+# Scheduled batch workloads (environment-agnostic). Kept OUT of deploy/base on
+# purpose: base is the *serving* stack, and the kind e2e overlay
+# (tests/e2e/k8s) inherits base wholesale — a CronJob there would schedule Jobs
+# pulling a batch image that `kind load` never side-loads. Overlays that want
+# the schedule opt in explicitly (see overlays/prod).
+#
+# Like base, the /data volume here is an emptyDir seam: an overlay replaces it
+# with the volume that the serving stack reads.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cronjob-ingestion.yaml
+
+labels:
+  - includeSelectors: false
+    pairs:
+      app: econ-batch
