@@ -1,0 +1,22 @@
+# Batch data lake volume, separate from the serving claim on purpose.
+#
+# The ingestion stage writes Bronze; the serving stack only ever reads Gold, so
+# nothing needs the two to share a volume yet. Keeping them apart also keeps a
+# ReadWriteOnce claim safe: exactly one batch Pod mounts this (the schedule
+# uses concurrencyPolicy: Forbid), so there is no multi-attach window against
+# the serving Pod — which matters here because serving is scaled to zero when
+# idle and can come back on any node.
+#
+# When the Bronze -> Silver -> Gold chain is wired end to end, that slice
+# decides how batch output reaches serving (shared ReadWriteMany claim, or a
+# copy step) — see README.
+# No storageClassName: the cluster default is used.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: econ-batch-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi

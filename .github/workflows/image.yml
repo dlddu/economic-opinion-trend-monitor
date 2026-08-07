@@ -1,7 +1,10 @@
-# Publishes the serving image (Dockerfile at the repo root) to GHCR so an
-# external cluster can pull what deploy/ references:
-#   ghcr.io/dlddu/economic-opinion-trend-monitor:latest  (moving, tracks main)
-#   ghcr.io/dlddu/economic-opinion-trend-monitor:sha-<commit>  (immutable pin)
+# Publishes the two runtime images to GHCR so an external cluster can pull what
+# deploy/ references. Each gets a moving `latest` (tracks main) and an
+# immutable `sha-<commit>` pin:
+#   ghcr.io/dlddu/economic-opinion-trend-monitor         serving (Dockerfile)
+#     -> deploy/base/deployment.yaml
+#   ghcr.io/dlddu/economic-opinion-trend-monitor-batch   batch   (Dockerfile.batch)
+#     -> deploy/batch/cronjob-ingestion.yaml (AC1.1 scheduled ingestion)
 name: Image
 
 on:
@@ -18,6 +21,17 @@ jobs:
   publish:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: serving
+            suffix: ""
+            dockerfile: Dockerfile
+          - name: batch
+            suffix: "-batch"
+            dockerfile: Dockerfile.batch
+    name: publish (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +49,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}${{ matrix.suffix }}
           tags: |
             type=raw,value=latest
             type=sha,format=long
@@ -44,8 +58,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Distinct scopes: one cache per image, so they never evict each other.
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

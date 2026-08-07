@@ -120,7 +120,7 @@ def default_feeds_path() -> Path:
     """Path to the checked-in default feed source list (used when ``--feeds`` is omitted).
 
     A curated *starter* set of real economic RSS/Atom endpoints across the KR/US/GLOBAL
-    axes; operations verify and refine it before the scheduled CronJob (AC1.1) goes live.
+    axes; operations verify and refine it as the scheduled CronWorkflow (AC1.1) runs on it.
     Unreachable entries degrade gracefully — :func:`run_feed_ingestion` isolates per-source
     failures (AC1.6) rather than aborting the run. Ships inside the package so it resolves
     regardless of the working directory.

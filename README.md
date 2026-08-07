@@ -105,7 +105,8 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 ```
 deploy/
   base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
-  overlays/prod/   네임스페이스(econ-monitor) + PVC(gold 영속화)
+  batch/           환경 무관 배치 스케줄 (Argo CronWorkflow, /data는 emptyDir)
+  overlays/prod/   네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
 ```
 
 ```bash
@@ -118,8 +119,26 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   `econ-serving` Service(8080)까지만 만든다.
 - kind e2e(`tests/e2e/k8s/`)는 같은 `deploy/base`의 오버레이라서, e2e가 돌 때마다
   배포 base가 실제 클러스터에서 검증된다.
-- 배치(수집·분석·집계) CronJob 배선과 원격 스토리지는 후속 작업이다
-  (스케줄러 배선 자체가 골격 범위 밖 — 아래 [범위](#범위) 참조).
+- 수집 배치는 `deploy/batch`의 **Argo Workflows CronWorkflow**
+  (`econ-ingestion-hourly`)로 배선돼 있다(기본 매시간 = AC1.1). 주기는 오버레이
+  패치(`/spec/schedule`)로 환경별로 바꾼다. 배치 이미지는 `Dockerfile.batch`에서
+  빌드돼 `…-batch` 이름으로 같이 발행되며, 비공개 패키지라 워크플로가
+  `imagePullSecrets: [ghcr]`를 직접 들고 간다.
+  `deploy/batch`는 `deploy/base`가 아니라 prod 오버레이가 직접 포함한다 —
+  base는 서빙 스택 계약이고 kind e2e가 그 base를 그대로 상속하기 때문이다
+  (e2e 클러스터에는 Argo 컨트롤러도 없다). 클러스터에 이미 상주하는
+  cluster-scoped Argo Workflows 컨트롤러가 이 네임스페이스의 CronWorkflow를
+  집어가므로 네임스페이스별 설치는 필요 없다.
+- **CronWorkflow는 `suspend: true` 상태로 배포된다.** 이 경로는 자동 동기화되므로
+  머지가 곧 적용이고, suspend가 "적용됐다"와 "돌기 시작했다"를 분리한다. 켜기 전에
+  `econ-batch-pipeline`에서 워크플로를 1회 수동 제출해 이미지 pull·볼륨 쓰기·수집이
+  실제로 되는지 확인한다. 켜는 순간부터 `default_feeds.json`의 모든 엔드포인트로
+  매시간 실제 HTTP 요청이 나간다.
+- 수집이 쓰는 Bronze는 서빙 클레임과 분리된 `econ-batch-data`에 쌓인다. 서빙은 Gold만
+  읽으므로 아직 볼륨을 공유할 이유가 없고, 분리해 두면 RWO 클레임의 멀티어태치
+  위험도 없다. Bronze→Silver→Gold 체인이 이어질 때 그 슬라이스가 배치 산출물을
+  서빙까지 어떻게 넘길지(공유 RWX 클레임 또는 복사 단계) 정한다.
+- 분석·집계 스케줄과 원격 스토리지는 후속 작업이다.
 
 ## 범위
 
