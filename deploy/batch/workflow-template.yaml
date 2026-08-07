@@ -1,0 +1,66 @@
+# Batch pipeline templates. Today only ingestion (AC1.1) is wired; the analysis
+# and aggregation stages get their own entrypoints when those slices land.
+#
+# `imagePullSecrets` is declared here rather than left to the cluster: the
+# batch image is a private GHCR package, and the cluster's imagePullSecret
+# patch is scoped to the serving Deployment, so a batch Pod would otherwise
+# never receive it. The `ghcr` Secret itself is injected into the namespace by
+# external-secrets.
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: econ-batch-pipeline
+spec:
+  entrypoint: ingest
+  serviceAccountName: econ-batch
+  imagePullSecrets:
+    - name: ghcr
+  podMetadata:
+    annotations:
+      gitops-repository: economic-opinion-trend-monitor
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    # Hand the mounted data volume to the batch user on attach.
+    fsGroup: 65532
+  volumes:
+    # Overlay seam, mirroring deploy/base: prod swaps this for a PVC.
+    - name: data
+      emptyDir: {}
+    - name: tmp
+      emptyDir: {}
+  templates:
+    # AC1.1 "실행 누락 시 재시도" — Argo-native per-step retries.
+    - name: ingest
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:latest
+        # Set explicitly (rather than relying on the image ENTRYPOINT) so the
+        # emissary executor never has to look the entrypoint up from a private
+        # registry. No args: the default source is the real feed list and the
+        # cycle defaults to the current UTC hour. Add e.g.
+        # ["--cycle", "2026-06-23T14:00"] to backfill a specific window.
+        command: ["econ-ingestion"]
+        args: []
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp

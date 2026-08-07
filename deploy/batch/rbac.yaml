@@ -1,0 +1,31 @@
+# Argo Workflows executor RBAC for the batch workloads.
+#
+# Every workflow Pod reports step results back to the controller by
+# creating/patching `workflowtaskresults`; without this Role the very first
+# step fails with a permissions error. The cluster's other Argo users
+# (frankfurter, gha-observability) carry the identical three-object set.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: econ-batch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: econ-batch-executor
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtaskresults"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: econ-batch-executor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: econ-batch-executor
+subjects:
+  - kind: ServiceAccount
+    name: econ-batch

@@ -3,8 +3,8 @@
 # (or point a Flux Kustomization at this path).
 #
 # Adds the app namespace, pulls in the scheduled batch (deploy/batch), and
-# replaces both emptyDirs with the one PVC so Gold survives Pod restarts and
-# the ingestion CronJob writes into the very claim the serving Pod reads.
+# gives each emptyDir seam a real claim: Gold survives Pod restarts, and the
+# scheduled ingestion writes Bronze into its own batch claim.
 # Exposure (Ingress etc.) is left to the cluster's own config.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -16,6 +16,7 @@ resources:
   - ../../base
   - ../../batch
   - pvc.yaml
+  - batch-pvc.yaml
 
 patches:
   # Swap the data emptyDir for the PVC, and use Recreate so a rolling update
@@ -35,21 +36,31 @@ patches:
         value:
           type: Recreate
 
-  # Same swap for the ingestion CronJob: it writes Bronze into the shared claim.
-  #
-  # AC1.1 "주기를 설정으로 변경한다" is exercised here — to run every 30 minutes
-  # instead of hourly, add to this patch:
-  #     - op: replace
-  #       path: /spec/schedule
-  #       value: "*/30 * * * *"
-  # and re-apply; the change takes effect from the next tick.
+  # Give the batch workflow its own claim in place of the emptyDir seam.
   - target:
-      kind: CronJob
-      name: econ-ingestion
+      group: argoproj.io
+      kind: WorkflowTemplate
+      name: econ-batch-pipeline
     patch: |-
       - op: replace
-        path: /spec/jobTemplate/spec/template/spec/volumes/0
+        path: /spec/volumes/0
         value:
           name: data
           persistentVolumeClaim:
-            claimName: econ-serving-data
+            claimName: econ-batch-data
+
+  # AC1.1 "주기를 설정으로 변경한다" is exercised here — to run every 30 minutes
+  # instead of hourly, add a patch:
+  #     - target:
+  #         group: argoproj.io
+  #         kind: CronWorkflow
+  #         name: econ-ingestion-hourly
+  #       patch: |-
+  #         - op: replace
+  #           path: /spec/schedule
+  #           value: "*/30 * * * *"
+  # and re-apply; the change takes effect from the next tick.
+  #
+  # The same seam turns the schedule on: /spec/suspend to false. It ships
+  # suspended — see deploy/batch/cronworkflow-ingestion.yaml for what to check
+  # before flipping it.

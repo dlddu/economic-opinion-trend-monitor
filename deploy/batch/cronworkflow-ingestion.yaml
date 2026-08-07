@@ -1,0 +1,44 @@
+# AC1.1 — 정기 수집 스케줄링 (주기 설정 가능).
+#
+# Runs one ingestion cycle per schedule tick. `econ-ingestion` derives the
+# cycle id from the current UTC hour when --cycle is omitted and is idempotent
+# per cycle, so a tick that runs late still lands in the right cycle bucket.
+#
+# The three AC1.1 obligations map onto concrete fields:
+#   * "정해진 주기로 자동 실행"  -> spec.schedule (default: hourly)
+#   * "주기를 설정으로 변경"     -> overlay patch on /spec/schedule (see
+#                                  overlays/prod/kustomization.yaml)
+#   * "실행 누락 시 재시도/보정" -> startingDeadlineSeconds (a tick missed
+#                                  because the controller was down still
+#                                  starts, up to 30m late) + the template's
+#                                  retryStrategy (per-run retries) +
+#                                  concurrencyPolicy: Forbid (a late run never
+#                                  overlaps the next)
+#
+# ★ Lands suspended on purpose — do not flip this in the same change that
+#   introduces it. The cluster syncs this path automatically, so merging is
+#   already applying; suspend keeps "applied" and "running" separate decisions.
+#   Before unsuspending, submit one workflow by hand from
+#   `econ-batch-pipeline` and confirm the private batch image pulls, the data
+#   volume mounts writable, and a cycle completes. Unsuspending starts real
+#   outbound HTTP to every endpoint in default_feeds.json, every hour.
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: econ-ingestion-hourly
+spec:
+  suspend: true
+  # Default cadence per PRD-1: 매시간. Override per environment with a patch.
+  schedule: "0 * * * *"
+  timezone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  # Catch up a start missed by up to 30 minutes instead of skipping the cycle.
+  startingDeadlineSeconds: 1800
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  workflowSpec:
+    workflowTemplateRef:
+      name: econ-batch-pipeline
+    entrypoint: ingest
+    # Give up well before the next tick so Forbid never blocks it.
+    activeDeadlineSeconds: 3000
