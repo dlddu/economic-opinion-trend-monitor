@@ -12,6 +12,8 @@
   규칙2  모든 spec 파일은 정확히 하나의 AC(또는 "없음 = 스모크/인프라")를 선언한다.
   규칙1' 한 AC를 두 개 이상의 파일이 선언하지 않는다(중복은 지금 고칠 수 있는 위반).
   규칙3  AC를 선언하지 않는 파일은 doc-tracker 의 비-AC 등재 표에 있어야 한다.
+  규칙4' "예외 후보 중 미등재" 표에 오른 AC(= 예외로 빼지 않기로 판정한 AC)는
+         "예외 목록"에 동시에 나타날 수 없다. 판정의 조용한 회귀를 막는다.
   규칙5  선언·등재가 가리키는 AC 코드가 실재해야 한다. 예외 등재된 AC 는 동시에
          spec 파일을 가질 수 없다.
   규칙6  doc-tracker 의 집계·매핑·공백 목록이 위 실측과 정확히 일치해야 한다.
@@ -47,6 +49,7 @@ MAPPING_SECTION = "AC ↔ spec 파일 (실측)"
 EXCEPTION_SECTION = "예외 목록"
 COUNTS_SECTION = "집계 (실측)"
 GAP_SECTION = "공백 (1:1 대상 중 파일 없음)"
+NOT_EXCEPT_SECTION = "예외 후보 중 미등재 (공백으로 계수)"
 
 
 def ac_sort_key(code: str) -> tuple[int, int]:
@@ -143,6 +146,22 @@ def strip_code(cell: str) -> str:
     return cell.strip().strip("`").strip()
 
 
+def marked_block(section: list[str], marker: str, section_name: str) -> tuple[str, str | None]:
+    """``<!-- <marker>:begin -->`` ~ ``:end`` 사이만 돌려준다.
+
+    절 전체를 긁으면 설명문에 적힌 AC 코드가 목록으로 오인돼 검사가 헐거워진다(실제로
+    한 번 그렇게 통과했다). 마커가 없으면 그 자체를 위반으로 보고한다 — 마커를 지워
+    검사를 무력화하는 경로를 막기 위해서다.
+    """
+    begin = f"<!-- {marker}:begin"
+    end = f"<!-- {marker}:end"
+    start = next((i for i, line in enumerate(section) if line.strip().startswith(begin)), None)
+    stop = next((i for i, line in enumerate(section) if line.strip().startswith(end)), None)
+    if start is None or stop is None or stop <= start:
+        return "", f"규칙6: `### {section_name}` 에 `{begin} -->` ~ `{end} -->` 마커 블록이 없다"
+    return "\n".join(section[start + 1 : stop]), None
+
+
 # --- 검사 --------------------------------------------------------------------
 
 
@@ -159,7 +178,14 @@ def main() -> int:
     sections = tracker_sections()
     missing = [
         name
-        for name in (COUNTS_SECTION, MAPPING_SECTION, EXCEPTION_SECTION, SMOKE_SECTION, GAP_SECTION)
+        for name in (
+            COUNTS_SECTION,
+            MAPPING_SECTION,
+            EXCEPTION_SECTION,
+            SMOKE_SECTION,
+            GAP_SECTION,
+            NOT_EXCEPT_SECTION,
+        )
         if name not in sections
     ]
     if missing:
@@ -177,7 +203,13 @@ def main() -> int:
     registered_counts = {
         strip_code(r[0]): strip_code(r[1]) for r in table_rows(sections.get(COUNTS_SECTION, [])) if len(r) >= 2
     }
-    registered_gaps = sorted(set(AC_CODE.findall("\n".join(sections.get(GAP_SECTION, [])))), key=ac_sort_key)
+    gap_body, gap_problem = marked_block(sections.get(GAP_SECTION, []), "gap-list", GAP_SECTION)
+    if gap_problem:
+        problems.append(gap_problem)
+    registered_gaps = sorted(set(AC_CODE.findall(gap_body)), key=ac_sort_key)
+    # 예외로 빼지 않기로 판정한 AC(레지스트리). 표의 첫 열만 읽는다 — 본문 서술이 다른
+    # AC를 언급해도("AC2.2와 동일") 판정 대상으로 오인하지 않기 위해서다.
+    not_excepted = [strip_code(r[0]) for r in table_rows(sections.get(NOT_EXCEPT_SECTION, [])) if r]
 
     # 규칙5 — 등재가 가리키는 AC 가 실재하는가
     for code in registered_exceptions:
@@ -189,6 +221,16 @@ def main() -> int:
     for code, spec in declarations.items():
         if spec != NO_AC and spec not in acs:
             problems.append(f"규칙5: {code} 이 존재하지 않는 AC `{spec}` 을 선언한다")
+
+    # 규칙4' — "예외로 빼지 않는다"는 판정이 조용히 회귀하지 않는다
+    for code in not_excepted:
+        if code not in acs:
+            problems.append(f"규칙5: 미등재 판정 표가 존재하지 않는 AC `{code}` 를 등재하고 있다")
+        elif code in registered_exceptions:
+            problems.append(
+                f"규칙4': {code} 는 `{NOT_EXCEPT_SECTION}` 에 예외로 빼지 않기로 판정돼 있는데 "
+                f"`{EXCEPTION_SECTION}` 에도 있다 — 판정을 뒤집으려면 미등재 표에서 행을 빼는 명시적 변경이 필요하다"
+            )
 
     # 규칙3 — AC 를 선언하지 않는 파일은 비-AC 등재가 있어야 고아가 아니다
     measured_smoke = sorted(f for f, v in declarations.items() if v == NO_AC)
@@ -257,7 +299,7 @@ def main() -> int:
         for p in problems:
             print(f"  - {p}", file=sys.stderr)
         return 1
-    print("\nOK: 규칙 1(중복)·2·3·5·6 위반 없음 — 공백은 위 집계대로 문서에 기록돼 있다")
+    print("\nOK: 규칙 1(중복)·2·3·4'·5·6 위반 없음 — 공백은 위 집계대로 문서에 기록돼 있다")
     return 0
 
 
