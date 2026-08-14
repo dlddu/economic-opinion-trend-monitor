@@ -34,3 +34,20 @@ export interface DashboardResponse {
   top_subjects: RankRow[];
   sentiment: SentimentDistribution;
 }
+
+/** One axis column of the 3-axis comparison (AC3.7). */
+export interface AxisColumn {
+  axis: Axis;
+  top_subjects: RankRow[];
+  sentiment: SentimentDistribution;
+}
+
+export interface CompareResponse {
+  /** The terms every column was compared on — same bucket, same normalization. */
+  basis: {
+    time_bucket: string;
+    bucket_unit: string;
+    normalized: boolean;
+  };
+  axes: AxisColumn[];
+}
