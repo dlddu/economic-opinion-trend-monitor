@@ -21,7 +21,7 @@ GEN_PATHS  := go/gen python/packages/core/src/econ_core/models
 .PHONY: help setup gen gen-check \
         build build-go build-web \
         test test-py test-go test-web test-cross e2e \
-        lint lint-py lint-go lint-web \
+        lint lint-py lint-go lint-web lint-ac-mapping \
         fmt run clean
 
 help: ## Show this help
@@ -74,7 +74,7 @@ e2e: ## kind e2e: fixture Gold -> in-cluster serving -> Playwright (docker/kind/
 	./tests/e2e/run.sh
 
 ## --- lint ----------------------------------------------------------------
-lint: lint-py lint-go lint-web ## Lint all languages
+lint: lint-py lint-go lint-web lint-ac-mapping ## Lint all languages + AC<->e2e mapping
 
 lint-py: ## ruff check + format check
 	cd $(PYTHON_DIR) && uv run ruff check . && uv run ruff format --check .
@@ -85,6 +85,9 @@ lint-go: ## gofmt + go vet
 
 lint-web: ## eslint
 	cd $(WEB_DIR) && npm run lint
+
+lint-ac-mapping: ## AC <-> e2e spec 1:1 mapping vs doc-tracker "e2e 매핑" section
+	python3 tests/e2e/check_ac_mapping.py
 
 fmt: ## Auto-format Python + Go
 	cd $(PYTHON_DIR) && uv run ruff format . && uv run ruff check --fix .
