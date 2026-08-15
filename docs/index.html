@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>경제 여론 추세 모니터 · 문서 허브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   목업 페이지들과 동일한 :root 블록을 인라인한다 — 이 허브도 자립형이다.
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+a{color:inherit;text-decoration:none}
+
+.wrap{max-width:900px;margin:0 auto;padding:56px 24px 72px}
+
+header{border-bottom:1px solid var(--line-2);padding-bottom:22px;margin-bottom:34px}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3)}
+h1{font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:-.01em;margin-top:6px}
+.sub{color:var(--ink-2);margin-top:8px;max-width:62ch}
+.sub code{font-family:var(--mono);font-size:12px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:var(--r-xs);padding:1px 4px}
+
+h2{font-family:var(--serif);font-size:17px;font-weight:600;margin:34px 0 4px}
+.hint{color:var(--ink-3);font-size:12.5px;margin-bottom:14px}
+
+.group{margin-top:22px}
+.gl{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.gl::after{content:"";flex:1;height:1px;background:var(--line)}
+.vtag{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--primary);
+  background:var(--primary-soft);border-radius:var(--r-xs);padding:1px 5px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px}
+.card{display:block;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:14px 15px;box-shadow:var(--sh-1);
+  transition:box-shadow .15s ease,border-color .15s ease,transform .15s ease}
+.card:hover{box-shadow:var(--sh-2);border-color:var(--line-3);transform:translateY(-1px)}
+.card .top{display:flex;align-items:center;gap:8px}
+.card .name{font-weight:600}
+.card .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--primary);
+  background:var(--primary-soft);border-radius:var(--r-xs);padding:1px 5px}
+.card .id{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.card .desc{color:var(--ink-2);font-size:12.5px;margin-top:7px}
+
+ul.docs{list-style:none;display:grid;gap:8px}
+ul.docs li{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:11px 14px;box-shadow:var(--sh-1)}
+ul.docs a{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+ul.docs .t{font-weight:600}
+ul.docs .p{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+ul.docs .d{flex-basis:100%;color:var(--ink-2);font-size:12.5px}
+
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+  color:var(--ink-3);font-size:12.5px}
+footer p+p{margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Economic Opinion Trend Monitor</div>
+    <h1>경제 여론 추세 모니터 · 문서 허브</h1>
+    <p class="sub">사용자 여정 <code>J1</code>~<code>J5</code>와 그 여정을 시각화한 mockup 페이지 7개, 그리고 설계 문서로 들어가는 진입점이다.
+    각 mockup은 CSS·JS를 인라인한 자립형 HTML이라 빌드·네트워크 없이 열린다(웹폰트만 CDN).</p>
+  </header>
+
+  <h2>Mockup</h2>
+  <p class="hint">화면 단위 페이지 7개. 여정 ↔ 단계 ↔ 화면 매핑의 단일 소스는
+    <a href="mockups/econ-opinion-monitor-mockup-index.md"><code>mockups/econ-opinion-monitor-mockup-index.md</code></a>이며,
+    이 목록은 그 인덱스의 화면 목록과 일치해야 한다.</p>
+
+  <div class="group">
+    <div class="gl"><span>관찰 · Observer</span><span class="vtag">P1</span></div>
+    <div class="grid">
+      <a class="card" href="mockups/dashboard.html">
+        <div class="top"><span class="name">추세 대시보드</span><span class="jn">J1</span></div>
+        <div class="id">dash · mockups/dashboard.html</div>
+        <div class="desc">기본 축·기간의 상위 서술 대상 목록과 기간·단위 조정 (J1.1–1.2)</div>
+      </a>
+      <a class="card" href="mockups/trend.html">
+        <div class="top"><span class="name">대상 추세 상세</span><span class="jn">J1</span></div>
+        <div class="id">trend · mockups/trend.html</div>
+        <div class="desc">대상 시계열 추세와 상위 N개 겹쳐 비교 (J1.3–1.4) · J2.4의 상세 목적지</div>
+      </a>
+      <a class="card" href="mockups/compare.html">
+        <div class="top"><span class="name">3축 비교</span><span class="jn">J2</span></div>
+        <div class="id">compare · mockups/compare.html</div>
+        <div class="desc">한·미·글로벌을 같은 기준으로 대조하고 축 기준을 구분 (J2.1–2.3)</div>
+      </a>
+      <a class="card" href="mockups/sentiment.html">
+        <div class="top"><span class="name">분위기 분포</span><span class="jn">J3</span></div>
+        <div class="id">sentiment · mockups/sentiment.html</div>
+        <div class="desc">분위기 비율·미분석 분리 표기·분위기 추세 결합 (J3.1–3.3)</div>
+      </a>
+      <a class="card" href="mockups/fairness.html">
+        <div class="top"><span class="name">공정성·원천 추적</span><span class="jn">J4</span></div>
+        <div class="id">fairness · mockups/fairness.html</div>
+        <div class="desc">정규화 여부 구분과 편차 보정 인지, 원천 드릴다운 (J4.1–4.3)</div>
+      </a>
+      <a class="card" href="mockups/trace.html">
+        <div class="top"><span class="name">원문 추적 상세</span><span class="jn">J4</span></div>
+        <div class="id">trace · mockups/trace.html</div>
+        <div class="desc">Bronze 원문까지의 역추적과 분류 근거 확인 (J4.4)</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="gl"><span>운영 · Operator</span><span class="vtag">P2</span></div>
+    <div class="grid">
+      <a class="card" href="mockups/reprocess.html">
+        <div class="top"><span class="name">재처리 콘솔</span><span class="jn">J5</span></div>
+        <div class="id">reprocess · mockups/reprocess.html</div>
+        <div class="desc">재처리 범위 선택·재분석 실행·전후 비교·수집 무결성 점검 (J5.1–5.4)</div>
+      </a>
+    </div>
+  </div>
+
+  <h2>설계 문서</h2>
+  <p class="hint">여정이 스펙(SSOT)이고 mockup은 그 흐름의 걸어볼 수 있는 시각화다.</p>
+  <ul class="docs">
+    <li><a href="econ-opinion-monitor-user-journeys.md">
+      <span class="t">사용자 여정</span><span class="p">econ-opinion-monitor-user-journeys.md</span>
+      <span class="d">페르소나 P1·P2와 여정 J1~J5(19단계). 흐름의 단일 진실 공급원.</span></a></li>
+    <li><a href="mockups/econ-opinion-monitor-mockup-index.md">
+      <span class="t">Mockup 인덱스</span><span class="p">mockups/econ-opinion-monitor-mockup-index.md</span>
+      <span class="d">화면 ↔ 여정 단계 ↔ 가치 ↔ 디자인 시스템 항목의 단일 매핑 소스.</span></a></li>
+    <li><a href="design-system/econ-opinion-monitor-design-system.md">
+      <span class="t">디자인 시스템</span><span class="p">design-system/econ-opinion-monitor-design-system.md</span>
+      <span class="d">토큰 9 · 컴포넌트 19 · 패턴 9. 각 mockup의 <code>:root</code>가 이 정의와 1:1.</span></a></li>
+    <li><a href="econ-opinion-monitor-design-tracker.md">
+      <span class="t">설계·UX 상태 추적</span><span class="p">econ-opinion-monitor-design-tracker.md</span>
+      <span class="d">가치 ↔ 여정 ↔ mockup 연결 상태와 위험 진단, mockup 예외 등재.</span></a></li>
+    <li><a href="econ-opinion-monitor-doc-tracker.md">
+      <span class="t">제품 문서 상태 추적</span><span class="p">econ-opinion-monitor-doc-tracker.md</span>
+      <span class="d">가치 → PRD → AC → 테스트 측 추적(제품 문서 쪽).</span></a></li>
+  </ul>
+
+  <footer>
+    <p>현 mockup은 <strong>화면 단위</strong>다 — 여정 하나를 한 페이지에서 끝까지 걷는 여정 단위 구조로의 통합,
+      <code>data-journey</code>/<code>data-step</code> 규약 도입, 단계 식별자의 슬러그 이관은 후속 과제로 남아 있다.
+      자세한 내용은 여정 문서의 「알려진 후속」 절을 참조한다.</p>
+    <p>데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.</p>
+  </footer>
+
+</div>
+</body>
+</html>

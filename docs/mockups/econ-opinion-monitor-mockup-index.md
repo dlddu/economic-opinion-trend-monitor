@@ -4,21 +4,29 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/econ-opinion-monitor-user-journeys.md` · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-06-03
+> 마지막 갱신: 2026-08-15
+
+## 공개 진입점 (허브)
+문서 허브는 **`docs/index.html`** 이다 — 아래 화면 7개와 설계 문서로 들어가는 목록을 담는다. 허브의 링크 목록과 이 인덱스의 화면 목록은 **항상 같아야 한다**(한쪽만 갱신된 상태는 drift). `docs/mockups/index.html`은 허브가 아니라 목업 디렉터리 안에서 `dashboard.html`로 보내는 리다이렉트다.
+
+`docs/.nojekyll`이 있어 GitHub Pages가 이 디렉터리를 Jekyll 처리 없이 그대로 서빙한다. 다만 **레포 설정의 Pages 활성화는 아직 되어 있지 않다**(레포가 private) — 현재는 로컬 `file://`로 여는 것이 실제 열람 경로다.
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
 
-| 화면 id | 파일 | 형식 |
-|---------|------|------|
-| `dash` | `docs/mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
-| `trend` | `docs/mockups/trend.html` | 자립형 HTML |
-| `compare` | `docs/mockups/compare.html` | 자립형 HTML |
-| `sentiment` | `docs/mockups/sentiment.html` | 자립형 HTML |
-| `fairness` | `docs/mockups/fairness.html` | 자립형 HTML |
-| `trace` | `docs/mockups/trace.html` | 자립형 HTML |
-| `reprocess` | `docs/mockups/reprocess.html` | 자립형 HTML |
-| (진입) | `docs/mockups/index.html` | `dashboard.html`로 리다이렉트 |
+「공개 경로」는 허브(`docs/index.html`)에서 본 상대 경로다.
+
+| 화면 id | 파일 | 공개 경로 (허브 기준) | 형식 |
+|---------|------|------------------------|------|
+| `dash` | `docs/mockups/dashboard.html` | `mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
+| `trend` | `docs/mockups/trend.html` | `mockups/trend.html` | 자립형 HTML |
+| `compare` | `docs/mockups/compare.html` | `mockups/compare.html` | 자립형 HTML |
+| `sentiment` | `docs/mockups/sentiment.html` | `mockups/sentiment.html` | 자립형 HTML |
+| `fairness` | `docs/mockups/fairness.html` | `mockups/fairness.html` | 자립형 HTML |
+| `trace` | `docs/mockups/trace.html` | `mockups/trace.html` | 자립형 HTML |
+| `reprocess` | `docs/mockups/reprocess.html` | `mockups/reprocess.html` | 자립형 HTML |
+| (허브) | `docs/index.html` | — | 문서 허브 (화면 7개 + 설계 문서 목록) |
+| (진입) | `docs/mockups/index.html` | `mockups/index.html` | `dashboard.html`로 리다이렉트 |
 
 > 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 7개 페이지의 `:root`를 함께 수정한다.
 > 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(`dash`만 `dashboard.html`, 나머지는 `<id>.html`).
@@ -64,7 +72,8 @@
 - `dashboard.html` → `compare.html` ("3축 나란히 비교" 버튼), `dashboard.html` → `trend.html` (상위 대상 순위 행 클릭)
 - `fairness.html` → `trace.html` (원천 기여 뉴스의 "원문 →" 행 클릭)
 - `trace.html` → `reprocess.html` ("이 키로 재분석" 버튼)
-- 좌측 네비(`<a href>`)에서 7개 페이지 임의 전환, `index.html`은 대시보드로 리다이렉트
+- 좌측 네비(`<a href>`)에서 7개 페이지 임의 전환, `mockups/index.html`은 대시보드로 리다이렉트
+- 허브 `docs/index.html` → 7개 페이지 어디로든 (여정 태그 J1~J5와 함께 P1 관찰 / P2 운영으로 묶어 나열)
 
 ## 여정 단계 커버리지 (19/19)
 | 여정 | 단계 | 화면 |
