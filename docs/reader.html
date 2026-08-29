@@ -106,12 +106,13 @@ const CONFIG = {
   // 현재 이 폴더는 없다. 여정 단위 mockup 을 만들 때 docs/journeys/<journey-id>/index.html 로 둔다.
   mockupBase: 'journeys/',
   // "이 문서가 그 여정의 문서다" 를 확정하는 두 가지 근거. 각각 1번 그룹으로 여정 ID 를 잡는다.
-  // 이 레포의 여정 식별자 규약: J1~J5 (단일 파일 econ-opinion-monitor-user-journeys.md 안의 ### J<n> 섹션)
-  // 여정 mockup 이 아직 없으므로 두 정규식은 의도적으로 아무것도 잡지 않는다
+  // 이 레포의 여정 식별자 규약: JRN-<슬러그> (여정당 파일 하나, docs/user-journeys/JRN-*.md)
+  // 여정 단위 mockup 이 아직 없으므로 두 정규식은 의도적으로 아무것도 잡지 않는다
   // (잡게 두면 존재하지 않는 mockup 으로 가는 끊긴 링크가 헤더에 뜬다).
-  // 여정 단위 mockup 을 만들면 아래 두 줄을 이 레포 규약으로 고친다:
-  //   journeyIdInMeta: /\*\*여정 ID\*\*:\s*(J\d)/
-  //   journeyIdInPath: /(?:^|\/)(J\d)\.md$/
+  // 현재 mockup 은 화면 단위(mockups/*.html)라 여정과 1:1 이 아니다.
+  // 여정 단위 mockup 을 journeys/<journey-id>/ 로 만들면 아래 두 줄로 바꾼다:
+  //   journeyIdInMeta: /\| 여정 식별자 \| `(JRN-[a-z0-9-]+)`/
+  //   journeyIdInPath: /(?:^|\/)(JRN-[a-z0-9-]+)\.md$/
   journeyIdInMeta: /(?!)/,
   journeyIdInPath: /(?!)/,
   // 문서 제목 접미사

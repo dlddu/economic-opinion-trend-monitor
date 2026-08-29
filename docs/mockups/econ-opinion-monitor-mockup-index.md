@@ -2,9 +2,9 @@
 
 > mockup ↔ 여정 단계 ↔ 가치 ↔ 디자인 시스템 항목의 단일 매핑 소스.
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
-> 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/econ-opinion-monitor-user-journeys.md` · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
+> 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-06-03
+> 마지막 갱신: 2026-08-29
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -26,37 +26,37 @@
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
 ### 화면 1 · `dash` 추세 대시보드
-- **여정 단계**: J1.1 대시보드 진입(AC3.2, AC3.5), J1.2 기간·단위 조정(AC3.3)
+- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3) · `JRN-spike-verification` / `STP-notice-spike`(급등 인지 지점)
 - **가치**: V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
 
 ### 화면 2 · `trend` 대상 추세 상세
-- **여정 단계**: J1.3 대상 선택(AC3.5), J1.4 상위 대상 비교(AC3.5), **J2.4 대상 상세 → J1 연결**(축 비교에서 진입하는 상세 목적지)
+- **여정 단계**: `JRN-daily-scan` / `STP-drill-trend`(AC3.5, AC3.2) · `JRN-axis-contrast` / `STP-verify-in-trend`(AC3.5, 축 비교에서 진입하는 상세 목적지)
 - **가치**: V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-card`, `CMP-table`, `CMP-legend`, `CMP-axpill`, `CMP-seg`, `CMP-delta`, `CMP-mapstrip`
 
 ### 화면 3 · `compare` 3축 비교
-- **여정 단계**: J2.1 3축 비교 뷰(AC3.7), J2.2 축별 상위 대상(AC3.7, AC3.4), J2.3 축 기준 인지=수집원 축 vs 대상국(AC1.3, AC2.1)
+- **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`(🟠 행 클릭 어포던스 미배선)
 - **가치**: V2 지역 축 간 비교
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-axis-compare`, `CMP-card`, `CMP-axpill`, `CMP-ranklist`, `CMP-sentbar`, `CMP-badge`, `CMP-note`, `CMP-mapstrip`
 
 ### 화면 4 · `sentiment` 분위기 분포
-- **여정 단계**: J3.1 대상·축 분위기 비율(AC3.6, AC3.4), J3.2 미분석 분리(AC2.5, AC3.4), J3.3 분위기 추세 결합(AC3.3, AC3.6)
+- **여정 단계**: `JRN-sentiment-shift` / `STP-open-sentiment`(AC3.6, AC3.4), `STP-check-unanalyzed`(AC2.5, AC3.4), `STP-overlay-time`(AC3.3, AC3.6), `STP-confirm-cause`
 - **가치**: V3 분위기 분포 파악, V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-donut`, `PAT-stacked-sentiment`, `CMP-card`, `CMP-sentbar`, `CMP-legend`, `CMP-seg`, `CMP-mapstrip`
 
 ### 화면 5 · `fairness` 공정성·원천 추적
-- **여정 단계**: J4.1 정규화 여부 확인(AC3.8), J4.2 편차 보정 인지(AC3.1, AC3.8), J4.3 원천 드릴다운(AC3.2)
+- **여정 단계**: `JRN-spike-verification` / `STP-check-normalized`(AC3.8), `STP-inspect-sources`(AC3.1, AC3.8), `STP-drilldown-articles`(AC3.2)
 - **가치**: V4 수집원 편차 보정, V5 원문 추적성·재처리
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-raw-vs-norm`, `CMP-card`, `CMP-norm-toggle`, `CMP-table`, `CMP-note`, `CMP-delta`, `CMP-mapstrip`
 
 ### 화면 6 · `trace` 원문 추적 상세
-- **여정 단계**: J4.4 원문 역추적(AC2.6, AC1.4)
+- **여정 단계**: `JRN-spike-verification` / `STP-open-origin`(AC2.6, AC1.4) · `STP-judge`(🔴 판정 기록 UI 없음 — 미시각화)
 - **가치**: V5 원문 추적성·재처리
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-lineage`, `CMP-card`, `CMP-crumb`, `CMP-kv`, `CMP-badge`, `CMP-table`, `CMP-mapstrip`
 
 ### 화면 7 · `reprocess` 재처리 콘솔
-- **여정 단계**: J5.1 재처리 범위 선택(AC1.4, AC2.6), J5.2 재분석 실행(AC2.6), J5.3 전후 비교(AC3.2, AC3.3), J5.4 수집 무결성 점검(AC1.6)
+- **여정 단계**: `JRN-logic-backfill` / `STP-scope-range`(AC1.4, AC2.6), `STP-run-reprocess`(AC2.6), `STP-compare-before-after`(AC3.2, AC3.3) · `JRN-ingestion-recovery` / `STP-spot-anomaly`(AC1.6), `STP-locate-gap`, `STP-diagnose-source`(🟠 실패 사유 표시 없음), `STP-verify-integrity`(🟠 결과만 표시)
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자)
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-seg`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-mapstrip`
 
@@ -66,17 +66,30 @@
 - `trace.html` → `reprocess.html` ("이 키로 재분석" 버튼)
 - 좌측 네비(`<a href>`)에서 7개 페이지 임의 전환, `index.html`은 대시보드로 리다이렉트
 
-## 여정 단계 커버리지 (19/19)
-| 여정 | 단계 | 화면 |
-|------|------|------|
-| J1 | 1.1, 1.2 | `dash` |
-| J1 | 1.3, 1.4 | `trend` |
-| J2 | 2.1, 2.2, 2.3 | `compare` |
-| J2 | 2.4 | `trend` (상세 목적지) |
-| J3 | 3.1, 3.2, 3.3 | `sentiment` |
-| J4 | 4.1, 4.2, 4.3 | `fairness` |
-| J4 | 4.4 | `trace` |
-| J5 | 5.1, 5.2, 5.3, 5.4 | `reprocess` |
+## 여정 단계 커버리지 (22/30 완전 · 3 부분 · 5 미시각화)
+
+여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
+
+| 여정 | 단계 | 화면 | 상태 |
+|------|------|------|------|
+| `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window` | `dash` | 🟢 |
+| `JRN-daily-scan` | `STP-drill-trend` | `trend` | 🟢 |
+| `JRN-daily-scan` | `STP-shortlist` | (없음) | 🔴 제품 외부 메모에 의존 |
+| `JRN-spike-verification` | `STP-notice-spike` | `dash`, `trend` | 🟢 |
+| `JRN-spike-verification` | `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles` | `fairness` | 🟢 |
+| `JRN-spike-verification` | `STP-open-origin` | `trace` | 🟢 |
+| `JRN-spike-verification` | `STP-judge` | (없음) | 🔴 판정 기록 UI 없음 |
+| `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis` | `compare` | 🟢 |
+| `JRN-axis-contrast` | `STP-pick-outlier` | `compare` | 🟠 행 클릭 어포던스 미배선 |
+| `JRN-axis-contrast` | `STP-verify-in-trend` | `trend` | 🟢 |
+| `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `sentiment` | 🟢 |
+| `JRN-ingestion-recovery` | `STP-spot-anomaly`, `STP-locate-gap` | `reprocess` | 🟢 |
+| `JRN-ingestion-recovery` | `STP-diagnose-source` | `reprocess` | 🟠 실패 사유 미표시 |
+| `JRN-ingestion-recovery` | `STP-backfill` | (없음) | 🔴 재수집 실행 컨트롤 없음 |
+| `JRN-ingestion-recovery` | `STP-verify-integrity` | `reprocess` | 🟠 결과만 표시 |
+| `JRN-logic-backfill` | `STP-scope-range`, `STP-run-reprocess`, `STP-compare-before-after` | `reprocess` | 🟢 |
+| `JRN-logic-backfill` | `STP-dry-run` | (없음) | 🔴 표본 실행 화면 없음 |
+| `JRN-logic-backfill` | `STP-publish` | (없음) | 🔴 반영·롤백 컨트롤 없음 |
 
 ## 가치 커버리지 (5/5)
 | 가치 | 시각화 화면 |
@@ -88,5 +101,7 @@
 | V5 원문 추적·재처리 | `fairness`, `trace`, `reprocess` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **J2.4 클릭 동선**: `compare`의 대상 행에서 `trend` 상세로 가는 명시적 클릭 어포던스는 아직 미배선. 상세 목적지 화면(`trend`) 자체는 존재하므로 단계는 시각화됨으로 간주하되, 행 클릭 연결은 후속 정제 대상.
+- **여정↔mockup 1:1 아님**: 현재 mockup 은 화면 단위 7개다. `design-doc-structure-validator` 는 여정 하나 = mockup 페이지 하나를 전제하므로, `journeys/<journey-id>/` 구조로 재편해야 한다. 특히 `JRN-ingestion-recovery` 와 `JRN-logic-backfill` 이 `reprocess.html` 한 페이지에 섞여 있다.
+- **`STP-pick-outlier` 클릭 동선**: `compare` 의 대상 행에서 `trend` 상세로 가는 명시적 클릭 어포던스가 아직 미배선. 목적지 화면은 존재하므로 부분 시각화로 본다.
+- **미시각화 5단계**: `STP-shortlist`, `STP-judge`, `STP-backfill`, `STP-dry-run`, `STP-publish`. 앞의 둘은 제품 범위(북마크·검증 이력) 확정이 선행돼야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.

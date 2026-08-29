@@ -20,7 +20,7 @@
 
 ## 구 식별자 매핑
 
-기존 통합 문서 `../econ-opinion-monitor-user-journeys.md`의 `J1`~`J5`는 아래로 대체된다. 트래커·mockup 인덱스가 아직 구 식별자를 참조하므로 갱신이 필요하다.
+기존 통합 문서 `econ-opinion-monitor-user-journeys.md`는 삭제됐고(내용은 git 이력에 남는다), 그 안의 `J1`~`J5`는 아래로 대체된다. 트래커·mockup 인덱스·포털·mockup 배지의 참조는 모두 이전 완료.
 
 | 구 | 신 |
 |---|---|
@@ -37,11 +37,13 @@
 
 현재 mockup은 **화면 단위**(7개 페이지)로 만들어져 있어 여정과 1:1이 아니다. `design-doc-structure-validator`는 여정 하나 = mockup 페이지 하나를 전제하므로 재구성이 필요하다.
 
-| 여정 | 현재 대응 화면 | 비고 |
+| 여정 | 현재 대응 화면 | 미시각화·부분 단계 |
 |---|---|---|
-| `JRN-daily-scan` | `dash`, `trend` | 2개 화면에 걸침 |
-| `JRN-spike-verification` | `fairness`, `trace` | 2개 화면에 걸침 |
-| `JRN-axis-contrast` | `compare`, `trend` | 순위 행 → 상세 클릭 미배선 |
-| `JRN-sentiment-shift` | `sentiment` | 1:1 근접 |
-| `JRN-ingestion-recovery` | `reprocess` 일부 | 무결성 전용 화면 없음 |
-| `JRN-logic-backfill` | `reprocess` | 표본 실행·반영 결정 단계 미시각화 |
+| `JRN-daily-scan` | `dash`, `trend` | 🔴 `STP-shortlist` |
+| `JRN-spike-verification` | `dash`, `fairness`, `trace` | 🔴 `STP-judge` |
+| `JRN-axis-contrast` | `compare`, `trend` | 🟠 `STP-pick-outlier`(클릭 어포던스) |
+| `JRN-sentiment-shift` | `sentiment` | (없음 — 1:1 근접) |
+| `JRN-ingestion-recovery` | `reprocess` 일부 | 🔴 `STP-backfill` · 🟠 `STP-diagnose-source`, `STP-verify-integrity` |
+| `JRN-logic-backfill` | `reprocess` | 🔴 `STP-dry-run`, `STP-publish` |
+
+단계 커버리지 22/30(완전) · 3(부분) · 5(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.

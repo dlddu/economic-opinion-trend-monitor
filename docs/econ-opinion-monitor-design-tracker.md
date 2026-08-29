@@ -4,20 +4,20 @@
 > 제품(가치→PRD→AC→테스트) 측 추적은 `econ-opinion-monitor-doc-tracker.md`가 담당한다.
 > 사용자 여정·mockup·디자인 시스템을 생성·수정할 때마다 함께 갱신한다.
 >
-> 마지막 갱신: 2026-06-03
+> 마지막 갱신: 2026-08-29
 
 ## 현재 상태 요약
 - 정의된 가치: **5개** (V1~V5, 가치 문서에서 참조)
-- 사용자 여정: **5개** (J1~J5, 가치 연결됨: 5개 / 미연결: 0개)
-- Mockup: **화면 7개** (페이지별 자립형 HTML, CSS·JS 인라인 / 여정 단계 19개 전부 시각화)
+- 사용자 여정: **6개** (`JRN-*`, 여정당 문서 하나 · 총 30단계 · 가치 연결됨 6개 / 미연결 0개)
+- Mockup: **화면 7개** (페이지별 자립형 HTML, CSS·JS 인라인)
 - 디자인 시스템: **정의됨** (토큰 9 · 컴포넌트 19 · 패턴 9)
-- **건강 상태**: ✅ **양호** — 가치↔여정↔mockup 연결이 끊김 없이 완전하고, 모든 여정 단계가 시각화되었으며, mockup은 정의된 디자인 시스템만 사용한다.
-  단, 가치 측 전제 위험(제품 소유자 미지정)은 product-doc-engineer 영역으로 별도 추적된다.
+- **건강 상태**: 🟡 **주의** — 가치↔여정 연결은 끊김이 없으나, 여정 재작성으로 단계가 19개 → 30개로 늘면서 **미시각화 5단계 · 부분 시각화 3단계**가 생겼다. mockup 이 화면 단위라 여정과 1:1 이 아닌 것이 근본 원인이다.
+  가치 측 전제 위험(제품 소유자 미지정)은 product-doc-engineer 영역으로 별도 추적된다.
 
 ## 문서 목록
 | 구분 | 파일 |
 |------|------|
-| 사용자 여정 | `econ-opinion-monitor-user-journeys.md` |
+| 사용자 여정 | `user-journeys/JRN-*.md` (6개) + `user-journeys/README.md` (인덱스·구 식별자 매핑) |
 | 디자인 시스템 | `design-system/econ-opinion-monitor-design-system.md` |
 | Mockup 인덱스 | `mockups/econ-opinion-monitor-mockup-index.md` |
 | Mockup(실파일) | `mockups/{dashboard,trend,compare,sentiment,fairness,trace,reprocess}.html` + `mockups/index.html` (각 페이지 자립형: CSS·JS 인라인) |
@@ -26,55 +26,38 @@
 ## 가치 ↔ 여정 ↔ mockup 연결 매트릭스
 | 가치 | 여정 | Mockup(화면) | 상태 |
 |------|------|--------------|------|
-| V1 시계열 추세 | J1, J3 | `dash`, `trend`, `sentiment` | 🟢 시각화됨 |
-| V2 지역 축 비교 | J2 | `compare` | 🟢 시각화됨 |
-| V3 분위기 분포 | J3 | `sentiment` | 🟢 시각화됨 |
-| V4 편차 보정 | J4 | `fairness` | 🟢 시각화됨 |
-| V5 원문 추적·재처리 | J4, J5 | `fairness`, `trace`, `reprocess` | 🟢 시각화됨 |
+| V1 시계열 추세 | `JRN-daily-scan`, `JRN-sentiment-shift` | `dash`, `trend`, `sentiment` | 🟢 시각화됨 |
+| V2 지역 축 비교 | `JRN-axis-contrast` | `compare`, `trend` | 🟢 시각화됨 |
+| V3 분위기 분포 | `JRN-sentiment-shift` | `sentiment` | 🟢 시각화됨 |
+| V4 편차 보정 | `JRN-spike-verification` | `fairness` | 🟢 시각화됨 |
+| V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill` | `fairness`, `trace`, `reprocess` | 🟡 부분 — 운영 여정 2개가 `reprocess` 한 페이지에 섞임 |
 
 ## 여정 단계 → mockup 커버리지
-| 여정 | 단계 수 | 시각화된 단계 | 미시각화 단계 |
-|------|---------|----------------|----------------|
-| J1 | 4 | 4 | 0 |
-| J2 | 4 | 4 | 0 |
-| J3 | 3 | 3 | 0 |
-| J4 | 4 | 4 | 0 |
-| J5 | 4 | 4 | 0 |
-| **합계** | **19** | **19** | **0** |
+| 여정 | 단계 수 | 시각화 | 부분 | 미시각화 |
+|------|---------|--------|------|----------|
+| `JRN-daily-scan` | 5 | 4 | 0 | 1 (`STP-shortlist`) |
+| `JRN-spike-verification` | 6 | 5 | 0 | 1 (`STP-judge`) |
+| `JRN-axis-contrast` | 5 | 4 | 1 (`STP-pick-outlier`) | 0 |
+| `JRN-sentiment-shift` | 4 | 4 | 0 | 0 |
+| `JRN-ingestion-recovery` | 5 | 2 | 2 (`STP-diagnose-source`, `STP-verify-integrity`) | 1 (`STP-backfill`) |
+| `JRN-logic-backfill` | 5 | 3 | 0 | 2 (`STP-dry-run`, `STP-publish`) |
+| **합계** | **30** | **22** | **3** | **5** |
 
 ## 위험 진단
 
 ### 🔴 가치 측 위험 (존재 이유 불분명)
-- **고아 여정**: (없음) — J1~J5 모두 존재하는 가치를 참조함.
+- **고아 여정**: (없음) — 6개 여정 모두 존재하는 가치를 참조함.
 - **고아 mockup**: (없음) — 7개 화면 모두 여정 단계·가치에 매핑됨.
-- **인덱스 누락 mockup**: (없음) — 실파일 1개(prototype.html)가 인덱스에 등재됨.
+- **인덱스 누락 mockup**: (없음) — 실파일 7개가 모두 인덱스에 등재됨.
 
 ### 🟡 시각화 누락 (구조적 공백)
-- **시각화 누락 단계(unvisualized step)**: (없음) — 19개 단계 전부 화면에 매핑됨.
-- **시각화 없는 가치(unvisualized value)**: (없음) — V1~V5 전부 1개 이상 화면에서 시각화됨.
+- **미시각화 단계 5개**: `STP-shortlist`, `STP-judge`(관찰자 측 — 북마크·검증 이력 기능 부재), `STP-backfill`(운영 재수집 컨트롤 부재), `STP-dry-run`, `STP-publish`(재처리 표본 실행·반영 결정 부재).
+- **부분 시각화 3개**: `STP-pick-outlier`(클릭 어포던스), `STP-diagnose-source`(실패 사유 미표시), `STP-verify-integrity`(결과만 표시).
+- **여정↔mockup 1:1 위반**: 검증기는 여정 하나 = mockup 페이지 하나를 전제하나, 현재 mockup 은 화면 단위 7개다. `JRN-ingestion-recovery` 와 `JRN-logic-backfill` 이 `reprocess.html` 을 공유하고, `JRN-daily-scan`·`JRN-spike-verification`·`JRN-axis-contrast` 는 각각 2개 화면에 걸쳐 있다. → `journeys/<journey-id>/` 구조로 재편 필요.
+- **시각화 없는 가치**: (없음) — V1~V5 전부 1개 이상 화면에서 시각화됨.
 
 ### 🟢 디자인 시스템 측 위험 (일관성)
-- **디자인 시스템 부재**: 해소됨 — 토큰/컴포넌트/패턴이 정의되고 prototype의 `:root`와 일치.
+- **디자인 시스템 부재**: 해소됨 — 토큰/컴포넌트/패턴이 정의되고 각 페이지의 `:root` 와 일치.
 - **임의 스타일 mockup**: (없음) — 모든 화면이 정의된 디자인 시스템 항목을 사용한다고 인덱스에 명시됨.
 - **사용처 없는 디자인 시스템 항목**: (없음) — 정의된 37개 항목(토큰9+컴포넌트19+패턴9)이 모두 1개 이상 화면에서 사용됨.
 - **미정의 항목 사용**: (없음) — 인덱스가 참조하는 모든 항목이 디자인 시스템에 정의됨.
-
-### ⚫ 전제 위험 (참고)
-- 제품 가치 문서에 **제품 소유자 미지정** 🔴 위험이 기록되어 있다(`econ-opinion-monitor-doc-tracker.md`). 이는 가치 측 위험으로 product-doc-engineer 영역이며, 본 추적기는 참고만 한다.
-
-### 정제 후보 (mockup 한정, 위험 아님)
-- **J2.4 클릭 동선**: `compare` 대상 행 → `trend` 상세로의 명시적 클릭 어포던스 미배선. 목적지 화면은 존재하므로 단계 시각화는 충족. 인덱스 "알려진 정제 항목" 참조.
-- mockup 데이터는 전부 예시 값. 실제 파이프라인 연동 전 디자인 검토용.
-
-## 주입형 스킬 상태
-- `.claude/skills/` 미설치. 디자인 시스템이 정의되었으므로, 이후 코드 작업에서 시스템을 자동 활용하도록 `ui-with-design-system` / `screen-with-mockup-and-design-system` 주입을 검토할 수 있다(사용자 동의 필요).
-
-## 변경 이력
-| 시점 | 변경 내용 | 이전 상태 | 이후 상태 |
-|------|-----------|-----------|-----------|
-| 최초 생성 | P1·P2 페르소나, J1~J5 여정 정의, 사용자 여정 문서 생성 | 여정 0개 | 여정 5개 (가치 5개 전부 연결) |
-| 최초 생성 | 설계·UX 상태 추적 문서 초기화 | - | 건강 상태: 위험 있음(전 단계 미시각화, 디자인 시스템 없음) |
-| 2026-06-03 | 디자인 시스템 정의(토큰9·컴포넌트19·패턴9), 각 페이지 `<style>`의 토큰과 정합 | 디자인 시스템 미정의 | 디자인 시스템 정의됨 |
-| 2026-06-03 | 클릭형 HTML 프로토타입(화면 7개) + mockup 인덱스 생성, 19개 여정 단계 전부 매핑 | mockup 0개, 전 단계 미시각화 | mockup 1개(화면7), 19/19 시각화, 건강 상태 양호 |
-| 2026-06-03 | 단일 프로토타입 HTML을 페이지별 파일 7개로 분리(+`index.html` 리다이렉트), CSS/JS를 `assets/`로 단일화, 화면 전환을 실제 링크(`<a href>`)로 전환 | 단일 파일 mockup 1개 | 페이지 파일 7개 + 공유 자산(매핑·커버리지 동일) |
-| 2026-06-03 | 7개 페이지를 자립형으로 전환 — 공유 `assets/app.css`·`app.js`를 각 페이지에 인라인하고 `assets/` 폴더 제거 (폴더 구조 없이 단독 실행 가능) | 페이지+공유 자산 | 자립형 페이지 7개 (매핑·커버리지 동일) |
