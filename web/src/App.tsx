@@ -1,8 +1,12 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./shell/AppShell";
+import { Compare } from "./screens/Compare";
 import { Dashboard } from "./screens/Dashboard";
 import { Placeholder } from "./screens/Placeholder";
 import { SCREENS } from "./shell/nav";
+
+// Screens that have landed as real views; the rest still render Placeholder.
+const BUILT = new Set(["dash", "compare"]);
 
 export default function App() {
   return (
@@ -10,7 +14,8 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        {SCREENS.filter((s) => s.id !== "dash").map((s) => (
+        <Route path="/compare" element={<Compare />} />
+        {SCREENS.filter((s) => !BUILT.has(s.id)).map((s) => (
           <Route key={s.id} path={s.path} element={<Placeholder screen={s} />} />
         ))}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

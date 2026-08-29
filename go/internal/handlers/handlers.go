@@ -112,19 +112,39 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// compare answers AC3.7: the three axes side by side on the *same* basis.
+//
+// "Same basis" is the whole point of the view, so it is not left implicit —
+// the response carries the basis it compared on. Gold holds one record per
+// (subject, axis, time bucket), so comparing whatever rows happen to exist per
+// axis would silently put a stale bucket next to a fresh one. Instead the
+// latest bucket present in Gold is picked once and every column is filtered to
+// it; an axis with no data in that bucket comes back as an empty column rather
+// than borrowing an older one.
 func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 	trends, _ := h.lake.SubjectTrends()
 	sentiments, _ := h.lake.AxisSentiments()
+
+	bucket, unit := latestBucket(trends, sentiments)
+	inBucket := trendsInBucket(trends, bucket)
+
 	axes := []string{"KR", "US", "GLOBAL"}
 	columns := make([]map[string]any, 0, len(axes))
 	for _, axis := range axes {
 		columns = append(columns, map[string]any{
 			"axis":         axis,
-			"top_subjects": topSubjects(trends, axis, 5),
-			"sentiment":    sentimentFor(sentiments, axis),
+			"top_subjects": topSubjects(inBucket, axis, 5),
+			"sentiment":    sentimentInBucket(sentiments, axis, bucket),
 		})
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"axes": columns})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"basis": map[string]any{
+			"time_bucket": bucket,
+			"bucket_unit": unit,
+			"normalized":  true,
+		},
+		"axes": columns,
+	})
 }
 
 func (h *Handlers) sentiment(w http.ResponseWriter, _ *http.Request) {
@@ -190,6 +210,46 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 		rows[i].Rank = i + 1
 	}
 	return rows
+}
+
+// latestBucket returns the most recent time bucket present in Gold, with the
+// unit it was bucketed by. Bucket keys are zero-padded ISO prefixes
+// ("2026-06-23T14", "2026-06-23", "2026-W25"), so lexical max is chronological
+// max within a unit. Empty Gold yields the zero values, which the callers below
+// treat as "no rows match".
+func latestBucket(trends []gen.SubjectTrend, sentiments []gen.AxisSentiment) (string, gen.BucketUnit) {
+	var bucket string
+	var unit gen.BucketUnit
+	for _, t := range trends {
+		if t.TimeBucket > bucket {
+			bucket, unit = t.TimeBucket, t.BucketUnit
+		}
+	}
+	for _, s := range sentiments {
+		if s.TimeBucket > bucket {
+			bucket, unit = s.TimeBucket, s.BucketUnit
+		}
+	}
+	return bucket, unit
+}
+
+func trendsInBucket(trends []gen.SubjectTrend, bucket string) []gen.SubjectTrend {
+	rows := make([]gen.SubjectTrend, 0, len(trends))
+	for _, t := range trends {
+		if t.TimeBucket == bucket {
+			rows = append(rows, t)
+		}
+	}
+	return rows
+}
+
+func sentimentInBucket(rows []gen.AxisSentiment, axis, bucket string) gen.SentimentDistribution {
+	for _, r := range rows {
+		if string(r.Axis) == axis && r.TimeBucket == bucket {
+			return r.Distribution
+		}
+	}
+	return gen.SentimentDistribution{}
 }
 
 func sentimentFor(rows []gen.AxisSentiment, axis string) gen.SentimentDistribution {

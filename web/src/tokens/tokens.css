@@ -337,6 +337,9 @@ a {
 .col-3 {
   grid-column: span 3;
 }
+.col-4 {
+  grid-column: span 4;
+}
 .col-5 {
   grid-column: span 5;
 }
@@ -763,6 +766,98 @@ a {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+/* ---- compare columns (3-axis view) ---- */
+.cmp-basis {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cmp-basis .lab {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.cmp-basis .cmp-bucket {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  padding: 2px 8px;
+}
+
+.cmp-basis .cmp-unit {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.cmpcol .card-h h3 {
+  font-size: 14px;
+}
+
+.cmprow {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cmprow:last-of-type {
+  border-bottom: none;
+}
+
+.cmprow .top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cmprow .nm {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.cmprow .nm .meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.cmprow .pct {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  font-weight: 600;
+  flex: none;
+}
+
+.cmprow .bar {
+  height: 6px;
+  background: var(--neu-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cmprow .bar i {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.cmp-sent {
+  margin-top: 12px;
 }
 
 /* ---- status / placeholder ---- */
