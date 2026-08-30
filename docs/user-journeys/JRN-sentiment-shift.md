@@ -10,7 +10,7 @@
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
 | 최종 수정일 | 2026-08-29 |
 | 달성 가치 | `V3` 서술 대상별 분위기 분포 파악 · `V1` 경제 관심사의 시계열 추세 가시화 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.3·AC3.4·AC3.6) · `econ-opinion-monitor-prd-analysis.md` (AC2.3·AC2.5) · mockup `sentiment`(`sentiment.html`) — 화면 단위 mockup이라 여정 1:1 페이지는 미정 |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.3·AC3.4·AC3.6) · `econ-opinion-monitor-prd-analysis.md` (AC2.3·AC2.5) · mockup `JRN-sentiment-shift.html` (여정 단위 페이지, 구 `sentiment` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -40,28 +40,28 @@
 ### `STP-open-sentiment` 대상·축 분위기 분포 열기
 
 - **사용자 행동**: 서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다 (AC3.6, AC3.4)
-- **터치포인트**: `sentiment.html` 도넛(`PAT-donut`), 분위기 바(`CMP-sentbar`)
+- **터치포인트**: `JRN-sentiment-shift.html` 도넛(`PAT-donut`), 분위기 바(`CMP-sentbar`)
 - **생각·감정**: "지금 이 대상 분위기가 어느 쪽이지"
 - **페인포인트 / 이탈 위험**: 4분류 중 "혼합"의 의미가 불명확하면 해석이 갈린다 → 분류 기준을 화면에서 바로 볼 수 있게 (AC2.3 정의 노출)
 
 ### `STP-check-unanalyzed` 미분석·저신뢰 비중 확인
 
 - **사용자 행동**: 저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다 (AC2.5, AC3.4)
-- **터치포인트**: `sentiment.html` 범례(`CMP-legend`), 미분석 분리 항목
+- **터치포인트**: `JRN-sentiment-shift.html` 범례(`CMP-legend`), 미분석 분리 항목
 - **생각·감정**: "미분석이 30%면 이 비율은 못 믿지"
 - **페인포인트 / 이탈 위험**: 미분석이 분모에 섞이거나 아예 숨겨지면 비율이 조용히 왜곡된다 → 미분석 비중을 항상 함께 노출하고, 일정 임계 초과 시 경고 표시
 
 ### `STP-overlay-time` 시간축에 겹쳐 보기
 
 - **사용자 행동**: 분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다 (AC3.3, AC3.6)
-- **터치포인트**: `sentiment.html` 누적 분위기 패턴(`PAT-stacked-sentiment`), 기간 세그먼트(`CMP-seg`)
+- **터치포인트**: `JRN-sentiment-shift.html` 누적 분위기 패턴(`PAT-stacked-sentiment`), 기간 세그먼트(`CMP-seg`)
 - **생각·감정**: "이 시점부터 부정이 늘었네"
 - **페인포인트 / 이탈 위험**: 총량 변화와 비율 변화가 한 그래프에 섞이면 무엇이 변한 건지 구분이 안 된다 → 비율(누적 100%)과 절대량을 분리해 제시
 
 ### `STP-confirm-cause` 반전 여부 판별
 
 - **사용자 행동**: 변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다
-- **터치포인트**: `sentiment.html` / `fairness.html`(필요 시 정규화 확인)
+- **터치포인트**: `JRN-sentiment-shift.html` / `fairness.html`(필요 시 정규화 확인)
 - **생각·감정**: "진짜 돌아섰네" / "그냥 표본이 바뀐 거였네"
 - **페인포인트 / 이탈 위험**: 변화 구간의 기여 뉴스를 볼 수 없으면 원인 추정에서 멈춘다 → 변화 구간에서 기여 뉴스·원문으로 내려가는 경로 제공 (→ `JRN-spike-verification`)
 
@@ -87,3 +87,4 @@
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |---|---|---|---|
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J3`을 "반전 감지"라는 계기 중심으로 재정의 | Claude |
+| v0.1 | 2026-08-30 | 터치포인트·연결 문서의 mockup 참조를 여정 단위 페이지 `JRN-sentiment-shift.html` 로 이전(구 `sentiment.html` 흡수·삭제). **단계·흐름·식별자·분기 변경 없음** | Claude |

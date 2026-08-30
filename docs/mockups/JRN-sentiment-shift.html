@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>분위기 분포 · 경제 여론 추세 모니터</title>
+<title>JRN-sentiment-shift 분위기 반전 감지 · 경제 여론 추세 모니터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -301,8 +301,52 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
   .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
 }
 </style>
+<style>
+/* ---- 여정 페이지 전용(JRN-sentiment-shift) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+</style>
 </head>
-<body>
+<body data-journey="JRN-sentiment-shift">
 <div class="app">
 
   <aside class="sidebar">
@@ -317,34 +361,34 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
         <div class="gl"><span>관찰 · Observer</span><span class="vtag">P1</span></div>
         <a class="nav-item" data-id="dash" href="dashboard.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
-          <span>추세 대시보드</span><span class="jn">J1</span>
+          <span>추세 대시보드</span>
         </a>
         <a class="nav-item" data-id="trend" href="trend.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
-          <span>대상 추세 상세</span><span class="jn">J1</span>
+          <span>대상 추세 상세</span>
         </a>
         <a class="nav-item" data-id="compare" href="compare.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
-          <span>3축 비교</span><span class="jn">J2</span>
+          <span>3축 비교</span>
         </a>
-        <a class="nav-item active" data-id="sentiment" href="sentiment.html">
+        <a class="nav-item active" data-id="JRN-sentiment-shift" href="JRN-sentiment-shift.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
-          <span>분위기 분포</span><span class="jn">J3</span>
+          <span>분위기 분포</span>
         </a>
         <a class="nav-item" data-id="fairness" href="fairness.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
-          <span>공정성·원천 추적</span><span class="jn">J4</span>
+          <span>공정성·원천 추적</span>
         </a>
         <a class="nav-item" data-id="trace" href="trace.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
-          <span>원문 추적 상세</span><span class="jn">J4</span>
+          <span>원문 추적 상세</span>
         </a>
       </div>
       <div class="nav-group">
         <div class="gl"><span>운영 · Operator</span><span class="vtag">P2</span></div>
         <a class="nav-item op" data-id="reprocess" href="reprocess.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
-          <span>재처리 콘솔</span><span class="jn">J5</span>
+          <span>재처리 콘솔</span>
         </a>
       </div>
     </nav>
@@ -358,7 +402,7 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
   <div class="main">
     <header class="topbar">
       <div class="crumb">
-        <span class="step" id="tb-step">JRN-sentiment-shift · 분위기 판별</span>
+        <span class="step" id="tb-step">JRN-sentiment-shift · <span id="tb-stepid">STP-open-sentiment</span></span>
       </div>
       <div class="crumb" style="margin-left:2px">
         <h2 id="tb-title">분위기 분포</h2>
@@ -383,30 +427,34 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
 
     <div class="canvas">
 
-      <section class="screen active" id="sentiment">
+      <p class="lede-j">사용자 여정 <b>JRN-sentiment-shift</b> — 분위기 반전 감지. 4단계를 이 페이지에서 끝까지 걷습니다.
+        <a href="../reader.html?doc=user-journeys/JRN-sentiment-shift.md">여정 문서 →</a></p>
         <p class="lede">무엇이 논의되는지에 더해, 그 대상을 둘러싼 <b>분위기 분포</b>(긍정·중립·부정·혼합)와 그것이 <b>시간에 따라</b> 어떻게 변했는지 봅니다.</p>
 
-        <div class="grid g-12 stagger">
-          <!-- by-subject sentiment list -->
+      <ol class="jrail" aria-label="여정 단계">
+      <li class="jr-item" data-rail="STP-open-sentiment"><button type="button" class="jr-btn" data-goto-step="STP-open-sentiment"><span class="jr-n">1</span><span class="jr-t">대상·축 분위기 분포 열기</span><span class="jr-id mono">STP-open-sentiment</span></button></li>
+      <li class="jr-item" data-rail="STP-check-unanalyzed"><button type="button" class="jr-btn" data-goto-step="STP-check-unanalyzed"><span class="jr-n">2</span><span class="jr-t">미분석·저신뢰 비중 확인</span><span class="jr-id mono">STP-check-unanalyzed</span></button></li>
+      <li class="jr-item" data-rail="STP-overlay-time"><button type="button" class="jr-btn" data-goto-step="STP-overlay-time"><span class="jr-n">3</span><span class="jr-t">시간축에 겹쳐 보기</span><span class="jr-id mono">STP-overlay-time</span></button></li>
+      <li class="jr-item" data-rail="STP-confirm-cause"><button type="button" class="jr-btn" data-goto-step="STP-confirm-cause"><span class="jr-n">4</span><span class="jr-t">반전 여부 판별</span><span class="jr-id mono">STP-confirm-cause</span></button></li>
+      </ol>
+
+      <section class="jstep" id="STP-open-sentiment" data-step="STP-open-sentiment" hidden>
+        <header class="jstep-h">
+          <span class="jstep-n mono">단계 1 / 4</span>
+          <h3>대상·축 분위기 분포 열기</h3>
+          <p class="jstep-a">서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다 (AC3.6, AC3.4)</p>
+          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 도넛(PAT-donut), 분위기 바(CMP-sentbar)</p>
+        </header>
+        <div class="grid g-12">
           <div class="card col-7">
             <div class="card-h">
               <h3>서술 대상별 분위기 비율</h3><span class="sub">한국 축 · 상위 6개</span>
-              <div class="r"><span class="b-na badge"><span class="d"></span>미분석 분리</span></div>
             </div>
             <div class="card-b" style="padding:8px 16px 16px">
               <div id="sentlist"></div>
-              <div class="legend" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
-                <span><i class="d" style="background:var(--pos)"></i>긍정</span>
-                <span><i class="d" style="background:var(--neu)"></i>중립</span>
-                <span><i class="d" style="background:var(--neg)"></i>부정</span>
-                <span><i class="d" style="background:var(--mix)"></i>혼합</span>
-                <span><i class="d" style="background:repeating-linear-gradient(45deg,var(--na),var(--na) 2px,#bdb6a8 2px,#bdb6a8 4px)"></i>미분석 (집계 분리)</span>
-              </div>
             </div>
           </div>
-
           <div class="col-5 grid" style="gap:16px;align-content:start">
-            <!-- donut for selected subject -->
             <div class="card">
               <div class="card-h"><h3>한국은행 기준금리</h3><span class="sub">분위기 구성</span></div>
               <div class="card-b row" style="gap:20px;align-items:center">
@@ -427,16 +475,60 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
                   <div class="kv"><span class="k">혼합</span><span class="v">9%</span></div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="jstep-f">
+          <button type="button" class="cta" data-advance="STP-check-unanalyzed">서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다 <span class="ar">→</span></button>
+        </div>
+      </section>
+
+      <section class="jstep" id="STP-check-unanalyzed" data-step="STP-check-unanalyzed" hidden>
+        <header class="jstep-h">
+          <span class="jstep-n mono">단계 2 / 4</span>
+          <h3>미분석·저신뢰 비중 확인</h3>
+          <p class="jstep-a">저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다 (AC2.5, AC3.4)</p>
+          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 범례(CMP-legend), 미분석 분리 항목</p>
+        </header>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>미분석·저신뢰 분리 표기</h3><span class="sub">집계에서 분리된 항목</span>
+              <div class="r"><span class="b-na badge"><span class="d"></span>미분석 분리</span></div>
+            </div>
+            <div class="card-b" style="padding:8px 16px 16px">
+              <div class="legend" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+                <span><i class="d" style="background:var(--pos)"></i>긍정</span>
+                <span><i class="d" style="background:var(--neu)"></i>중립</span>
+                <span><i class="d" style="background:var(--neg)"></i>부정</span>
+                <span><i class="d" style="background:var(--mix)"></i>혼합</span>
+                <span><i class="d" style="background:repeating-linear-gradient(45deg,var(--na),var(--na) 2px,#bdb6a8 2px,#bdb6a8 4px)"></i>미분석 (집계 분리)</span>
+              </div>
+            </div>
+          </div>
+          <div class="card col-5">
+            <div class="card-h"><h3>한국은행 기준금리</h3><span class="sub">분석 불가 건수</span></div>
               <div class="card-b" style="padding-top:0">
                 <div class="note">
                   <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
                   <div>이 대상의 분석 불가 <b>4건</b>은 위 비율에서 제외되어 별도 집계됩니다. <span class="mono" style="font-size:10px">AC2.5</span></div>
                 </div>
               </div>
-            </div>
           </div>
+        </div>
+        <div class="jstep-f">
+          <button type="button" class="cta" data-advance="STP-overlay-time">저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다 <span class="ar">→</span></button>
+        </div>
+      </section>
 
-          <!-- sentiment over time -->
+      <section class="jstep" id="STP-overlay-time" data-step="STP-overlay-time" hidden>
+        <header class="jstep-h">
+          <span class="jstep-n mono">단계 3 / 4</span>
+          <h3>시간축에 겹쳐 보기</h3>
+          <p class="jstep-a">분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다 (AC3.3, AC3.6)</p>
+          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 누적 분위기 패턴(PAT-stacked-sentiment), 기간 세그먼트(CMP-seg)</p>
+        </header>
+        <div class="grid g-12">
           <div class="card col-12">
             <div class="card-h"><h3>분위기 추세 결합</h3><span class="sub">한국은행 기준금리 · 일 단위 분위기 구성 변화</span>
               <div class="r"><span class="tag">긍정−부정 = 순분위기</span></div></div>
@@ -445,17 +537,85 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
             </div>
           </div>
         </div>
+        <div class="jstep-f">
+          <button type="button" class="cta" data-advance="STP-confirm-cause">분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다 <span class="ar">→</span></button>
+        </div>
+      </section>
+
+      <section class="jstep" id="STP-confirm-cause" data-step="STP-confirm-cause" hidden>
+        <header class="jstep-h">
+          <span class="jstep-n mono">단계 4 / 4</span>
+          <h3>반전 여부 판별</h3>
+          <p class="jstep-a">변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다</p>
+          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html / fairness.html(필요 시 정규화 확인)</p>
+        </header>
+        <div class="grid g-12">
+          <div class="card col-6">
+            <div class="card-h"><h3>실제 논조 변화</h3><span class="sub">결론 A</span></div>
+            <div class="card-b">
+              <p class="verdict">“진짜 돌아섰네”</p>
+              <p class="vsub">표본 구성이 안정적인데 부정 비중이 구간에서 지속 상승했다.</p>
+            </div>
+          </div>
+          <div class="card col-6">
+            <div class="card-h"><h3>구성 변화가 만든 착시</h3><span class="sub">결론 B</span></div>
+            <div class="card-b">
+              <p class="verdict">“그냥 표본이 바뀐 거였네”</p>
+              <p class="vsub">미분석 비중·표본 수가 함께 움직였다.
+                <a href="fairness.html">정규화 확인 →</a></p>
+            </div>
+          </div>
+        </div>
+        <div class="jstep-f">
+          <p class="jr-done">여정 완료 — 완료 기준: 분위기 분포를 시계열로 확인하고 미분석·저신뢰 비중을 함께 확인한 상태.</p>
+        </div>
+      </section>
+
+      <div class="jstep-f" style="margin-top:6px">
+        <button type="button" class="jstep-nav" id="jprev">← 이전 단계</button>
+        <button type="button" class="jstep-nav" id="jnext">다음 단계 →</button>
+      </div>
+
+      <div class="branches">
+        <h4>분기·예외 흐름</h4>
+        <p class="bhint">여정 문서 §4 를 그대로 옮긴 것. 각 행은 선택 가능하며 선언된 대상으로 이동한다.</p>
+        <div class="br-row">
+          <span class="br-when">미분석 비중이 임계 초과</span>
+          <span class="br-how">비율 해석 보류를 경고하고 원인(분석 실패·저신뢰) 표시</span>
+          <a class="br-go" href="#STP-check-unanalyzed"
+             data-goto="JRN-sentiment-shift#STP-check-unanalyzed"> <span class="mono">STP-check-unanalyzed</span> →</a>
+        </div>
+        <div class="br-row">
+          <span class="br-when">표본 수가 너무 적어 비율이 불안정</span>
+          <span class="br-how">최소 표본 미만 구간을 흐리게 처리하고 수치 대신 "표본 부족" 표기</span>
+          <a class="br-go" href="#STP-overlay-time"
+             data-goto="JRN-sentiment-shift#STP-overlay-time"> <span class="mono">STP-overlay-time</span> →</a>
+        </div>
+        <div class="br-row">
+          <span class="br-when">분류가 잘못된 것으로 보임</span>
+          <span class="br-how">원문 확인 흐름으로 이탈, 필요 시 재처리 인계</span>
+          <a class="br-go" href="trace.html"
+             data-goto="JRN-spike-verification#STP-open-origin">JRN-spike-verification <span class="mono">STP-open-origin</span> →</a>
+        </div>
+        <div class="br-row">
+          <span class="br-when">분류 기준 자체를 바꿔야 함</span>
+          <span class="br-how">운영 재처리 흐름으로 인계</span>
+          <a class="br-go" href="reprocess.html"
+             data-goto="JRN-logic-backfill#STP-scope-range">JRN-logic-backfill <span class="mono">STP-scope-range</span> →</a>
+        </div>
+      </div>
 
         <div class="mapstrip">
           <span class="lab">visualizes</span>
-          <span class="chip"><b>J3</b> · 단계 1 분위기 비율</span>
-          <span class="chip"><b>J3</b> · 단계 2 미분석 분리</span>
-          <span class="chip"><b>J3</b> · 단계 3 분위기 추세 결합</span>
+          <span class="chip"><b>JRN-sentiment-shift</b></span>
+          <span class="chip"><b>STP-open-sentiment</b></span>
+          <span class="chip"><b>STP-check-unanalyzed</b></span>
+          <span class="chip"><b>STP-overlay-time</b></span>
+          <span class="chip"><b>STP-confirm-cause</b></span>
           <span class="chip v"><b>V3</b> 분위기 분포</span>
           <span class="chip v"><b>V1</b></span>
-          <span class="chip">AC3.4 · AC3.6 · AC2.5</span>
+          <span class="chip">AC3.4 · AC3.6 · AC2.5 · AC3.3</span>
         </div>
-      </section>
 
     </div><!-- /canvas -->
   </div><!-- /main -->
@@ -530,6 +690,58 @@ document.getElementById('sentlist').innerHTML = SENT.map(r=>`
   const i2=4, cx2=x0+slot*i2+slot/2;
   svg+=`<text class="mono" x="${cx2}" y="16" text-anchor="middle" font-size="9.5" fill="var(--neg)">금통위 D-2 · 부정 57%</text>`;
   document.getElementById('senttime').innerHTML=svg;
+})();
+</script>
+<script>
+/* ---------- 여정 워커 — 단계 전환 · 현재 위치 · 딥링크 · 분기 ---------- */
+(function(){
+  var order = ["STP-open-sentiment","STP-check-unanalyzed","STP-overlay-time","STP-confirm-cause"];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id]  = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="'+id+'"]');
+  });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
+  var tbid = document.getElementById('tb-stepid');
+  var cur = null;
+  function show(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      rails[o].classList.toggle('on', o === id);
+      rails[o].classList.toggle('done', k < i);
+    });
+    if(tbid) tbid.textContent = id;
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){ show(b.getAttribute('data-advance'), true); });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ show(b.getAttribute('data-goto-step'), true); });
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) show(order[i-1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length-1) show(order[i+1], true); });
+  /* 같은 여정 안 분기는 페이지 내 이동으로 처리한다(문서가 선언한 단계로). */
+  document.querySelectorAll('.br-go').forEach(function(a){
+    var t = a.getAttribute('data-goto') || '';
+    var parts = t.split('#');
+    if(parts[0] === "JRN-sentiment-shift"){
+      a.addEventListener('click', function(e){ e.preventDefault(); show(parts[1], true); });
+    }
+  });
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    show(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
 })();
 </script>
 </body>
