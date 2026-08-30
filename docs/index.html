@@ -2,10 +2,14 @@
 <!--
   docs/index.html — 문서 포털 허브 (GitHub Pages 진입점)
 
-  design-doc-structure-validator 스킬의 hub-template.html 에서 생성했다.
-
   허브는 "원천"이 아니라 문서·mockup 인덱스의 반영물이다.
   문서나 mockup 이 늘거나 줄면 이 파일도 같은 커밋에서 함께 고친다.
+
+  스타일:
+    docs/design-system/econ-opinion-monitor-design-system.md 의 토큰을 그대로 사용한다.
+    :root 값은 mockup 7개 페이지의 :root 와 1:1 로 동일하다(자립형).
+    토큰 값이 바뀌면 각 mockup 의 :root 와 이 파일을 함께 갱신한다.
+    디자인 시스템에 없는 색·폰트는 이 파일에서 새로 만들지 않는다.
 
   링크 규칙:
     - 마크다운 문서 → reader.html?doc=<docs 기준 경로>   (직접 .md 로 걸면 raw 다운로드가 된다)
@@ -16,55 +20,134 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>경제 여론 추세 모니터 문서 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --line: #d1d9e0;
-    --accent: #0969da; --card: #f6f8fa;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #30363d;
-      --accent: #4493f8; --card: #161b22;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
-          "Noto Sans KR", Roboto, sans-serif;
-  }
-  main { max-width: 940px; margin: 0 auto; padding: 48px 20px 120px; }
-  h1 { font-size: 2em; margin: 0 0 .2em; }
-  .lede { color: var(--muted); margin: 0 0 2.5em; }
-  h2 { font-size: 1.25em; margin: 2.4em 0 .2em; }
-  h2 + .hint { color: var(--muted); font-size: .9em; margin: 0 0 1em; }
-  a { color: var(--accent); }
-  .row {
-    display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;
-    padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px;
-    margin-bottom: 10px; background: var(--card);
-  }
-  .row .name { font-weight: 600; }
-  .row .meta { color: var(--muted); font-size: .875em; }
-  .row .spacer { flex: 1 1 auto; }
-  .row .links { display: flex; gap: 8px; flex-wrap: wrap; }
-  .row .links a {
-    display: inline-block; padding: 4px 12px; border: 1px solid var(--line);
-    border-radius: 999px; font-size: .875em; text-decoration: none; background: var(--bg);
-    white-space: nowrap;
-  }
-  .row .links a:hover { border-color: var(--accent); }
-  .row .links a.missing { color: var(--muted); border-style: dashed; pointer-events: none; }
-  code { background: var(--card); padding: .15em .4em; border-radius: 5px; font-size: .875em; }
-  footer { margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--line); color: var(--muted); font-size: .875em; }
+/* ============================================================
+   Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+a{color:inherit}
+
+/* —— Masthead (CMP-topbar 계열: --primary 구조 블록) ——————————— */
+.masthead{background:var(--primary);border-bottom:3px solid var(--accent);box-shadow:var(--sh-2)}
+.masthead .in{max-width:940px;margin:0 auto;padding:34px 20px 30px}
+.masthead .kicker{
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--primary-soft);opacity:.8
+}
+.masthead h1{
+  font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.15;
+  color:#fff;letter-spacing:-.2px;margin:10px 0 0
+}
+.masthead .lede{color:var(--primary-soft);font-size:13.5px;margin:12px 0 0;max-width:62ch}
+
+/* —— Sections ————————————————————————————————— */
+main{max-width:940px;margin:0 auto;padding:34px 20px 110px}
+section{margin-bottom:38px}
+.seclabel{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent-2);display:block
+}
+h2{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);margin:7px 0 0;letter-spacing:-.1px}
+.hint{color:var(--ink-3);font-size:12.5px;margin:6px 0 16px;max-width:74ch}
+
+/* —— Row (CMP-card + CMP-kv 계열) ————————————————————— */
+.row{
+  display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;
+  padding:13px 16px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1);margin-bottom:8px;transition:.13s
+}
+.row:hover{border-color:var(--line-2)}
+.row .name{font-weight:600;color:var(--ink);font-size:14.5px}
+.row .meta{color:var(--ink-3);font-size:12px}
+.row .spacer{flex:1 1 auto}
+.row .links{display:flex;gap:7px;flex-wrap:wrap}
+
+/* —— Link buttons (CMP-btn 계열) —————————————————————— */
+.row .links a{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:var(--r-sm);
+  font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);
+  box-shadow:var(--sh-1);transition:.13s
+}
+.row .links a:hover{border-color:var(--line-3);background:var(--panel-2);color:var(--ink)}
+/* mockup 으로 나가는 링크 = accent. 문서 읽기 링크와 눌러보기 링크를 한 줄에서 구분한다 */
+.row .links a.mock{color:var(--accent-2);background:var(--accent-soft);border-color:var(--accent)}
+.row .links a.mock:hover{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+/* 아직 없는 mockup 자리: 지우지 않고 눌리지 않는 자리로 남긴다 (CMP-badge b-na 계열) */
+.row .links a.missing{
+  color:var(--ink-4);background:var(--panel-2);border:1px dashed var(--line-3);
+  box-shadow:none;pointer-events:none;font-weight:500
+}
+
+/* —— 식별자 (CMP-badge tag 계열: 수치·ID 는 mono) ——————————— */
+code{
+  font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)
+}
+.row .name code{color:var(--primary);font-weight:600;font-size:11.5px}
+
+/* —— Footer (CMP-mapstrip 계열) ———————————————————————— */
+footer{
+  max-width:940px;margin:0 auto;padding:0 20px 90px;
+  border-top:1px dashed var(--line-3);margin-top:8px;padding-top:16px;
+  color:var(--ink-3);font-size:11.5px;line-height:1.75
+}
+
+@media (max-width:640px){
+  .masthead h1{font-size:25px}
+  .row{align-items:flex-start}
+  .row .spacer{display:none}
+  .row .links{width:100%}
+}
 </style>
 </head>
 <body>
+
+<header class="masthead">
+  <div class="in">
+    <span class="kicker">Economic Opinion Trend Monitor · Docs</span>
+    <h1>경제 여론 추세 모니터 문서 포털</h1>
+    <p class="lede">경제 뉴스 여론 추세 모니터링 — 제품 가치 · PRD · 사용자 여정 · 디자인 시스템 · 최종 갱신 2026-08-29</p>
+  </div>
+</header>
+
 <main>
 
-  <h1>경제 여론 추세 모니터 문서 포털</h1>
-  <p class="lede">경제 뉴스 여론 추세 모니터링 — 제품 가치 · PRD · 사용자 여정 · 디자인 시스템 · 최종 갱신 2026-08-29</p>
-
+  <section>
+  <span class="seclabel">Product</span>
   <h2>제품 문서</h2>
   <p class="hint">제품이 약속하는 가치와 그 가치를 구현하는 요구사항 · 검증 계획.</p>
 
@@ -98,7 +181,10 @@
     <span class="spacer"></span>
     <span class="links"><a href="reader.html?doc=econ-opinion-monitor-doc-tracker.md">문서 체계</a> <a href="reader.html?doc=econ-opinion-monitor-design-tracker.md">설계·UX</a></span>
   </div>
+  </section>
 
+  <section>
+  <span class="seclabel">User Journeys</span>
   <h2>사용자 여정</h2>
   <p class="hint">여정 하나 = 문서 하나. 여정 단위 mockup 은 아직 없어 각 행은 현재 대응 화면(화면 단위 mockup)으로 연결된다.</p>
 
@@ -112,41 +198,44 @@
     <span class="name"><code>JRN-daily-scan</code> 아침 정기 스캔</span>
     <span class="meta">달성 가치 <code>V1</code> · 5단계 · P1 관찰자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-daily-scan.md">문서 읽기</a> <a href="mockups/dashboard.html">화면 dash·trend</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-daily-scan.md">문서 읽기</a> <a class="mock" href="mockups/dashboard.html">화면 dash·trend</a></span>
   </div>
   <div class="row">
     <span class="name"><code>JRN-spike-verification</code> 급등 신호의 진위 확인</span>
     <span class="meta">달성 가치 <code>V4, V5</code> · 6단계 · P1 관찰자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-spike-verification.md">문서 읽기</a> <a href="mockups/fairness.html">화면 fairness·trace</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-spike-verification.md">문서 읽기</a> <a class="mock" href="mockups/fairness.html">화면 fairness·trace</a></span>
   </div>
   <div class="row">
     <span class="name"><code>JRN-axis-contrast</code> 지역 온도차 확인</span>
     <span class="meta">달성 가치 <code>V2</code> · 5단계 · P1 관찰자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-axis-contrast.md">문서 읽기</a> <a href="mockups/compare.html">화면 compare·trend</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-axis-contrast.md">문서 읽기</a> <a class="mock" href="mockups/compare.html">화면 compare·trend</a></span>
   </div>
   <div class="row">
     <span class="name"><code>JRN-sentiment-shift</code> 분위기 반전 감지</span>
     <span class="meta">달성 가치 <code>V3, V1</code> · 4단계 · P1 관찰자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-sentiment-shift.md">문서 읽기</a> <a href="mockups/sentiment.html">화면 sentiment</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-sentiment-shift.md">문서 읽기</a> <a class="mock" href="mockups/sentiment.html">화면 sentiment</a></span>
   </div>
   <div class="row">
     <span class="name"><code>JRN-ingestion-recovery</code> 수집 이상 감지·복구</span>
     <span class="meta">달성 가치 <code>V5</code> · 5단계 · P2 운영자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-ingestion-recovery.md">문서 읽기</a> <a href="mockups/reprocess.html">화면 reprocess 일부</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-ingestion-recovery.md">문서 읽기</a> <a class="mock" href="mockups/reprocess.html">화면 reprocess 일부</a></span>
   </div>
   <div class="row">
     <span class="name"><code>JRN-logic-backfill</code> 로직 개선의 소급 적용</span>
     <span class="meta">달성 가치 <code>V5</code> · 5단계 · P2 운영자</span>
     <span class="spacer"></span>
-    <span class="links"><a href="reader.html?doc=user-journeys/JRN-logic-backfill.md">문서 읽기</a> <a href="mockups/reprocess.html">화면 reprocess</a></span>
+    <span class="links"><a href="reader.html?doc=user-journeys/JRN-logic-backfill.md">문서 읽기</a> <a class="mock" href="mockups/reprocess.html">화면 reprocess</a></span>
   </div>
+  </section>
 
+  <section>
+  <span class="seclabel">Design System</span>
   <h2>디자인 시스템</h2>
-  <p class="hint">mockup 이 따르는 시각 언어.</p>
+  <p class="hint">mockup 이 따르는 시각 언어. 이 포털의 스타일도 여기서 가져온다.</p>
 
   <div class="row">
     <span class="name">토큰 · 컴포넌트 · 패턴</span>
@@ -154,7 +243,10 @@
     <span class="spacer"></span>
     <span class="links"><a href="reader.html?doc=design-system/econ-opinion-monitor-design-system.md">읽기</a></span>
   </div>
+  </section>
 
+  <section>
+  <span class="seclabel">Mockups</span>
   <h2>mockup (화면 단위)</h2>
   <p class="hint">여정 단위로 전환되기 전의 화면 단위 산출물. 여정 문서의 "시각화 현황"은 mockup 0개로 적혀 있어 실제(7화면)와 어긋난다 — 여정 문서 갱신 필요.</p>
 
@@ -162,14 +254,16 @@
     <span class="name">화면 단위 mockup 갤러리</span>
     <span class="meta">dashboard · trend · compare · sentiment · fairness · trace · reprocess</span>
     <span class="spacer"></span>
-    <span class="links"><a href="mockups/index.html">갤러리 열기 →</a> <a href="reader.html?doc=mockups/econ-opinion-monitor-mockup-index.md">mockup 인덱스</a></span>
+    <span class="links"><a class="mock" href="mockups/index.html">갤러리 열기 →</a> <a href="reader.html?doc=mockups/econ-opinion-monitor-mockup-index.md">mockup 인덱스</a></span>
   </div>
-
-  <footer>
-    이 페이지는 손으로 갱신한다. 여정·mockup·문서가 늘거나 줄면 같은 커밋에서 이 파일도 고친다.<br>
-    구조 점검은 <code>design-doc-structure-validator</code> 스킬로 한다.
-  </footer>
+  </section>
 
 </main>
+
+<footer>
+  이 페이지는 손으로 갱신한다. 여정·mockup·문서가 늘거나 줄면 같은 커밋에서 이 파일도 고친다.<br>
+  구조 점검은 <code>design-doc-structure-validator</code> 스킬로 한다.
+</footer>
+
 </body>
 </html>
