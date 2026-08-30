@@ -51,3 +51,32 @@ export interface CompareResponse {
   };
   axes: AxisColumn[];
 }
+
+/** One bucket of one subject's series (AC3.5). */
+export interface TrendPoint {
+  time_bucket: string;
+  normalized_share: number;
+  raw_count: number;
+}
+
+/** One subject plotted across time; `selected` marks the one in focus. */
+export interface TrendSeries {
+  subject: string;
+  selected: boolean;
+  latest_share: number;
+  delta: number;
+  points: TrendPoint[];
+}
+
+export interface TrendResponse {
+  axis: Axis;
+  subject: string;
+  /** The terms every series is read on — one bucket axis, one normalization. */
+  basis: {
+    bucket_unit: string;
+    normalized: boolean;
+    /** Every bucket on this axis, sorted: the x axis the series share. */
+    buckets: string[];
+  };
+  series: TrendSeries[];
+}

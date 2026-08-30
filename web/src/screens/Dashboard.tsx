@@ -109,7 +109,7 @@ export function Dashboard() {
                       key={row.subject}
                       className="rankrow"
                       style={{ cursor: "pointer" }}
-                      onClick={() => navigate(`/trend?subject=${encodeURIComponent(row.subject)}`)}
+                      onClick={() => navigate(`/trend?axis=${axis}&subject=${encodeURIComponent(row.subject)}`)}
                     >
                       <div className="rk">{row.rank}</div>
                       <div className="nm">

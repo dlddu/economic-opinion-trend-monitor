@@ -62,6 +62,33 @@ type dashboardResponse struct {
 	Sentiment   gen.SentimentDistribution `json:"sentiment"`
 }
 
+// trendPoint is one bucket of one subject's series — the chart's raw material.
+type trendPoint struct {
+	TimeBucket      string  `json:"time_bucket"`
+	NormalizedShare float64 `json:"normalized_share"`
+	RawCount        int64   `json:"raw_count"`
+}
+
+// trendSeries is one subject plotted across time (AC3.5).
+type trendSeries struct {
+	Subject     string       `json:"subject"`
+	Selected    bool         `json:"selected"`
+	LatestShare float64      `json:"latest_share"`
+	Delta       float64      `json:"delta"`
+	Points      []trendPoint `json:"points"`
+}
+
+type trendResponse struct {
+	Axis    string `json:"axis"`
+	Subject string `json:"subject"`
+	Basis   struct {
+		BucketUnit gen.BucketUnit `json:"bucket_unit"`
+		Normalized bool           `json:"normalized"`
+		Buckets    []string       `json:"buckets"`
+	} `json:"basis"`
+	Series []trendSeries `json:"series"`
+}
+
 // --- handlers -------------------------------------------------------------
 
 func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
@@ -73,8 +100,15 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	trends, _ := h.lake.SubjectTrends()
 	sentiments, _ := h.lake.AxisSentiments()
 
-	top := topSubjects(trends, axis, 8)
-	dist := sentimentFor(sentiments, axis)
+	// "현재 버킷" in the metric labels below is a claim, so scope the rows to
+	// one bucket rather than ranking across every bucket Gold happens to hold —
+	// otherwise a subject appears once per bucket and the ranking silently
+	// mixes stale rows with fresh ones. Same rule the compare view states.
+	bucket, _ := latestBucket(trends, sentiments)
+	inBucket := trendsInBucket(trends, bucket)
+
+	top := topSubjects(inBucket, axis, 8)
+	dist := sentimentInBucket(sentiments, axis, bucket)
 
 	var rawTotal int64
 	for _, row := range top {
@@ -96,20 +130,69 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// trend answers AC3.5: one subject's interest over time, with the axis's other
+// leading subjects laid over it for comparison.
+//
+// Gold holds one row per (subject, axis, time bucket), so a series is those
+// rows for one subject sorted by bucket. Two things the view needs are settled
+// here rather than in the browser: the **shared x axis** (the sorted union of
+// buckets present on this axis — a subject missing from a bucket must leave a
+// gap, not shift left), and **which subject is selected** (the caller's, or the
+// axis leader in the latest bucket when none is asked for). Comparison subjects
+// are the same top-N ranking the dashboard uses, so the two screens never
+// disagree about who is leading.
 func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
-	subject := r.URL.Query().Get("subject")
+	const comparisons = 3
+
+	axis := axisParam(r, "KR")
 	trends, _ := h.lake.SubjectTrends()
-	var series []gen.SubjectTrend
+	sentiments, _ := h.lake.AxisSentiments()
+
+	onAxis := make([]gen.SubjectTrend, 0, len(trends))
 	for _, t := range trends {
-		if subject == "" || t.Subject == subject {
-			series = append(series, t)
+		if string(t.Axis) == axis {
+			onAxis = append(onAxis, t)
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"subject": subject,
-		"series":  series,
-		"note":    "stub: single-bucket skeleton data (AC3.5 time series is follow-up)",
-	})
+
+	latest, unit := latestBucket(onAxis, nil)
+	if unit == "" {
+		// No trend rows on this axis: fall back to whatever unit Gold bucketed
+		// by, so an empty view still states the terms it would have used.
+		_, unit = latestBucket(trends, sentiments)
+	}
+	ranking := topSubjects(trendsInBucket(onAxis, latest), axis, 0)
+
+	selected := r.URL.Query().Get("subject")
+	if !hasSubject(onAxis, selected) {
+		selected = ""
+		if len(ranking) > 0 {
+			selected = ranking[0].Subject
+		}
+	}
+
+	// Selected first, then the leaders it is compared against.
+	wanted := make([]string, 0, comparisons+1)
+	if selected != "" {
+		wanted = append(wanted, selected)
+	}
+	for _, row := range ranking {
+		if len(wanted) > comparisons {
+			break
+		}
+		if row.Subject != selected {
+			wanted = append(wanted, row.Subject)
+		}
+	}
+
+	body := trendResponse{Axis: axis, Subject: selected, Series: make([]trendSeries, 0, len(wanted))}
+	body.Basis.BucketUnit = unit
+	body.Basis.Normalized = true
+	body.Basis.Buckets = bucketsOf(onAxis)
+	for _, subject := range wanted {
+		body.Series = append(body.Series, seriesFor(onAxis, subject, subject == selected))
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // compare answers AC3.7: the three axes side by side on the *same* basis.
@@ -155,7 +238,11 @@ func (h *Handlers) sentiment(w http.ResponseWriter, _ *http.Request) {
 func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	trends, _ := h.lake.SubjectTrends()
-	rows := topSubjects(trends, axis, 20)
+	sentiments, _ := h.lake.AxisSentiments()
+
+	// Ranked like the dashboard, so scoped to one bucket for the same reason.
+	bucket, _ := latestBucket(trends, sentiments)
+	rows := topSubjects(trendsInBucket(trends, bucket), axis, 20)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"axis":       axis,
 		"normalized": true,
@@ -252,13 +339,58 @@ func sentimentInBucket(rows []gen.AxisSentiment, axis, bucket string) gen.Sentim
 	return gen.SentimentDistribution{}
 }
 
-func sentimentFor(rows []gen.AxisSentiment, axis string) gen.SentimentDistribution {
-	for _, r := range rows {
-		if string(r.Axis) == axis {
-			return r.Distribution
+// bucketsOf is the sorted, de-duplicated x axis shared by every series: the
+// buckets that exist on this axis, whether or not a given subject appears in
+// each one.
+func bucketsOf(trends []gen.SubjectTrend) []string {
+	seen := make(map[string]bool, len(trends))
+	buckets := make([]string, 0, len(trends))
+	for _, t := range trends {
+		if !seen[t.TimeBucket] {
+			seen[t.TimeBucket] = true
+			buckets = append(buckets, t.TimeBucket)
 		}
 	}
-	return gen.SentimentDistribution{}
+	sort.Strings(buckets)
+	return buckets
+}
+
+func hasSubject(trends []gen.SubjectTrend, subject string) bool {
+	if subject == "" {
+		return false
+	}
+	for _, t := range trends {
+		if t.Subject == subject {
+			return true
+		}
+	}
+	return false
+}
+
+// seriesFor collects one subject's rows in bucket order. The headline numbers
+// come from the newest point so the chart and the metric beside it cannot
+// disagree.
+func seriesFor(trends []gen.SubjectTrend, subject string, selected bool) trendSeries {
+	series := trendSeries{Subject: subject, Selected: selected, Points: []trendPoint{}}
+	var newest string
+	for _, t := range trends {
+		if t.Subject != subject {
+			continue
+		}
+		series.Points = append(series.Points, trendPoint{
+			TimeBucket:      t.TimeBucket,
+			NormalizedShare: t.NormalizedShare,
+			RawCount:        t.RawCount,
+		})
+		if t.TimeBucket >= newest {
+			newest = t.TimeBucket
+			series.LatestShare, series.Delta = t.NormalizedShare, t.Delta
+		}
+	}
+	sort.SliceStable(series.Points, func(i, j int) bool {
+		return series.Points[i].TimeBucket < series.Points[j].TimeBucket
+	})
+	return series
 }
 
 func axisParam(r *http.Request, fallback string) string {

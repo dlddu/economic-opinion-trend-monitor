@@ -3,3 +3,15 @@
 {"subject":"E2E 미국 축 서브젝트","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":9,"normalized_share":0.2,"delta":0.0,"spark":[0.18,0.19,0.2]}
 {"subject":"E2E 전세계 축 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":25,"normalized_share":0.27,"delta":1.1,"spark":[0.21,0.24,0.27]}
 {"subject":"E2E 전세계 보조 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":6,"normalized_share":0.08,"delta":-0.3,"spark":[0.1,0.09,0.08]}
+{"subject":"E2E 검증 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T11","raw_count":26,"normalized_share":0.22,"delta":0.0,"spark":[0.22]}
+{"subject":"E2E 검증 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T12","raw_count":30,"normalized_share":0.25,"delta":3.0,"spark":[0.22,0.25]}
+{"subject":"E2E 검증 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":38,"normalized_share":0.285,"delta":3.5,"spark":[0.22,0.25,0.285]}
+{"subject":"E2E 보조 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T11","raw_count":20,"normalized_share":0.15,"delta":0.0,"spark":[0.15]}
+{"subject":"E2E 보조 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T12","raw_count":19,"normalized_share":0.14,"delta":-1.0,"spark":[0.15,0.14]}
+{"subject":"E2E 보조 서브젝트","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":18,"normalized_share":0.128,"delta":-1.2,"spark":[0.15,0.14,0.128]}
+{"subject":"E2E 미국 축 서브젝트","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T12","raw_count":7,"normalized_share":0.18,"delta":0.0,"spark":[0.18]}
+{"subject":"E2E 미국 축 서브젝트","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":9,"normalized_share":0.2,"delta":2.0,"spark":[0.18,0.2]}
+{"subject":"E2E 전세계 축 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T12","raw_count":18,"normalized_share":0.21,"delta":0.0,"spark":[0.21]}
+{"subject":"E2E 전세계 축 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":22,"normalized_share":0.259,"delta":4.9,"spark":[0.21,0.259]}
+{"subject":"E2E 전세계 보조 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T12","raw_count":8,"normalized_share":0.1,"delta":0.0,"spark":[0.1]}
+{"subject":"E2E 전세계 보조 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":7,"normalized_share":0.083,"delta":-1.7,"spark":[0.1,0.083]}

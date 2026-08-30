@@ -860,6 +860,60 @@ a {
   margin-top: 12px;
 }
 
+/* ---- trend chart (time series) ---- */
+.gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.gridline.zero {
+  stroke: var(--line-3);
+}
+
+.axlab {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  fill: var(--ink-3);
+}
+
+.trend-legend {
+  margin-top: 4px;
+  padding-left: 6px;
+}
+
+.trend-side {
+  gap: 16px;
+  align-content: start;
+}
+
+.trend-pick-item {
+  width: 100%;
+  text-align: left;
+  align-items: center;
+  border-radius: var(--r-sm);
+  transition: background 0.12s;
+}
+
+.trend-pick-item:hover {
+  background: var(--panel-2);
+}
+
+.trend-pick-item[data-selected="true"] {
+  font-weight: 600;
+}
+
+.trend-pick-item .k {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trend-pick-item .k .d {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+}
+
 /* ---- status / placeholder ---- */
 .placeholder-note {
   margin-top: 14px;
