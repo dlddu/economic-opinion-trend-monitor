@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>JRN-sentiment-shift 분위기 반전 감지 · 경제 여론 추세 모니터</title>
+<title>분위기 분포 · 경제 여론 추세 모니터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -344,21 +344,73 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
 .br-go{white-space:nowrap;font-size:11.5px}
 @media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
   .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
 </style>
 </head>
 <body data-journey="JRN-sentiment-shift">
 <div class="app">
 
   <aside class="sidebar">
-  <aside class="sidebar">
     <div class="brand">
       <div class="kicker">Economic Opinion</div>
       <h1>경제 여론<br/>추세 모니터</h1>
-      <div class="en">TREND MONITOR · v0 mockup</div>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
     </div>
     <nav class="nav">
       <div class="nav-group">
-        <div class="gl"><span>관찰 · Observer</span><span class="vtag">P1</span></div>
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
         <a class="nav-item" data-id="dash" href="dashboard.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
           <span>추세 대시보드</span>
@@ -385,7 +437,7 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
         </a>
       </div>
       <div class="nav-group">
-        <div class="gl"><span>운영 · Operator</span><span class="vtag">P2</span></div>
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
         <a class="nav-item op" data-id="reprocess" href="reprocess.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
           <span>재처리 콘솔</span>
@@ -393,110 +445,114 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
       </div>
     </nav>
     <div class="sidebar-foot">
-      <span class="dot"></span>수집 정상 · 12개 소스<br/>
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
       마지막 수집 14:00 KST
     </div>
-  </aside>
   </aside>
 
   <div class="main">
     <header class="topbar">
       <div class="crumb">
-        <span class="step" id="tb-step">JRN-sentiment-shift · <span id="tb-stepid">STP-open-sentiment</span></span>
-      </div>
-      <div class="crumb" style="margin-left:2px">
-        <h2 id="tb-title">분위기 분포</h2>
+        <h2>분위기 분포</h2>
       </div>
       <div class="spacer"></div>
       <div class="ctl">
-        <div class="seg axis" id="axisseg">
-          <button class="on">한국</button><button>미국</button><button>전세계</button>
-        </div>
-        <div class="seg" id="unitseg">
-          <button>시간</button><button class="on">일</button><button>주</button>
-        </div>
-        <div class="pill-ctl">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
-          최근 7일
-        </div>
-        <button class="norm-toggle" id="normtoggle" title="정규화 비율 / 원시 카운트 전환">
-          <span class="sw"></span><span id="normlabel">정규화 비율</span>
-        </button>
+        <span class="pill-ctl" id="tb-target">대상 미선택</span>
       </div>
     </header>
 
     <div class="canvas">
 
-      <p class="lede-j">사용자 여정 <b>JRN-sentiment-shift</b> — 분위기 반전 감지. 4단계를 이 페이지에서 끝까지 걷습니다.
-        <a href="../reader.html?doc=user-journeys/JRN-sentiment-shift.md">여정 문서 →</a></p>
-        <p class="lede">무엇이 논의되는지에 더해, 그 대상을 둘러싼 <b>분위기 분포</b>(긍정·중립·부정·혼합)와 그것이 <b>시간에 따라</b> 어떻게 변했는지 봅니다.</p>
-
-      <ol class="jrail" aria-label="여정 단계">
-      <li class="jr-item" data-rail="STP-open-sentiment"><button type="button" class="jr-btn" data-goto-step="STP-open-sentiment"><span class="jr-n">1</span><span class="jr-t">대상·축 분위기 분포 열기</span><span class="jr-id mono">STP-open-sentiment</span></button></li>
-      <li class="jr-item" data-rail="STP-check-unanalyzed"><button type="button" class="jr-btn" data-goto-step="STP-check-unanalyzed"><span class="jr-n">2</span><span class="jr-t">미분석·저신뢰 비중 확인</span><span class="jr-id mono">STP-check-unanalyzed</span></button></li>
-      <li class="jr-item" data-rail="STP-overlay-time"><button type="button" class="jr-btn" data-goto-step="STP-overlay-time"><span class="jr-n">3</span><span class="jr-t">시간축에 겹쳐 보기</span><span class="jr-id mono">STP-overlay-time</span></button></li>
-      <li class="jr-item" data-rail="STP-confirm-cause"><button type="button" class="jr-btn" data-goto-step="STP-confirm-cause"><span class="jr-n">4</span><span class="jr-t">반전 여부 판별</span><span class="jr-id mono">STP-confirm-cause</span></button></li>
-      </ol>
-
+      <!-- ============ 화면 1 ============ -->
       <section class="jstep" id="STP-open-sentiment" data-step="STP-open-sentiment" hidden>
-        <header class="jstep-h">
-          <span class="jstep-n mono">단계 1 / 4</span>
-          <h3>대상·축 분위기 분포 열기</h3>
-          <p class="jstep-a">서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다 (AC3.6, AC3.4)</p>
-          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 도넛(PAT-donut), 분위기 바(CMP-sentbar)</p>
-        </header>
         <div class="grid g-12">
-          <div class="card col-7">
-            <div class="card-h">
-              <h3>서술 대상별 분위기 비율</h3><span class="sub">한국 축 · 상위 6개</span>
-            </div>
-            <div class="card-b" style="padding:8px 16px 16px">
-              <div id="sentlist"></div>
-            </div>
-          </div>
-          <div class="col-5 grid" style="gap:16px;align-content:start">
-            <div class="card">
-              <div class="card-h"><h3>한국은행 기준금리</h3><span class="sub">분위기 구성</span></div>
-              <div class="card-b row" style="gap:20px;align-items:center">
-                <svg viewBox="0 0 120 120" width="128" height="128" style="flex:none">
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="var(--neu-soft)" stroke-width="16"/>
-                  <!-- segments via stroke-dasharray, circumference=2*pi*46≈289 -->
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="var(--neg)" stroke-width="16" stroke-dasharray="159 130" transform="rotate(-90 60 60)"/>
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="var(--neu)" stroke-width="16" stroke-dasharray="69 220" stroke-dashoffset="-159" transform="rotate(-90 60 60)"/>
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="var(--pos)" stroke-width="16" stroke-dasharray="35 254" stroke-dashoffset="-228" transform="rotate(-90 60 60)"/>
-                  <circle cx="60" cy="60" r="46" fill="none" stroke="var(--mix)" stroke-width="16" stroke-dasharray="26 263" stroke-dashoffset="-263" transform="rotate(-90 60 60)"/>
-                  <text class="serif" x="60" y="56" text-anchor="middle" font-size="22" font-weight="600" fill="var(--neg)">55%</text>
-                  <text class="mono" x="60" y="72" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">부정 우세</text>
-                </svg>
-                <div style="flex:1">
-                  <div class="kv"><span class="k">부정</span><span class="v">55%</span></div>
-                  <div class="kv"><span class="k">중립</span><span class="v">24%</span></div>
-                  <div class="kv"><span class="k">긍정</span><span class="v">12%</span></div>
-                  <div class="kv"><span class="k">혼합</span><span class="v">9%</span></div>
-                </div>
+
+          <div class="card col-6">
+            <div class="card-h"><h3>서술 대상</h3><span class="sub">분위기를 볼 대상을 고릅니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:6px">
+                <label class="fld" style="flex:0 0 148px">
+                  <span class="fl">축</span>
+                  <select id="axis" name="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="WW">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:1 1 200px">
+                  <span class="fl">대상 찾기</span>
+                  <input type="search" id="q" name="q" placeholder="예: 기준금리" autocomplete="off" />
+                </label>
+              </div>
+              <div id="targetlist"></div>
+              <div class="emptybox" id="s-empty" data-state="empty" hidden>
+                찾는 대상이 없습니다.<br/>검색어를 지우거나 다른 축으로 바꿔 보세요.
               </div>
             </div>
           </div>
+
+          <div class="card col-6">
+            <div class="card-h"><h3 id="dist-title">분위기 구성</h3><span class="sub" id="dist-sub">대상을 고르면 열립니다</span></div>
+            <div class="card-b">
+              <div class="emptybox" id="dist-empty" data-state="no-selection">
+                왼쪽에서 대상을 고르면<br/>긍정 &middot; 중립 &middot; 부정 &middot; 혼합 비율이 열립니다.
+              </div>
+
+              <div id="dist-body" hidden>
+                <div class="row" style="gap:20px;align-items:center">
+                  <svg viewBox="0 0 120 120" width="128" height="128" style="flex:none" id="donut"></svg>
+                  <div style="flex:1" id="donutkv"></div>
+                </div>
+
+                <label class="fld" style="margin-top:18px;max-width:260px">
+                  <span class="fl">미분석 경고 임계 (%)</span>
+                  <input type="number" id="nathresh" name="nathresh" min="0" max="100" step="1" value="10" />
+                </label>
+
+                <div class="banner warn" id="s-na-warn" data-state="unanalyzed-warning" hidden>
+                  <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                  <div>
+                    <b>미분석 비중이 임계를 넘었습니다 (<span id="na-warn-pct">0</span>%).</b>
+                    이 비율은 해석을 보류하는 편이 좋습니다 — 분석 실패와 저신뢰 항목이 얼마나 섞였는지 먼저 확인하세요.
+                    <div class="actions">
+                      <a class="btn sm pri" id="br-1" href="#STP-check-unanalyzed"
+                         data-goto="JRN-sentiment-shift#STP-check-unanalyzed">지금 확인</a>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="button" class="nabar" id="na-open">
+                  <span class="badge b-na"><span class="d"></span>미분석 분리</span>
+                  <span class="grow">집계에서 분리된 항목 <b id="na-count">0</b>건</span>
+                  <span class="mono" style="font-size:11px;color:var(--ink-3)">열기 &rarr;</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div class="jstep-f">
-          <button type="button" class="cta" data-advance="STP-check-unanalyzed">서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다 <span class="ar">→</span></button>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-check-unanalyzed" id="cta-1" disabled>
+            미분석 분리 집계 열기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-1-hint">대상을 먼저 고르세요.</span>
         </div>
       </section>
 
+      <!-- ============ 화면 2 ============ -->
       <section class="jstep" id="STP-check-unanalyzed" data-step="STP-check-unanalyzed" hidden>
-        <header class="jstep-h">
-          <span class="jstep-n mono">단계 2 / 4</span>
-          <h3>미분석·저신뢰 비중 확인</h3>
-          <p class="jstep-a">저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다 (AC2.5, AC3.4)</p>
-          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 범례(CMP-legend), 미분석 분리 항목</p>
-        </header>
         <div class="grid g-12">
           <div class="card col-7">
-            <div class="card-h">
-              <h3>미분석·저신뢰 분리 표기</h3><span class="sub">집계에서 분리된 항목</span>
-              <div class="r"><span class="b-na badge"><span class="d"></span>미분석 분리</span></div>
-            </div>
-            <div class="card-b" style="padding:8px 16px 16px">
+            <div class="card-h"><h3>미분석 &middot; 저신뢰 분리 집계</h3><span class="sub" id="na-sub">비율에서 분리된 항목</span></div>
+            <div class="card-b">
+              <table class="tbl">
+                <thead><tr><th>사유</th><th class="num">건수</th><th class="num">전체 대비</th></tr></thead>
+                <tbody id="na-rows"></tbody>
+              </table>
+              <label class="chk" style="margin-top:16px">
+                <input type="checkbox" id="na-exclude" name="na-exclude" checked />
+                미분석 항목을 비율 분모에서 제외 (분리 표기)
+              </label>
               <div class="legend" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
                 <span><i class="d" style="background:var(--pos)"></i>긍정</span>
                 <span><i class="d" style="background:var(--neu)"></i>중립</span>
@@ -507,240 +563,511 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
             </div>
           </div>
           <div class="card col-5">
-            <div class="card-h"><h3>한국은행 기준금리</h3><span class="sub">분석 불가 건수</span></div>
-              <div class="card-b" style="padding-top:0">
-                <div class="note">
-                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-                  <div>이 대상의 분석 불가 <b>4건</b>은 위 비율에서 제외되어 별도 집계됩니다. <span class="mono" style="font-size:10px">AC2.5</span></div>
-                </div>
-              </div>
+            <div class="card-h"><h3>분리 전후 비율</h3><span class="sub">체크박스로 전환</span></div>
+            <div class="card-b">
+              <div class="sentbar" id="na-bar" style="margin-bottom:14px"></div>
+              <div id="na-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.6" id="na-note"></p>
+            </div>
           </div>
         </div>
-        <div class="jstep-f">
-          <button type="button" class="cta" data-advance="STP-overlay-time">저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다 <span class="ar">→</span></button>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-overlay-time" id="cta-2">
+            시간축으로 펼쳐 보기 <span class="ar">&rarr;</span>
+          </button>
         </div>
       </section>
 
+      <!-- ============ 화면 3 ============ -->
       <section class="jstep" id="STP-overlay-time" data-step="STP-overlay-time" hidden>
-        <header class="jstep-h">
-          <span class="jstep-n mono">단계 3 / 4</span>
-          <h3>시간축에 겹쳐 보기</h3>
-          <p class="jstep-a">분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다 (AC3.3, AC3.6)</p>
-          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html 누적 분위기 패턴(PAT-stacked-sentiment), 기간 세그먼트(CMP-seg)</p>
-        </header>
         <div class="grid g-12">
           <div class="card col-12">
-            <div class="card-h"><h3>분위기 추세 결합</h3><span class="sub">한국은행 기준금리 · 일 단위 분위기 구성 변화</span>
-              <div class="r"><span class="tag">긍정−부정 = 순분위기</span></div></div>
+            <div class="card-h">
+              <h3>분위기 추세</h3><span class="sub" id="tl-sub">기간을 정해 적용하세요</span>
+              <div class="r"><span class="tag">긍정 &minus; 부정 = 순분위기</span></div>
+            </div>
             <div class="card-b">
+              <form id="tl-form" class="formrow" style="margin-bottom:18px">
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">기간</span>
+                  <select id="tl-range" name="tl-range">
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                    <option value="90">최근 90일</option>
+                  </select>
+                </label>
+                <div class="fld">
+                  <span class="fl">단위</span>
+                  <div class="radios">
+                    <label><input type="radio" name="unit" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit" value="day" checked /> 일</label>
+                    <label><input type="radio" name="unit" value="week" /> 주</label>
+                  </div>
+                </div>
+                <button type="submit" class="btn pri" id="tl-apply">적용</button>
+              </form>
+
+              <div class="loadbox" id="s-loading" data-state="loading" hidden>
+                구간을 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
               <svg viewBox="0 0 740 200" width="100%" style="display:block" id="senttime"></svg>
+
+              <div class="banner warn" id="s-low-sample" data-state="low-sample" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <div>
+                  <b>표본이 부족한 구간이 <span id="ls-count">0</span>개 있습니다.</b>
+                  최소 표본 미만 구간은 흐리게 표시하고 수치 대신 &ldquo;표본 부족&rdquo;으로 둡니다 — 그 구간의 비율 변화는 읽지 마세요.
+                  <div class="actions">
+                    <a class="btn sm ghost" id="br-2" href="#STP-overlay-time"
+                       data-goto="JRN-sentiment-shift#STP-overlay-time">더 넓은 단위로 다시 보기</a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="jstep-f">
-          <button type="button" class="cta" data-advance="STP-confirm-cause">분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다 <span class="ar">→</span></button>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-confirm-cause" id="cta-3">
+            반전 여부 판별하기 <span class="ar">&rarr;</span>
+          </button>
         </div>
       </section>
 
+      <!-- ============ 화면 4 ============ -->
       <section class="jstep" id="STP-confirm-cause" data-step="STP-confirm-cause" hidden>
-        <header class="jstep-h">
-          <span class="jstep-n mono">단계 4 / 4</span>
-          <h3>반전 여부 판별</h3>
-          <p class="jstep-a">변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다</p>
-          <p class="jstep-tp mono">터치포인트 · JRN-sentiment-shift.html / fairness.html(필요 시 정규화 확인)</p>
-        </header>
         <div class="grid g-12">
-          <div class="card col-6">
-            <div class="card-h"><h3>실제 논조 변화</h3><span class="sub">결론 A</span></div>
+          <div class="card col-7">
+            <div class="card-h"><h3>반전 여부 판별</h3><span class="sub">결론을 고르고 근거를 남깁니다</span></div>
             <div class="card-b">
-              <p class="verdict">“진짜 돌아섰네”</p>
-              <p class="vsub">표본 구성이 안정적인데 부정 비중이 구간에서 지속 상승했다.</p>
+              <form id="verdict-form">
+                <div class="fld">
+                  <span class="fl">결론</span>
+                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                    <label><input type="radio" name="verdict" value="real" /> 실제 논조 변화다 &mdash; 표본 구성이 안정적인데 부정 비중이 지속 상승했다</label>
+                    <label><input type="radio" name="verdict" value="artifact" /> 구성 변화가 만든 착시다 &mdash; 미분석 비중과 표본 수가 함께 움직였다</label>
+                  </div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">근거 메모</span>
+                  <textarea id="verdict-memo" name="verdict-memo" placeholder="어떤 구간의 무엇을 보고 그렇게 판단했는지 적어 두세요."></textarea>
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="verdict-submit">판별 기록</button>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">결론과 근거 메모를 모두 채워야 기록됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>판별을 기록했습니다.</b>
+                  <span id="recorded-what"></span>
+                  분위기 분포를 시계열로 확인하고 미분석 &middot; 저신뢰 비중을 함께 확인한 상태로 마칩니다.
+                </div>
+              </div>
             </div>
           </div>
-          <div class="card col-6">
-            <div class="card-h"><h3>구성 변화가 만든 착시</h3><span class="sub">결론 B</span></div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>판별이 어렵다면</h3><span class="sub">다른 흐름으로 넘깁니다</span></div>
             <div class="card-b">
-              <p class="verdict">“그냥 표본이 바뀐 거였네”</p>
-              <p class="vsub">미분석 비중·표본 수가 함께 움직였다.
-                <a href="fairness.html">정규화 확인 →</a></p>
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.
+              </p>
+              <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
+                <a class="btn ghost" href="fairness.html">정규화 비율로 다시 확인 &rarr;</a>
+                <a class="btn ghost" id="br-3" href="trace.html"
+                   data-goto="JRN-spike-verification#STP-open-origin">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
+                <a class="btn ghost" id="br-4" href="reprocess.html"
+                   data-goto="JRN-logic-backfill#STP-scope-range">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="jstep-f">
-          <p class="jr-done">여정 완료 — 완료 기준: 분위기 분포를 시계열로 확인하고 미분석·저신뢰 비중을 함께 확인한 상태.</p>
         </div>
       </section>
 
-      <div class="jstep-f" style="margin-top:6px">
-        <button type="button" class="jstep-nav" id="jprev">← 이전 단계</button>
-        <button type="button" class="jstep-nav" id="jnext">다음 단계 →</button>
-      </div>
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-sentiment-shift</b> &mdash; 분위기 반전 감지.
+             <a href="../reader.html?doc=user-journeys/JRN-sentiment-shift.md">여정 문서 &rarr;</a></p>
 
-      <div class="branches">
-        <h4>분기·예외 흐름</h4>
-        <p class="bhint">여정 문서 §4 를 그대로 옮긴 것. 각 행은 선택 가능하며 선언된 대상으로 이동한다.</p>
-        <div class="br-row">
-          <span class="br-when">미분석 비중이 임계 초과</span>
-          <span class="br-how">비율 해석 보류를 경고하고 원인(분석 실패·저신뢰) 표시</span>
-          <a class="br-go" href="#STP-check-unanalyzed"
-             data-goto="JRN-sentiment-shift#STP-check-unanalyzed"> <span class="mono">STP-check-unanalyzed</span> →</a>
-        </div>
-        <div class="br-row">
-          <span class="br-when">표본 수가 너무 적어 비율이 불안정</span>
-          <span class="br-how">최소 표본 미만 구간을 흐리게 처리하고 수치 대신 "표본 부족" 표기</span>
-          <a class="br-go" href="#STP-overlay-time"
-             data-goto="JRN-sentiment-shift#STP-overlay-time"> <span class="mono">STP-overlay-time</span> →</a>
-        </div>
-        <div class="br-row">
-          <span class="br-when">분류가 잘못된 것으로 보임</span>
-          <span class="br-how">원문 확인 흐름으로 이탈, 필요 시 재처리 인계</span>
-          <a class="br-go" href="trace.html"
-             data-goto="JRN-spike-verification#STP-open-origin">JRN-spike-verification <span class="mono">STP-open-origin</span> →</a>
-        </div>
-        <div class="br-row">
-          <span class="br-when">분류 기준 자체를 바꿔야 함</span>
-          <span class="br-how">운영 재처리 흐름으로 인계</span>
-          <a class="br-go" href="reprocess.html"
-             data-goto="JRN-logic-backfill#STP-scope-range">JRN-logic-backfill <span class="mono">STP-scope-range</span> →</a>
-        </div>
-      </div>
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-open-sentiment"><button type="button" class="jr-btn" data-goto-step="STP-open-sentiment"><span class="jr-n">1</span><span class="jr-t">대상·축 분위기 분포 열기</span><span class="jr-id mono">STP-open-sentiment</span></button></li>
+            <li class="jr-item" data-rail="STP-check-unanalyzed"><button type="button" class="jr-btn" data-goto-step="STP-check-unanalyzed"><span class="jr-n">2</span><span class="jr-t">미분석·저신뢰 비중 확인</span><span class="jr-id mono">STP-check-unanalyzed</span></button></li>
+            <li class="jr-item" data-rail="STP-overlay-time"><button type="button" class="jr-btn" data-goto-step="STP-overlay-time"><span class="jr-n">3</span><span class="jr-t">시간축에 겹쳐 보기</span><span class="jr-id mono">STP-overlay-time</span></button></li>
+            <li class="jr-item" data-rail="STP-confirm-cause"><button type="button" class="jr-btn" data-goto-step="STP-confirm-cause"><span class="jr-n">4</span><span class="jr-t">반전 여부 판별</span><span class="jr-id mono">STP-confirm-cause</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
 
-        <div class="mapstrip">
-          <span class="lab">visualizes</span>
-          <span class="chip"><b>JRN-sentiment-shift</b></span>
-          <span class="chip"><b>STP-open-sentiment</b></span>
-          <span class="chip"><b>STP-check-unanalyzed</b></span>
-          <span class="chip"><b>STP-overlay-time</b></span>
-          <span class="chip"><b>STP-confirm-cause</b></span>
-          <span class="chip v"><b>V3</b> 분위기 분포</span>
-          <span class="chip v"><b>V1</b></span>
-          <span class="chip">AC3.4 · AC3.6 · AC2.5 · AC3.3</span>
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-open-sentiment</td><td>서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다</td><td>도넛(PAT-donut), 분위기 바(CMP-sentbar)</td><td class="mono">AC3.6 · AC3.4</td></tr>
+              <tr><td class="mono">STP-check-unanalyzed</td><td>저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다</td><td>범례(CMP-legend), 미분석 분리 항목</td><td class="mono">AC2.5 · AC3.4</td></tr>
+              <tr><td class="mono">STP-overlay-time</td><td>분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다</td><td>누적 분위기 패턴(PAT-stacked-sentiment), 기간 세그먼트(CMP-seg)</td><td class="mono">AC3.3 · AC3.6</td></tr>
+              <tr><td class="mono">STP-confirm-cause</td><td>변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다</td><td>이 페이지 / fairness.html(필요 시 정규화 확인)</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>미분석 비중이 임계 초과</td><td>화면 1 · 미분석 경고 배너</td><td class="mono">STP-check-unanalyzed</td></tr>
+              <tr><td>표본 수가 너무 적어 비율이 불안정</td><td>화면 3 · 표본 부족 배너</td><td class="mono">STP-overlay-time</td></tr>
+              <tr><td>분류가 잘못된 것으로 보임</td><td>화면 4 · 원문 확인</td><td class="mono">JRN-spike-verification · STP-open-origin</td></tr>
+              <tr><td>분류 기준 자체를 바꿔야 함</td><td>화면 4 · 재처리 요청</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+            </tbody>
+          </table>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-sentiment-shift</b></span>
+            <span class="chip"><b>STP-open-sentiment</b></span>
+            <span class="chip"><b>STP-check-unanalyzed</b></span>
+            <span class="chip"><b>STP-overlay-time</b></span>
+            <span class="chip"><b>STP-confirm-cause</b></span>
+            <span class="chip v"><b>V3</b> 분위기 분포</span>
+            <span class="chip v"><b>V1</b></span>
+            <span class="chip">AC3.4 · AC3.6 · AC2.5 · AC3.3</span>
+          </div>
         </div>
+      </details>
 
     </div><!-- /canvas -->
   </div><!-- /main -->
 </div><!-- /app -->
 
 <script>
-/* 공유 인터랙션 — 모든 페이지 공통 */
-/* 세그먼트 컨트롤(시각 토글) */
-document.querySelectorAll('.seg').forEach(seg=>{
-  seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-  }));
-});
-/* 정규화 비율 / 원시 카운트 토글 */
-const nt=document.getElementById('normtoggle');
-if(nt){
-  nt.addEventListener('click',()=>{
-    nt.classList.toggle('raw');
-    const l=document.getElementById('normlabel');
-    if(l) l.textContent = nt.classList.contains('raw') ? '원시 카운트' : '정규화 비율';
+/* ============================================================
+   프로토타입 데이터 — 축별 서술 대상.
+   s = [긍정,중립,부정,혼합] (분석된 것 기준 %), na = 미분석 비중 %,
+   naRows = 미분석 사유별 건수, total = 전체 수집 건수.
+   ============================================================ */
+var DATA = {
+  KR: [
+    {id:'bok-rate',  name:'한국은행 기준금리', s:[12,24,55,9], na:14, total:186, naRows:[['분석 실패(본문 없음)',14],['저신뢰(확신도 0.5 미만)',12]]},
+    {id:'samsung',   name:'삼성전자',          s:[48,22,22,8], na:6,  total:204, naRows:[['분석 실패(본문 없음)',5],['저신뢰(확신도 0.5 미만)',7]]},
+    {id:'usdkrw',    name:'원/달러 환율',      s:[15,40,36,9], na:9,  total:151, naRows:[['분석 실패(본문 없음)',6],['저신뢰(확신도 0.5 미만)',8]]},
+    {id:'kospi',     name:'코스피',            s:[52,20,23,5], na:4,  total:167, naRows:[['분석 실패(본문 없음)',3],['저신뢰(확신도 0.5 미만)',4]]},
+    {id:'household', name:'가계부채',          s:[8,26,60,6],  na:18, total:98,  naRows:[['분석 실패(본문 없음)',11],['저신뢰(확신도 0.5 미만)',7]]},
+    {id:'power',     name:'전기요금',          s:[10,30,54,6], na:12, total:74,  naRows:[['분석 실패(본문 없음)',5],['저신뢰(확신도 0.5 미만)',4]]}
+  ],
+  US: [
+    {id:'fed',       name:'연준 기준금리',     s:[18,28,46,8], na:11, total:212, naRows:[['분석 실패(본문 없음)',13],['저신뢰(확신도 0.5 미만)',10]]},
+    {id:'nvidia',    name:'엔비디아',          s:[55,18,20,7], na:5,  total:243, naRows:[['분석 실패(본문 없음)',6],['저신뢰(확신도 0.5 미만)',6]]},
+    {id:'cpi',       name:'미국 소비자물가',   s:[14,31,47,8], na:8,  total:139, naRows:[['분석 실패(본문 없음)',5],['저신뢰(확신도 0.5 미만)',6]]}
+  ],
+  WW: [
+    {id:'oil',       name:'국제 유가',         s:[20,25,47,8], na:7,  total:178, naRows:[['분석 실패(본문 없음)',6],['저신뢰(확신도 0.5 미만)',6]]},
+    {id:'supply',    name:'공급망',            s:[16,34,42,8], na:15, total:112, naRows:[['분석 실패(본문 없음)',9],['저신뢰(확신도 0.5 미만)',8]]}
+  ]
+};
+
+var LABELS = ['긍정','중립','부정','혼합'];
+var COLORS = ['var(--pos)','var(--neu)','var(--neg)','var(--mix)'];
+
+var state = { axis:'KR', q:'', target:null, unit:'day', range:'7' };
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function rows(){
+  var list = DATA[state.axis] || [];
+  var q = state.q.trim();
+  if(!q) return list;
+  return list.filter(function(r){ return r.name.indexOf(q) >= 0; });
+}
+
+/* ---------------- 화면 1 : 대상 목록 ---------------- */
+function renderTargets(){
+  var list = rows(), box = $('targetlist');
+  box.innerHTML = list.map(function(r){
+    var pressed = (state.target && state.target.id === r.id) ? 'true' : 'false';
+    return '<button type="button" class="trow" data-target="' + r.id + '" aria-pressed="' + pressed + '">'
+      + '<span class="row" style="justify-content:space-between;margin-bottom:7px">'
+      + '<span style="font-weight:600;font-size:13px">' + r.name + '</span>'
+      + '<span class="mono" style="font-size:10.5px;color:var(--ink-3)">' + r.total + '건 · 미분석 ' + r.na + '%</span>'
+      + '</span>'
+      + '<span class="sentbar">'
+      + '<i class="s-pos" style="width:' + r.s[0] + '%"></i><i class="s-neu" style="width:' + r.s[1] + '%"></i>'
+      + '<i class="s-neg" style="width:' + r.s[2] + '%"></i><i class="s-mix" style="width:' + r.s[3] + '%"></i>'
+      + '</span></button>';
+  }).join('');
+  show($('s-empty'), list.length === 0);
+  box.querySelectorAll('.trow').forEach(function(b){
+    b.addEventListener('click', function(){ pickTarget(b.getAttribute('data-target')); });
   });
 }
-</script>
-<script>
-/* ---------- SCREEN 4 · sentiment list + over-time ---------- */
-const SENT=[
-  ['한국은행 기준금리',[12,24,55,9],3],
-  ['삼성전자',[48,22,18,8],4],
-  ['원/달러 환율',[15,40,33,9],3],
-  ['코스피',[52,20,20,5],3],
-  ['가계부채',[8,26,58,6],2],
-  ['전기요금',[10,30,52,6],2],
-];
-document.getElementById('sentlist').innerHTML = SENT.map(r=>`
-  <div style="padding:11px 0;border-bottom:1px solid var(--line)">
-    <div class="row" style="justify-content:space-between;margin-bottom:7px">
-      <span style="font-weight:600;font-size:13px">${r[0]}</span>
-      <span class="mono" style="font-size:10.5px;color:var(--ink-3)">긍 ${r[1][0]} · 중 ${r[1][1]} · 부 ${r[1][2]} · 혼 ${r[1][3]} · <span style="color:var(--na)">미분석 ${r[2]}</span></span>
-    </div>
-    <div class="sentbar">
-      <i class="s-pos" style="width:${r[1][0]}%"></i><i class="s-neu" style="width:${r[1][1]}%"></i>
-      <i class="s-neg" style="width:${r[1][2]}%"></i><i class="s-mix" style="width:${r[1][3]}%"></i>
-      <i class="s-na" style="width:${r[2]}%"></i>
-    </div>
-  </div>`).join('');
-/* sentiment over time — stacked bars */
-(function(){
-  const days=['D-6','D-5','D-4','D-3','D-2','D-1','오늘'];
-  const data=[[22,30,38,10],[20,28,42,10],[18,26,48,8],[15,24,52,9],[12,22,57,9],[14,25,52,9],[16,26,49,9]];
-  const cols={0:'var(--pos)',1:'var(--neu)',2:'var(--neg)',3:'var(--mix)'};
-  const x0=56,x1=716,base=170,top=24,Hh=base-top;
-  const slot=(x1-x0)/days.length, bw=46;
-  let svg='';
-  // gridlines
-  [0,25,50,75,100].forEach(p=>{const y=base-(p/100)*Hh;
-    svg+=`<line class="gridline ${p===0?'zero':''}" x1="${x0}" y1="${y}" x2="${x1}" y2="${y}"/>`;
-    svg+=`<text class="axlab" x="${x0-8}" y="${y+3}" text-anchor="end">${p}%</text>`;});
-  data.forEach((d,i)=>{
-    const cx=x0+slot*i+slot/2-bw/2; let acc=0;
-    [2,1,3,0].forEach(()=>{}); // order: stack pos bottom→ up neu, neg, mix? draw pos,neu,neg,mix bottom-up
-    let yb=base;
-    [0,1,2,3].forEach(k=>{
-      const h=(d[k]/100)*Hh; yb-=h;
-      svg+=`<rect x="${cx.toFixed(1)}" y="${yb.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${cols[k]}" rx="1">`;
-      svg+=`</rect>`;
-    });
-    svg+=`<text class="axlab" x="${(cx+bw/2).toFixed(1)}" y="188" text-anchor="middle">${days[i]}</text>`;
-    // net sentiment marker (pos-neg)
+
+function donut(t){
+  var C = 2 * Math.PI * 46, off = 0, out = '';
+  out += '<circle cx="60" cy="60" r="46" fill="none" stroke="var(--neu-soft)" stroke-width="16"/>';
+  var order = [2,1,0,3];
+  for(var k = 0; k < order.length; k++){
+    var i = order[k], len = (t.s[i] / 100) * C;
+    out += '<circle cx="60" cy="60" r="46" fill="none" stroke="' + COLORS[i] + '" stroke-width="16"'
+        + ' stroke-dasharray="' + len.toFixed(1) + ' ' + (C - len).toFixed(1) + '"'
+        + ' stroke-dashoffset="' + (-off).toFixed(1) + '" transform="rotate(-90 60 60)"/>';
+    off += len;
+  }
+  var top = t.s.indexOf(Math.max.apply(null, t.s));
+  out += '<text class="serif" x="60" y="56" text-anchor="middle" font-size="22" font-weight="600" fill="' + COLORS[top] + '">' + t.s[top] + '%</text>';
+  out += '<text class="mono" x="60" y="72" text-anchor="middle" font-size="8.5" fill="var(--ink-3)">' + LABELS[top] + ' 우세</text>';
+  return out;
+}
+
+function pickTarget(id){
+  var list = DATA[state.axis] || [], t = null;
+  for(var i = 0; i < list.length; i++){ if(list[i].id === id) t = list[i]; }
+  if(!t) return;
+  state.target = t;
+  renderTargets();
+  $('tb-target').textContent = t.name;
+  $('dist-title').textContent = t.name;
+  $('dist-sub').textContent = (state.axis === 'KR' ? '한국' : state.axis === 'US' ? '미국' : '전세계') + ' 축 · ' + t.total + '건';
+  show($('dist-empty'), false);
+  show($('dist-body'), true);
+  $('donut').innerHTML = donut(t);
+  $('donutkv').innerHTML = t.s.map(function(v, i){
+    return '<div class="kv"><span class="k">' + LABELS[i] + '</span><span class="v">' + v + '%</span></div>';
+  }).join('');
+  $('na-count').textContent = Math.round(t.total * t.na / 100);
+  $('cta-1').disabled = false;
+  $('cta-1-hint').textContent = '';
+  naWarn();
+  renderUnanalyzed();
+  applyTimeline(false);
+}
+
+function naWarn(){
+  var t = state.target; if(!t) return;
+  var th = parseFloat($('nathresh').value);
+  if(isNaN(th)) th = 0;
+  $('na-warn-pct').textContent = t.na;
+  show($('s-na-warn'), t.na > th);
+}
+
+/* ---------------- 화면 2 : 미분석 분리 ---------------- */
+function renderUnanalyzed(){
+  var t = state.target; if(!t) return;
+  var naN = Math.round(t.total * t.na / 100);
+  $('na-sub').textContent = t.name + ' · 전체 ' + t.total + '건 중 ' + naN + '건';
+  $('na-rows').innerHTML = t.naRows.map(function(r){
+    return '<tr><td>' + r[0] + '</td><td class="num">' + r[1] + '</td><td class="num">'
+      + (r[1] / t.total * 100).toFixed(1) + '%</td></tr>';
+  }).join('');
+  var excl = $('na-exclude').checked;
+  var parts = t.s.slice(), naw = 0;
+  if(!excl){
+    var k = (100 - t.na) / 100;
+    parts = t.s.map(function(v){ return Math.round(v * k); });
+    naw = t.na;
+  }
+  $('na-bar').innerHTML =
+      '<i class="s-pos" style="width:' + parts[0] + '%"></i><i class="s-neu" style="width:' + parts[1] + '%"></i>'
+    + '<i class="s-neg" style="width:' + parts[2] + '%"></i><i class="s-mix" style="width:' + parts[3] + '%"></i>'
+    + (naw ? '<i class="s-na" style="width:' + naw + '%"></i>' : '');
+  $('na-kv').innerHTML = parts.map(function(v, i){
+    return '<div class="kv"><span class="k">' + LABELS[i] + '</span><span class="v">' + v + '%</span></div>';
+  }).join('') + (naw ? '<div class="kv"><span class="k">미분석</span><span class="v">' + naw + '%</span></div>' : '');
+  $('na-note').textContent = excl
+    ? '지금 보는 비율은 분석된 ' + (t.total - naN) + '건만을 분모로 씁니다. 미분석 ' + naN + '건은 분리해 따로 셉니다.'
+    : '미분석을 분모에 섞으면 각 비율이 그만큼 눌립니다 — 어느 쪽이 줄었는지 구분되지 않습니다.';
+}
+
+/* ---------------- 화면 3 : 시계열 ---------------- */
+function series(){
+  var t = state.target;
+  var n = state.unit === 'hour' ? 12 : state.unit === 'week' ? 6 : 7;
+  var base = t ? t.s : [20, 27, 45, 8];
+  var per = t ? t.total : 150;
+  var out = [];
+  for(var i = 0; i < n; i++){
+    var drift = (i - (n - 1) / 2) * 2.2;
+    var d = [
+      Math.max(4, Math.round(base[0] - drift)),
+      Math.max(4, Math.round(base[1] - drift * 0.3)),
+      Math.max(4, Math.round(base[2] + drift * 1.2)),
+      Math.max(3, base[3])
+    ];
+    var sum = d[0] + d[1] + d[2] + d[3];
+    d = d.map(function(v){ return Math.round(v / sum * 100); });
+    /* 시간 단위로 내려가면 일부 구간의 표본이 최소치(10건) 밑으로 떨어진다 — 여정 문서 §4의
+       "표본 수가 너무 적어 비율이 불안정" 분기가 여기서 발생한다. */
+    var samples = state.unit === 'hour' ? Math.max(2, Math.round(per / 12) - (i % 3) * 5)
+                : state.unit === 'week' ? Math.round(per / 4)
+                : Math.round(per / 7);
+    out.push({ d: d, n: samples, label: bucketLabel(i, n) });
+  }
+  return out;
+}
+function bucketLabel(i, n){
+  if(state.unit === 'hour') return (i * 2) + '시';
+  if(state.unit === 'week') return 'W-' + (n - 1 - i);
+  return i === n - 1 ? '오늘' : 'D-' + (n - 1 - i);
+}
+
+var MIN_SAMPLES = 10;
+
+function drawTimeline(){
+  var data = series();
+  var x0 = 56, x1 = 716, base = 170, top = 24, Hh = base - top;
+  var slot = (x1 - x0) / data.length, bw = Math.min(46, slot * 0.62);
+  var svg = '';
+  [0, 25, 50, 75, 100].forEach(function(p){
+    var y = base - (p / 100) * Hh;
+    svg += '<line class="gridline ' + (p === 0 ? 'zero' : '') + '" x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y + '"/>';
+    svg += '<text class="axlab" x="' + (x0 - 8) + '" y="' + (y + 3) + '" text-anchor="end">' + p + '%</text>';
   });
-  // annotate D-2 peak negative
-  const i2=4, cx2=x0+slot*i2+slot/2;
-  svg+=`<text class="mono" x="${cx2}" y="16" text-anchor="middle" font-size="9.5" fill="var(--neg)">금통위 D-2 · 부정 57%</text>`;
-  document.getElementById('senttime').innerHTML=svg;
-})();
-</script>
-<script>
-/* ---------- 여정 워커 — 단계 전환 · 현재 위치 · 딥링크 · 분기 ---------- */
+  var lowCount = 0;
+  data.forEach(function(b, i){
+    var cx = x0 + slot * i + slot / 2 - bw / 2, yb = base;
+    var low = b.n < MIN_SAMPLES;
+    if(low) lowCount++;
+    for(var k = 0; k < 4; k++){
+      var h = (b.d[k] / 100) * Hh; yb -= h;
+      svg += '<rect x="' + cx.toFixed(1) + '" y="' + yb.toFixed(1) + '" width="' + bw.toFixed(1)
+          + '" height="' + h.toFixed(1) + '" fill="' + COLORS[k] + '" rx="1"'
+          + (low ? ' class="thin"' : '') + '/>';
+    }
+    svg += '<text class="axlab" x="' + (cx + bw / 2).toFixed(1) + '" y="188" text-anchor="middle">' + b.label + '</text>';
+    if(low){
+      svg += '<text class="axlab thin" x="' + (cx + bw / 2).toFixed(1) + '" y="' + (base - 6)
+          + '" text-anchor="middle" font-size="8">표본 부족</text>';
+    }
+  });
+  $('senttime').innerHTML = svg;
+  $('ls-count').textContent = lowCount;
+  show($('s-low-sample'), lowCount > 0);
+  $('tl-sub').textContent = (state.target ? state.target.name + ' · ' : '')
+    + '최근 ' + state.range + '일 · ' + (state.unit === 'hour' ? '시간' : state.unit === 'week' ? '주' : '일') + ' 단위';
+}
+
+function applyTimeline(withLoading){
+  if(!withLoading){ drawTimeline(); return; }
+  show($('s-loading'), true);
+  $('senttime').setAttribute('hidden', '');
+  show($('s-low-sample'), false);
+  window.setTimeout(function(){
+    show($('s-loading'), false);
+    $('senttime').removeAttribute('hidden');
+    drawTimeline();
+  }, 180);
+}
+
+/* ---------------- 화면 4 : 판별 ---------------- */
+function submitVerdict(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="verdict"]:checked');
+  var memo = $('verdict-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked
+      ? '결론을 하나 고르세요.'
+      : '근거 메모를 적어야 기록됩니다 — 판단 근거가 없으면 나중에 다시 볼 수 없습니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  $('recorded-what').textContent = (picked.value === 'real' ? '실제 논조 변화' : '구성 변화가 만든 착시')
+    + '로 판별했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
 (function(){
-  var order = ["STP-open-sentiment","STP-check-unanalyzed","STP-overlay-time","STP-confirm-cause"];
+  var order = ['STP-open-sentiment','STP-check-unanalyzed','STP-overlay-time','STP-confirm-cause'];
   var secs = {}, rails = {};
   order.forEach(function(id){
-    secs[id]  = document.getElementById(id);
-    rails[id] = document.querySelector('.jr-item[data-rail="'+id+'"]');
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
   });
-  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
-  var tbid = document.getElementById('tb-stepid');
-  var cur = null;
-  function show(id, push){
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
     if(order.indexOf(id) < 0) return;
     cur = id;
     var i = order.indexOf(id);
     order.forEach(function(o, k){
       secs[o].hidden = (o !== id);
-      rails[o].classList.toggle('on', o === id);
-      rails[o].classList.toggle('done', k < i);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
     });
-    if(tbid) tbid.textContent = id;
     if(prevBtn) prevBtn.disabled = (i === 0);
     if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-overlay-time') drawTimeline();
     if(push && location.hash !== '#' + id) location.hash = '#' + id;
   }
+  window.__journeyGo = go;
+
   document.querySelectorAll('[data-advance]').forEach(function(b){
-    b.addEventListener('click', function(){ show(b.getAttribute('data-advance'), true); });
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
   });
   document.querySelectorAll('[data-goto-step]').forEach(function(b){
-    b.addEventListener('click', function(){ show(b.getAttribute('data-goto-step'), true); });
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
   });
-  if(prevBtn) prevBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i > 0) show(order[i-1], true); });
-  if(nextBtn) nextBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i < order.length-1) show(order[i+1], true); });
-  /* 같은 여정 안 분기는 페이지 내 이동으로 처리한다(문서가 선언한 단계로). */
-  document.querySelectorAll('.br-go').forEach(function(a){
-    var t = a.getAttribute('data-goto') || '';
-    var parts = t.split('#');
-    if(parts[0] === "JRN-sentiment-shift"){
-      a.addEventListener('click', function(e){ e.preventDefault(); show(parts[1], true); });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-sentiment-shift'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
     }
   });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
   function fromHash(){
     var h = (location.hash || '').replace(/^#/, '');
-    show(order.indexOf(h) >= 0 ? h : order[0], false);
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
   }
   window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('axis').addEventListener('change', function(){
+    state.axis = this.value; state.target = null;
+    $('tb-target').textContent = '대상 미선택';
+    show($('dist-body'), false); show($('dist-empty'), true);
+    show($('s-na-warn'), false);
+    $('cta-1').disabled = true;
+    $('cta-1-hint').textContent = '대상을 먼저 고르세요.';
+    renderTargets();
+  });
+  $('q').addEventListener('input', function(){ state.q = this.value; renderTargets(); });
+  $('nathresh').addEventListener('input', naWarn);
+  $('na-open').addEventListener('click', function(){ go('STP-check-unanalyzed', true); });
+  $('na-exclude').addEventListener('change', renderUnanalyzed);
+  $('tl-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    state.range = $('tl-range').value;
+    var u = document.querySelector('input[name="unit"]:checked');
+    state.unit = u ? u.value : 'day';
+    applyTimeline(true);
+  });
+  $('br-2').addEventListener('click', function(){
+    var w = document.querySelector('input[name="unit"][value="week"]');
+    if(w){ w.checked = true; state.unit = 'week'; }
+    applyTimeline(true);
+  });
+  $('verdict-form').addEventListener('submit', submitVerdict);
+
+  renderTargets();
+  drawTimeline();
   fromHash();
 })();
 </script>
