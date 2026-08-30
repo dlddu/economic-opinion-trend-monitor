@@ -1,8 +1,13 @@
 # 사용자 여정(docs/user-journeys/JRN-*.md) ↔ 여정 mockup 페이지(docs/mockups/) 의
 # 1:1 정합성 게이트. 여정 문서가 SSOT 이고, 기대값은 언제나 문서에서 파싱한다.
 #
-#   structure : 규칙 1~8 의 정적 판정 (stdlib python — 설치 불필요)
-#   flow      : 규칙 5 (a)~(g) 를 jsdom 으로 실제 구동해 확인 (클릭·딥링크·분기)
+#   structure : 규칙 1~9 의 정적 판정 (stdlib python — 설치 불필요)
+#   flow      : 규칙 5(프로토타입 충실도) (a)~(h) 를 jsdom 으로 실제 구동해 확인
+#               — 메타 레이어 분리 · 화면 내 전진 배선 · 실제 폼 요소 · 상태 변형 · 딥링크 · 분기
+#
+# 이 flow 잡이 곧 모델이 요구하는 DOM 하네스의 CI 배선이다. structure 의 R9 가
+# '하네스가 실재하고 워크플로가 실제로 그것을 실행하는가' 를 되짚어 검사하므로,
+# 아래 run 줄을 지우면 structure 가 빨개진다.
 #
 # 미이관 여정은 하드 실패가 아니라 mockup 인덱스의 「규칙 1 미충족 여정 상한」 래칫으로
 # 관리한다 — 늘면 실패하고, 줄면 상한을 낮추라고 실패한다.
@@ -30,5 +35,5 @@ jobs:
           node-version: "22"
       # 레포에 런타임 의존성을 더하지 않는다 — 검사 때만 받는다.
       - run: npm install --no-save jsdom@29
-      - name: 여정 페이지 흐름 체험(규칙 5) 실제 구동
+      - name: 여정 페이지 프로토타입 충실도(규칙 5 a~h) 실제 구동
         run: node scripts/check-journey-flow.js .
