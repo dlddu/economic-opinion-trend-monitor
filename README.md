@@ -89,8 +89,8 @@ make e2e       # kind e2e: 픽스처 Gold -> 클러스터 내 서빙 -> Playwrig
 make setup && make gen
 # 배치 파이프라인: 페이크 입력 -> bronze -> silver -> gold (data/ 에 더미 레코드)
 # ingestion 기본 소스는 실 RSS/Atom 피드(네트워크). 오프라인 데모는 --source fake 로 고정한다.
-# analysis 기본 분석기는 페이크(오프라인). 실 모델은 --analyzer llm + ECON_LLM_* env 로 opt-in.
-cd python && uv run python -m econ_ingestion --source fake && uv run python -m econ_analysis && uv run python -m econ_aggregation && cd ..
+# analysis 기본 분석기도 실 chat-completions 모델(ECON_LLM_* env 필요). 오프라인 데모는 --analyzer fake 로 고정한다.
+cd python && uv run python -m econ_ingestion --source fake && uv run python -m econ_analysis --analyzer fake && uv run python -m econ_aggregation && cd ..
 make build-web                 # web/dist 생성
 make run                       # http://localhost:8080  (대시보드 + /api/* 스텁)
 ```
@@ -130,16 +130,21 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   (e2e 클러스터에는 Argo 컨트롤러도 없다). 클러스터에 이미 상주하는
   cluster-scoped Argo Workflows 컨트롤러가 이 네임스페이스의 CronWorkflow를
   집어가므로 네임스페이스별 설치는 필요 없다.
-- **CronWorkflow는 `suspend: true` 상태로 배포된다.** 이 경로는 자동 동기화되므로
+- **새 CronWorkflow는 항상 `suspend: true`로 착지한다.** 이 경로는 자동 동기화되므로
   머지가 곧 적용이고, suspend가 "적용됐다"와 "돌기 시작했다"를 분리한다. 켜기 전에
-  `econ-batch-pipeline`에서 워크플로를 1회 수동 제출해 이미지 pull·볼륨 쓰기·수집이
-  실제로 되는지 확인한다. 켜는 순간부터 `default_feeds.json`의 모든 엔드포인트로
-  매시간 실제 HTTP 요청이 나간다.
+  `econ-batch-pipeline`에서 워크플로를 1회 수동 제출해 이미지 pull·볼륨 쓰기·해당
+  스테이지가 실제로 되는지 확인한다. 현재 두 개가 있고 **동시에 하나만 돈다**:
+  `econ-ingestion-hourly`(수집만, 가동 중 — 켜는 순간부터 `default_feeds.json`의 모든
+  엔드포인트로 매시간 실제 HTTP 요청)와 `econ-pipeline-hourly`(`ingest -> analyze`,
+  suspend 착지 — 켜면 수집에 더해 매 항목이 LLM 엔드포인트로 나간다). 후자로 넘길 때는
+  전자를 먼저 suspend한다.
 - 수집이 쓰는 Bronze는 서빙 클레임과 분리된 `econ-batch-data`에 쌓인다. 서빙은 Gold만
   읽으므로 아직 볼륨을 공유할 이유가 없고, 분리해 두면 RWO 클레임의 멀티어태치
   위험도 없다. Bronze→Silver→Gold 체인이 이어질 때 그 슬라이스가 배치 산출물을
   서빙까지 어떻게 넘길지(공유 RWX 클레임 또는 복사 단계) 정한다.
-- 분석·집계 스케줄과 원격 스토리지는 후속 작업이다.
+- 분석 스케줄은 `econ-pipeline-hourly`로 배선됐고(suspend 착지), 그 분석 스테이지는
+  `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
+  네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.
 
 ## 범위
 
@@ -151,12 +156,13 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
 - 교차 언어 스모크 + 언어별 단위 테스트 1개 + CI
 
 **범위 밖 (후속 기능 작업):**
-- 실제 LLM 연동 — 실 chat-completions 분석기가 opt-in(`--analyzer llm`, 엔드포인트·모델·키는 `ECON_LLM_*` env)으로 배선됨.
-  기본 분석기는 여전히 페이크(`--analyzer fake`)라 오프라인 스모크·테스트가 결정적이다. 기본값 cutover·프롬프트 튜닝은 후속.
+- 실제 LLM 연동 — 실 chat-completions 분석기가 **기본**으로 배선됨(엔드포인트·모델·키는 `ECON_LLM_*` env).
+  페이크 분석기는 `--analyzer fake`로 남아 오프라인 스모크·테스트가 결정적이다. 프롬프트 튜닝·모델 선정은 후속.
   수집은 실 RSS/Atom 피드가 기본으로 배선됨(피드 목록은 큐레이션 대상)
 - 실제 정규화 수식·집계 로직 (시그니처/스텁만)
 - 프론트 7화면 전부 (셸 + 대시보드만; 나머지 6화면은 플레이스홀더)
 - 원격(S3 등) 스토리지 (인터페이스 + 로컬 FS만)
-- 배치 스케줄은 수집만 배선됨 (`deploy/batch/cronworkflow-ingestion.yaml`, 시간당 Argo CronWorkflow).
-  analysis·aggregation 스테이지의 스케줄 배선은 후속
+- 배치 스케줄은 수집·분석까지 배선됨 — 가동 중인 시간당 수집(`deploy/batch/cronworkflow-ingestion.yaml`)과,
+  `ingest -> analyze` 2단 파이프라인(`deploy/batch/cronworkflow-pipeline.yaml`, **suspend 상태로 착지** —
+  `econ-llm` 시크릿 확인 + 수동 1회 실증 후 전환). aggregation 스테이지의 스케줄 배선은 후속
 - 화면별 정식 API 데이터 계약 (스텁 라우트만)

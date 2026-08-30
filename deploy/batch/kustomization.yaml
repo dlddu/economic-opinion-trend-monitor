@@ -16,7 +16,11 @@ kind: Kustomization
 resources:
   - rbac.yaml
   - workflow-template.yaml
+  # Two schedules, only one of which may run at a time: the ingestion-only one
+  # that is live today, and the full ingest -> analyze pipeline that ships
+  # suspended. See cronworkflow-pipeline.yaml for the handover order.
   - cronworkflow-ingestion.yaml
+  - cronworkflow-pipeline.yaml
 
 labels:
   - includeSelectors: false

@@ -37,6 +37,9 @@ patches:
           type: Recreate
 
   # Give the batch workflow its own claim in place of the emptyDir seam.
+  # /spec/volumes is template-wide, so every stage (ingest, analyze) mounts the
+  # same claim and analysis reads the Bronze ingestion just wrote — no per-stage
+  # patch needed as stages are added.
   - target:
       group: argoproj.io
       kind: WorkflowTemplate
@@ -61,6 +64,9 @@ patches:
   #           value: "*/30 * * * *"
   # and re-apply; the change takes effect from the next tick.
   #
-  # The same seam turns the schedule on: /spec/suspend to false. It ships
-  # suspended — see deploy/batch/cronworkflow-ingestion.yaml for what to check
-  # before flipping it.
+  # The same seam turns a schedule on or off: /spec/suspend. Two CronWorkflows
+  # live in deploy/batch and exactly one of them may be running:
+  #   * econ-ingestion-hourly — collection only. Live today.
+  #   * econ-pipeline-hourly  — collection + real LLM analysis. Ships suspended.
+  # See deploy/batch/cronworkflow-pipeline.yaml for the prerequisites (the
+  # `econ-llm` Secret) and the order to hand over in.

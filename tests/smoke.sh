@@ -23,7 +23,10 @@ echo "[smoke] lake: $DATA  port: $PORT"
   # Pinned to the deterministic fake source: the operational default is now the
   # real RSS/Atom feed, but the smoke must stay offline and deterministic.
   uv run --quiet python -m econ_ingestion --source fake --data "$DATA" --cycle 2026-06-23T14:00
-  uv run --quiet python -m econ_analysis --data "$DATA"
+  # Pinned to the deterministic fake analyzer for the same reason: the operational
+  # default is now the real chat-completions model, which needs ECON_LLM_API_KEY and
+  # the network. Without this pin the smoke would exit 2 on an unconfigured runner.
+  uv run --quiet python -m econ_analysis --analyzer fake --data "$DATA"
   uv run --quiet python -m econ_aggregation --data "$DATA"
 )
 test -s "$DATA/gold/subject_trend.jsonl" || { echo "[smoke] FAIL: no Gold produced"; exit 1; }
