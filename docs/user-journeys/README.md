@@ -3,7 +3,7 @@
 > 여정 하나당 문서 하나. 식별자는 `JRN-<슬러그>` / 단계는 `STP-<슬러그>`(순번 금지).
 > 가치: `../econ-opinion-monitor-values.md` · 설계 추적: `../econ-opinion-monitor-design-tracker.md` · mockup: `../mockups/econ-opinion-monitor-mockup-index.md`
 >
-> 마지막 갱신: 2026-08-29
+> 마지막 갱신: 2026-08-31
 
 ## 여정 목록
 
@@ -35,15 +35,20 @@
 
 ## 여정 ↔ mockup 현황
 
-현재 mockup은 **화면 단위**(7개 페이지)로 만들어져 있어 여정과 1:1이 아니다. `design-doc-structure-validator`는 여정 하나 = mockup 페이지 하나를 전제하므로 재구성이 필요하다.
+여정 단위 재편이 **2/6** 진행됐다. 이관된 여정은 자기 전용 페이지 하나(`JRN-<슬러그>.html`)를 갖고,
+흡수한 화면 파일은 삭제됐다. 남은 4개는 아직 화면 단위 mockup 여러 개에 걸쳐 있다.
 
-| 여정 | 현재 대응 화면 | 미시각화·부분 단계 |
+| 여정 | 대응 mockup | 미시각화·부분 단계 |
 |---|---|---|
-| `JRN-daily-scan` | `dash`, `trend` | 🔴 `STP-shortlist` |
-| `JRN-spike-verification` | `dash`, `fairness`, `trace` | 🔴 `STP-judge` |
-| `JRN-axis-contrast` | `compare`, `trend` | 🟠 `STP-pick-outlier`(클릭 어포던스) |
-| `JRN-sentiment-shift` | `sentiment` | (없음 — 1:1 근접) |
-| `JRN-ingestion-recovery` | `reprocess` 일부 | 🔴 `STP-backfill` · 🟠 `STP-diagnose-source`, `STP-verify-integrity` |
-| `JRN-logic-backfill` | `reprocess` | 🔴 `STP-dry-run`, `STP-publish` |
+| `JRN-daily-scan` | `dash`, `trend` (화면 단위) | 🔴 `STP-shortlist` |
+| `JRN-spike-verification` | `dash`, `fairness`, `trace` (화면 단위) | 🔴 `STP-judge` |
+| `JRN-axis-contrast` | ✅ `JRN-axis-contrast.html` (여정 페이지 — 구 `compare` 흡수·삭제) | (없음) |
+| `JRN-sentiment-shift` | ✅ `JRN-sentiment-shift.html` (여정 페이지 — 구 `sentiment` 흡수·삭제) | (없음) |
+| `JRN-ingestion-recovery` | `reprocess` 일부 (화면 단위) | 🔴 `STP-backfill` · 🟠 `STP-diagnose-source`, `STP-verify-integrity` |
+| `JRN-logic-backfill` | `reprocess` (화면 단위) | 🔴 `STP-dry-run`, `STP-publish` |
 
-단계 커버리지 22/30(완전) · 3(부분) · 5(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
+단계 커버리지 23/30(완전) · 2(부분) · 5(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
+
+남은 4개는 저마다 🔴 미시각화 단계를 하나 이상 안고 있어 **제품 범위 확정이 이관보다 먼저**다.
+mockup 을 두지 않기로 한 여정은 `../econ-opinion-monitor-design-tracker.md` 의 「규칙 8 예외 등재」에
+사유·재검토 시점을 적어야 하며, 현재 등재는 0건이다.

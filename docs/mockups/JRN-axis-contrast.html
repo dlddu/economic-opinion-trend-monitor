@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3축 비교 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-axis-contrast) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-axis-contrast">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="dashboard.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="trend.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item active" data-id="JRN-axis-contrast" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="JRN-sentiment-shift" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="fairness.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="trace.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="reprocess.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
+      마지막 수집 14:00 KST
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>3축 비교</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-basis">최근 7일 &middot; 정규화</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 · 3축 비교 뷰 진입 ============ -->
+      <section class="jstep" id="STP-open-compare" data-step="STP-open-compare" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-5">
+            <div class="card-h"><h3>비교 기준</h3><span class="sub">세 축에 같은 기준을 겁니다</span></div>
+            <div class="card-b">
+              <form id="sync-form">
+                <label class="fld" style="max-width:230px">
+                  <span class="fl">기간</span>
+                  <select id="range" name="range">
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                    <option value="1">최근 24시간</option>
+                  </select>
+                </label>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" id="normalize" name="normalize" checked />
+                  수집량 정규화 (축별 총 건수 대비 점유율로 환산)
+                </label>
+                <div class="stepact" style="margin-top:18px">
+                  <button type="submit" class="btn pri" id="sync-apply">기준 적용</button>
+                  <span class="hint">세 축에 동시에 적용됩니다.</span>
+                </div>
+              </form>
+
+              <div class="note" style="margin-top:18px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기준은 축마다 따로 고를 수 없습니다.</b>
+                  축별로 기간이나 정규화가 다르면 순위 자체가 다른 것을 세게 되어 비교가 성립하지 않습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>수집 현황</h3><span class="sub" id="basis-sub">최근 7일 · 정규화 적용</span></div>
+            <div class="card-b">
+              <div class="loadbox" id="s-loading" data-state="loading" hidden>
+                세 축을 같은 기준으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <div class="grid g-12" id="axiscards"></div>
+
+              <div class="banner warn" id="s-axis-empty" data-state="axis-empty" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span id="empty-axis-name">전세계</span> 축은 이 기간에 수집된 항목이 없습니다.</b>
+                  0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-1" href="#STP-scan-axis-tops"
+                       data-goto="JRN-axis-contrast#STP-scan-axis-tops">남은 축으로 대조 계속</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-scan-axis-tops" id="cta-1">
+            축별 상위 대상 대조하기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 · 축별 상위 대상 대조 ============ -->
+      <section class="jstep" id="STP-scan-axis-tops" data-step="STP-scan-axis-tops" hidden>
+        <div class="grid g-12">
+          <div class="card col-9">
+            <div class="card-h">
+              <h3>축별 상위 대상</h3><span class="sub" id="tops-sub">같은 기준 · 같은 시점</span>
+              <div class="r">
+                <span class="badge b-pos"><span class="d"></span>공통</span>
+                <span class="badge b-mix"><span class="d"></span>축 고유</span>
+              </div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:1 1 220px">
+                  <span class="fl">대상 찾기</span>
+                  <input type="search" id="q" name="q" placeholder="예: 기준금리" autocomplete="off" />
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="only-unique" name="only-unique" />
+                  한 축에만 있는 대상만 보기
+                </label>
+              </div>
+              <div class="grid g-12" id="axistops"></div>
+            </div>
+          </div>
+
+          <div class="card col-3">
+            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
+            <div class="card-b">
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.
+              </p>
+              <a class="btn ghost" id="br-2" href="fairness.html"
+                 data-goto="JRN-spike-verification#STP-check-normalized">수집량 차이인지 정규화로 확인 &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-disambiguate-axis" id="cta-2">
+            축 기준 확인하기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 · 축 기준 구분 ============ -->
+      <section class="jstep" id="STP-disambiguate-axis" data-step="STP-disambiguate-axis" hidden>
+        <div class="grid g-12">
+          <div class="card col-8">
+            <div class="card-h"><h3>축 기준</h3><span class="sub">두 기준은 서로 다릅니다</span></div>
+            <div class="card-b">
+              <div class="formrow">
+                <label class="fld" style="flex:1 1 220px">
+                  <span class="fl">출처 축 — 어디서 수집했는가</span>
+                  <select id="src-axis" name="src-axis">
+                    <option value="all" selected>전체 출처</option>
+                    <option value="KR">한국 언론</option>
+                    <option value="US">미국 언론</option>
+                    <option value="WW">그 밖의 해외 언론</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:1 1 220px">
+                  <span class="fl">대상 축 — 무엇을 다루는가</span>
+                  <select id="topic-axis" name="topic-axis">
+                    <option value="all" selected>전체 대상</option>
+                    <option value="KR">한국 경제</option>
+                    <option value="US">미국 경제</option>
+                    <option value="WW">글로벌 경제</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="note info" style="margin-top:18px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div id="axis-note"></div>
+              </div>
+
+              <table class="tbl" style="margin-top:18px">
+                <thead><tr><th>출처</th><th>대상</th><th class="num">건수</th><th class="num">비중</th></tr></thead>
+                <tbody id="axis-matrix"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
+            <div class="card-b">
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.
+              </p>
+              <a class="btn ghost" id="br-3" href="JRN-sentiment-shift.html"
+                 data-goto="JRN-sentiment-shift#STP-open-sentiment">축별 분위기 분포 보기 &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-pick-outlier" id="cta-3">
+            격차가 큰 대상 고르기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 · 편차 대상 선택 ============ -->
+      <section class="jstep" id="STP-pick-outlier" data-step="STP-pick-outlier" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>축 간 격차</h3><span class="sub" id="gap-sub">최대 − 최소 점유율</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:6px">
+                <label class="fld" style="flex:0 0 190px">
+                  <span class="fl">격차 임계 (%p)</span>
+                  <input type="number" id="gapthresh" name="gapthresh" min="0" max="40" step="1" value="5" />
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="alias-merge" name="alias-merge" />
+                  표기 변형을 같은 대상으로 통합
+                </label>
+              </div>
+
+              <div id="outlierlist"></div>
+
+              <div class="emptybox" id="s-no-outlier" data-state="no-outlier" hidden>
+                이 임계를 넘는 대상이 없습니다.<br/>
+                세 축의 관심사가 사실상 같다는 뜻입니다 &mdash; <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
+              </div>
+
+              <div class="banner warn" id="s-alias" data-state="alias-merged" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 7h8M8 12h8M8 17h5"/><circle cx="12" cy="12" r="10"/></svg>
+                <div>
+                  <b>표기 변형 <span id="alias-n">1</span>건을 통합했습니다.</b>
+                  <span id="alias-what"></span>
+                  통합 전 점유율은 취소선으로, 통합 후는 굵게 함께 표기합니다.
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-4" href="#STP-scan-axis-tops"
+                       data-goto="JRN-axis-contrast#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3 id="pick-title">선택한 대상</h3><span class="sub" id="pick-sub">행을 고르면 열립니다</span></div>
+            <div class="card-b">
+              <div class="emptybox" id="pick-empty" data-state="no-selection">
+                왼쪽 순위에서 대상을 고르면<br/>축별 점유율과 격차가 여기 열립니다.
+              </div>
+              <div id="pick-body" hidden></div>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-verify-in-trend" id="cta-4" disabled>
+            상세 추세로 확인하기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-4-hint">격차가 큰 대상을 먼저 고르세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 · 상세 추세로 확인 ============ -->
+      <section class="jstep" id="STP-verify-in-trend" data-step="STP-verify-in-trend" hidden>
+        <div class="grid g-12">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3 id="trend-title">축별 시계열</h3><span class="sub" id="trend-sub">비교 뷰의 축·기간을 그대로 승계했습니다</span>
+              <div class="r"><span class="tag">점유율 %</span></div>
+            </div>
+            <div class="card-b">
+              <svg viewBox="0 0 740 210" width="100%" style="display:block" id="trendchart"></svg>
+              <div class="legend" id="trend-legend"></div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>온도차 판별</h3><span class="sub">한 문장으로 설명할 수 있는 상태로 마칩니다</span></div>
+            <div class="card-b">
+              <form id="verdict-form">
+                <div class="fld">
+                  <span class="fl">결론</span>
+                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                    <label><input type="radio" name="verdict" value="persistent" /> 지속적인 온도차다 &mdash; 기간 내내 격차가 유지된다</label>
+                    <label><input type="radio" name="verdict" value="transient" /> 이번 구간만의 격차다 &mdash; 최근 며칠에만 벌어졌다</label>
+                    <label><input type="radio" name="verdict" value="none" /> 차이 없음 &mdash; 축 간 관심사가 사실상 같다</label>
+                  </div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">근거 메모</span>
+                  <textarea id="verdict-memo" name="verdict-memo" placeholder="어느 축이 언제부터 얼마나 벌어졌는지 적어 두세요."></textarea>
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="verdict-submit">온도차 기록</button>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">결론과 근거 메모를 모두 채워야 기록됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>온도차를 기록했습니다.</b>
+                  <span id="recorded-what"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>승계된 설정</h3><span class="sub">비교 뷰에서 그대로 가져왔습니다</span></div>
+            <div class="card-b" id="carried"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-axis-contrast</b> &mdash; 지역 온도차 확인.
+             <a href="../reader.html?doc=user-journeys/JRN-axis-contrast.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-open-compare"><button type="button" class="jr-btn" data-goto-step="STP-open-compare"><span class="jr-n">1</span><span class="jr-t">3축 비교 뷰 진입</span><span class="jr-id mono">STP-open-compare</span></button></li>
+            <li class="jr-item" data-rail="STP-scan-axis-tops"><button type="button" class="jr-btn" data-goto-step="STP-scan-axis-tops"><span class="jr-n">2</span><span class="jr-t">축별 상위 대상 대조</span><span class="jr-id mono">STP-scan-axis-tops</span></button></li>
+            <li class="jr-item" data-rail="STP-disambiguate-axis"><button type="button" class="jr-btn" data-goto-step="STP-disambiguate-axis"><span class="jr-n">3</span><span class="jr-t">축 기준 구분</span><span class="jr-id mono">STP-disambiguate-axis</span></button></li>
+            <li class="jr-item" data-rail="STP-pick-outlier"><button type="button" class="jr-btn" data-goto-step="STP-pick-outlier"><span class="jr-n">4</span><span class="jr-t">편차 대상 선택</span><span class="jr-id mono">STP-pick-outlier</span></button></li>
+            <li class="jr-item" data-rail="STP-verify-in-trend"><button type="button" class="jr-btn" data-goto-step="STP-verify-in-trend"><span class="jr-n">5</span><span class="jr-t">상세 추세로 확인</span><span class="jr-id mono">STP-verify-in-trend</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-open-compare</td><td>한국·미국·전세계를 같은 기준으로 나란히 놓는다</td><td>3축 비교 패턴(PAT-axis-compare), 축 필(CMP-axpill)</td><td class="mono">AC3.7</td></tr>
+              <tr><td class="mono">STP-scan-axis-tops</td><td>동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다</td><td>축별 순위 목록(CMP-ranklist)</td><td class="mono">AC3.7 · AC3.4</td></tr>
+              <tr><td class="mono">STP-disambiguate-axis</td><td>지금 보는 축이 뉴스를 수집한 출처 축인지, 기사가 다루는 대상 국가인지 확인한다</td><td>축 기준 주석(CMP-note)</td><td class="mono">AC1.3 · AC2.1</td></tr>
+              <tr><td class="mono">STP-pick-outlier</td><td>한 축에만 두드러지거나 축 간 격차가 큰 대상을 고른다</td><td>순위 행 (행 클릭으로 선택 대상을 유지한 채 상세로 이동)</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-verify-in-trend</td><td>선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다</td><td>라인 차트, 범례(CMP-legend)</td><td class="mono">AC3.5</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>특정 축의 수집 데이터가 비어 있음</td><td>화면 1 · 축 데이터 없음 배너</td><td class="mono">STP-scan-axis-tops</td></tr>
+              <tr><td>축 간 격차가 수집량 차이 때문으로 의심됨</td><td>화면 2 · 정규화 확인 이탈</td><td class="mono">JRN-spike-verification · STP-check-normalized</td></tr>
+              <tr><td>분위기까지 축별로 보고 싶어짐</td><td>화면 3 · 분위기 흐름 이탈</td><td class="mono">JRN-sentiment-shift · STP-open-sentiment</td></tr>
+              <tr><td>표기 변형으로 같은 대상이 축마다 다르게 잡힘</td><td>화면 4 · 표기 변형 통합 배너</td><td class="mono">STP-scan-axis-tops</td></tr>
+            </tbody>
+          </table>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-axis-contrast</b></span>
+            <span class="chip"><b>STP-open-compare</b></span>
+            <span class="chip"><b>STP-scan-axis-tops</b></span>
+            <span class="chip"><b>STP-disambiguate-axis</b></span>
+            <span class="chip"><b>STP-pick-outlier</b></span>
+            <span class="chip"><b>STP-verify-in-trend</b></span>
+            <span class="chip v"><b>V2</b> 지역 축 비교</span>
+            <span class="chip">AC3.7 · AC3.4 · AC1.3 · AC2.1 · AC3.5</span>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   프로토타입 데이터 — 축별 상위 서술 대상.
+   share = 그 축 안에서의 점유율(%), n = 수집 건수, d = 직전 구간 대비 %p,
+   aliasOf = 표기 변형(통합 시 대상 id 로 합쳐진다).
+   ============================================================ */
+var AXES = [
+  { id:'KR', label:'한국',   cls:'ax-kr' },
+  { id:'US', label:'미국',   cls:'ax-us' },
+  { id:'WW', label:'전세계', cls:'ax-gl' }
+];
+
+var BASE = {
+  KR: [
+    { id:'bok-rate',  name:'한국은행 기준금리', share:18.4, n:186, d:+2.1 },
+    { id:'household', name:'가계부채',          share:12.1, n:98,  d:+4.4 },
+    { id:'usdkrw',    name:'원/달러 환율',      share:11.2, n:151, d:-0.6 },
+    { id:'samsung',   name:'삼성전자',          share:9.8,  n:204, d:+1.2 },
+    { id:'oil',       name:'국제 유가',         share:6.1,  n:70,  d:-1.1 }
+  ],
+  US: [
+    { id:'fed',    name:'연준 기준금리',   share:19.7, n:212, d:+1.4 },
+    { id:'nvidia', name:'엔비디아',        share:14.2, n:243, d:+3.9 },
+    { id:'cpi',    name:'미국 소비자물가', share:10.6, n:139, d:-2.2 },
+    { id:'oil',    name:'국제 유가',       share:7.4,  n:178, d:-0.9 },
+    { id:'samsung',name:'삼성전자',        share:2.1,  n:41,  d:+0.3 }
+  ],
+  WW: [
+    { id:'oil',          name:'국제 유가',      share:15.3, n:178, d:-0.4 },
+    { id:'supply',       name:'공급망',         share:11.9, n:112, d:+2.7 },
+    { id:'fed',          name:'연준 기준금리',  share:9.1,  n:120, d:+0.8 },
+    { id:'samsung',      name:'삼성전자',       share:3.4,  n:52,  d:+0.2 },
+    { id:'usdkrw-fx',    name:'달러/원 환율',   share:2.6,  n:31,  d:+0.1, aliasOf:'usdkrw', aliasName:'원/달러 환율' }
+  ]
+};
+
+/* 최근 24시간에서는 해외 축의 시간당 수집이 아직 도착하지 않는다 —
+   여정 문서 §4 의 "특정 축의 수집 데이터가 비어 있음" 분기가 여기서 발생한다. */
+var RANGE_FACTOR = { '1':0.13, '7':1, '30':3.6 };
+
+function axisRows(ax){
+  if(state.range === '1' && ax === 'WW') return [];
+  /* 기간이 길수록 같은 대상의 수집 건수가 늘어난다 — 점유율(share)은 축 안의 비중이라 유지된다. */
+  var k = RANGE_FACTOR[state.range] || 1;
+  var list = (BASE[ax] || []).map(function(r){
+    var c = { id:r.id, name:r.name, share:r.share, n:Math.max(1, Math.round(r.n * k)), d:r.d };
+    if(r.aliasOf){ c.aliasOf = r.aliasOf; c.aliasName = r.aliasName; }
+    return c;
+  });
+  if(!state.aliasMerge) return list;
+  /* 표기 변형 통합: aliasOf 를 가진 행을 대상 행에 합치고, 없으면 이름만 정규화해 남긴다. */
+  var out = [], byId = {};
+  list.forEach(function(r){
+    var key = r.aliasOf || r.id;
+    if(byId[key]){ byId[key].share = Math.round((byId[key].share + r.share) * 10) / 10; byId[key].n += r.n; return; }
+    var copy = { id:key, name:r.aliasName || r.name, share:r.share, n:r.n, d:r.d, merged:!!r.aliasOf, was:r.share };
+    byId[key] = copy; out.push(copy);
+  });
+  return out;
+}
+
+var state = { range:'7', normalize:true, q:'', onlyUnique:false, gapthresh:5,
+              aliasMerge:false, target:null, srcAxis:'all', topicAxis:'all' };
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function axLabel(id){ for(var i=0;i<AXES.length;i++){ if(AXES[i].id===id) return AXES[i].label; } return id; }
+function axCls(id){ for(var i=0;i<AXES.length;i++){ if(AXES[i].id===id) return AXES[i].cls; } return ''; }
+function liveAxes(){ return AXES.filter(function(a){ return axisRows(a.id).length > 0; }); }
+function emptyAxes(){ return AXES.filter(function(a){ return axisRows(a.id).length === 0; }); }
+
+/* 대상 id → 축별 점유율. 없는 축은 undefined(0 으로 그리지 않는다). */
+function byTarget(){
+  var map = {};
+  liveAxes().forEach(function(a){
+    axisRows(a.id).forEach(function(r){
+      if(!map[r.id]) map[r.id] = { id:r.id, name:r.name, per:{}, merged:false };
+      map[r.id].per[a.id] = r.share;
+      if(r.merged) map[r.id].merged = true;
+    });
+  });
+  return map;
+}
+
+/* ---------------- 화면 1 : 비교 기준 ---------------- */
+function renderAxisCards(){
+  var live = liveAxes();
+  $('axiscards').innerHTML = AXES.map(function(a){
+    var rows = axisRows(a.id);
+    var total = rows.reduce(function(s, r){ return s + r.n; }, 0);
+    var dead = rows.length === 0;
+    return '<div class="card flat col-4" style="border-color:var(--line-2)">'
+      + '<div class="card-b">'
+      + '<span class="axpill ' + a.cls + '"><i class="fl"></i>' + a.label + '</span>'
+      + '<div class="metric" style="padding:12px 0 0">'
+      + '<div class="mv" style="font-size:24px">' + (dead ? '&mdash;' : total + '<small>건</small>') + '</div>'
+      + '<div class="md">' + (dead ? '이 기간 수집 없음 · 비교 제외' : rows.length + '개 대상 · ' + (state.normalize ? '정규화 점유율' : '원시 건수')) + '</div>'
+      + '</div></div></div>';
+  }).join('');
+  var dead = emptyAxes();
+  $('empty-axis-name').textContent = dead.length ? dead.map(function(a){ return a.label; }).join(' · ') : '';
+  show($('s-axis-empty'), dead.length > 0);
+  var basis = (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일')
+            + ' · ' + (state.normalize ? '정규화' : '원시 건수');
+  $('tb-basis').textContent = basis;
+  $('basis-sub').textContent = basis + ' · 비교 축 ' + live.length + '개';
+}
+
+function applyBasis(withLoading){
+  if(!withLoading){ renderAxisCards(); renderTops(); renderOutliers(); return; }
+  show($('s-loading'), true);
+  $('axiscards').setAttribute('hidden', '');
+  show($('s-axis-empty'), false);
+  window.setTimeout(function(){
+    show($('s-loading'), false);
+    $('axiscards').removeAttribute('hidden');
+    renderAxisCards(); renderTops(); renderOutliers();
+  }, 180);
+}
+
+/* ---------------- 화면 2 : 축별 상위 대상 ---------------- */
+function renderTops(){
+  var map = byTarget(), q = state.q.trim();
+  var live = liveAxes();
+  $('axistops').innerHTML = live.map(function(a){
+    var rows = axisRows(a.id).filter(function(r){
+      if(q && r.name.indexOf(q) < 0) return false;
+      if(state.onlyUnique){
+        var t = map[r.id];
+        if(t && Object.keys(t.per).length > 1) return false;
+      }
+      return true;
+    });
+    var col = live.length === 3 ? 'col-4' : live.length === 2 ? 'col-6' : 'col-12';
+    var body = rows.length
+      ? '<div class="ranklist">' + rows.map(function(r, i){
+          var t = map[r.id], common = t && Object.keys(t.per).length > 1;
+          var dcls = r.d > 0.3 ? 'up' : r.d < -0.3 ? 'dn' : 'fl';
+          return '<div class="rankrow" style="grid-template-columns:22px 1fr 74px 46px;cursor:default">'
+            + '<span class="rk">' + (i + 1) + '</span>'
+            + '<span class="nm">' + r.name
+            + ' <span class="badge ' + (common ? 'b-pos' : 'b-mix') + '"><span class="d"></span>'
+            + (common ? '공통' : '고유') + '</span></span>'
+            + '<span class="share"><span class="bar"><i style="width:' + Math.min(100, r.share * 4) + '%"></i></span>'
+            + '<span class="pct">' + r.share.toFixed(1) + '%</span></span>'
+            + '<span class="dlt ' + dcls + '">' + (r.d > 0 ? '+' : '') + r.d.toFixed(1) + '</span>'
+            + '</div>';
+        }).join('') + '</div>'
+      : '<div class="emptybox" style="padding:22px 10px">조건에 맞는 대상이 없습니다.</div>';
+    return '<div class="' + col + '">'
+      + '<div class="row" style="margin-bottom:8px"><span class="axpill ' + a.cls + '"><i class="fl"></i>' + a.label + '</span></div>'
+      + body + '</div>';
+  }).join('');
+  $('tops-sub').textContent = (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일')
+    + ' · 비교 축 ' + live.length + '개';
+}
+
+/* ---------------- 화면 3 : 축 기준 구분 ---------------- */
+var MATRIX = [
+  { src:'KR', topic:'KR', n:412 }, { src:'KR', topic:'US', n:74 },  { src:'KR', topic:'WW', n:58 },
+  { src:'US', topic:'KR', n:36 },  { src:'US', topic:'US', n:468 }, { src:'US', topic:'WW', n:121 },
+  { src:'WW', topic:'KR', n:19 },  { src:'WW', topic:'US', n:96 },  { src:'WW', topic:'WW', n:287 }
+];
+
+function renderMatrix(){
+  var rows = MATRIX.filter(function(m){
+    return (state.srcAxis === 'all' || m.src === state.srcAxis)
+        && (state.topicAxis === 'all' || m.topic === state.topicAxis);
+  });
+  var total = rows.reduce(function(s, m){ return s + m.n; }, 0) || 1;
+  $('axis-matrix').innerHTML = rows.map(function(m){
+    return '<tr><td><span class="axpill ' + axCls(m.src) + '"><i class="fl"></i>' + axLabel(m.src) + ' 언론</span></td>'
+      + '<td><span class="tag">' + axLabel(m.topic) + ' 경제</span></td>'
+      + '<td class="num">' + m.n + '</td>'
+      + '<td class="num">' + (m.n / total * 100).toFixed(1) + '%</td></tr>';
+  }).join('');
+  var cross = rows.filter(function(m){ return m.src !== m.topic; })
+                  .reduce(function(s, m){ return s + m.n; }, 0);
+  $('axis-note').innerHTML = '<b>출처 축과 대상 축은 다릅니다.</b> 지금 조건에서 '
+    + '출처와 대상이 <b>어긋나는</b> 기사가 ' + cross + '건(' + (cross / total * 100).toFixed(1) + '%)입니다 — '
+    + '예를 들어 미국 언론이 다룬 한국 경제 기사는 &ldquo;미국 관심사&rdquo;가 아니라 &ldquo;한국 경제에 대한 미국 언론의 관심&rdquo;입니다.';
+}
+
+/* ---------------- 화면 4 : 편차 대상 ---------------- */
+function gapsOf(){
+  var map = byTarget(), live = liveAxes(), out = [];
+  Object.keys(map).forEach(function(k){
+    var t = map[k];
+    var vals = live.map(function(a){ return t.per[a.id]; });
+    var present = vals.filter(function(v){ return typeof v === 'number'; });
+    if(!present.length) return;
+    var hi = Math.max.apply(null, present);
+    var lo = vals.some(function(v){ return typeof v !== 'number'; }) ? 0 : Math.min.apply(null, present);
+    out.push({ id:t.id, name:t.name, per:t.per, gap:Math.round((hi - lo) * 10) / 10, merged:t.merged });
+  });
+  out.sort(function(a, b){ return b.gap - a.gap; });
+  return out;
+}
+
+function renderOutliers(){
+  var live = liveAxes();
+  var list = gapsOf().filter(function(g){ return g.gap >= state.gapthresh; });
+  $('outlierlist').innerHTML = list.map(function(g){
+    var cells = live.map(function(a){
+      var v = g.per[a.id];
+      return '<span class="axpill ' + a.cls + '" style="margin-right:6px"><i class="fl"></i>'
+        + a.label + ' ' + (typeof v === 'number' ? v.toFixed(1) + '%' : '없음') + '</span>';
+    }).join('');
+    var pressed = (state.target && state.target.id === g.id) ? 'true' : 'false';
+    return '<button type="button" class="trow" data-target="' + g.id + '" aria-pressed="' + pressed + '">'
+      + '<span class="row" style="justify-content:space-between;margin-bottom:7px">'
+      + '<span style="font-weight:600;font-size:13px">' + g.name
+      + (g.merged ? ' <span class="tag">통합됨</span>' : '') + '</span>'
+      + '<span class="mono" style="font-size:11.5px;color:var(--ink-2);font-weight:600">격차 '
+      + g.gap.toFixed(1) + '%p</span></span>'
+      + '<span class="wrap">' + cells + '</span></button>';
+  }).join('');
+  show($('s-no-outlier'), list.length === 0);
+  $('gap-sub').textContent = '최대 − 최소 점유율 · 임계 ' + state.gapthresh + '%p 이상 ' + list.length + '건';
+
+  var merged = gapsOf().filter(function(g){ return g.merged; });
+  if(state.aliasMerge && merged.length){
+    $('alias-n').textContent = merged.length;
+    $('alias-what').textContent = merged.map(function(g){ return g.name; }).join(' · ') + ' — ';
+  }
+  show($('s-alias'), state.aliasMerge && merged.length > 0);
+
+  $('outlierlist').querySelectorAll('.trow').forEach(function(b){
+    b.addEventListener('click', function(){ pickTarget(b.getAttribute('data-target')); });
+  });
+  if(state.target && !list.some(function(g){ return g.id === state.target.id; })) clearPick();
+}
+
+function clearPick(){
+  state.target = null;
+  show($('pick-body'), false); show($('pick-empty'), true);
+  $('pick-title').textContent = '선택한 대상';
+  $('pick-sub').textContent = '행을 고르면 열립니다';
+  $('cta-4').disabled = true;
+  $('cta-4-hint').textContent = '격차가 큰 대상을 먼저 고르세요.';
+}
+
+function pickTarget(id){
+  var g = null, all = gapsOf();
+  for(var i = 0; i < all.length; i++){ if(all[i].id === id) g = all[i]; }
+  if(!g) return;
+  state.target = g;
+  renderOutliers();
+  $('pick-title').textContent = g.name;
+  $('pick-sub').textContent = '축 간 격차 ' + g.gap.toFixed(1) + '%p';
+  show($('pick-empty'), false);
+  show($('pick-body'), true);
+  $('pick-body').innerHTML = liveAxes().map(function(a){
+    var v = g.per[a.id];
+    return '<div class="kv"><span class="k">' + a.label + '</span><span class="v">'
+      + (typeof v === 'number' ? v.toFixed(1) + '%' : '데이터 없음') + '</span></div>';
+  }).join('') + '<p class="muted" style="margin-top:14px;font-size:12px;line-height:1.6">'
+    + '이 대상을 고른 채 상세로 넘어가면 축·기간 설정이 그대로 승계됩니다.</p>';
+  $('cta-4').disabled = false;
+  $('cta-4-hint').textContent = '';
+}
+
+/* ---------------- 화면 5 : 축별 시계열 ---------------- */
+function trendSeries(){
+  var g = state.target, live = liveAxes();
+  var n = state.range === '1' ? 8 : state.range === '30' ? 10 : 7;
+  return live.map(function(a){
+    var base = g && typeof g.per[a.id] === 'number' ? g.per[a.id] : null;
+    if(base === null) return { axis:a, pts:null };
+    var pts = [];
+    for(var i = 0; i < n; i++){
+      var wobble = Math.sin((i + a.id.charCodeAt(0)) * 0.9) * 1.6;
+      pts.push(Math.max(0.4, Math.round((base + wobble) * 10) / 10));
+    }
+    return { axis:a, pts:pts, n:n };
+  });
+}
+
+function drawTrend(){
+  var series = trendSeries().filter(function(s){ return s.pts; });
+  var x0 = 52, x1 = 716, base = 176, top = 22, Hh = base - top;
+  var all = series.reduce(function(acc, s){ return acc.concat(s.pts); }, [0]);
+  var max = Math.max.apply(null, all) * 1.15 || 1;
+  var n = series.length ? series[0].pts.length : 1;
+  var svg = '';
+  [0, 0.5, 1].forEach(function(p){
+    var y = base - p * Hh;
+    svg += '<line class="gridline ' + (p === 0 ? 'zero' : '') + '" x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y + '"/>';
+    svg += '<text class="axlab" x="' + (x0 - 8) + '" y="' + (y + 3) + '" text-anchor="end">'
+        + (max * p).toFixed(0) + '%</text>';
+  });
+  for(var i = 0; i < n; i++){
+    var lx = x0 + (x1 - x0) * (n === 1 ? 0 : i / (n - 1));
+    var lbl = i === n - 1 ? '지금' : 'T-' + (n - 1 - i);
+    svg += '<text class="axlab" x="' + lx.toFixed(1) + '" y="196" text-anchor="middle">' + lbl + '</text>';
+  }
+  series.forEach(function(s){
+    var d = s.pts.map(function(v, i){
+      var lx = x0 + (x1 - x0) * (s.pts.length === 1 ? 0 : i / (s.pts.length - 1));
+      var ly = base - (v / max) * Hh;
+      return (i ? 'L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
+    }).join(' ');
+    svg += '<path d="' + d + '" fill="none" stroke="var(--' + s.axis.cls + ')" stroke-width="2.4" stroke-linejoin="round"/>';
+    s.pts.forEach(function(v, i){
+      var lx = x0 + (x1 - x0) * (s.pts.length === 1 ? 0 : i / (s.pts.length - 1));
+      var ly = base - (v / max) * Hh;
+      svg += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2.6" fill="var(--' + s.axis.cls + ')"/>';
+    });
+  });
+  $('trendchart').innerHTML = svg;
+  $('trend-legend').innerHTML = series.map(function(s){
+    return '<span><i class="d" style="background:var(--' + s.axis.cls + ')"></i>' + s.axis.label + '</span>';
+  }).join('');
+  $('trend-title').textContent = (state.target ? state.target.name + ' · ' : '') + '축별 시계열';
+  $('carried').innerHTML =
+      '<div class="kv"><span class="k">기간</span><span class="v">'
+    + (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일') + '</span></div>'
+    + '<div class="kv"><span class="k">정규화</span><span class="v">' + (state.normalize ? '적용' : '미적용') + '</span></div>'
+    + '<div class="kv"><span class="k">비교 축</span><span class="v">'
+    + liveAxes().map(function(a){ return a.label; }).join(' · ') + '</span></div>'
+    + '<div class="kv"><span class="k">선택 대상</span><span class="v">'
+    + (state.target ? state.target.name : '미선택') + '</span></div>';
+}
+
+/* ---------------- 판별 ---------------- */
+function submitVerdict(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="verdict"]:checked');
+  var memo = $('verdict-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked
+      ? '결론을 하나 고르세요.'
+      : '근거 메모를 적어야 기록됩니다 — 어느 축이 언제부터 벌어졌는지가 결론의 실체입니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  $('recorded-what').textContent =
+      (picked.value === 'persistent' ? '지속적인 온도차'
+     : picked.value === 'transient'  ? '이번 구간만의 격차'
+     : '차이 없음') + '으로 판별했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-open-compare','STP-scan-axis-tops','STP-disambiguate-axis','STP-pick-outlier','STP-verify-in-trend'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-verify-in-trend') drawTrend();
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-axis-contrast'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('sync-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    state.range = $('range').value;
+    state.normalize = $('normalize').checked;
+    state.target = null;
+    applyBasis(true);
+    clearPick();
+  });
+  $('q').addEventListener('input', function(){ state.q = this.value; renderTops(); });
+  $('only-unique').addEventListener('change', function(){ state.onlyUnique = this.checked; renderTops(); });
+  $('src-axis').addEventListener('change', function(){ state.srcAxis = this.value; renderMatrix(); });
+  $('topic-axis').addEventListener('change', function(){ state.topicAxis = this.value; renderMatrix(); });
+  $('gapthresh').addEventListener('input', function(){
+    var v = parseFloat(this.value); state.gapthresh = isNaN(v) ? 0 : v; renderOutliers();
+  });
+  $('alias-merge').addEventListener('change', function(){
+    state.aliasMerge = this.checked; renderTops(); renderOutliers();
+  });
+  $('verdict-form').addEventListener('submit', submitVerdict);
+
+  renderAxisCards();
+  renderTops();
+  renderMatrix();
+  renderOutliers();
+  drawTrend();
+  fromHash();
+})();
+</script>
+</body>
+</html>

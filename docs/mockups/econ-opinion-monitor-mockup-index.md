@@ -4,7 +4,7 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-08-30
+> 마지막 갱신: 2026-08-31
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -13,7 +13,7 @@
 |---------|------|------|
 | `dash` | `docs/mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
 | `trend` | `docs/mockups/trend.html` | 자립형 HTML |
-| `compare` | `docs/mockups/compare.html` | 자립형 HTML |
+| ~~`compare`~~ | (삭제됨 — 아래 여정 페이지에 흡수) | — |
 | ~~`sentiment`~~ | (삭제됨 — 아래 여정 페이지에 흡수) | — |
 | `fairness` | `docs/mockups/fairness.html` | 자립형 HTML |
 | `trace` | `docs/mockups/trace.html` | 자립형 HTML |
@@ -33,11 +33,12 @@
 | 여정 | 파일 | 흡수한 화면 | 단계 |
 |---|---|---|---|
 | `JRN-sentiment-shift` | `docs/mockups/JRN-sentiment-shift.html` | `sentiment` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` |
+| `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 
-**규칙 1 미충족 여정 상한: 5** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-daily-scan`, `JRN-spike-verification`, `JRN-axis-contrast`, `JRN-ingestion-recovery`, `JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
+**규칙 1 미충족 여정 상한: 4** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-daily-scan`, `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
 
-**규칙 5 미충족 mockup 페이지 상한: 6** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
-않는 mockup 페이지의 수다. 화면 단위로 남아 있는 6개(`dashboard`, `trend`, `compare`, `fairness`,
+**규칙 5 미충족 mockup 페이지 상한: 5** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
+않는 mockup 페이지의 수다. 화면 단위로 남아 있는 5개(`dashboard`, `trend`, `fairness`,
 `trace`, `reprocess`)가 그것이며, 여정 워크스루가 아니라 단일 화면 스냅샷이라 (a)(c)(e)를 만족할 수
 없다. 이 격차는 여정 단위 재편이 진행되며 닫힌다 — `scripts/check-journey-mockup.py` 가 이 값을
 상한으로 읽어 늘면 실패하고, 밑돌면 값을 낮추라고 실패한다(래칫). 여정 페이지는 이 집합에서 제외되며,
@@ -64,6 +65,21 @@
 여정 문서 §4 3·4행(분류 오류 → `JRN-spike-verification`, 분류 기준 변경 → `JRN-logic-backfill`)은 이 여정을
 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 4에 있다.
 
+#### `JRN-axis-contrast`
+
+| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
+|---|---|---|---|
+| `loading` | 세 축을 같은 기준으로 재집계 중 | 이 task 결정 | 화면 1에서 「기준 적용」 제출 |
+| `axis-empty` | 특정 축의 수집이 비어 있음 — 0%가 아니라 비교에서 제외 | 여정 문서 §4 1행 | 화면 1에서 기간을 「최근 24시간」으로 두고 「기준 적용」 제출(해외 축 시간당 수집 미도착) |
+| `no-selection` | 편차 대상 미선택 — 상세로 넘어갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 선택 패널) |
+| `no-outlier` | 임계를 넘는 대상 없음 — 「차이 없음」도 결론 | 이 task 결정(여정 완료 기준의 "또는 차이 없음을 확인" 갈래) | 화면 4에서 「격차 임계(%p)」를 실측 최대 격차 위로 올린다 |
+| `alias-merged` | 표기 변형을 같은 대상으로 통합 — 통합 전후를 구분 표기 | 여정 문서 §4 4행 | 화면 4에서 「표기 변형을 같은 대상으로 통합」 체크 |
+| `invalid` | 온도차 판별 입력 검증 실패 | 이 task 결정 | 화면 5에서 결론 미선택 또는 근거 메모 공란으로 「온도차 기록」 제출 |
+| `recorded` | 온도차 판별 기록 완료(성공) | 이 task 결정 | 화면 5에서 결론을 고르고 근거 메모를 채워 제출 |
+
+여정 문서 §4 2·3행(수집량 차이 의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은
+이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다.
+
 > 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 7개 페이지의 `:root`를 함께 수정한다.
 > 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(`dash`만 `dashboard.html`, 나머지는 `<id>.html`).
 
@@ -75,14 +91,15 @@
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
 
 ### 화면 2 · `trend` 대상 추세 상세
-- **여정 단계**: `JRN-daily-scan` / `STP-drill-trend`(AC3.5, AC3.2) · `JRN-axis-contrast` / `STP-verify-in-trend`(AC3.5, 축 비교에서 진입하는 상세 목적지)
+- **여정 단계**: `JRN-daily-scan` / `STP-drill-trend`(AC3.5, AC3.2)
 - **가치**: V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-card`, `CMP-table`, `CMP-legend`, `CMP-axpill`, `CMP-seg`, `CMP-delta`, `CMP-mapstrip`
 
-### 화면 3 · `compare` 3축 비교
-- **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`(🟠 행 클릭 어포던스 미배선)
+### 여정 페이지 · `JRN-axis-contrast` 지역 온도차 확인
+- **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`, `STP-verify-in-trend`(AC3.5)
+- **파일**: `docs/mockups/JRN-axis-contrast.html` (구 `compare` 화면을 흡수, 화면 파일은 삭제. `STP-verify-in-trend`는 이 여정 맥락의 추세 상세를 원본으로 새로 그린다 — `trend.html`은 `JRN-daily-scan` 몫으로 존속)
 - **가치**: V2 지역 축 간 비교
-- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-axis-compare`, `CMP-card`, `CMP-axpill`, `CMP-ranklist`, `CMP-sentbar`, `CMP-badge`, `CMP-note`, `CMP-mapstrip`
+- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-axis-compare`, `PAT-line-chart`, `CMP-card`, `CMP-axpill`, `CMP-ranklist`, `CMP-badge`, `CMP-note`, `CMP-legend`, `CMP-table`, `CMP-kv`, `CMP-metric`, `CMP-delta`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-sentiment-shift` 분위기 반전 감지
 - **여정 단계**: `JRN-sentiment-shift` / `STP-open-sentiment`(AC3.6, AC3.4), `STP-check-unanalyzed`(AC2.5, AC3.4), `STP-overlay-time`(AC3.3, AC3.6), `STP-confirm-cause`
@@ -106,13 +123,14 @@
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-seg`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-mapstrip`
 
 ## 화면 간 이동(클릭 동선, 실제 링크)
-- `dashboard.html` → `compare.html` ("3축 나란히 비교" 버튼), `dashboard.html` → `trend.html` (상위 대상 순위 행 클릭)
+- `dashboard.html` → `JRN-axis-contrast.html` ("3축 나란히 비교" 버튼), `dashboard.html` → `trend.html` (상위 대상 순위 행 클릭)
 - `fairness.html` → `trace.html` (원천 기여 뉴스의 "원문 →" 행 클릭)
 - `trace.html` → `reprocess.html` ("이 키로 재분석" 버튼)
-- 좌측 네비(`<a href>`)에서 6개 화면 + 여정 페이지 `JRN-sentiment-shift.html` 임의 전환, `index.html`은 대시보드로 리다이렉트
+- 좌측 네비(`<a href>`)에서 5개 화면 + 여정 페이지 2개(`JRN-sentiment-shift.html`, `JRN-axis-contrast.html`) 임의 전환, `index.html`은 대시보드로 리다이렉트
 - `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `trace.html`·`reprocess.html`)으로 이동한다
+- `JRN-axis-contrast.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 4행이 `#STP-scan-axis-tops`(2건)·`fairness.html`·`JRN-sentiment-shift.html`로 이동한다
 
-## 여정 단계 커버리지 (22/30 완전 · 3 부분 · 5 미시각화)
+## 여정 단계 커버리지 (23/30 완전 · 2 부분 · 5 미시각화)
 
 여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
 
@@ -125,9 +143,7 @@
 | `JRN-spike-verification` | `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles` | `fairness` | 🟢 |
 | `JRN-spike-verification` | `STP-open-origin` | `trace` | 🟢 |
 | `JRN-spike-verification` | `STP-judge` | (없음) | 🔴 판정 기록 UI 없음 |
-| `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis` | `compare` | 🟢 |
-| `JRN-axis-contrast` | `STP-pick-outlier` | `compare` | 🟠 행 클릭 어포던스 미배선 |
-| `JRN-axis-contrast` | `STP-verify-in-trend` | `trend` | 🟢 |
+| `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` | `JRN-axis-contrast.html` (여정 페이지) | 🟢 |
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |
 | `JRN-ingestion-recovery` | `STP-spot-anomaly`, `STP-locate-gap` | `reprocess` | 🟢 |
 | `JRN-ingestion-recovery` | `STP-diagnose-source` | `reprocess` | 🟠 실패 사유 미표시 |
@@ -141,13 +157,14 @@
 | 가치 | 시각화 화면 |
 |------|-------------|
 | V1 시계열 추세 | `dash`, `trend`, `JRN-sentiment-shift` |
-| V2 지역 축 비교 | `compare` |
+| V2 지역 축 비교 | `JRN-axis-contrast` |
 | V3 분위기 분포 | `JRN-sentiment-shift` |
 | V4 편차 보정 | `fairness` |
 | V5 원문 추적·재처리 | `fairness`, `trace`, `reprocess` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 진행 중 (1/6)**: `JRN-sentiment-shift` 만 여정 페이지로 이관됐고 나머지 5개는 아직 화면 단위다. 이관 순서는 **화면 소유가 배타적인 여정부터** — `sentiment` 는 이 여정 전용이었기에 흡수·삭제가 선결 판단 없이 끝났다. 남은 5개는 화면을 공유한다(`dash`: daily-scan+spike-verification, `trend`: daily-scan+axis-contrast, `reprocess`: ingestion-recovery+logic-backfill)므로, 그 화면을 쓰는 여정이 **전부** 이관될 때 함께 흡수·삭제해야 한다.
-- **`STP-pick-outlier` 클릭 동선**: `compare` 의 대상 행에서 `trend` 상세로 가는 명시적 클릭 어포던스가 아직 미배선. 목적지 화면은 존재하므로 부분 시각화로 본다.
+- **여정↔mockup 1:1 이관 진행 중 (2/6)**: `JRN-sentiment-shift`·`JRN-axis-contrast` 가 여정 페이지로 이관됐고 나머지 4개는 아직 화면 단위다. 이관 순서는 **화면 소유가 배타적인 여정부터** — `sentiment` 와 `compare` 는 각각 그 여정 전용이었기에 흡수·삭제가 선결 판단 없이 끝났다. 남은 4개는 **저마다 🔴 미시각화 단계를 하나 이상 안고 있어 제품 범위 확정이 선행**이며(`STP-shortlist`·`STP-judge`·`STP-backfill`·`STP-dry-run`·`STP-publish`), 화면도 공유한다(`dash`: daily-scan+spike-verification, `trend`: daily-scan(+ spike-verification 의 `STP-notice-spike`), `reprocess`: ingestion-recovery+logic-backfill) — 그 화면을 쓰는 여정이 **전부** 이관될 때 함께 흡수·삭제해야 한다.
+- **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
 - **미시각화 5단계**: `STP-shortlist`, `STP-judge`, `STP-backfill`, `STP-dry-run`, `STP-publish`. 앞의 둘은 제품 범위(북마크·검증 이력) 확정이 선행돼야 한다.
+- **여정 페이지의 DOM 하네스는 페이지별 시나리오를 요구한다**: `scripts/check-journey-flow.js` 는 `data-journey` 를 선언한 페이지를 전부 발견해 (a)~(h)를 구동하고, `scripts/journey-scenarios/<여정 식별자>.js` 가 없으면 **실패한다**(fail-closed). 여정 페이지를 새로 얹을 때는 시나리오도 함께 넣어야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.
