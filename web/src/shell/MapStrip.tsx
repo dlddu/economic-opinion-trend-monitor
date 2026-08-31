@@ -12,7 +12,9 @@ export function MapStrip({ chips }: { chips: Chip[] }) {
       {chips.map((c, i) => (
         <span key={i} className={`chip${c.kind === "v" ? " v" : ""}`}>
           {c.value ? <b>{c.value}</b> : null}
-          {c.value ? " " : null}
+          {/* Journey/step chips separate the badge from the label with a middot;
+              value chips run the label straight on. Mirrors the mockups. */}
+          {c.value ? (c.kind === "v" ? " " : " · ") : null}
           {c.text}
         </span>
       ))}

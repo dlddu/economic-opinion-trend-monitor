@@ -15,8 +15,16 @@ export function Sidebar() {
         <div className="en">TREND MONITOR · v0 skeleton</div>
       </div>
       <nav className="nav">
-        <NavGroup label="관찰 · Observer" screens={SCREENS.filter((s) => s.group === "observer")} />
-        <NavGroup label="운영 · Operator" screens={SCREENS.filter((s) => s.group === "operator")} />
+        <NavGroup
+          label="관찰 · Observer"
+          persona="P1"
+          screens={SCREENS.filter((s) => s.group === "observer")}
+        />
+        <NavGroup
+          label="운영 · Operator"
+          persona="P2"
+          screens={SCREENS.filter((s) => s.group === "operator")}
+        />
       </nav>
       <div className="sidebar-foot">
         <span className="dot" />
@@ -28,10 +36,22 @@ export function Sidebar() {
   );
 }
 
-function NavGroup({ label, screens }: { label: string; screens: ScreenDef[] }) {
+function NavGroup({
+  label,
+  persona,
+  screens,
+}: {
+  label: string;
+  /** Persona the group serves (mockup shows it as a right-aligned tag). */
+  persona: string;
+  screens: ScreenDef[];
+}) {
   return (
     <div className="nav-group">
-      <div className="gl">{label}</div>
+      <div className="gl">
+        <span>{label}</span>
+        <span className="vtag">{persona}</span>
+      </div>
       {screens.map((s) => (
         <NavLink
           key={s.id}
