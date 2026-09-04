@@ -17,11 +17,20 @@
   규칙5  선언·등재가 가리키는 AC 코드가 실재해야 한다. 예외 등재된 AC 는 동시에
          spec 파일을 가질 수 없다.
   규칙6  doc-tracker 의 집계·매핑·공백 목록이 위 실측과 정확히 일치해야 한다.
+  규칙6' 로드맵 "AC↔e2e 1:1 매핑표" 가 "— 예외 등재" 로 표시한 AC 집합이 SSOT 절의
+         예외 목록과 정확히 같아야 하고, 21개 AC 가 각각 정확히 한 행이어야 한다.
+         두 표가 조용히 갈라져 한쪽만 낡는 것을 막는다.
+  규칙7  "구현 대기" 등재의 무결성 — 등재 AC 는 실재하고, 예외 목록과 동시에 오르지 않으며,
+         spec 파일을 갖지 않고, 근거·담당·해제 조건이 비어 있지 않다. 그리고 **해제 신호**
+         (`파일` ∋ `문자열`)가 아직 살아 있어야 한다. 구현이 착지해 신호가 사라지면 이 게이트가
+         빨개져 등재를 재판정하게 만든다 — 이 모델의 버전 추적(as-is=tests/e2e, to-be=문서)은
+         구현 착지를 감지하지 못하므로, 그 사각을 등재 자신이 막는다.
 
-강제하지 **않는** 것: 규칙1 의 "공백 0". 아직 21개 AC 중 다수가 미구현 표면에
-의존하므로 공백은 존재하는 것이 정상이고, 이 검사기는 공백을 **세어서 문서가
-사실대로 적고 있는지**만 본다. 즉 게이트는 "격차가 없다"가 아니라 "문서가 격차를
-정직하게 말한다"를 지킨다.
+강제하지 **않는** 것: 규칙1 의 "공백 0". 공백은 존재하는 것이 정상이고, 이 검사기는
+공백을 **세어서 문서가 사실대로 적고 있는지**만 본다. 즉 게이트는 "격차가 없다"가
+아니라 "문서가 격차를 정직하게 말한다"를 지킨다. 다만 격차의 **성격**은 구분한다 —
+구현이 없어 관측 대상 자체가 없는 AC 는 "구현 대기"(규칙7, 담당은 구현 모델), 구현은
+있는데 하네스가 닿지 않는 AC 는 "공백"(이 모델이 하네스로 닫는다).
 
 표준 라이브러리만 쓴다(레포가 이미 ``python3 contracts/codegen.py`` 를 bare
 python3 로 부른다). 사용법: ``python3 tests/e2e/check_ac_mapping.py``
@@ -50,6 +59,13 @@ EXCEPTION_SECTION = "예외 목록"
 COUNTS_SECTION = "집계 (실측)"
 GAP_SECTION = "공백 (1:1 대상 중 파일 없음)"
 NOT_EXCEPT_SECTION = "예외 후보 중 미등재 (공백으로 계수)"
+PENDING_SECTION = "구현 대기 (미구현이라 관측 대상 없음)"
+ROADMAP_SECTION = "AC↔e2e 1:1 매핑표"
+
+#: 구현 대기 표의 해제 신호 셀에서 백틱 토큰 두 개(파일 경로, 문자열)를 뽑는다.
+BACKTICKED = re.compile(r"`([^`]+)`")
+#: 로드맵 매핑표에서 파일을 배정하지 않은 행의 표기.
+ROADMAP_EXCEPT = "예외 등재"
 
 
 def ac_sort_key(code: str) -> tuple[int, int]:
@@ -162,6 +178,24 @@ def marked_block(section: list[str], marker: str, section_name: str) -> tuple[st
     return "\n".join(section[start + 1 : stop]), None
 
 
+def roadmap_rows() -> list[list[str]]:
+    """`## e2e 매핑` 밖에 있는 로드맵 `### AC↔e2e 1:1 매핑표` 의 데이터 행.
+
+    SSOT 는 `## e2e 매핑` 절이지만 로드맵 표도 같은 사실(어느 AC가 예외라 파일을 갖지
+    않는가)을 적는다. 게이트가 없으면 한쪽만 갱신돼 조용히 갈라진다 — 실제로 그렇게
+    갈라진 적이 있다(로드맵이 예외 3건, SSOT 가 1건).
+    """
+    lines = TRACKER.read_text(encoding="utf-8").splitlines()
+    start = next((i for i, line in enumerate(lines) if line.strip() == f"### {ROADMAP_SECTION}"), None)
+    if start is None:
+        return []
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].startswith(("## ", "### "))),
+        len(lines),
+    )
+    return table_rows(lines[start + 1 : end])
+
+
 # --- 검사 --------------------------------------------------------------------
 
 
@@ -182,6 +216,7 @@ def main() -> int:
             COUNTS_SECTION,
             MAPPING_SECTION,
             EXCEPTION_SECTION,
+            PENDING_SECTION,
             SMOKE_SECTION,
             GAP_SECTION,
             NOT_EXCEPT_SECTION,
@@ -197,6 +232,8 @@ def main() -> int:
     # 등재 내용
     registered_exceptions = [strip_code(r[0]) for r in table_rows(sections.get(EXCEPTION_SECTION, []))]
     registered_smoke = [strip_code(r[0]) for r in table_rows(sections.get(SMOKE_SECTION, []))]
+    pending_rows = [r for r in table_rows(sections.get(PENDING_SECTION, [])) if r]
+    registered_pending = [strip_code(r[0]) for r in pending_rows]
     registered_mapping = {
         strip_code(r[0]): strip_code(r[1]) for r in table_rows(sections.get(MAPPING_SECTION, [])) if len(r) >= 2
     }
@@ -232,6 +269,66 @@ def main() -> int:
                 f"`{EXCEPTION_SECTION}` 에도 있다 — 판정을 뒤집으려면 미등재 표에서 행을 빼는 명시적 변경이 필요하다"
             )
 
+    # 규칙7 — 구현 대기 등재의 무결성 + 해제 신호가 아직 살아 있는가
+    for row in pending_rows:
+        code = strip_code(row[0])
+        if code not in acs:
+            problems.append(f"규칙5: 구현 대기 표가 존재하지 않는 AC `{code}` 를 등재하고 있다")
+            continue
+        if code in registered_exceptions:
+            problems.append(
+                f"규칙7: {code} 가 `{EXCEPTION_SECTION}`(영구 면제)와 "
+                f"`{PENDING_SECTION}`(임시)에 동시에 있다 — 둘은 성격이 달라 한쪽만 골라야 한다"
+            )
+        if len(row) < 5:
+            problems.append(
+                f"규칙7: 구현 대기 표의 {code} 행에 열이 {len(row)}개다 — "
+                f"AC · 미구현 근거 · 담당 · 해제 조건 · 해제 신호 5개여야 한다"
+            )
+            continue
+        for idx, label in ((1, "미구현 근거"), (2, "담당"), (3, "해제 조건")):
+            if not row[idx].strip():
+                problems.append(f"규칙7: 구현 대기 표의 {code} 행에 `{label}` 이 비어 있다 — 등재는 근거와 소유자를 함께 적는다")
+        tokens = BACKTICKED.findall(row[4])
+        if len(tokens) != 2:
+            problems.append(
+                f"규칙7: {code} 의 해제 신호를 해석할 수 없다 — ``파일`` ∋ ``문자열`` 형태로 "
+                f"백틱 토큰 정확히 2개여야 하는데 {len(tokens)}개다"
+            )
+            continue
+        signal_path, needle = tokens
+        target = ROOT / signal_path
+        if not target.is_file():
+            problems.append(f"규칙7: {code} 의 해제 신호가 가리키는 `{signal_path}` 이 없다 — 신호를 다시 잡을 것")
+        elif needle not in target.read_text(encoding="utf-8"):
+            problems.append(
+                f"규칙7: {code} 의 해제 신호가 사라졌다 — `{signal_path}` 에 `{needle}` 이 더 이상 없다. "
+                f"구현이 착지했다면 구현 대기 등재를 풀고 1:1 판정 대상으로 되돌릴 것"
+            )
+
+    # 규칙6' — 로드맵 매핑표가 SSOT 예외 목록과 어긋나지 않는가
+    rows = roadmap_rows()
+    if not rows:
+        problems.append(f"규칙6': doc-tracker 에 `### {ROADMAP_SECTION}` 표가 없다")
+    else:
+        roadmap_acs = [strip_code(r[0]) for r in rows if r]
+        roadmap_excepted = sorted(
+            (strip_code(r[0]) for r in rows if len(r) >= 2 and ROADMAP_EXCEPT in r[1]),
+            key=ac_sort_key,
+        )
+        if sorted(set(roadmap_acs), key=ac_sort_key) != acs or len(roadmap_acs) != len(acs):
+            problems.append(
+                f"규칙6': 로드맵 매핑표의 AC 집합이 PRD 와 다르다(각 AC 정확히 한 행이어야 한다).\n"
+                f"      문서({len(roadmap_acs)}): {', '.join(roadmap_acs)}\n"
+                f"      실측({len(acs)}): {', '.join(acs)}"
+            )
+        if roadmap_excepted != sorted(registered_exceptions, key=ac_sort_key):
+            problems.append(
+                f"규칙6': 로드맵 매핑표의 `— {ROADMAP_EXCEPT}` 표기가 SSOT 예외 목록과 다르다.\n"
+                f"      로드맵: {', '.join(roadmap_excepted) or '(없음)'}\n"
+                f"      SSOT  : {', '.join(sorted(registered_exceptions, key=ac_sort_key)) or '(없음)'}"
+            )
+
     # 규칙3 — AC 를 선언하지 않는 파일은 비-AC 등재가 있어야 고아가 아니다
     measured_smoke = sorted(f for f, v in declarations.items() if v == NO_AC)
     for spec in measured_smoke:
@@ -255,6 +352,14 @@ def main() -> int:
         if code in by_ac:
             problems.append(f"규칙5: {code} 는 예외로 등재돼 있는데 spec 파일({by_ac[code][0]})도 있다 — 예외를 해제하거나 파일을 지울 것")
 
+    # 규칙7 — 구현 대기 AC 는 spec 파일을 가질 수 없다(가졌다면 이미 관측 대상이 있다)
+    for code in registered_pending:
+        if code in by_ac:
+            problems.append(
+                f"규칙7: {code} 는 구현 대기로 등재돼 있는데 spec 파일({by_ac[code][0]})도 있다 — "
+                f"관측 대상이 있다는 뜻이므로 등재를 풀 것"
+            )
+
     # 규칙6 — 문서의 집계·매핑·공백이 실측과 일치하는가
     measured_mapping = {code: specs[0] for code, specs in by_ac.items()}
     if registered_mapping != measured_mapping:
@@ -264,7 +369,9 @@ def main() -> int:
             f"      실측: {measured_mapping}"
         )
 
-    targets = [code for code in acs if code not in registered_exceptions]
+    targets = [
+        code for code in acs if code not in registered_exceptions and code not in registered_pending
+    ]
     measured_gaps = sorted((code for code in targets if code not in by_ac), key=ac_sort_key)
     if registered_gaps != measured_gaps:
         problems.append(
@@ -276,7 +383,8 @@ def main() -> int:
     expected_counts = {
         "AC 전집": len(acs),
         "예외 등재": len(registered_exceptions),
-        "1:1 대상 (AC − 예외)": len(targets),
+        "구현 대기 등재": len(registered_pending),
+        "1:1 대상 (AC − 예외 − 구현 대기)": len(targets),
         "AC 매칭 spec 파일": len(measured_mapping),
         "공백 (1:1 대상 중 파일 없음)": len(measured_gaps),
         "비-AC(스모크·인프라) spec 파일": len(measured_smoke),
@@ -299,7 +407,10 @@ def main() -> int:
         for p in problems:
             print(f"  - {p}", file=sys.stderr)
         return 1
-    print("\nOK: 규칙 1(중복)·2·3·4'·5·6 위반 없음 — 공백은 위 집계대로 문서에 기록돼 있다")
+    print(
+        "\nOK: 규칙 1(중복)·2·3·4'·5·6·6'·7 위반 없음 — 공백·구현 대기는 위 집계대로 "
+        "문서에 기록돼 있고, 구현 대기의 해제 신호는 아직 살아 있다"
+    )
     return 0
 
 
