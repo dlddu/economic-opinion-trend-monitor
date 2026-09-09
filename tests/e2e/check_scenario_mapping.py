@@ -369,11 +369,14 @@ def main() -> int:
         )
 
     # 규칙5 — 네 통이 전집을 빠짐없이 겹치지 않게 덮는가(회계가 닫히는가)
+    # 공백은 **등재된** 목록을 쓴다: 실측 공백을 쓰면 "어느 통에도 없는 시나리오"가 자동으로
+    # 공백에 떨어져 이 검사가 겹침만 보게 된다. 문서가 어디에도 적지 않은 시나리오를 "0개 통"
+    # 으로 잡아내는 것이 이 규칙의 존재 이유다.
     buckets = {
         "매칭": set(measured_mapping),
         "예외": set(registered_exceptions),
         "구현 대기": set(registered_pending),
-        "공백": set(measured_gaps),
+        "공백": set(registered_gaps),
     }
     covered: dict[str, list[str]] = {}
     for name, members in buckets.items():
