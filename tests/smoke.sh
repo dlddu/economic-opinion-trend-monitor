@@ -22,10 +22,12 @@ echo "[smoke] lake: $DATA  port: $PORT"
   cd "$ROOT/python"
   # Pinned to the deterministic fake source: the operational default is now the
   # real RSS/Atom feed, but the smoke must stay offline and deterministic.
+  # mock-exception: FEED-01 — 실 RSS/Atom 피드는 가용성·내용이 매 순간 달라 결정적 단정이 불가해 페이크 수집원에 고정 — docs/econ-opinion-monitor-e2e-mocking-policy.md
   uv run --quiet python -m econ_ingestion --source fake --data "$DATA" --cycle 2026-06-23T14:00
   # Pinned to the deterministic fake analyzer for the same reason: the operational
   # default is now the real chat-completions model, which needs ECON_LLM_API_KEY and
   # the network. Without this pin the smoke would exit 2 on an unconfigured runner.
+  # mock-exception: LLM-01 — 실 chat-completions 호출은 API 키·과금·네트워크가 필요하고 비결정적이라 페이크 분석기에 고정 — docs/econ-opinion-monitor-e2e-mocking-policy.md
   uv run --quiet python -m econ_analysis --analyzer fake --data "$DATA"
   uv run --quiet python -m econ_aggregation --data "$DATA"
 )

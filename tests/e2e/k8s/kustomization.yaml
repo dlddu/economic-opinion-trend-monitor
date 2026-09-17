@@ -1,5 +1,6 @@
 # e2e overlay of deploy/base: the image is built locally and side-loaded with
 # `kind load docker-image` (imagePullPolicy: Never — no registry involved),
+# mock-exception: GOLD-02 — gold-fixtures 마운트 배선의 문서화 앵커(실제 마운트는 e2e-patch.yaml의 GOLD-03) — docs/econ-opinion-monitor-e2e-mocking-policy.md
 # and fixture Gold is mounted from the `gold-fixtures` ConfigMap that run.sh
 # creates from tests/e2e/fixtures/gold. Applying this overlay in CI also
 # keeps the deployable base honest.

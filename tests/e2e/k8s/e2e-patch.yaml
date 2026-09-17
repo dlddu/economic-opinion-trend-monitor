@@ -23,4 +23,5 @@ spec:
       volumes:
         - name: gold
           configMap:
+            # mock-exception: GOLD-03 — 서빙이 <ECON_DATA_ROOT>/gold/*.jsonl을 파일 시스템에서 읽는 계약이라 픽스처 Gold를 볼륨으로 주입 — docs/econ-opinion-monitor-e2e-mocking-policy.md
             name: gold-fixtures
