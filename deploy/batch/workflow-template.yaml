@@ -12,6 +12,10 @@
 # patch is scoped to the serving Deployment, so a batch Pod would otherwise
 # never receive it. The `ghcr` Secret itself is injected into the namespace by
 # external-secrets.
+#
+# Both `image:` lines below are pinned to a main commit SHA by CI's `pin` job
+# (.github/workflows/image.yml), in step with the serving image in
+# deploy/base — do not edit the tags by hand.
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -43,7 +47,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:latest
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:sha-a23c19a09976713fee2bf102d0b338c49560d0e4
         # Set explicitly (rather than relying on the image ENTRYPOINT) so the
         # emissary executor never has to look the entrypoint up from a private
         # registry. No args: the default source is the real feed list and the
@@ -92,7 +96,7 @@ spec:
         # buries the message, so stop after the first attempt.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:latest
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:sha-a23c19a09976713fee2bf102d0b338c49560d0e4
         command: ["econ-analysis"]
         args: []
         env:

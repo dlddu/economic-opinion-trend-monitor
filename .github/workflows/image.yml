@@ -1,10 +1,26 @@
-# Publishes the two runtime images to GHCR so an external cluster can pull what
-# deploy/ references. Each gets a moving `latest` (tracks main) and an
-# immutable `sha-<commit>` pin:
-#   ghcr.io/dlddu/economic-opinion-trend-monitor         serving (Dockerfile)
+# Publishes the two runtime images to GHCR under exactly one tag each: the
+# commit SHA the image was built from.
+#   ghcr.io/dlddu/economic-opinion-trend-monitor:<sha>         serving (Dockerfile)
 #     -> deploy/base/deployment.yaml
-#   ghcr.io/dlddu/economic-opinion-trend-monitor-batch   batch   (Dockerfile.batch)
-#     -> deploy/batch/workflow-template.yaml (AC1.1 scheduled ingestion)
+#   ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>   batch   (Dockerfile.batch)
+#     -> deploy/batch/workflow-template.yaml (ingest + analyze)
+#
+# On main pushes the `pin` job then commits that SHA back into deploy/, so the
+# image production runs (flux-cd-apps/cluster/econ-monitor.yaml tracks main) is
+# readable from deploy/ at any single commit.
+#
+# No `latest` any more. This workflow used to push `latest` with no branch
+# condition, so every pull_request build overwrote the tag production was
+# pulling — an unmerged PR could reach production on the next pull. PR builds
+# still publish, but only under the PR *head* SHA: the PR preview environments
+# (flux-cd-apps/apps/econ-monitor-preview) retag deploy/ to exactly that SHA.
+# Tags are immutable, so the default imagePullPolicy (IfNotPresent) is correct.
+# Tags published earlier as `sha-<commit>` stay in the registry; nothing new is
+# written in that format.
+#
+# No path filter on purpose: a preview references the head SHA tag, so even a
+# docs-only PR labelled `deploy/preview` needs an image at that SHA. Unchanged
+# sources hit the buildx gha cache wholesale, so that costs little.
 name: Image
 
 on:
@@ -16,6 +32,10 @@ on:
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -32,8 +52,14 @@ jobs:
             suffix: "-batch"
             dockerfile: Dockerfile.batch
     name: publish (${{ matrix.name }})
+    env:
+      # On pull_request, github.sha is the temporary refs/pull/N/merge commit;
+      # the preview asks for the PR head, so tag and build that commit instead.
+      SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -45,23 +71,83 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}${{ matrix.suffix }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=long
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ github.repository }}${{ matrix.suffix }}:${{ env.SHA }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}${{ matrix.suffix }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.SHA }}
           # Distinct scopes: one cache per image, so they never evict each other.
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  pin:
+    name: pin deploy images (main only)
+    # Waits for every matrix leg: both images must exist before either is pinned.
+    needs: [publish]
+    # PR builds only publish their head-SHA images for the preview; they never
+    # touch the manifests production reads.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    permissions:
+      # The only job that commits. The workflow default stays contents: read.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Pin deploy/ images to ${{ github.sha }}
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Serving and batch in one pattern: the optional group keeps the
+          # `-batch` suffix inside \1, so each reference keeps its own name.
+          ref='ghcr\.io/dlddu/economic-opinion-trend-monitor(-batch)?:[A-Za-z0-9._-]+'
+
+          # Every file under deploy/ that references either image, rather than a
+          # fixed list — a reference added in a new file is pinned too.
+          files=$(grep -rlE "$ref" deploy/ || true)
+          [ -n "$files" ] || { echo "::error::deploy/: no image references found"; exit 1; }
+          # shellcheck disable=SC2086
+          sed -i -E "s#(ghcr\.io/dlddu/economic-opinion-trend-monitor(-batch)?):[A-Za-z0-9._-]+#\1:${SHA}#g" $files
+
+          # Check that sed did not silently miss: no reference may be left on
+          # any other tag, and each image must be pinned at least once.
+          leftover=$(grep -rhoE "$ref" deploy/ | grep -v ":${SHA}\$" || true)
+          if [ -n "$leftover" ]; then
+            echo "::error::deploy/: unpinned image references remain:"
+            echo "$leftover"
+            exit 1
+          fi
+          for image in economic-opinion-trend-monitor economic-opinion-trend-monitor-batch; do
+            grep -rqE "ghcr\.io/dlddu/${image}:${SHA}" deploy/ \
+              || { echo "::error::deploy/: ghcr.io/dlddu/${image} is not pinned anywhere"; exit 1; }
+          done
+
+          if git diff --quiet; then
+            echo "Already pinned to ${SHA} — nothing to commit (re-run)."
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "chore(deploy): pin images to ${SHA} [skip ci]"
+
+          # Pushed with the default GITHUB_TOKEN, which does not start new
+          # workflow runs (documented GitHub behaviour); [skip ci] guards the
+          # loop again if this ever moves to a PAT/App token. If merges landed
+          # meanwhile and main moved on, rebase and retry.
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main
+          done
+          exit 1

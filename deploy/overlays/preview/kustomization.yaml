@@ -1,0 +1,50 @@
+# PR preview overlay — the path flux-cd-apps' apps/econ-monitor-preview points
+# each labelled PR's Kustomization at.
+#
+# Two halves:
+#   * serving — deploy/base as is. Its /data is the base emptyDir, so the
+#     dashboard comes up empty: nothing in the cluster writes Gold yet (the
+#     batch stops at analyze). A preview checks that serving builds, starts and
+#     renders, not what it renders.
+#   * batch (deploy/batch) for manual runs only: the WorkflowTemplate and its
+#     executor RBAC, with both CronWorkflows removed. A preview must never
+#     start its own hourly ingestion (real HTTP to every feed) or LLM analysis
+#     next to production's; a person submits a Workflow when they want one.
+#     See README "PR 프리뷰" for the submit command.
+#
+# What this overlay deliberately does NOT carry: a PersistentVolumeClaim. The
+# batch `data` volume stays the emptyDir seam here and the Flux side swaps in
+# a claim named after the PR number. The cluster's `efs` StorageClass reuses
+# access points keyed by PVC *name* alone, so any fixed name written here would
+# be shared by every preview — and deleting one preview's claim deletes the
+# access point under all of them (feature-doc hit exactly this against
+# production). Only the side that knows the PR number can name the claim.
+# Consequence: without Flux, `pipeline` has no shared volume between its
+# steps, so analyze would not see the Bronze ingest just wrote.
+#
+# Namespace, image tags (the PR head SHA), the serving pull secret and the
+# IngressRoute are also supplied by the Flux side.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ../../batch
+
+patches:
+  # Manual runs only — drop every schedule deploy/batch ships. Delete patches
+  # go by name, so a CronWorkflow added to deploy/batch later is NOT covered
+  # by these; add its delete here in the same change. CI's "preview overlay"
+  # step fails if any CronWorkflow survives this build.
+  - patch: |
+      apiVersion: argoproj.io/v1alpha1
+      kind: CronWorkflow
+      metadata:
+        name: econ-ingestion-hourly
+      $patch: delete
+  - patch: |
+      apiVersion: argoproj.io/v1alpha1
+      kind: CronWorkflow
+      metadata:
+        name: econ-pipeline-hourly
+      $patch: delete

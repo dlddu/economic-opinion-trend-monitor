@@ -99,15 +99,24 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 
 ## 배포 (외부 k8s + kustomize)
 
-서빙 이미지는 `main` 푸시마다 CI(`.github/workflows/image.yml`)가
-`ghcr.io/dlddu/economic-opinion-trend-monitor`로 발행한다
-(`latest` + 불변 `sha-<commit>` 태그).
+이미지는 CI(`.github/workflows/image.yml`)가 **커밋 SHA 태그 하나로만** 발행한다 —
+서빙은 `ghcr.io/dlddu/economic-opinion-trend-monitor:<sha>`, 배치는
+`ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>`. `latest`는 더 이상 만들지 않는다
+(예전에는 PR 빌드도 `latest`를 덮어써 미머지 코드가 운영 pull에 섞일 수 있었다).
+
+- **운영 고정(`pin` job)**: `main` 푸시에서 두 이미지를 올린 뒤, 그 SHA를
+  `deploy/` 아래 모든 이미지 참조(`deploy/base/deployment.yaml`,
+  `deploy/batch/workflow-template.yaml`)에 되커밋한다(`chore(deploy): pin images … [skip ci]`).
+  운영이 어느 커밋을 돌리는지는 `deploy/`만 보면 된다. 이 태그들은 손으로 고치지 않는다.
+- **PR 빌드**: PR head SHA 태그로 발행만 하고 매니페스트는 건드리지 않는다. 이 태그를
+  PR 프리뷰가 가져다 쓴다(아래).
 
 ```
 deploy/
-  base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
-  batch/           환경 무관 배치 스케줄 (Argo CronWorkflow, /data는 emptyDir)
-  overlays/prod/   네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
+  base/              환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
+  batch/             환경 무관 배치 스케줄 (Argo CronWorkflow, /data는 emptyDir)
+  overlays/prod/     네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
+  overlays/preview/  PR 프리뷰: base 그대로 + batch(스케줄 제거, 수동 실행 전용)
 ```
 
 ```bash
@@ -145,6 +154,54 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
 - 분석 스케줄은 `econ-pipeline-hourly`로 배선됐고(suspend 착지), 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.
+
+### PR 프리뷰
+
+PR에 `deploy/preview` 라벨을 붙이면 flux-cd-apps(`apps/econ-monitor-preview`)가 그 PR만의
+환경을 띄운다: 네임스페이스 `econ-monitor-pr-<번호>`, 주소
+`http://econ-monitor-pr-<번호>.<사설 도메인>`(내부망 전용). 라벨을 떼거나 PR을 닫거나
+머지하면 환경이 정리된다. 동시에 최대 5개.
+
+- 경로는 `deploy/overlays/preview`, 이미지(서빙·배치)는 PR head SHA 태그다. 그래서 **이
+  오버레이와 SHA 태그 발행이 들어간 뒤의 `main`에서 갈라진(또는 그 위로 rebase한) PR만**
+  프리뷰가 뜬다.
+- **서빙**: `deploy/base` 그대로라 `/data`는 emptyDir이고 **대시보드는 빈 상태**로 뜬다.
+  클러스터 안에는 아직 Gold를 쓰는 단계가 없다(배치는 analyze까지). 프리뷰에서 서빙은
+  빌드·기동·렌더링이 되는지를 본다.
+- **배치**: `econ-batch-pipeline` WorkflowTemplate만 있고 CronWorkflow는 없다 — 스케줄은
+  돌지 않고 **사람이 제출할 때만** 돈다. `/data`는 PR 전용 EFS 볼륨
+  `econ-pr-<번호>-batch-data`(flux 쪽에서 생성)라 `pipeline`의 ingest → analyze가 같은
+  Bronze를 본다. 운영 `econ-batch-data`와는 분리돼 있다.
+
+배치 수동 실행 (`ingest`만, 또는 `pipeline` = ingest → analyze):
+
+```bash
+PR=42  # PR 번호
+kubectl -n econ-monitor-pr-$PR create -f - <<'YAML'
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: econ-batch-manual-
+spec:
+  workflowTemplateRef:
+    name: econ-batch-pipeline
+  entrypoint: ingest        # 또는 pipeline
+YAML
+kubectl -n econ-monitor-pr-$PR get workflows
+# argo CLI가 있으면: argo submit -n econ-monitor-pr-$PR --from workflowtemplate/econ-batch-pipeline --entrypoint pipeline --watch
+```
+
+- `ingest`는 운영과 같은 기본값으로 돈다 — 실제 피드 전부에 HTTP 요청, 사이클은 현재 UTC 시각.
+- `analyze`(= `pipeline`)는 네임스페이스에 **`econ-llm` Secret(`api-key`)** 이 있어야 파드가
+  뜬다. 프리뷰는 이 시크릿을 자동으로 넣지 않으므로, 필요할 때 직접 만든다 — 호출은
+  과금되는 실제 LLM 트래픽이다. 프리뷰가 정리되면 네임스페이스와 함께 사라진다.
+  ```bash
+  kubectl -n econ-monitor-pr-$PR create secret generic econ-llm --from-literal=api-key=...
+  ```
+- PR 전용 볼륨은 프리뷰와 함께 삭제되지만 EFS 위 디렉터리(`/econ-pr-<번호>-batch-data`)는
+  남는다. 같은 PR에 라벨을 다시 붙이면 그 디렉터리(이전 Bronze·Silver)로 돌아온다.
+- 로컬 빌드는 `kubectl kustomize deploy/overlays/preview`. CI가 이 오버레이를 빌드해
+  CronWorkflow가 섞이지 않았는지, 이미지 retag가 배치 템플릿까지 닿는지 검사한다.
 
 ## 범위
 

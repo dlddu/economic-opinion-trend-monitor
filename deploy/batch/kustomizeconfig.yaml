@@ -1,0 +1,13 @@
+# Teaches kustomize's `images:` transformer where an Argo WorkflowTemplate keeps
+# its container images. Out of the box the transformer only knows Pod-shaped
+# paths (spec/containers, spec/template/spec/containers, ...), so an `images:`
+# entry silently skips `spec/templates[].container.image` and a retag leaves the
+# batch on whatever tag deploy/ was pinned to.
+#
+# Declared here, next to the WorkflowTemplate, rather than in an overlay:
+# kustomize merges transformer configurations up from resources, so every
+# overlay that includes deploy/batch gets it — today the PR preview, whose
+# Flux Kustomization retags the batch image to the PR head SHA.
+images:
+  - kind: WorkflowTemplate
+    path: spec/templates[]/container/image
