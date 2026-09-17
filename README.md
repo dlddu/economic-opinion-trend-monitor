@@ -45,7 +45,7 @@ contracts/   스키마(단일 소스) + 코드젠 — bronze/*.schema.json, silv
 python/      uv 워크스페이스 (배치)
   packages/core         공유 도메인 + 생성 모델 + 스토리지 추상화(로컬 FS 구현)
   packages/ingestion    CLI 엔트리 · 실 RSS/Atom 피드 소스(기본) + 페이크 카탈로그 · Bronze writer
-  packages/analysis     CLI 엔트리 · 실 LLM 분석기(opt-in) + 페이크 LLM(기본) · Silver writer
+  packages/analysis     CLI 엔트리 · 실 LLM 분석기(기본) + 페이크 LLM(opt-in) · Silver writer
   packages/aggregation  CLI 엔트리 · Gold builder (정규화 스텁)
 go/          Go 모듈 (서빙)
   cmd/serving           main — HTTP 서버 부트
