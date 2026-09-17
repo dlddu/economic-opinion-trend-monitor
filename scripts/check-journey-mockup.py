@@ -11,7 +11,8 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
   R4  분기: 여정 문서 §4 의 (상황, 이어지는 단계) 쌍이 순서까지 페이지에 있고 대상으로 이동
   R5  프로토타입 충실도의 정적 조건 (단계 앵커 · 화면 내 전진 버튼 · 메타 레이어 분리 ·
       실제 폼 요소 · data-state ↔ 인덱스 등재 · 딥링크 핸들러 · 외부 자원)
-  R9  DOM 하네스가 레포에 있고 CI 워크플로에 실제로 걸려 있다
+  R9  DOM 하네스가 레포에 있고 CI 워크플로에 실제로 걸려 있으며, **여정 페이지마다**
+      그 페이지를 실제로 굴리는 시나리오가 있다
       (모델 정의: '하네스가 없거나 CI 에 걸려 있지 않은 상태는 그 자체가 drift')
   R6  참조 무결성: 폐기 식별자(`J1`~`J5`) 재사용 금지, 없는 여정·단계 참조 금지
   R7  인덱스 ↔ 실제 파일 ↔ 허브 링크 동기화
@@ -338,6 +339,7 @@ if CEIL5 is not None:
 # 모델 정의: "(c)(d)(e) 는 정적 대조로 확인할 수 없다 → 하네스를 레포에 커밋해 CI 게이트에
 # 얹는다. 하네스가 없거나 CI 에 걸려 있지 않은 상태는 그 자체가 drift."
 HARNESS = "scripts/check-journey-flow.js"
+SCEN_DIR = "scripts/journey-scenarios"
 WFDIR = D(".github", "workflows")
 if not os.path.exists(D(HARNESS)):
     fail("R9", f"DOM 하네스 {HARNESS} 가 없다 — 규칙 5(c)(d)(e) 를 집행할 수단이 없다")
@@ -356,6 +358,18 @@ else:
                    "하네스가 커밋만 되고 게이트로 걸려 있지 않다")
     else:
         ok("R9", f"DOM 하네스가 CI 에 걸려 있다: {', '.join(wired)}")
+    # 하네스는 여정 무관 범용 러너이고, 페이지 고유 조작((c) 선행 행동 · (d) 값 변경 ·
+    # (e) 상태 도달)은 여정별 시나리오가 맡는다. 시나리오가 없으면 그 페이지는 (c)(d)(e) 를
+    # 한 번도 집행받지 않는다 — 하네스도 fail-closed 로 막지만, 정적으로도 잡는다.
+    missing_scen = []
+    for jid in sorted(declared):
+        scen = f"{SCEN_DIR}/{jid}.js"
+        if not os.path.exists(D(*scen.split("/"))):
+            missing_scen.append(jid)
+            fail("R9", f"여정 페이지 `{jid}` 의 하네스 시나리오 {scen} 가 없다 — "
+                       "규칙 5(c)(d)(e) 를 그 페이지에 대해 집행할 수단이 없다")
+    if declared and not missing_scen:
+        ok("R9", f"여정 페이지 {len(declared)}개 전부 하네스 시나리오 보유")
 
 # ---------------------------------------------------------------- R7 허브
 hub = strip_comments(read(HUB))

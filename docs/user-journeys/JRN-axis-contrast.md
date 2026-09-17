@@ -8,9 +8,9 @@
 | 여정명 | 지역 온도차 확인 |
 | 상태 | 초안 (v0.1) |
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
-| 최종 수정일 | 2026-08-29 |
+| 최종 수정일 | 2026-08-31 |
 | 달성 가치 | `V2` 지역 축 간 관심사 비교 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.4·AC3.5·AC3.7) · `econ-opinion-monitor-prd-ingestion.md` (AC1.3) · `econ-opinion-monitor-prd-analysis.md` (AC2.1) · mockup `compare`(`compare.html`), `trend`(`trend.html`) — 화면 단위 mockup이라 여정 1:1 페이지는 미정 |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.4·AC3.5·AC3.7) · `econ-opinion-monitor-prd-ingestion.md` (AC1.3) · `econ-opinion-monitor-prd-analysis.md` (AC2.1) · mockup `JRN-axis-contrast.html` (여정 단위 페이지, 구 `compare` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -40,35 +40,35 @@
 ### `STP-open-compare` 3축 비교 뷰 진입
 
 - **사용자 행동**: 한국·미국·전세계를 같은 기준으로 나란히 놓는다 (AC3.7)
-- **터치포인트**: `compare.html` 3축 비교 패턴(`PAT-axis-compare`), 축 필(`CMP-axpill`)
+- **터치포인트**: `JRN-axis-contrast.html` 3축 비교 패턴(`PAT-axis-compare`), 축 필(`CMP-axpill`)
 - **생각·감정**: "같은 기준으로 놓고 봐야 말이 되지"
 - **페인포인트 / 이탈 위험**: 축마다 기간·정규화 기준이 다르면 비교 자체가 무의미해진다 → 축 간 기준(기간·단위·정규화)을 강제로 동기화하고 화면에 명시
 
 ### `STP-scan-axis-tops` 축별 상위 대상 대조
 
 - **사용자 행동**: 동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다 (AC3.7, AC3.4)
-- **터치포인트**: `compare.html` 축별 순위 목록(`CMP-ranklist`)
+- **터치포인트**: `JRN-axis-contrast.html` 축별 순위 목록(`CMP-ranklist`)
 - **생각·감정**: "이건 셋 다 있네. 근데 이건 한국에만 있다"
 - **페인포인트 / 이탈 위험**: 공통 대상과 축 고유 대상이 시각적으로 구분되지 않으면 눈으로 교집합을 계산해야 한다 → 공통/고유를 배지로 구분 표시
 
 ### `STP-disambiguate-axis` 축 기준 구분
 
 - **사용자 행동**: 지금 보는 축이 뉴스를 수집한 출처 축(AC1.3)인지, 기사가 다루는 대상 국가(AC2.1)인지 확인한다
-- **터치포인트**: `compare.html` 축 기준 주석(`CMP-note`)
+- **터치포인트**: `JRN-axis-contrast.html` 축 기준 주석(`CMP-note`)
 - **생각·감정**: "미국 축이라는 게 미국 언론이라는 건가, 미국 얘기라는 건가?"
 - **페인포인트 / 이탈 위험**: 두 축을 혼동하면 "미국 언론이 다룬 한국 이슈"를 미국 관심사로 잘못 읽는다 → 축 선택 UI에서 두 기준을 별도 컨트롤로 분리하고 라벨을 다르게
 
 ### `STP-pick-outlier` 편차 대상 선택
 
 - **사용자 행동**: 한 축에만 두드러지거나 축 간 격차가 큰 대상을 고른다
-- **터치포인트**: `compare.html` 순위 행
+- **터치포인트**: `JRN-axis-contrast.html` 격차 후보 순위 행
 - **생각·감정**: "이 격차가 진짜인지 봐야겠다"
-- **페인포인트 / 이탈 위험**: 순위 행에서 상세로 가는 클릭 어포던스가 없으면 좌측 네비로 우회해 맥락(선택한 대상)을 잃는다 → 행 클릭 시 선택 대상을 유지한 채 상세로 이동 *(현재 mockup 미배선 — `mockups/econ-opinion-monitor-mockup-index.md`의 정제 항목과 동일 건)*
+- **페인포인트 / 이탈 위험**: 순위 행에서 상세로 가는 클릭 어포던스가 없으면 좌측 네비로 우회해 맥락(선택한 대상)을 잃는다 → 행 클릭 시 선택 대상을 유지한 채 상세로 이동 *(2026-08-31 여정 페이지 이관으로 배선 완료 — 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend`로 전진한다)*
 
 ### `STP-verify-in-trend` 상세 추세로 확인
 
 - **사용자 행동**: 선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다 (AC3.5)
-- **터치포인트**: `trend.html` 라인 차트, 범례(`CMP-legend`)
+- **터치포인트**: `JRN-axis-contrast.html` 축별 라인 차트, 범례(`CMP-legend`) — 이 여정 맥락의 상세 화면(비교 뷰의 축·기간을 승계)
 - **생각·감정**: "계속 이랬던 거네" / "이번 주만 그런 거였네"
 - **페인포인트 / 이탈 위험**: 축 선택이 상세 화면으로 이어지지 않으면 처음부터 다시 설정해야 한다 → 비교 뷰의 축·기간 상태를 상세로 승계
 
@@ -94,3 +94,4 @@
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |---|---|---|---|
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J2`를 트리거(집필 중 확인) 기준으로 재정의 | Claude |
+| v0.1.1 | 2026-08-31 | 터치포인트를 여정 단위 mockup `JRN-axis-contrast.html`로 이관(구 `compare` 화면 흡수·삭제). `STP-pick-outlier`의 행 클릭 어포던스 미배선 단서 해소. 단계 식별자·순서 무변경 | Claude |
