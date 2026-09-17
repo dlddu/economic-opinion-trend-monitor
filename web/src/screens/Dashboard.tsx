@@ -68,8 +68,9 @@ export function Dashboard() {
       </div>
 
       <p className="lede">
-        지금 <span className="b">{axisLabel(axis)} 축</span>에서 경제 여론이 어떤 서술 대상에 쏠려 있는지 —
-        정기 수집 데이터를 <span className="b">서술 대상 기준</span>으로 집계해 보여줍니다.
+        지금 <span className="b">{axisLabel(axis)} 축</span>에서 경제 여론이 어떤 서술 대상에 쏠려 있고,
+        시간이 흐르며 어떻게 변하는지 — 정기 수집된 데이터를 <span className="b">서술 대상 기준</span>으로
+        집계해 한눈에 보여줍니다.
       </p>
 
       {error && (
@@ -144,8 +145,8 @@ export function Dashboard() {
                 <SentBar dist={data.sentiment} />
                 <div className="note">
                   <div>
-                    <b>미분석 {pct(data.sentiment.unanalyzed)}</b>는 비율 집계에서 분리 표기됩니다. 분위기 합은
-                    분석 완료분 기준입니다.
+                    <b>미분석 {pct(data.sentiment.unanalyzed)}</b>는 비율 집계에서 분리 표기됩니다. 분위기
+                    100%는 분석 완료분 기준입니다.
                   </div>
                 </div>
                 <button

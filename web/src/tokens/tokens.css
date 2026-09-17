@@ -158,6 +158,17 @@ a {
   text-transform: uppercase;
   color: #7e97ae;
   padding: 6px 10px 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Persona tag (P1/P2) trailing the group label, per the mockup sidebar. */
+.nav-group .gl .vtag {
+  margin-left: auto;
+  font-size: 9px;
+  color: #6e879f;
+  letter-spacing: 0.05em;
 }
 
 .nav-item {

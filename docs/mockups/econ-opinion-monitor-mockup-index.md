@@ -14,11 +14,18 @@
 | `dash` | `docs/mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
 | `trend` | `docs/mockups/trend.html` | 자립형 HTML |
 | `compare` | `docs/mockups/JRN-axis-contrast.html` (흡수) | 여정 페이지 |
-| ~~`sentiment`~~ | (삭제됨 — 아래 여정 페이지에 흡수) | — |
+| `sentiment` | `docs/mockups/JRN-sentiment-shift.html` | 여정 페이지에 흡수 |
 | `fairness` | `docs/mockups/fairness.html` | 자립형 HTML |
 | `trace` | `docs/mockups/trace.html` | 자립형 HTML |
 | `reprocess` | `docs/mockups/reprocess.html` | 자립형 HTML |
 | (진입) | `docs/mockups/index.html` | `dashboard.html`로 리다이렉트 |
+
+> **흡수된 화면의 표기 규약.** 화면이 여정 페이지에 흡수되면 그 화면 id의 목업 파일은 **흡수한 여정 페이지**다.
+> 화면 파일이 삭제돼도 **id 행을 지우거나 취소선 처리하지 않는다** — 그 화면의 시각이 사라진 것이 아니라
+> 거처가 옮겨간 것이기 때문이다. 이 표의 화면 id 집합은 `web/src/shell/nav.ts`의 `SCREENS` id 집합과
+> 항상 같아야 하며(`tbm_econ-opinion-monitor-mockup-render` 판정 기준 1), 취소선으로 행을 비우면 그 등식이
+> 깨져 라우트로 선언된 화면이 목업을 잃어도 아무도 잡지 못한다. 이후 흡수(`compare` → `JRN-axis-contrast` 등)에도
+> 같은 형태를 적용한다.
 
 ### 여정 페이지 (여정 단위 mockup — 이관 진행 중)
 
@@ -81,7 +88,7 @@
 이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다.
 
 > 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 7개 페이지의 `:root`를 함께 수정한다.
-> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(`dash`만 `dashboard.html`, 나머지는 `<id>.html`).
+> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(`dash`는 `dashboard.html`, `sentiment`는 흡수한 여정 페이지 `JRN-sentiment-shift.html`, 나머지는 `<id>.html`).
 
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
