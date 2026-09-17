@@ -1,0 +1,37 @@
+# PR preview overlay of deploy/base — the path flux-cd-apps'
+# apps/econ-monitor-preview points each labelled PR's Kustomization at.
+#
+# Serving only, with the kind e2e's fixture Gold baked in so a preview renders
+# a populated dashboard instead of an empty one. Deliberately left out:
+#   * deploy/batch — a preview must not start its own hourly ingestion (real
+#     HTTP to every feed) or LLM analysis next to production's.
+#   * PVCs — the cluster's `efs` StorageClass reuses access points keyed by PVC
+#     *name* alone, so a preview claiming `econ-serving-data` would land on
+#     production's Gold directory, and tearing the preview down would put
+#     that directory's lifecycle in a preview's hands.
+#
+# Namespace, image tag (the PR head SHA), the ghcr pull secret and the
+# IngressRoute are supplied by the Flux side, not here.
+#
+# The fixture files live outside this directory. kustomize-controller builds
+# with LoadRestrictionsNone (confined to the source root), so that is fine
+# under Flux; a local build needs the same flag:
+#   kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Same data the e2e specs assert against (tests/e2e/fixtures/README.md). The
+# generated name carries a content hash, and kustomize rewrites the volume's
+# reference to it, so a fixture change rolls the pod. kustomize takes no
+# globs here: a new file under tests/e2e/fixtures/gold must be added below too.
+configMapGenerator:
+  - name: gold-fixtures
+    files:
+      - ../../../tests/e2e/fixtures/gold/axis_sentiment.jsonl
+      - ../../../tests/e2e/fixtures/gold/subject_trend.jsonl
+
+patches:
+  - path: gold-fixtures-patch.yaml

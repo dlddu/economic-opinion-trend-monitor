@@ -99,15 +99,24 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 
 ## 배포 (외부 k8s + kustomize)
 
-서빙 이미지는 `main` 푸시마다 CI(`.github/workflows/image.yml`)가
-`ghcr.io/dlddu/economic-opinion-trend-monitor`로 발행한다
-(`latest` + 불변 `sha-<commit>` 태그).
+이미지는 CI(`.github/workflows/image.yml`)가 **커밋 SHA 태그 하나로만** 발행한다 —
+서빙은 `ghcr.io/dlddu/economic-opinion-trend-monitor:<sha>`, 배치는
+`ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>`. `latest`는 더 이상 만들지 않는다
+(예전에는 PR 빌드도 `latest`를 덮어써 미머지 코드가 운영 pull에 섞일 수 있었다).
+
+- **운영 고정(`pin` job)**: `main` 푸시에서 두 이미지를 올린 뒤, 그 SHA를
+  `deploy/` 아래 모든 이미지 참조(`deploy/base/deployment.yaml`,
+  `deploy/batch/workflow-template.yaml`)에 되커밋한다(`chore(deploy): pin images … [skip ci]`).
+  운영이 어느 커밋을 돌리는지는 `deploy/`만 보면 된다. 이 태그들은 손으로 고치지 않는다.
+- **PR 빌드**: PR head SHA 태그로 발행만 하고 매니페스트는 건드리지 않는다. 이 태그를
+  PR 프리뷰가 가져다 쓴다(아래).
 
 ```
 deploy/
-  base/            환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
-  batch/           환경 무관 배치 스케줄 (Argo CronWorkflow, /data는 emptyDir)
-  overlays/prod/   네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
+  base/              환경 무관 서빙 스택 (Deployment + Service, /data는 emptyDir)
+  batch/             환경 무관 배치 스케줄 (Argo CronWorkflow, /data는 emptyDir)
+  overlays/prod/     네임스페이스(econ-monitor) + PVC(두 워크로드가 공유)
+  overlays/preview/  PR 프리뷰: base + e2e 픽스처 Gold(ConfigMap). 배치·PVC 없음
 ```
 
 ```bash
@@ -145,6 +154,22 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
 - 분석 스케줄은 `econ-pipeline-hourly`로 배선됐고(suspend 착지), 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.
+
+### PR 프리뷰
+
+PR에 `deploy/preview` 라벨을 붙이면 flux-cd-apps(`apps/econ-monitor-preview`)가 그 PR만의
+환경을 띄운다: 네임스페이스 `econ-monitor-pr-<번호>`, 주소
+`http://econ-monitor-pr-<번호>.<사설 도메인>`(내부망 전용). 라벨을 떼거나 PR을 닫거나
+머지하면 환경이 정리된다. 동시에 최대 5개.
+
+- 경로는 `deploy/overlays/preview`, 이미지는 PR head SHA 태그다. 그래서 **이 오버레이와
+  SHA 태그 발행이 들어간 뒤의 `main`에서 갈라진(또는 그 위로 rebase한) PR만** 프리뷰가 뜬다.
+- 서빙만 뜬다. 데이터는 kind e2e와 같은 픽스처 Gold(`tests/e2e/fixtures/gold`)라
+  대시보드가 채워진 상태로 보인다. 배치(수집·LLM 분석)는 운영과 겹치지 않게 빠지고,
+  PVC도 만들지 않는다(`efs` access point가 PVC 이름으로만 재사용돼 운영 Gold와 섞이기 때문).
+- 오버레이가 디렉터리 밖의 픽스처를 읽으므로 로컬 빌드는
+  `kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview`로 한다
+  (Flux는 원래 이 설정으로 빌드한다).
 
 ## 범위
 
