@@ -4,7 +4,7 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-08-31
+> 마지막 갱신: 2026-09-17
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -13,7 +13,7 @@
 |---------|------|------|
 | `dash` | `docs/mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
 | `trend` | `docs/mockups/trend.html` | 자립형 HTML |
-| ~~`compare`~~ | (삭제됨 — 아래 여정 페이지에 흡수) | — |
+| `compare` | `docs/mockups/JRN-axis-contrast.html` (흡수) | 여정 페이지 |
 | ~~`sentiment`~~ | (삭제됨 — 아래 여정 페이지에 흡수) | — |
 | `fairness` | `docs/mockups/fairness.html` | 자립형 HTML |
 | `trace` | `docs/mockups/trace.html` | 자립형 HTML |
