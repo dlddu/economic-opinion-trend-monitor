@@ -1,5 +1,11 @@
-# Batch pipeline templates. Today only ingestion (AC1.1) is wired; the analysis
-# and aggregation stages get their own entrypoints when those slices land.
+# Batch pipeline templates. Ingestion (AC1.1) and analysis (AC2.1-2.6) are wired;
+# aggregation gets its own entrypoint when that slice lands.
+#
+# Two entrypoints on purpose. `ingest` is what the live hourly CronWorkflow has
+# always called and is kept exactly as it was; `pipeline` chains ingest ->
+# analyze for the cutover to the real analyzer, and is driven by a *separate*
+# CronWorkflow that ships suspended (see cronworkflow-pipeline.yaml). Adding
+# templates changes nothing on its own — a template nobody invokes never runs.
 #
 # `imagePullSecrets` is declared here rather than left to the cluster: the
 # batch image is a private GHCR package, and the cluster's imagePullSecret
@@ -48,6 +54,64 @@ spec:
         env:
           - name: ECON_DATA_ROOT
             value: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp
+
+    # One full cycle: collect into Bronze, then enrich that Bronze into Silver.
+    # Sequential on purpose — analysis reads the Bronze the ingest step just
+    # wrote, and both steps share the one `data` volume declared above.
+    - name: pipeline
+      steps:
+        - - name: ingest
+            template: ingest
+        - - name: analyze
+            template: analyze
+
+    # AC2.1-2.6 "실분석 -> 실 Silver". No args: the analyzer default is the real
+    # model, exactly as the ingest step relies on the real-feed default.
+    - name: analyze
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+        # Exit 2 is "the ECON_LLM_* environment is incomplete" — an operator
+        # error, not a transient one. Retrying it just burns the backoff and
+        # buries the message, so stop after the first attempt.
+        expression: "lastRetry.exitCode != '2'"
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:latest
+        command: ["econ-analysis"]
+        args: []
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
+          - name: ECON_LLM_BASE_URL
+            value: https://api.openai.com/v1
+          - name: ECON_LLM_MODEL
+            value: gpt-4o-mini
+          # The key is the one piece that cannot live in git. Like the `ghcr`
+          # pull secret, the `econ-llm` Secret is injected into the namespace by
+          # external-secrets; this manifest only names it. Declared required
+          # (not `optional`) so a missing Secret stops the Pod loudly instead of
+          # letting the container start and exit 2 every retry.
+          - name: ECON_LLM_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: econ-llm
+                key: api-key
         resources:
           requests:
             cpu: 100m

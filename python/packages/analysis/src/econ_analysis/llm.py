@@ -32,10 +32,11 @@ replies unusably. :func:`run_llm_analysis` applies the batch policy — degrade 
 record and count it — so the CLI can tell "the model judged nothing here" apart from
 "nobody ever answered".
 
-This analyzer is opt-in (``econ-analysis --analyzer llm``); the fake analyzer stays
-the default so the cross-language smoke and offline tests remain deterministic and
-network-free. Cutting the operational default over to the real model (mirroring the
-ingestion feed cutover) is a follow-up slice.
+This analyzer is the operational default (``econ-analysis`` with no flag), mirroring the
+ingestion feed cutover; the fake analyzer stays reachable as ``--analyzer fake`` so the
+cross-language smoke and offline tests remain deterministic and network-free. Because
+the default now needs ``ECON_LLM_API_KEY``, an unconfigured run stops at
+:func:`http_completer` before reading Bronze rather than writing anything.
 """
 
 from __future__ import annotations
@@ -115,7 +116,10 @@ def http_completer(
     name = model or os.environ.get("ECON_LLM_MODEL") or "gpt-4o-mini"
     key = os.environ.get("ECON_LLM_API_KEY")
     if not key:
-        raise ConfigError("ECON_LLM_API_KEY is not set; required by --analyzer llm")
+        raise ConfigError(
+            "ECON_LLM_API_KEY is not set; required by the default --analyzer llm "
+            "(pass --analyzer fake for an offline run)"
+        )
 
     def _complete(system: str, user: str) -> str:
         payload = json.dumps(

@@ -1,11 +1,11 @@
 """``econ-analysis`` CLI — enrich Bronze into the Silver layer.
 
-Two analyzers share the identical Silver output path (``analysis``): the deterministic
-``fake`` keyword stand-in (the default — keeps the cross-language smoke and offline
-tests pinned and network-free) and the real ``llm`` analyzer (``--analyzer llm``) that
-sends each item to a chat-completions model, with endpoint/model/key read from the
-``ECON_LLM_*`` environment. Cutting the operational default over to the real model
-(mirroring the ingestion feed cutover) remains a follow-up.
+Two analyzers share the identical Silver output path (``analysis``): the real ``llm``
+analyzer (the operational default) that sends each item to a chat-completions model,
+with endpoint/model/key read from the ``ECON_LLM_*`` environment, and the deterministic
+``fake`` keyword stand-in (``--analyzer fake``) that keeps the cross-language smoke and
+offline tests network-free. The default was cut over to the real model once the
+analyzer had landed and been exercised, mirroring the ingestion feed cutover.
 
 The real analyzer never lets an operator error masquerade as analysis output, because
 ``write_records`` *replaces* the Silver dataset and ``unanalyzed`` is a data-quality
@@ -46,9 +46,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--analyzer",
         choices=("fake", "llm"),
-        default="fake",
-        help="Analysis engine: deterministic 'fake' keyword stand-in (default, offline) "
-        "or the real 'llm' model (opt-in; endpoint/model/key from ECON_LLM_* env).",
+        default="llm",
+        help="Analysis engine: the real 'llm' model (default; endpoint/model/key from "
+        "ECON_LLM_* env) or the deterministic 'fake' keyword stand-in used offline.",
     )
     parser.add_argument(
         "--analyzer-version",

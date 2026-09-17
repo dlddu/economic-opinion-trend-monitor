@@ -70,12 +70,22 @@ def _canned(reply: str):
     return _factory
 
 
-def test_fake_is_the_default(tmp_path: Path) -> None:
+def test_llm_is_the_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The operational default is the real model — an unconfigured run must not write."""
     _seed_lake(tmp_path)
-    assert cli.main(["--data", str(tmp_path)]) == 0
+    monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
+    # No --analyzer: this now selects llm, which refuses to run without its key.
+    assert cli.main(["--data", str(tmp_path)]) == cli.EXIT_CONFIG
+    assert not _silver(tmp_path).exists()
+
+
+def test_fake_stays_available_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """...and the deterministic stand-in is still one flag away, with no ECON_LLM_* at all."""
+    _seed_lake(tmp_path)
+    monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     records = [json.loads(line) for line in _silver(tmp_path).read_text().splitlines()]
     assert len(records) == 2
-    # No --analyzer, no ECON_LLM_* needed: the offline stand-in still runs.
     assert {r["analyzer_version"] for r in records} == {"fake-v1"}
 
 
@@ -93,7 +103,8 @@ def test_llm_total_failure_preserves_existing_silver(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _seed_lake(tmp_path)
-    assert cli.main(["--data", str(tmp_path)]) == 0  # a good fake run lands first
+    # A good fake run lands first (explicit now that llm is the default).
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     before = _silver(tmp_path).read_bytes()
 
     def _unreachable(*_args, **_kwargs):
