@@ -1,11 +1,11 @@
 # PR preview overlay — the path flux-cd-apps' apps/econ-monitor-preview points
 # each labelled PR's Kustomization at.
 #
-# Two halves, one per thing a preview is used to check:
-#   * serving (deploy/base) with the kind e2e's fixture Gold baked in, so UI
-#     changes render against a populated dashboard. Nothing in the cluster
-#     writes Gold yet (the batch stops at analyze), so a real volume here
-#     would only ever show an empty dashboard.
+# Two halves:
+#   * serving — deploy/base as is. Its /data is the base emptyDir, so the
+#     dashboard comes up empty: nothing in the cluster writes Gold yet (the
+#     batch stops at analyze). A preview checks that serving builds, starts and
+#     renders, not what it renders.
 #   * batch (deploy/batch) for manual runs only: the WorkflowTemplate and its
 #     executor RBAC, with both CronWorkflows removed. A preview must never
 #     start its own hourly ingestion (real HTTP to every feed) or LLM analysis
@@ -24,11 +24,6 @@
 #
 # Namespace, image tags (the PR head SHA), the serving pull secret and the
 # IngressRoute are also supplied by the Flux side.
-#
-# The fixture files live outside this directory. kustomize-controller builds
-# with LoadRestrictionsNone (confined to the source root), so that is fine
-# under Flux; a local build needs the same flag:
-#   kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -36,19 +31,7 @@ resources:
   - ../../base
   - ../../batch
 
-# Same data the e2e specs assert against (tests/e2e/fixtures/README.md). The
-# generated name carries a content hash, and kustomize rewrites the volume's
-# reference to it, so a fixture change rolls the pod. kustomize takes no
-# globs here: a new file under tests/e2e/fixtures/gold must be added below too.
-configMapGenerator:
-  - name: gold-fixtures
-    files:
-      - ../../../tests/e2e/fixtures/gold/axis_sentiment.jsonl
-      - ../../../tests/e2e/fixtures/gold/subject_trend.jsonl
-
 patches:
-  - path: gold-fixtures-patch.yaml
-
   # Manual runs only — drop every schedule deploy/batch ships. Delete patches
   # go by name, so a CronWorkflow added to deploy/batch later is NOT covered
   # by these; add its delete here in the same change. CI's "preview overlay"

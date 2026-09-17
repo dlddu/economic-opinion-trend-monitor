@@ -62,9 +62,9 @@ jobs:
           install_only: true
 
       # The PR preview overlay is only ever built by Flux, so nothing else
-      # would notice it rotting. Build it the way kustomize-controller does
-      # (fixtures live outside the overlay) and make sure no CronWorkflow
-      # survives: a preview must never run a schedule of its own.
+      # would notice it rotting. Build it with the load restrictor
+      # kustomize-controller uses and make sure no CronWorkflow survives: a
+      # preview must never run a schedule of its own.
       - name: Preview overlay builds and carries no schedules
         run: |
           kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview > /tmp/preview.yaml
