@@ -22,6 +22,11 @@ resources:
   - cronworkflow-ingestion.yaml
   - cronworkflow-pipeline.yaml
 
+# Makes `images:` in any including overlay reach the WorkflowTemplate's
+# container images (see kustomizeconfig.yaml).
+configurations:
+  - kustomizeconfig.yaml
+
 labels:
   - includeSelectors: false
     pairs:

@@ -76,6 +76,30 @@ jobs:
           grep -qE '^kind: WorkflowTemplate$' /tmp/preview.yaml \
             || { echo "::error::deploy/overlays/preview lost the batch WorkflowTemplate"; exit 1; }
 
+          # Flux retags both images to the PR head SHA through `images:`. That
+          # transformer skips paths it does not know, so check that a retag
+          # really reaches every image — the WorkflowTemplate included
+          # (deploy/batch/kustomizeconfig.yaml). The copy sits beside the
+          # overlay so its relative paths still resolve.
+          sim=deploy/overlays/_preview-retag-check
+          cp -r deploy/overlays/preview "$sim"
+          cat >> "$sim/kustomization.yaml" <<'YAML'
+          images:
+            - name: ghcr.io/dlddu/economic-opinion-trend-monitor
+              newTag: preview-retag-check
+            - name: ghcr.io/dlddu/economic-opinion-trend-monitor-batch
+              newTag: preview-retag-check
+          YAML
+          kubectl kustomize --load-restrictor LoadRestrictionsNone "$sim" > /tmp/preview-retag.yaml
+          rm -rf "$sim"
+          stale=$(grep -oE 'ghcr\.io/dlddu/economic-opinion-trend-monitor(-batch)?:[A-Za-z0-9._-]+' /tmp/preview-retag.yaml \
+                    | grep -v ':preview-retag-check$' || true)
+          if [ -n "$stale" ]; then
+            echo "::error::images: retag did not reach these references:"
+            echo "$stale"
+            exit 1
+          fi
+
       - name: Run kind e2e
         run: make e2e
 
