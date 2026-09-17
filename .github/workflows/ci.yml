@@ -61,6 +61,21 @@ jobs:
           version: v0.30.0
           install_only: true
 
+      # The PR preview overlay is only ever built by Flux, so nothing else
+      # would notice it rotting. Build it the way kustomize-controller does
+      # (fixtures live outside the overlay) and make sure no CronWorkflow
+      # survives: a preview must never run a schedule of its own.
+      - name: Preview overlay builds and carries no schedules
+        run: |
+          kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview > /tmp/preview.yaml
+          if grep -qE '^kind: CronWorkflow$' /tmp/preview.yaml; then
+            echo "::error::deploy/overlays/preview renders a CronWorkflow — add a delete patch for it"
+            grep -A3 -E '^kind: CronWorkflow$' /tmp/preview.yaml
+            exit 1
+          fi
+          grep -qE '^kind: WorkflowTemplate$' /tmp/preview.yaml \
+            || { echo "::error::deploy/overlays/preview lost the batch WorkflowTemplate"; exit 1; }
+
       - name: Run kind e2e
         run: make e2e
 
