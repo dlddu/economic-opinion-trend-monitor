@@ -38,10 +38,12 @@ jobs:
 
   image:
     uses: ./.github/workflows/image.yml
-    # Called on PRs only, so `pin` (main pushes) is always skipped here and
-    # contents: read is enough.
+    # GitHub validates the permissions of *every* nested job before the run,
+    # including `pin`, which is skipped on PRs but declares contents: write.
+    # So the ceiling must allow write even though nothing uses it here;
+    # image.yml narrows its own default back to contents: read.
     permissions:
-      contents: read
+      contents: write
       packages: write
 
   required:
