@@ -427,13 +427,9 @@ details.meta table.tbl{margin-top:10px}
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
           <span>분위기 분포</span>
         </a>
-        <a class="nav-item" data-id="fairness" href="fairness.html">
+        <a class="nav-item" data-id="JRN-spike-verification" href="JRN-spike-verification.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
-          <span>공정성·원천 추적</span>
-        </a>
-        <a class="nav-item" data-id="trace" href="trace.html">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
-          <span>원문 추적 상세</span>
+          <span>급등 검증</span>
         </a>
       </div>
       <div class="nav-group">
@@ -681,8 +677,8 @@ details.meta table.tbl{margin-top:10px}
                 분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.
               </p>
               <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
-                <a class="btn ghost" href="fairness.html">정규화 비율로 다시 확인 &rarr;</a>
-                <a class="btn ghost" id="br-3" href="trace.html"
+                <a class="btn ghost" href="JRN-spike-verification.html#STP-check-normalized">정규화 비율로 다시 확인 &rarr;</a>
+                <a class="btn ghost" id="br-3" href="JRN-spike-verification.html#STP-open-origin"
                    data-goto="JRN-spike-verification#STP-open-origin">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
                 <a class="btn ghost" id="br-4" href="reprocess.html"
                    data-goto="JRN-logic-backfill#STP-scope-range">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
@@ -716,7 +712,7 @@ details.meta table.tbl{margin-top:10px}
               <tr><td class="mono">STP-open-sentiment</td><td>서술 대상 또는 축을 골라 긍정/중립/부정/혼합 비율을 연다</td><td>도넛(PAT-donut), 분위기 바(CMP-sentbar)</td><td class="mono">AC3.6 · AC3.4</td></tr>
               <tr><td class="mono">STP-check-unanalyzed</td><td>저신뢰·분석 불가 항목이 비율 집계에서 분리 표기되었는지 확인하고 그 비중을 본다</td><td>범례(CMP-legend), 미분석 분리 항목</td><td class="mono">AC2.5 · AC3.4</td></tr>
               <tr><td class="mono">STP-overlay-time</td><td>분위기 분포를 시계열로 펼쳐 언제부터 어떻게 변했는지 확인한다</td><td>누적 분위기 패턴(PAT-stacked-sentiment), 기간 세그먼트(CMP-seg)</td><td class="mono">AC3.3 · AC3.6</td></tr>
-              <tr><td class="mono">STP-confirm-cause</td><td>변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다</td><td>이 페이지 / fairness.html(필요 시 정규화 확인)</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-confirm-cause</td><td>변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다</td><td>이 페이지 / JRN-spike-verification.html(필요 시 정규화 확인)</td><td class="mono">&mdash;</td></tr>
             </tbody>
           </table>
 

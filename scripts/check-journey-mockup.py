@@ -281,8 +281,21 @@ for jid, fn in sorted(declared.items()):
             elif not re.search(r'id\s*=\s*"' + re.escape(href[1:]) + r'"', h):
                 fail("R4", f"{fn}: 분기 앵커 {href} 가 페이지에 없다")
         else:
-            if not os.path.exists(os.path.join(MDIR, href)):
-                fail("R4", f"{fn}: 분기 착지 파일 {href} 가 없다")
+            # 타 여정 인계는 그 여정이 이관되면 **파일이 아니라 그 여정의 단계**에 착지한다
+            # (`JRN-x.html#STP-y`). 조각을 떼고 파일을 확인한 뒤, 조각이 있으면 그것이
+            # 착지 파일에 실재하는 앵커인지까지 본다 — 조각을 무시하면 선언한 단계가 아니라
+            # 상대 여정의 1단계로 떨어지는 링크를 게이트가 통과시킨다.
+            path, _, frag = href.partition("#")
+            target = os.path.join(MDIR, path)
+            if not os.path.exists(target):
+                fail("R4", f"{fn}: 분기 착지 파일 {path} 가 없다")
+            elif frag:
+                with open(target, encoding="utf-8") as tf:
+                    th = tf.read()
+                if not re.search(r'id\s*=\s*"' + re.escape(frag) + r'"', th):
+                    fail("R4", f"{fn}: 분기 착지 앵커 {href} 가 {path} 에 없다")
+                elif frag != ts:
+                    fail("R4", f"{fn}: 분기 착지 앵커 {href} 가 선언한 단계 `{ts}` 와 다르다")
 
     # R6 — 폐기 식별자 재사용 금지
     stale = sorted(set(re.findall(r"\bJ[1-5]\b", h)))

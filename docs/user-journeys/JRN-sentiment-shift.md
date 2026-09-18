@@ -61,7 +61,7 @@
 ### `STP-confirm-cause` 반전 여부 판별
 
 - **사용자 행동**: 변화가 실제 논조 변화인지, 표본·미분석 구성 변화인지 결론 내린다
-- **터치포인트**: `JRN-sentiment-shift.html` / `fairness.html`(필요 시 정규화 확인)
+- **터치포인트**: `JRN-sentiment-shift.html` / `JRN-spike-verification.html`(필요 시 정규화 확인)
 - **생각·감정**: "진짜 돌아섰네" / "그냥 표본이 바뀐 거였네"
 - **페인포인트 / 이탈 위험**: 변화 구간의 기여 뉴스를 볼 수 없으면 원인 추정에서 멈춘다 → 변화 구간에서 기여 뉴스·원문으로 내려가는 경로 제공 (→ `JRN-spike-verification`)
 

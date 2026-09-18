@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>급등 검증 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-spike-verification) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-spike-verification">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="dashboard.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="trend.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="JRN-axis-contrast" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="JRN-sentiment-shift" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item active" data-id="JRN-spike-verification" href="JRN-spike-verification.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>급등 검증</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="reprocess.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
+      마지막 수집 14:00 KST
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>급등 검증</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-basis">원시 건수</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 · 이상 급등 인지 ============ -->
+      <section class="jstep" id="STP-notice-spike" data-step="STP-notice-spike" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3><span class="sub" id="spike-sub">평소 대비 급등한 대상</span>
+              <div class="r"><span class="raw-flag" id="spike-flag">원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 190px">
+                  <span class="fl">축</span>
+                  <select id="axis" name="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="WW">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 190px">
+                  <span class="fl">비교 구간</span>
+                  <select id="range" name="range">
+                    <option value="7" selected>평소 = 최근 7일 평균</option>
+                    <option value="30">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </div>
+              <div class="ranklist" id="spikelist"></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다.
+                <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.
+              </p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" id="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v" id="spike-mult">&mdash;</span></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-check-normalized" id="cta-1">
+            정규화 전후를 대조하기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 · 정규화/원시 전환 확인 ============ -->
+      <section class="jstep" id="STP-check-normalized" data-step="STP-check-normalized" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-5">
+            <div class="card-h"><h3>세는 방식</h3><span class="sub">지금 보는 값이 무엇인지 고릅니다</span></div>
+            <div class="card-b">
+              <form id="norm-form">
+                <label class="chk">
+                  <input type="checkbox" id="normalize" name="normalize" />
+                  수집량 정규화 (축별 총 건수 대비 점유율로 환산)
+                </label>
+                <div class="stepact" style="margin-top:18px">
+                  <button type="submit" class="btn pri" id="norm-apply">세는 방식 적용</button>
+                  <span class="hint">같은 대상을 두 방식으로 각각 셉니다.</span>
+                </div>
+              </form>
+
+              <div class="note" style="margin-top:18px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b>
+                  표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>원시 &middot; 정규화 대비</h3><span class="sub" id="norm-sub">같은 대상, 두 가지 세는 방식</span>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" id="s-loading" data-state="loading" hidden>
+                축별 총 건수로 다시 환산하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <table class="tbl" id="normtable">
+                <thead><tr><th>대상</th><th class="num">원시 건수</th><th class="num">점유율</th><th class="num">평소 대비</th></tr></thead>
+                <tbody id="normbody"></tbody>
+              </table>
+
+              <div class="banner warn" id="s-normalized-away" data-state="normalized-away" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>정규화하면 급등이 사라집니다.</b>
+                  <span id="normaway-what"></span>
+                  그 축의 수집 자체가 늘어난 것이지 이 대상에 관심이 몰린 것이 아닙니다 &mdash;
+                  원문까지 내려가지 않고 <b>&ldquo;편중&rdquo;</b>으로 닫아도 되는 갈래입니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-inspect-sources" id="cta-2">
+            소스 구성 열어 보기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 · 소스 구성 확인 ============ -->
+      <section class="jstep" id="STP-inspect-sources" data-step="STP-inspect-sources" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>소스별 기여</h3><span class="sub" id="src-sub">이 대상의 언급이 어디서 왔는가</span>
+              <div class="r"><span class="tag" id="src-count"></span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:1 1 220px">
+                  <span class="fl">수집원 찾기</span>
+                  <input type="search" id="src-q" name="src-q" placeholder="예: 통신사" autocomplete="off" />
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="split-lowconf" name="split-lowconf" />
+                  저신뢰&middot;미분석 항목 분리 표기
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>수집원</th><th class="num">원시 건수</th><th class="num">기여 비중</th><th class="num">정규화 후</th></tr></thead>
+                <tbody id="srcbody"></tbody>
+              </table>
+
+              <div class="banner warn" id="s-low-confidence" data-state="low-confidence" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>저신뢰&middot;미분석 <span id="lowconf-n">0</span>건을 집계에서 분리했습니다.</b>
+                  분류 신뢰도가 낮거나 아직 분석되지 않은 항목은 <b>별도 항목</b>으로 세고 기여 비중에서 뺍니다 &mdash;
+                  섞어 두면 급등의 크기가 실제보다 커 보입니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>한 곳에서 다 나왔나</h3></div>
+            <div class="card-b">
+              <div class="kv"><span class="k">최다 기여</span><span class="v" id="top-src">&mdash;</span></div>
+              <div class="kv"><span class="k">그 소스 비중</span><span class="v" id="top-src-share">&mdash;</span></div>
+              <div class="kv"><span class="k">기여 소스 수</span><span class="v" id="src-n">&mdash;</span></div>
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-top:14px">
+                한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.
+              </p>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-drilldown-articles" id="cta-3">
+            기여 뉴스 목록 열기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 · 기여 뉴스 목록 ============ -->
+      <section class="jstep" id="STP-drilldown-articles" data-step="STP-drilldown-articles" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>기여 뉴스</h3><span class="sub">이 데이터 포인트를 만든 개별 기사</span>
+              <div class="r"><span class="tag" id="art-count"></span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:6px">
+                <label class="fld" style="flex:1 1 200px">
+                  <span class="fl">제목 찾기</span>
+                  <input type="search" id="art-q" name="art-q" placeholder="예: 인상" autocomplete="off" />
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="dup-only" name="dup-only" />
+                  본문 중복으로 잡힌 것만
+                </label>
+              </div>
+
+              <div id="artlist" class="scrolly"></div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3 id="art-title">고른 기사</h3><span class="sub">행을 고르면 열립니다</span></div>
+            <div class="card-b">
+              <div class="emptybox" id="art-empty" data-state="no-selection">
+                왼쪽 목록에서 기사를 고르면<br/>수집원&middot;수집 시각&middot;중복 여부가 여기 열립니다.
+              </div>
+              <div id="art-body" hidden></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-open-origin" id="cta-4" disabled>
+            원문으로 내려가기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-4-hint">먼저 확인할 기사를 고르세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 · 원문 역추적 ============ -->
+      <section class="jstep" id="STP-open-origin" data-step="STP-open-origin" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 id="origin-title">원문</h3><span class="sub" id="origin-sub">분류 근거를 눈으로 확인합니다</span>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 230px">
+                  <span class="fl">원문 링크 상태</span>
+                  <select id="link-state" name="link-state">
+                    <option value="ok" selected>정상 &mdash; 원문 주소가 열린다</option>
+                    <option value="expired">만료&middot;404 &mdash; 주소가 열리지 않는다</option>
+                  </select>
+                </label>
+                <span class="badge" id="link-badge"></span>
+              </div>
+
+              <div id="origin-body"></div>
+
+              <div class="banner warn" id="s-link-expired" data-state="link-expired" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/><path d="M2 2l20 20"/></svg>
+                <div>
+                  <b>원문 주소가 열리지 않습니다.</b>
+                  추적이 여기서 끊기지 않도록, 수집 시점에 <b>보존해 둔 원문 전체</b>를 대신 보여 줍니다.
+                  링크 상태는 위에 배지로 항상 표시됩니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>보존된 원문</h3><span class="sub">수집 시점 그대로</span></div>
+            <div class="card-b" id="preserved"></div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-judge" id="cta-5">
+            판정하고 마치기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 6 · 판정과 종료 ============ -->
+      <section class="jstep" id="STP-judge" data-step="STP-judge" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-5">
+            <div class="card-h"><h3>확인한 근거</h3><span class="sub">이 세션에서 실제로 본 것</span></div>
+            <div class="card-b" id="evidence"></div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>판정</h3><span class="sub">한 문장으로 설명할 수 있는 상태로 마칩니다</span></div>
+            <div class="card-b">
+              <form id="judge-form">
+                <div class="fld">
+                  <span class="fl">결론</span>
+                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                    <label><input type="radio" name="verdict" value="valid" /> 유효한 신호다 &mdash; 정규화 이후에도 남고 소스도 흩어져 있다</label>
+                    <label><input type="radio" name="verdict" value="skewed" /> 수집 편중이다 &mdash; 한 곳에서 쏟아졌거나 정규화하면 사라진다</label>
+                  </div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">근거 메모</span>
+                  <textarea id="judge-memo" name="judge-memo" placeholder="무엇을 보고 그렇게 판정했는지 적어 두세요."></textarea>
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="judge-submit">판정 기록</button>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">결론과 근거 메모를 모두 채워야 기록됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>판정을 기록했습니다.</b>
+                  <span id="recorded-what"></span>
+                  <div class="actions" style="display:block;margin-top:8px;font-size:11.5px;color:inherit;opacity:.8">
+                    이 기록은 <b>이번 세션 안에서만</b> 유지됩니다 &mdash; 같은 대상을 다음에 다시 열어도 남아 있지 않습니다.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ 검증 중 마주치는 상황 (여정 문서 §4 순서) ============ -->
+      <div class="branches">
+        <h4>검증 중 이런 상황이라면</h4>
+        <p class="bhint">막히는 지점마다 갈 곳이 정해져 있습니다. 데이터를 불신하고 그냥 떠나지 않도록.</p>
+
+        <div class="br-row">
+          <span class="br-when">원문 주소가 열리지 않는다</span>
+          <span class="br-how">보존해 둔 원문 전체를 대신 보여 주고, 링크 상태를 배지로 명시합니다.</span>
+          <a class="btn sm br-go" id="br-1" href="#STP-open-origin"
+             data-goto="JRN-spike-verification#STP-open-origin">보존 원문으로 계속</a>
+        </div>
+
+        <div class="br-row">
+          <span class="br-when">신뢰도 낮은 항목이 섞여 있다</span>
+          <span class="br-how">집계에서 분리해 별도 항목으로 노출하고, 기여 비중에서 뺍니다.</span>
+          <a class="btn sm br-go" id="br-2" href="#STP-inspect-sources"
+             data-goto="JRN-spike-verification#STP-inspect-sources">소스 구성에서 갈라 보기</a>
+        </div>
+
+        <div class="br-row">
+          <span class="br-when">기사가 이 대상이 아니다</span>
+          <span class="br-how">분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영 흐름으로 넘깁니다.</span>
+          <a class="btn sm br-go" id="br-3" href="reprocess.html"
+             data-goto="JRN-logic-backfill#STP-scope-range">재처리 범위 정하기 &rarr;</a>
+        </div>
+
+        <div class="br-row">
+          <span class="br-when">같은 기사가 여러 번 수집됐다</span>
+          <span class="br-how">급등이 아니라 수집 이상입니다. 수집 무결성 점검 흐름으로 넘깁니다.</span>
+          <a class="btn sm br-go" id="br-4" href="reprocess.html"
+             data-goto="JRN-ingestion-recovery#STP-spot-anomaly">수집 이상 점검하기 &rarr;</a>
+        </div>
+
+        <div class="br-row">
+          <span class="br-when">정규화하니 급등이 사라졌다</span>
+          <span class="br-how">더 내려갈 것이 없습니다. 원문 확인 없이 &ldquo;편중&rdquo;으로 닫습니다.</span>
+          <a class="btn sm br-go" id="br-5" href="#STP-judge"
+             data-goto="JRN-spike-verification#STP-judge">바로 판정하기</a>
+        </div>
+      </div>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-spike-verification</b> &mdash; 급등 신호의 진위 확인.
+             <a href="../reader.html?doc=user-journeys/JRN-spike-verification.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-notice-spike"><button type="button" class="jr-btn" data-goto-step="STP-notice-spike"><span class="jr-n">1</span><span class="jr-t">이상 급등 인지</span><span class="jr-id mono">STP-notice-spike</span></button></li>
+            <li class="jr-item" data-rail="STP-check-normalized"><button type="button" class="jr-btn" data-goto-step="STP-check-normalized"><span class="jr-n">2</span><span class="jr-t">정규화/원시 전환 확인</span><span class="jr-id mono">STP-check-normalized</span></button></li>
+            <li class="jr-item" data-rail="STP-inspect-sources"><button type="button" class="jr-btn" data-goto-step="STP-inspect-sources"><span class="jr-n">3</span><span class="jr-t">소스 구성 확인</span><span class="jr-id mono">STP-inspect-sources</span></button></li>
+            <li class="jr-item" data-rail="STP-drilldown-articles"><button type="button" class="jr-btn" data-goto-step="STP-drilldown-articles"><span class="jr-n">4</span><span class="jr-t">기여 뉴스 목록</span><span class="jr-id mono">STP-drilldown-articles</span></button></li>
+            <li class="jr-item" data-rail="STP-open-origin"><button type="button" class="jr-btn" data-goto-step="STP-open-origin"><span class="jr-n">5</span><span class="jr-t">원문 역추적</span><span class="jr-id mono">STP-open-origin</span></button></li>
+            <li class="jr-item" data-rail="STP-judge"><button type="button" class="jr-btn" data-goto-step="STP-judge"><span class="jr-n">6</span><span class="jr-t">판정과 종료</span><span class="jr-id mono">STP-judge</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-notice-spike</td><td>추세·순위에서 튀는 값을 발견하고 "이거 진짜인가" 의심을 품는다</td><td>순위 목록, 라인 차트 (이 여정 맥락의 급등 인지 화면)</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-check-normalized</td><td>지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다</td><td>정규화 토글(CMP-norm-toggle), 원시↔정규화 대비 패턴(PAT-raw-vs-norm)</td><td class="mono">AC3.8</td></tr>
+              <tr><td class="mono">STP-inspect-sources</td><td>이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다</td><td>소스별 기여 테이블(CMP-table)</td><td class="mono">AC3.1</td></tr>
+              <tr><td class="mono">STP-drilldown-articles</td><td>해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다</td><td>기여 뉴스 행 (소스·수집 시각·본문 중복 여부 표기)</td><td class="mono">AC3.2 · AC1.7</td></tr>
+              <tr><td class="mono">STP-open-origin</td><td>개별 뉴스의 Bronze 원문 링크·원문 전체로 도달해 분류 근거를 확인한다</td><td>계보 패턴(PAT-lineage), 원문 링크</td><td class="mono">AC2.6 · AC1.4</td></tr>
+              <tr><td class="mono">STP-judge</td><td>"유효한 신호" 또는 "수집 편중" 중 하나로 판단하고 세션을 닫는다</td><td>판정 화면 (이 여정 맥락에서 신설 — 근거 요약과 두 갈래의 끝)</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>원문 링크 만료·404</td><td>상황 목록 1행 · 화면 5의 링크 상태 배지와 보존 원문</td><td class="mono">STP-open-origin</td></tr>
+              <tr><td>저신뢰·미분석 항목이 섞여 있음</td><td>상황 목록 2행 · 화면 3의 분리 표기 토글</td><td class="mono">STP-inspect-sources</td></tr>
+              <tr><td>분류 오류를 발견함</td><td>상황 목록 3행</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+              <tr><td>급등이 수집 이상(중복 수집)으로 의심됨</td><td>상황 목록 4행</td><td class="mono">JRN-ingestion-recovery · STP-spot-anomaly</td></tr>
+              <tr><td>정규화 후 급등이 사라짐</td><td>상황 목록 5행 · 화면 2의 정규화 소멸 배너</td><td class="mono">STP-judge</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:14px">
+            <b>판정 기록은 이 세션 안에서만 유지된다.</b> 여정 문서가 <code>STP-judge</code>의 페인포인트로 적은
+            「검증 이력·플래그 남기기」는 문서 자신이 <b>현재 범위 밖(백로그 후보)</b>로 파킹한 항목이다.
+            이 프로토타입은 그 기능을 만들지 않고, 단계가 정의한 대로 근거를 요약해 두 갈래 중 하나로 세션을
+            닫는 화면까지만 그린다.
+          </p>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-spike-verification</b></span>
+            <span class="chip"><b>STP-notice-spike</b></span>
+            <span class="chip"><b>STP-check-normalized</b></span>
+            <span class="chip"><b>STP-inspect-sources</b></span>
+            <span class="chip"><b>STP-drilldown-articles</b></span>
+            <span class="chip"><b>STP-open-origin</b></span>
+            <span class="chip"><b>STP-judge</b></span>
+            <span class="chip v"><b>V4</b> 편차 보정</span>
+            <span class="chip v"><b>V5</b> 원문 추적·재처리</span>
+            <span class="chip">AC3.1 · AC3.2 · AC3.8 · AC2.6 · AC1.4 · AC1.7</span>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   프로토타입 데이터 — 급등 검증.
+   raw = 원시 수집 건수, base = 평소(비교 구간 평균) 건수.
+   축별 총 수집 건수(total)가 다르므로 정규화 = raw / total * 100.
+   ============================================================ */
+var AXES = {
+  KR: { label: '한국', total: 16840, baseTotal: 11200 },
+  US: { label: '미국', total: 21300, baseTotal: 19800 },
+  WW: { label: '전세계', total: 9400,  baseTotal: 8900 }
+};
+
+/* 급등 후보. spike7/spike30 = 비교 구간별 평소 건수. */
+var SUBJECTS = {
+  KR: [
+    { id: 'usdkrw',   name: '원/달러 환율',      raw: 1480, spike7: 740, spike30: 700 },
+    { id: 'basisrate', name: '한국은행 기준금리', raw: 940,  spike7: 610, spike30: 580 },
+    { id: 'housing',  name: '주택 공급 대책',     raw: 420,  spike7: 380, spike30: 350 },
+    { id: 'semi',     name: 'AI 반도체 capex',    raw: 360,  spike7: 300, spike30: 290 }
+  ],
+  US: [
+    { id: 'fed',      name: 'Federal Reserve',    raw: 1720, spike7: 1400, spike30: 1350 },
+    { id: 'cpi',      name: 'CPI 발표',           raw: 880,  spike7: 500,  spike30: 470 },
+    { id: 'semi',     name: 'AI 반도체 capex',    raw: 640,  spike7: 560,  spike30: 540 }
+  ],
+  WW: [
+    { id: 'oil',      name: '국제 유가',          raw: 520,  spike7: 300, spike30: 280 },
+    { id: 'semi',     name: 'AI 반도체 capex',    raw: 300,  spike7: 270, spike30: 265 }
+  ]
+};
+
+/* 선택된 급등 대상의 소스 구성. conf=low 는 저신뢰·미분석. */
+var SOURCES = [
+  { name: '연합 통신사',       raw: 610, conf: 'ok' },
+  { name: '경제일보',          raw: 250, conf: 'ok' },
+  { name: '데일리 마켓',       raw: 180, conf: 'ok' },
+  { name: '글로벌 와이어',     raw: 140, conf: 'ok' },
+  { name: '커뮤니티 수집분',   raw: 190, conf: 'low' },
+  { name: '분류 대기 큐',      raw: 110, conf: 'low' }
+];
+
+/* 기여 뉴스. dup=true 는 본문 중복으로 잡힌 재탕. */
+var ARTICLES = [
+  { id: 'a1', title: '환율 1,480원 돌파… 당국 구두개입 시사', src: '연합 통신사', at: '14:02', dup: false,
+    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
+  { id: 'a2', title: '[속보] 환율 1,480원 돌파', src: '경제일보', at: '14:05', dup: true,
+    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
+  { id: 'a3', title: '환율 급등에 수입물가 비상', src: '데일리 마켓', at: '14:31', dup: false,
+    body: '환율 상승이 수입물가로 옮겨붙고 있다. 에너지·원자재 수입 비중이 큰 업종부터 원가 압박이 커진다.' },
+  { id: 'a4', title: '환율 1480원 돌파 (재송)', src: '연합 통신사', at: '14:40', dup: true,
+    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
+  { id: 'a5', title: '달러 강세 지속… 아시아 통화 동반 약세', src: '글로벌 와이어', at: '15:10', dup: false,
+    body: '달러 인덱스가 다시 올라서며 아시아 통화가 동반 약세를 보였다.' },
+  { id: 'a6', title: '환율 관련 커뮤니티 언급 급증', src: '커뮤니티 수집분', at: '15:22', dup: false,
+    body: '커뮤니티에서 환율 언급이 늘었다. 분류 신뢰도가 낮아 별도 항목으로 집계한다.' }
+];
+
+var state = {
+  axis: 'KR', range: '7', normalize: false,
+  target: 'usdkrw',
+  srcQ: '', splitLowConf: false,
+  artQ: '', dupOnly: false, article: null,
+  linkState: 'ok',
+  sawNormalized: false, sawSources: false, sawOrigin: false
+};
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function fmt(n){ return n.toLocaleString('en-US'); }
+function pct(n){ return (Math.round(n * 10) / 10).toFixed(1) + '%'; }
+
+function subjects(){ return SUBJECTS[state.axis] || []; }
+function baseOf(s){ return state.range === '30' ? s.spike30 : s.spike7; }
+function multOf(s){ return s.raw / baseOf(s); }
+/* 정규화 배수 — 축 총 수집량 증가분을 나눠 준다. */
+function normMultOf(s){
+  var ax = AXES[state.axis];
+  var now = s.raw / ax.total;
+  var was = baseOf(s) / ax.baseTotal;
+  return now / was;
+}
+function shareOf(s){ return s.raw / AXES[state.axis].total * 100; }
+function currentTarget(){
+  var list = subjects();
+  for(var i=0;i<list.length;i++){ if(list[i].id === state.target) return list[i]; }
+  return list[0] || null;
+}
+
+/* ---------------- 화면 1 : 급등 인지 ---------------- */
+function renderSpikes(){
+  var list = subjects().slice().sort(function(a,b){ return multOf(b) - multOf(a); });
+  var host = $('spikelist');
+  host.innerHTML = '';
+  list.forEach(function(s, i){
+    var m = multOf(s);
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'rankrow';
+    row.setAttribute('data-target', s.id);
+    row.setAttribute('aria-pressed', String(s.id === state.target));
+    row.innerHTML =
+      '<span class="rk">' + (i + 1) + '</span>' +
+      '<span class="nm">' + s.name + '</span>' +
+      '<span class="share"><span class="bar"><i style="width:' +
+        Math.min(100, shareOf(s) * 9).toFixed(0) + '%"></i></span>' +
+        '<span class="pct">' + fmt(s.raw) + '</span></span>' +
+      '<span class="dlt ' + (m >= 1.5 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span>' +
+      '<span class="rk">' + (m >= 1.5 ? '급등' : '') + '</span>';
+    row.addEventListener('click', function(){ pickSubject(s.id); });
+    host.appendChild(row);
+  });
+  var cur = currentTarget();
+  $('spike-pick').textContent = cur ? cur.name : '—';
+  $('spike-mult').textContent = cur ? ('×' + multOf(cur).toFixed(1) + ' (평소 ' + fmt(baseOf(cur)) + '건)') : '—';
+  $('spike-sub').textContent = AXES[state.axis].label + ' 축 · 평소 대비 배수 순';
+}
+
+function pickSubject(id){
+  state.target = id;
+  state.article = null;
+  renderSpikes(); renderNorm(); renderSources(); renderArticles(); renderOrigin(); renderEvidence();
+}
+
+/* ---------------- 화면 2 : 정규화/원시 대비 ---------------- */
+function renderNorm(){
+  var list = subjects().slice().sort(function(a,b){ return b.raw - a.raw; });
+  var body = $('normbody');
+  body.innerHTML = '';
+  list.forEach(function(s){
+    var m = state.normalize ? normMultOf(s) : multOf(s);
+    var tr = document.createElement('tr');
+    if(s.id === state.target) tr.setAttribute('data-current', '1');
+    tr.innerHTML =
+      '<td>' + s.name + (s.id === state.target ? ' <span class="tag">검증 중</span>' : '') + '</td>' +
+      '<td class="num">' + fmt(s.raw) + '</td>' +
+      '<td class="num">' + pct(shareOf(s)) + '</td>' +
+      '<td class="num"><span class="delta ' + (m >= 1.5 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span></td>';
+    body.appendChild(tr);
+  });
+  var flag = state.normalize ? '정규화 비율' : '원시 건수';
+  $('tb-basis').textContent = flag;
+  $('spike-flag').textContent = flag;
+  $('spike-flag').className = state.normalize ? 'norm-flag' : 'raw-flag';
+  $('norm-sub').textContent = '같은 대상, 두 가지 세는 방식 · 현재 ' + flag;
+
+  var cur = currentTarget();
+  var away = !!cur && state.normalize && multOf(cur) >= 1.5 && normMultOf(cur) < 1.5;
+  if(away){
+    $('normaway-what').textContent =
+      cur.name + '은 원시 건수로는 ×' + multOf(cur).toFixed(1) +
+      '이지만 축 총 수집량으로 나누면 ×' + normMultOf(cur).toFixed(1) + '입니다.';
+  }
+  show($('s-normalized-away'), away);
+}
+
+function applyNorm(withLoading){
+  if(withLoading){
+    show($('s-loading'), true);
+    show($('s-normalized-away'), false);
+    setTimeout(function(){ show($('s-loading'), false); renderNorm(); }, 320);
+  } else {
+    renderNorm();
+  }
+}
+
+/* ---------------- 화면 3 : 소스 구성 ---------------- */
+function visibleSources(){
+  var q = state.srcQ.trim();
+  return SOURCES.filter(function(s){ return !q || s.name.indexOf(q) >= 0; });
+}
+function countedSources(){
+  var v = visibleSources();
+  return state.splitLowConf ? v.filter(function(s){ return s.conf === 'ok'; }) : v;
+}
+
+function renderSources(){
+  var vis = visibleSources();
+  var counted = countedSources();
+  var totalCounted = counted.reduce(function(a, s){ return a + s.raw; }, 0) || 1;
+  var body = $('srcbody');
+  body.innerHTML = '';
+  vis.forEach(function(s){
+    var split = state.splitLowConf && s.conf === 'low';
+    var tr = document.createElement('tr');
+    tr.className = 'srcrow' + (split ? ' split' : '');
+    tr.setAttribute('data-conf', s.conf);
+    tr.innerHTML =
+      '<td>' + s.name + (split ? ' <span class="badge b-na"><span class="d"></span>별도 항목</span>' : '') + '</td>' +
+      '<td class="num">' + fmt(s.raw) + '</td>' +
+      '<td class="num">' + (split ? '<span class="muted">집계 제외</span>' : pct(s.raw / totalCounted * 100)) + '</td>' +
+      '<td class="num">' + (split ? '—' : pct(s.raw / AXES[state.axis].total * 100)) + '</td>';
+    body.appendChild(tr);
+  });
+
+  var top = counted.slice().sort(function(a,b){ return b.raw - a.raw; })[0];
+  $('top-src').textContent = top ? top.name : '—';
+  $('top-src-share').textContent = top ? pct(top.raw / totalCounted * 100) : '—';
+  $('src-n').textContent = counted.length + '개';
+  $('src-count').textContent = vis.length + ' / ' + SOURCES.length + '개 수집원';
+  $('src-sub').textContent = (currentTarget() ? currentTarget().name : '') + ' · 기여 분해';
+
+  var lows = visibleSources().filter(function(s){ return s.conf === 'low'; });
+  $('lowconf-n').textContent = String(lows.reduce(function(a, s){ return a + s.raw; }, 0));
+  show($('s-low-confidence'), state.splitLowConf && lows.length > 0);
+}
+
+/* ---------------- 화면 4 : 기여 뉴스 ---------------- */
+function visibleArticles(){
+  var q = state.artQ.trim();
+  return ARTICLES.filter(function(a){
+    if(state.dupOnly && !a.dup) return false;
+    return !q || a.title.indexOf(q) >= 0;
+  });
+}
+
+function renderArticles(){
+  var list = visibleArticles();
+  var host = $('artlist');
+  host.innerHTML = '';
+  list.forEach(function(a){
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'trow';
+    row.setAttribute('data-article', a.id);
+    row.setAttribute('aria-pressed', String(state.article === a.id));
+    row.innerHTML =
+      '<div style="font-weight:600;font-size:13px">' + a.title + '</div>' +
+      '<div class="muted" style="font-size:11.5px;margin-top:3px">' +
+        a.src + ' · ' + a.at +
+        (a.dup ? ' · <span class="badge b-mix"><span class="d"></span>본문 중복</span>' : '') +
+      '</div>';
+    row.addEventListener('click', function(){ pickArticle(a.id); });
+    host.appendChild(row);
+  });
+  $('art-count').textContent = list.length + ' / ' + ARTICLES.length + '건';
+  if(state.article && !list.some(function(a){ return a.id === state.article; })) clearArticle();
+}
+
+function clearArticle(){
+  state.article = null;
+  show($('art-empty'), true);
+  show($('art-body'), false);
+  $('art-title').textContent = '고른 기사';
+  $('cta-4').disabled = true;
+  $('cta-4-hint').hidden = false;
+  var rows = document.querySelectorAll('#artlist .trow');
+  for(var i=0;i<rows.length;i++) rows[i].setAttribute('aria-pressed', 'false');
+  renderOrigin();
+}
+
+function pickArticle(id){
+  var a = null;
+  for(var i=0;i<ARTICLES.length;i++){ if(ARTICLES[i].id === id) a = ARTICLES[i]; }
+  if(!a) return;
+  state.article = id;
+  show($('art-empty'), false);
+  show($('art-body'), true);
+  $('art-title').textContent = a.title;
+  $('art-body').innerHTML =
+    '<div class="kv"><span class="k">수집원</span><span class="v">' + a.src + '</span></div>' +
+    '<div class="kv"><span class="k">수집 시각</span><span class="v mono">' + a.at + '</span></div>' +
+    '<div class="kv"><span class="k">본문 중복</span><span class="v">' + (a.dup ? '있음 — 같은 본문이 이미 수집됨' : '없음') + '</span></div>';
+  $('cta-4').disabled = false;
+  $('cta-4-hint').hidden = true;
+  var rows = document.querySelectorAll('#artlist .trow');
+  for(var i=0;i<rows.length;i++){
+    rows[i].setAttribute('aria-pressed', String(rows[i].getAttribute('data-article') === id));
+  }
+  renderOrigin();
+  renderEvidence();
+}
+
+/* ---------------- 화면 5 : 원문 역추적 ---------------- */
+function currentArticle(){
+  for(var i=0;i<ARTICLES.length;i++){ if(ARTICLES[i].id === state.article) return ARTICLES[i]; }
+  return ARTICLES[0];
+}
+
+function renderOrigin(){
+  var a = currentArticle();
+  var expired = state.linkState === 'expired';
+  $('origin-title').textContent = a.title;
+  $('origin-sub').textContent = a.src + ' · ' + a.at + ' 수집';
+  $('link-badge').textContent = expired ? '링크 끊김' : '링크 정상';
+  $('link-badge').className = 'badge ' + (expired ? 'b-neg' : 'b-pos');
+  $('origin-body').innerHTML = expired
+    ? '<div class="note"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
+      '<div>원래 주소는 더 이상 응답하지 않습니다. 아래는 <b>수집 시점에 보존한 사본</b>입니다.</div></div>'
+    : '<div class="note info"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
+      '<div>원래 주소가 정상 응답합니다. 보존 사본과 함께 대조해 볼 수 있습니다.</div></div>';
+  $('preserved').innerHTML =
+    '<div class="kv"><span class="k">보존 시각</span><span class="v mono">' + a.at + '</span></div>' +
+    '<div class="kv"><span class="k">수집원</span><span class="v">' + a.src + '</span></div>' +
+    '<p style="margin-top:12px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">' + a.body + '</p>';
+  show($('s-link-expired'), expired);
+}
+
+/* ---------------- 화면 6 : 판정 ---------------- */
+function renderEvidence(){
+  var cur = currentTarget();
+  var counted = countedSources();
+  var totalCounted = counted.reduce(function(a, s){ return a + s.raw; }, 0) || 1;
+  var top = counted.slice().sort(function(a,b){ return b.raw - a.raw; })[0];
+  var a = state.article ? currentArticle() : null;
+  $('evidence').innerHTML =
+    '<div class="kv"><span class="k">검증 대상</span><span class="v">' + (cur ? cur.name : '—') + '</span></div>' +
+    '<div class="kv"><span class="k">원시 배수</span><span class="v mono">×' + (cur ? multOf(cur).toFixed(1) : '—') + '</span></div>' +
+    '<div class="kv"><span class="k">정규화 배수</span><span class="v mono">×' + (cur ? normMultOf(cur).toFixed(1) : '—') + '</span></div>' +
+    '<div class="kv"><span class="k">최다 기여 소스</span><span class="v">' + (top ? top.name + ' ' + pct(top.raw / totalCounted * 100) : '—') + '</span></div>' +
+    '<div class="kv"><span class="k">도달한 원문</span><span class="v">' + (a ? a.title : '아직 없음') + '</span></div>';
+}
+
+function submitJudge(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="verdict"]:checked');
+  var memo = $('judge-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked
+      ? '결론을 하나 고르세요.'
+      : '근거 메모를 적어야 기록됩니다 — 무엇을 보고 그렇게 판정했는지가 결론의 실체입니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  $('recorded-what').textContent =
+    (picked.value === 'valid' ? '유효한 신호' : '수집 편중') + '으로 판정했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-notice-spike','STP-check-normalized','STP-inspect-sources',
+               'STP-drilldown-articles','STP-open-origin','STP-judge'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-judge') renderEvidence();
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-spike-verification'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('axis').addEventListener('change', function(){
+    state.axis = this.value;
+    var list = subjects();
+    state.target = list.length ? list[0].id : null;
+    state.article = null;
+    renderSpikes(); renderNorm(); renderSources(); renderArticles(); renderOrigin(); renderEvidence();
+  });
+  $('range').addEventListener('change', function(){
+    state.range = this.value; renderSpikes(); renderNorm(); renderEvidence();
+  });
+  $('norm-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    state.normalize = $('normalize').checked;
+    applyNorm(true);
+  });
+  $('src-q').addEventListener('input', function(){ state.srcQ = this.value; renderSources(); renderEvidence(); });
+  $('split-lowconf').addEventListener('change', function(){
+    state.splitLowConf = this.checked; renderSources(); renderEvidence();
+  });
+  $('art-q').addEventListener('input', function(){ state.artQ = this.value; renderArticles(); });
+  $('dup-only').addEventListener('change', function(){ state.dupOnly = this.checked; renderArticles(); });
+  $('link-state').addEventListener('change', function(){ state.linkState = this.value; renderOrigin(); });
+  $('judge-form').addEventListener('submit', submitJudge);
+
+  renderSpikes();
+  renderNorm();
+  renderSources();
+  renderArticles();
+  renderOrigin();
+  renderEvidence();
+  fromHash();
+})();
+</script>
+</body>
+</html>
