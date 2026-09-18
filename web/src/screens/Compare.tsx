@@ -11,10 +11,10 @@ import { MapStrip } from "../shell/MapStrip";
 // bars are scaled by one maximum taken across all three axes — a bar twice as
 // long is twice the share no matter which column it sits in.
 
-const AXES: { id: AxisColumn["axis"]; label: string; pill: string }[] = [
-  { id: "KR", label: "한국 · 출처 축", pill: "ax-kr" },
-  { id: "US", label: "미국 · 출처 축", pill: "ax-us" },
-  { id: "GLOBAL", label: "전세계 · 출처 축", pill: "ax-gl" },
+const AXES: { id: AxisColumn["axis"]; name: string; label: string; pill: string }[] = [
+  { id: "KR", name: "한국", label: "한국 · 출처 축", pill: "ax-kr" },
+  { id: "US", name: "미국", label: "미국 · 출처 축", pill: "ax-us" },
+  { id: "GLOBAL", name: "전세계", label: "전세계 · 출처 축", pill: "ax-gl" },
 ];
 
 const UNIT_LABEL: Record<string, string> = { hour: "시간", day: "일", week: "주" };
@@ -91,7 +91,7 @@ export function Compare() {
                   <h3>{a.label}</h3>
                 </div>
                 <div className="card-b">
-                  <AxisRows column={columns.get(a.id)} maxShare={maxShare} />
+                  <AxisRows column={columns.get(a.id)} maxShare={maxShare} axisName={a.name} />
                 </div>
               </section>
             ))}
@@ -110,10 +110,24 @@ export function Compare() {
   );
 }
 
-function AxisRows({ column, maxShare }: { column?: AxisColumn; maxShare: number }) {
+function AxisRows({
+  column,
+  maxShare,
+  axisName,
+}: {
+  column?: AxisColumn;
+  maxShare: number;
+  axisName: string;
+}) {
+  // An axis with nothing collected is not an axis with zero interest. Drawing it
+  // as 0% would read as "nobody there talked about anything", so the column says
+  // it is out of the comparison instead.
   if (!column || column.top_subjects.length === 0) {
     return (
-      <div className="placeholder-note cmp-empty">이 시점에 이 축의 데이터가 없습니다.</div>
+      <div className="placeholder-note cmp-empty">
+        {axisName} 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 — 수집이 없는
+        것과 관심이 없는 것은 다릅니다.
+      </div>
     );
   }
   return (
