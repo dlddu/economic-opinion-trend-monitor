@@ -104,10 +104,13 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
 `ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>`. `latest`는 더 이상 만들지 않는다
 (예전에는 PR 빌드도 `latest`를 덮어써 미머지 코드가 운영 pull에 섞일 수 있었다).
 
-- **운영 고정(`pin` job)**: `main` 푸시에서 두 이미지를 올린 뒤, 그 SHA를
+- **운영 고정(`pin` job)**: `main` 푸시에서 두 이미지를 올린 뒤, 그 SHA로
   `deploy/` 아래 모든 이미지 참조(`deploy/base/deployment.yaml`,
-  `deploy/batch/workflow-template.yaml`)에 되커밋한다(`chore(deploy): pin images … [skip ci]`).
-  운영이 어느 커밋을 돌리는지는 `deploy/`만 보면 된다. 이 태그들은 손으로 고치지 않는다.
+  `deploy/batch/workflow-template.yaml`)를 고친 커밋을 **`deploy` 브랜치**로 force-push한다
+  (= `main@SHA` + 고정 커밋 하나, `Source-Commit: <sha>` 트레일러). main은 ruleset(필수 체크
+  `required`)으로 보호되어 되커밋하지 않고, Flux는 `deploy`를 추적한다. 기본 `GITHUB_TOKEN`만
+  쓰므로 장기 크레덴셜이 없다. 운영이 어느 커밋을 돌리는지는 `deploy` 브랜치의 `deploy/`만
+  보면 된다(main에 남은 태그는 운영과 무관). 롤백은 main에 revert PR.
 - **PR 빌드**: PR head SHA 태그로 발행만 하고 매니페스트는 건드리지 않는다. 이 태그를
   PR 프리뷰가 가져다 쓴다(아래).
 
