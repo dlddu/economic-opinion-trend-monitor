@@ -132,11 +132,8 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # AC3.2 "핵심 서술 대상 기준 집계" — Silver -> Gold. Until this template existed
-    # the `econ_aggregation` package was reachable only from the test harness, so
-    # no scheduled path ever produced Gold and serving fell back to empty
-    # datasets (deploy/base/deployment.yaml). No args: the CLI defaults to
-    # $ECON_DATA_ROOT and rewrites both Gold datasets from whatever Silver it
+    # AC3.2 "핵심 서술 대상 기준 집계" — Silver -> Gold. No args: the CLI defaults
+    # to $ECON_DATA_ROOT and rewrites both Gold datasets from whatever Silver it
     # finds.
     #
     # Pure recomputation over the shared volume — no network, no model calls —
