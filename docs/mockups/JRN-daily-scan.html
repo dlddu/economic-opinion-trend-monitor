@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>아침 정기 스캔 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-daily-scan) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-daily-scan">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item active" data-id="dash" href="JRN-daily-scan.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>아침 정기 스캔</span>
+        </a>
+        <a class="nav-item" data-id="JRN-axis-contrast" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="JRN-sentiment-shift" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="JRN-spike-verification" href="JRN-spike-verification.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>급등 검증</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="reprocess.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
+      마지막 수집 <span id="foot-collected">07:00 KST</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>아침 정기 스캔</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-basis">한국 &middot; 최근 7일 &middot; 일 단위</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 · 대시보드 열기 ============ -->
+      <section class="jstep" id="STP-open-brief" data-step="STP-open-brief" hidden>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="ml">수집 항목</div>
+            <div class="mv" id="m-items">4,812</div>
+            <div class="md"><span class="delta up">&#9650; 4.2%</span> 전일 대비</div>
+          </div>
+          <div class="card metric col-3">
+            <div class="ml">분석 완료</div>
+            <div class="mv" id="m-analyzed">4,551</div>
+            <div class="md"><span class="delta fl">94.6%</span> 분석 커버리지</div>
+          </div>
+          <div class="card metric col-3">
+            <div class="ml">저신뢰 분리</div>
+            <div class="mv sm" id="m-lowconf">5.4%</div>
+            <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+          </div>
+          <div class="card metric col-3">
+            <div class="ml">세는 방식</div>
+            <div class="mv sm">점유율</div>
+            <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form id="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select id="axis" name="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">대상 찾기</span>
+                  <input type="search" id="q" name="q" placeholder="대상 이름으로 좁히기" />
+                </label>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" id="restore" name="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+
+              <div class="note info" style="margin-top:18px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>조건을 매번 다시 맞추지 않습니다.</b>
+                  닫을 때의 축·기간이 그대로 복원되어, 어제와 같은 화면에서 밤사이 변화만 보게 됩니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" id="brief-sub">한국 축 &middot; 최근 7일</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" id="ranklist"></div>
+
+              <div class="banner warn" id="s-empty-window" data-state="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span id="empty-axis-name">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono" id="empty-last">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-1" href="#STP-scan-delta"
+                       data-goto="JRN-daily-scan#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-scan-delta" id="cta-1">
+            어제 대비 변화 훑기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">밤사이 올라온 것과 빠진 것을 먼저 봅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 · 어제 대비 변화 훑기 ============ -->
+      <section class="jstep" id="STP-scan-delta" data-step="STP-scan-delta" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>밤사이 변화</h3>
+              <span class="sub" id="delta-sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" id="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form id="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:220px">
+                    <span class="fl">비교 기준 구간</span>
+                    <select id="delta-basis" name="delta-basis">
+                      <option value="prev" selected>직전 동일 구간</option>
+                      <option value="avg7">최근 7일 평균</option>
+                      <option value="prev-week">전주 동요일</option>
+                    </select>
+                  </label>
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" id="delta-thresh" name="delta-thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" id="only-new" name="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+
+              <div id="deltalist" style="margin-top:6px"></div>
+
+              <div class="emptybox" id="s-no-baseline" data-state="no-baseline" hidden>
+                이 기준 구간은 저장된 값이 없어 <b>증감을 계산할 수 없습니다</b>.<br/>
+                순위는 그대로 보이되 증감 칸은 &lsquo;&mdash;&rsquo;로 둡니다 &mdash; 0으로 채우면 변화가 없었던 것처럼 읽힙니다.
+              </div>
+
+              <div class="banner warn" style="margin-top:16px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions">
+                    <a class="btn sm" id="br-2" href="JRN-spike-verification.html#STP-notice-spike"
+                       data-goto="JRN-spike-verification#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" id="s-no-selection" data-state="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 어제 대비 변화가 펼쳐집니다.
+              </div>
+              <div id="pick-detail" hidden></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-adjust-window" id="cta-2" disabled>
+            이 변화가 추세인지 보기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-2-hint">대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 · 기간·단위 조정 ============ -->
+      <section class="jstep" id="STP-adjust-window" data-step="STP-adjust-window" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-5">
+            <div class="card-h"><h3>기간 &middot; 단위</h3><span class="sub">일시적 튐인지 지속 추세인지 가늠합니다</span></div>
+            <div class="card-b">
+              <form id="win-form">
+                <label class="fld" style="max-width:220px">
+                  <span class="fl">기간</span>
+                  <select id="range" name="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:16px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios">
+                    <label><input type="radio" name="unit" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit" value="day" checked /> 일</label>
+                    <label><input type="radio" name="unit" value="week" /> 주</label>
+                  </div>
+                </div>
+                <div class="stepact" style="margin-top:18px">
+                  <button type="submit" class="btn pri" id="win-apply">기간 적용</button>
+                  <span class="hint">고른 대상은 그대로 유지됩니다.</span>
+                </div>
+              </form>
+
+              <div class="note" style="margin-top:18px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span id="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>단위별 순위</h3>
+              <span class="sub" id="win-sub">최근 7일 &middot; 일 단위</span>
+              <div class="r"><span class="tag" id="win-basis">7d &middot; day</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" id="s-loading" data-state="loading" hidden>
+                고른 단위로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <div id="winlist"></div>
+
+              <div class="banner warn" id="s-low-sample" data-state="low-sample" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>시간 단위에서는 구간당 표본이 적습니다.</b>
+                  표본이 임계에 못 미치는 구간은 흐리게 그리고 순위 해석에서 제외하세요.
+                </div>
+              </div>
+
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" id="br-3" href="JRN-axis-contrast.html#STP-open-compare"
+                       data-goto="JRN-axis-contrast#STP-open-compare">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-drill-trend" id="cta-3">
+            <span id="cta-3-label">고른 대상의 추세 상세 열기</span> <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 · 대상 추세 상세 ============ -->
+      <section class="jstep" id="STP-drill-trend" data-step="STP-drill-trend" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3 id="trend-title">추세 상세</h3>
+              <span class="sub" id="trend-sub">스캔에서 고른 축 &middot; 기간을 그대로 승계했습니다</span>
+              <div class="r"><span class="tag">점유율 %</span></div>
+            </div>
+            <div class="card-b">
+              <form id="trend-form">
+                <div class="formrow">
+                  <label class="chk">
+                    <input type="checkbox" id="tr-compare" name="tr-compare" />
+                    상위 대상 3개를 겹쳐 보기
+                  </label>
+                  <label class="fld" style="max-width:190px">
+                    <span class="fl">기여 뉴스 표기</span>
+                    <select id="tr-marks" name="tr-marks">
+                      <option value="off" selected>표시 안 함</option>
+                      <option value="peak">상승 시작 지점만</option>
+                      <option value="all">모든 구간</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+              <svg viewBox="0 0 740 210" width="100%" style="display:block;margin-top:10px" id="trendchart"></svg>
+              <div class="legend" id="trend-legend"></div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h"><h3>상위 대상 비교</h3><span class="sub" id="cmp-sub">같은 기간 &middot; 같은 축</span></div>
+            <div class="card-b" style="padding:0">
+              <table class="tbl" id="trendtable"></table>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-shortlist" id="cta-4">
+            오늘 볼 대상 추리기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">본 것 중 오늘 챙길 것만 남깁니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 · 오늘 볼 대상 추리기 ============ -->
+      <section class="jstep" id="STP-shortlist" data-step="STP-shortlist" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h"><h3>오늘 챙길 대상</h3><span class="sub">2~3개만 남기고 세션을 닫습니다</span></div>
+            <div class="card-b">
+              <form id="shortlist-form">
+                <div class="fld">
+                  <span class="fl">후보</span>
+                  <div id="cand-list"></div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">브리핑 메모</span>
+                  <textarea id="shortlist-memo" name="shortlist-memo" placeholder="왜 오늘 이것을 챙기는지 한 줄로 적어 두세요."></textarea>
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="shortlist-submit">추림 확정하고 닫기</button>
+                  <span class="hint" id="pickcount">0개 선택</span>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">후보를 하나 이상 고르고 메모를 채워야 확정됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>오늘 볼 대상을 추렸습니다.</b>
+                  <span id="recorded-what"></span>
+                  <div class="bhint" style="margin-top:6px">이 추림은 <b>이 세션 안에서만</b> 유지됩니다 &mdash; 제품 안에 담아 두는 워치리스트는 아직 없습니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>이번 스캔 요약</h3><span class="sub">닫을 때의 조건이 다음 진입에 복원됩니다</span></div>
+            <div class="card-b" id="scan-summary"></div>
+
+            <div class="card-b" style="border-top:1px solid var(--line)">
+              <div class="bhint" style="margin-bottom:8px">목록만 보고 오늘은 접어도, 다음 진입에서 이 조건 그대로 열립니다.</div>
+              <a class="btn sm" id="br-4" href="#STP-open-brief"
+                 data-goto="JRN-daily-scan#STP-open-brief">저장 없이 닫고 이 조건으로 다시 열기</a>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-daily-scan</b> &mdash; 아침 정기 스캔.
+             <a href="../reader.html?doc=user-journeys/JRN-daily-scan.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-open-brief"><button type="button" class="jr-btn" data-goto-step="STP-open-brief"><span class="jr-n">1</span><span class="jr-t">대시보드 열기</span><span class="jr-id mono">STP-open-brief</span></button></li>
+            <li class="jr-item" data-rail="STP-scan-delta"><button type="button" class="jr-btn" data-goto-step="STP-scan-delta"><span class="jr-n">2</span><span class="jr-t">어제 대비 변화 훑기</span><span class="jr-id mono">STP-scan-delta</span></button></li>
+            <li class="jr-item" data-rail="STP-adjust-window"><button type="button" class="jr-btn" data-goto-step="STP-adjust-window"><span class="jr-n">3</span><span class="jr-t">기간·단위 조정</span><span class="jr-id mono">STP-adjust-window</span></button></li>
+            <li class="jr-item" data-rail="STP-drill-trend"><button type="button" class="jr-btn" data-goto-step="STP-drill-trend"><span class="jr-n">4</span><span class="jr-t">대상 추세 상세 열기</span><span class="jr-id mono">STP-drill-trend</span></button></li>
+            <li class="jr-item" data-rail="STP-shortlist"><button type="button" class="jr-btn" data-goto-step="STP-shortlist"><span class="jr-n">5</span><span class="jr-t">오늘 볼 대상 추리기</span><span class="jr-id mono">STP-shortlist</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-open-brief</td><td>기본 축·기본 기간 상태로 상위 서술 대상 목록을 연다</td><td>지표 카드(CMP-metric), 상위 대상 순위 목록(CMP-ranklist)</td><td class="mono">AC3.2 · AC3.5</td></tr>
+              <tr><td class="mono">STP-scan-delta</td><td>순위와 증감을 훑어 새로 올라온 대상·급락한 대상을 찾는다</td><td>증감 표시(CMP-delta)</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-adjust-window</td><td>시간/일/주 단위를 바꿔 일시적 스파이크인지 지속 추세인지 가늠한다</td><td>기간·단위 컨트롤(CMP-seg 의 자리를 실제 폼 요소가 대신한다)</td><td class="mono">AC3.3</td></tr>
+              <tr><td class="mono">STP-drill-trend</td><td>눈에 걸린 대상을 골라 시계열 추세 차트를 연다</td><td>라인 차트(PAT-line-chart), 상위 대상 비교 테이블(CMP-table), 범례(CMP-legend)</td><td class="mono">AC3.5 · AC3.2</td></tr>
+              <tr><td class="mono">STP-shortlist</td><td>2~3개 대상을 추리고 세션을 닫는다</td><td>추림 폼 / 제품 외부(사용자 개인 메모)</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>밤사이 수집이 실패해 데이터가 비었음</td><td>화면 1 · 수집 없음 배너</td><td class="mono">STP-scan-delta</td></tr>
+              <tr><td>급등 대상이 신뢰되지 않음</td><td>화면 2 · 급등 진위 확인 이탈</td><td class="mono">JRN-spike-verification · STP-notice-spike</td></tr>
+              <tr><td>축 간 차이가 궁금해짐</td><td>화면 3 · 3축 비교 이탈</td><td class="mono">JRN-axis-contrast · STP-open-compare</td></tr>
+              <tr><td>중도 이탈 (목록만 보고 종료)</td><td>화면 5 · 저장 없이 닫기</td><td class="mono">STP-open-brief</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:14px"><b>범위 밖으로 둔 것</b> &mdash; <span class="mono">STP-shortlist</span> 의 페인포인트인
+             관심 대상 북마크·워치리스트는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 항목이다.
+             이 프로토타입은 그 기능을 만들지 않고, 단계가 정의한 「추리고 세션을 닫는다」까지만 그린다
+             &mdash; 추림은 세션 안에서만 유지된다.</p>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-daily-scan</b></span>
+            <span class="chip"><b>STP-open-brief</b></span>
+            <span class="chip"><b>STP-scan-delta</b></span>
+            <span class="chip"><b>STP-adjust-window</b></span>
+            <span class="chip"><b>STP-drill-trend</b></span>
+            <span class="chip"><b>STP-shortlist</b></span>
+            <span class="chip v"><b>V1</b> 시계열 추세 가시화</span>
+            <span class="chip">AC3.2 · AC3.3 · AC3.5</span>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   JRN-daily-scan · 아침 정기 스캔 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   ============================================================ */
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+var AXES = {
+  KR: { label: '한국', cls: 'ax-kr' },
+  US: { label: '미국', cls: 'ax-us' },
+  GL: { label: '전세계', cls: 'ax-gl' }
+};
+
+/* name, share, series(7), delta(직전 동일 구간, %p), isNew, note */
+var DATA = {
+  KR: [
+    { name: '한국은행 기준금리', share: 21.0, s: [14,13,15,18,22,19,21], d: 7.0, isNew: false, note: '' },
+    { name: '삼성전자',         share: 13.0, s: [11,12,10,13,12,14,13], d: 0.0, isNew: false, note: '' },
+    { name: '원/달러 환율',      share: 10.8, s: [9,10,12,11,13,12,10.8], d: -1.2, isNew: false, note: '' },
+    { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],      d: 0.6, isNew: false, note: '' },
+    { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],      d: 0.9, isNew: false, note: '원시 카운트 2위 → 정규화 5위' },
+    { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],      d: 2.1, isNew: false, note: '' },
+    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],      d: 5.4, isNew: true,  note: '밤사이 새로 진입' },
+    { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],      d: -1.4, isNew: false, note: '' }
+  ],
+  US: [
+    { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1, isNew: false, note: '' },
+    { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0, isNew: false, note: '' },
+    { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, note: '' },
+    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6, isNew: true,  note: '밤사이 새로 진입' },
+    { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1, isNew: false, note: '' }
+  ],
+  GL: []
+};
+
+/* 전주 동요일 기준 구간은 저장된 값이 없다 — 증감을 0으로 채우지 않는다. */
+var BASIS = {
+  'prev':      { label: '직전 동일 구간', hasBaseline: true },
+  'avg7':      { label: '최근 7일 평균',  hasBaseline: true },
+  'prev-week': { label: '전주 동요일',    hasBaseline: false }
+};
+
+var state = {
+  axis: 'KR',
+  q: '',
+  basis: 'prev',
+  thresh: 0,
+  onlyNew: false,
+  range: '7',
+  unit: 'day',
+  target: null,
+  shortlist: []
+};
+
+function rows(){
+  var list = DATA[state.axis] || [];
+  var q = state.q.trim();
+  return list.filter(function(r){
+    if(q && r.name.indexOf(q) < 0) return false;
+    return true;
+  });
+}
+
+function deltaRows(){
+  return rows().filter(function(r){
+    if(state.onlyNew && !r.isNew) return false;
+    if(BASIS[state.basis].hasBaseline && Math.abs(r.d) < state.thresh) return false;
+    return true;
+  });
+}
+
+function dcls(d){ return d > 0.05 ? 'up' : (d < -0.05 ? 'dn' : 'fl'); }
+function dtext(d){
+  if(!BASIS[state.basis].hasBaseline) return '&mdash;';
+  if(d > 0.05) return '&#9650; ' + d.toFixed(1) + '%p';
+  if(d < -0.05) return '&#9660; ' + Math.abs(d).toFixed(1) + '%p';
+  return '&ndash;';
+}
+
+function spark(vals, color){
+  var w = 88, h = 26;
+  var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), rng = (mx - mn) || 1;
+  var pts = vals.map(function(v, i){
+    var x = (i / (vals.length - 1)) * (w - 4) + 2;
+    var y = h - 2 - ((v - mn) / rng) * (h - 6);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  var lastY = (h - 2 - ((vals[vals.length - 1] - mn) / rng) * (h - 6)).toFixed(1);
+  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '"><polyline fill="none" stroke="'
+    + color + '" stroke-width="1.8" points="' + pts + '"/><circle cx="' + (w - 2).toFixed(1)
+    + '" cy="' + lastY + '" r="2" fill="' + color + '"/></svg>';
+}
+function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
+
+/* ---------------- 화면 1 · 대시보드 열기 ---------------- */
+function renderBrief(){
+  var list = rows();
+  var ax = AXES[state.axis];
+  $('brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel();
+  $('tb-basis').textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
+
+  var empty = (DATA[state.axis] || []).length === 0;
+  show($('s-empty-window'), empty);
+  $('empty-axis-name').textContent = ax.label;
+
+  if(!list.length){
+    $('ranklist').innerHTML = empty
+      ? ''
+      : '<div class="emptybox">검색어에 걸리는 대상이 없습니다.</div>';
+    return;
+  }
+  var max = list[0].share;
+  $('ranklist').innerHTML = list.map(function(r, i){
+    return '<div class="rankrow">'
+      + '<div class="rk">' + (i + 1) + '</div>'
+      + '<div class="nm">' + esc(r.name)
+      + (r.note ? ' <span class="meta">· ' + esc(r.note) + '</span>' : '') + '</div>'
+      + '<div class="share"><span class="bar"><i style="width:'
+      + (r.share / max * 100).toFixed(0) + '%"></i></span><span class="pct">'
+      + r.share.toFixed(1) + '%</span></div>'
+      + spark(r.s, scolor(r.d))
+      + '<div class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+/* ---------------- 화면 2 · 어제 대비 변화 훑기 ---------------- */
+function renderDelta(){
+  var list = deltaRows();
+  var basis = BASIS[state.basis];
+  $('delta-sub').textContent = basis.label + ' 대비';
+  $('delta-count').textContent = list.length + '개 대상';
+  show($('s-no-baseline'), !basis.hasBaseline);
+
+  if(!list.length){
+    $('deltalist').innerHTML = '<div class="emptybox">이 조건에 걸리는 변화가 없습니다.</div>';
+  } else {
+    $('deltalist').innerHTML = list.map(function(r){
+      return '<button type="button" class="trow" data-target="' + esc(r.name) + '"'
+        + ' aria-pressed="' + (state.target && state.target.name === r.name ? 'true' : 'false') + '">'
+        + '<span class="nm">' + esc(r.name)
+        + (r.isNew ? ' <span class="badge b-pos"><i class="d"></i>신규</span>' : '')
+        + '</span> '
+        + '<span class="dlt ' + dcls(r.d) + '" style="float:right">' + dtext(r.d) + '</span>'
+        + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('deltalist').querySelectorAll('.trow'), function(b){
+      b.addEventListener('click', function(){ pick(b.getAttribute('data-target')); });
+    });
+  }
+  renderPick();
+}
+
+function pick(name){
+  var found = (DATA[state.axis] || []).filter(function(r){ return r.name === name; })[0];
+  state.target = found || null;
+  renderDelta();
+}
+
+function renderPick(){
+  var t = state.target;
+  show($('s-no-selection'), !t);
+  show($('pick-detail'), !!t);
+  $('cta-2').disabled = !t;
+  $('cta-2-hint').textContent = t
+    ? '‘' + t.name + '’ 을 들고 기간을 바꿔 봅니다.'
+    : '대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.';
+  if(!t) return;
+  $('pick-detail').innerHTML =
+      '<div class="kv"><span class="k">대상</span><span class="v">' + esc(t.name) + '</span></div>'
+    + '<div class="kv"><span class="k">점유율</span><span class="v">' + t.share.toFixed(1) + '%</span></div>'
+    + '<div class="kv"><span class="k">' + BASIS[state.basis].label + ' 대비</span><span class="v">'
+    + dtext(t.d) + '</span></div>'
+    + '<div class="kv"><span class="k">진입</span><span class="v">'
+    + (t.isNew ? '밤사이 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>'
+    + '<div class="sentbar" style="margin-top:14px">'
+    + '<i class="s-pos" style="width:38%"></i><i class="s-neu" style="width:42%"></i>'
+    + '<i class="s-neg" style="width:15%"></i><i class="s-na" style="width:5%"></i></div>';
+}
+
+/* ---------------- 화면 3 · 기간·단위 조정 ---------------- */
+function rangeLabel(){
+  return state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일';
+}
+function unitLabel(){
+  return state.unit === 'hour' ? '시간 단위' : (state.unit === 'week' ? '주 단위' : '일 단위');
+}
+
+function renderWindow(){
+  var list = rows();
+  $('win-sub').textContent = rangeLabel() + ' · ' + unitLabel();
+  $('win-basis').textContent = state.range + 'd · ' + state.unit;
+  $('tb-basis').textContent = AXES[state.axis].label + ' · ' + rangeLabel() + ' · ' + unitLabel();
+  show($('s-low-sample'), state.unit === 'hour');
+  $('keep-note').textContent = state.target ? '‘' + state.target.name + '’ 으로 강조' : '그대로 강조';
+
+  /* 단위가 바뀌면 순위가 실제로 뒤집힌다 — 고른 대상은 하이라이트로 유지된다. */
+  var ordered = list.slice().sort(function(a, b){
+    if(state.unit === 'hour') return (b.s[b.s.length - 1] - a.s[a.s.length - 1]);
+    if(state.unit === 'week') return (avg(b.s) - avg(a.s));
+    return b.share - a.share;
+  });
+  if(!ordered.length){
+    $('winlist').innerHTML = '<div class="emptybox">이 축에는 이 기간에 표시할 대상이 없습니다.</div>';
+    return;
+  }
+  $('winlist').innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
+    + '<th class="num">' + unitLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
+    + ordered.map(function(r, i){
+        var v = state.unit === 'hour' ? r.s[r.s.length - 1]
+              : (state.unit === 'week' ? avg(r.s) : r.share);
+        var on = state.target && state.target.name === r.name;
+        return '<tr' + (on ? ' style="background:var(--primary-soft)"' : '') + '>'
+          + '<td class="num">' + (i + 1) + '</td>'
+          + '<td>' + esc(r.name) + (on ? ' <span class="tag">고른 대상</span>' : '') + '</td>'
+          + '<td class="num' + (state.unit === 'hour' ? ' thin' : '') + '">' + v.toFixed(1) + '%</td>'
+          + '<td class="num"><span class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</span></td>'
+          + '</tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+
+/* ---------------- 화면 4 · 추세 상세 ---------------- */
+function trendSeries(){
+  var base = state.target ? [state.target] : (rows().slice(0, 1));
+  if(!$('tr-compare') || !$('tr-compare').checked) return base;
+  var extra = rows().filter(function(r){
+    return !base.length || r.name !== base[0].name;
+  }).slice(0, 2);
+  return base.concat(extra);
+}
+
+function drawTrend(){
+  var series = trendSeries();
+  var x0 = 52, x1 = 716, base = 176, top = 22, Hh = base - top;
+  var colors = ['var(--ax-kr)', 'var(--ax-us)', 'var(--ax-gl)'];
+  var all = series.reduce(function(acc, s){ return acc.concat(s.s); }, [0]);
+  var max = Math.max.apply(null, all) * 1.15 || 1;
+  var n = series.length ? series[0].s.length : 1;
+  var svg = '';
+  [0, 0.5, 1].forEach(function(p){
+    var y = base - p * Hh;
+    svg += '<line class="gridline ' + (p === 0 ? 'zero' : '') + '" x1="' + x0 + '" y1="' + y
+        + '" x2="' + x1 + '" y2="' + y + '"/>';
+    svg += '<text class="axlab" x="' + (x0 - 8) + '" y="' + (y + 3) + '" text-anchor="end">'
+        + (max * p).toFixed(0) + '%</text>';
+  });
+  for(var i = 0; i < n; i++){
+    var lx = x0 + (x1 - x0) * (n === 1 ? 0 : i / (n - 1));
+    var lbl = i === n - 1 ? '지금' : 'T-' + (n - 1 - i);
+    svg += '<text class="axlab" x="' + lx.toFixed(1) + '" y="196" text-anchor="middle">' + lbl + '</text>';
+  }
+  series.forEach(function(s, si){
+    var color = colors[si % colors.length];
+    var d = s.s.map(function(v, i){
+      var lx = x0 + (x1 - x0) * (s.s.length === 1 ? 0 : i / (s.s.length - 1));
+      var ly = base - (v / max) * Hh;
+      return (i ? 'L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
+    }).join(' ');
+    svg += '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.4" stroke-linejoin="round"/>';
+    s.s.forEach(function(v, i){
+      var lx = x0 + (x1 - x0) * (s.s.length === 1 ? 0 : i / (s.s.length - 1));
+      var ly = base - (v / max) * Hh;
+      svg += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2.6" fill="' + color + '"/>';
+    });
+  });
+  /* 기여 뉴스 표기 — 상승 시작 지점에 마크를 얹는다(어디서부터 올라왔는지 읽히게). */
+  var marks = $('tr-marks') ? $('tr-marks').value : 'off';
+  if(marks !== 'off' && series.length){
+    var s0 = series[0];
+    s0.s.forEach(function(v, i){
+      if(i === 0) return;
+      var rising = v > s0.s[i - 1];
+      if(marks === 'peak' && !(rising && (i === 1 || s0.s[i - 1] <= s0.s[i - 2]))) return;
+      if(marks === 'all' && !rising) return;
+      var lx = x0 + (x1 - x0) * (i / (s0.s.length - 1));
+      var ly = base - (v / max) * Hh;
+      svg += '<circle class="mark" cx="' + lx.toFixed(1) + '" cy="' + (ly - 11).toFixed(1)
+          + '" r="4" fill="var(--accent)" opacity="0.85"/>';
+    });
+  }
+  $('trendchart').innerHTML = svg;
+  $('trend-legend').innerHTML = series.map(function(s, si){
+    return '<span><i class="d" style="background:' + colors[si % colors.length] + '"></i>'
+      + esc(s.name) + '</span>';
+  }).join('');
+  $('trend-title').textContent = (state.target ? state.target.name + ' · ' : '') + '추세 상세';
+  $('trend-sub').textContent = AXES[state.axis].label + ' 축 · ' + rangeLabel() + ' · ' + unitLabel()
+    + ' 를 그대로 승계했습니다';
+  $('cmp-sub').textContent = rangeLabel() + ' · ' + AXES[state.axis].label + ' 축';
+
+  var tbl = series.map(function(s){
+    return '<tr><td>' + esc(s.name) + '</td>'
+      + '<td class="num">' + s.share.toFixed(1) + '%</td>'
+      + '<td class="num">' + avg(s.s).toFixed(1) + '%</td>'
+      + '<td class="num"><span class="dlt ' + dcls(s.d) + '">' + dtext(s.d) + '</span></td></tr>';
+  }).join('');
+  $('trendtable').innerHTML = '<thead><tr><th>대상</th><th class="num">현재 점유율</th>'
+    + '<th class="num">구간 평균</th><th class="num">변화</th></tr></thead><tbody>' + tbl + '</tbody>';
+}
+
+/* ---------------- 화면 5 · 오늘 볼 대상 추리기 ---------------- */
+function renderCandidates(){
+  var list = rows().slice(0, 5);
+  if(state.target && list.indexOf(state.target) < 0) list = [state.target].concat(list).slice(0, 5);
+  $('cand-list').innerHTML = list.length
+    ? list.map(function(r, i){
+        var on = state.target && state.target.name === r.name;
+        return '<label class="chk" style="display:flex;margin-top:8px">'
+          + '<input type="checkbox" class="cand" name="cand" value="' + esc(r.name) + '"'
+          + (on ? ' checked' : '') + ' /> ' + esc(r.name)
+          + ' <span class="meta" style="color:var(--ink-3)">· ' + r.share.toFixed(1) + '%</span>'
+          + '</label>';
+      }).join('')
+    : '<div class="emptybox">추릴 후보가 없습니다 — 축을 바꿔 다시 훑어 보세요.</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('input.cand'), function(c){
+    c.addEventListener('change', updateCount);
+  });
+  updateCount();
+  renderSummary();
+}
+
+function picked(){
+  return Array.prototype.filter.call(document.querySelectorAll('input.cand'), function(c){
+    return c.checked;
+  }).map(function(c){ return c.value; });
+}
+function updateCount(){
+  $('pickcount').textContent = picked().length + '개 선택';
+}
+
+function renderSummary(){
+  $('scan-summary').innerHTML =
+      '<div class="kv"><span class="k">축</span><span class="v">' + AXES[state.axis].label + '</span></div>'
+    + '<div class="kv"><span class="k">기간 · 단위</span><span class="v">' + rangeLabel() + ' · ' + unitLabel() + '</span></div>'
+    + '<div class="kv"><span class="k">비교 기준</span><span class="v">' + BASIS[state.basis].label + '</span></div>'
+    + '<div class="kv"><span class="k">상세로 내려간 대상</span><span class="v">'
+    + (state.target ? esc(state.target.name) : '없음') + '</span></div>';
+}
+
+function submitShortlist(e){
+  if(e) e.preventDefault();
+  var sel = picked();
+  var memo = $('shortlist-memo').value.trim();
+  if(!sel.length || !memo){
+    $('invalid-msg').textContent = !sel.length
+      ? '후보를 하나 이상 고르세요 — 아무것도 남기지 않으면 오늘 볼 것이 없습니다.'
+      : '왜 오늘 이것을 챙기는지 한 줄이라도 적어야 내일의 자신이 읽을 수 있습니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  state.shortlist = sel;
+  $('recorded-what').textContent = sel.join(' · ') + ' — ' + sel.length + '개를 오늘 볼 대상으로 남겼습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-open-brief','STP-scan-delta','STP-adjust-window','STP-drill-trend','STP-shortlist'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-adjust-window') renderWindow();
+    if(id === 'STP-drill-trend') drawTrend();
+    if(id === 'STP-shortlist') renderCandidates();
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-daily-scan'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* ---- 제품 컨트롤 배선 ---- */
+  $('axis').addEventListener('change', function(){
+    state.axis = this.value;
+    state.target = null;
+    renderBrief();
+    renderDelta();
+  });
+  $('q').addEventListener('input', function(){
+    state.q = this.value;
+    renderBrief();
+    renderDelta();
+  });
+  $('restore').addEventListener('change', function(){
+    $('foot-collected').textContent = this.checked ? '07:00 KST' : '지금';
+  });
+  $('brief-form').addEventListener('submit', function(e){ e.preventDefault(); });
+
+  $('delta-basis').addEventListener('change', function(){
+    state.basis = this.value;
+    renderDelta();
+  });
+  $('delta-thresh').addEventListener('input', function(){
+    var v = parseFloat(this.value);
+    state.thresh = isNaN(v) ? 0 : v;
+    renderDelta();
+  });
+  $('only-new').addEventListener('change', function(){
+    state.onlyNew = this.checked;
+    renderDelta();
+  });
+  $('delta-form').addEventListener('submit', function(e){ e.preventDefault(); });
+
+  $('win-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    state.range = $('range').value;
+    var u = document.querySelector('input[name="unit"]:checked');
+    state.unit = u ? u.value : 'day';
+    show($('s-loading'), true);
+    setTimeout(function(){
+      show($('s-loading'), false);
+      renderWindow();
+      drawTrend();
+    }, 300);
+  });
+
+  $('tr-compare').addEventListener('change', drawTrend);
+  $('tr-marks').addEventListener('change', drawTrend);
+  $('trend-form').addEventListener('submit', function(e){ e.preventDefault(); });
+
+  $('shortlist-memo').addEventListener('input', function(){});
+  $('shortlist-form').addEventListener('submit', submitShortlist);
+
+  renderBrief();
+  renderDelta();
+  renderWindow();
+  drawTrend();
+  renderCandidates();
+  fromHash();
+})();
+</script>
+</body>
+</html>

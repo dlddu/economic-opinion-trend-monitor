@@ -11,14 +11,14 @@
 
 | 화면 id | 파일 | 형식 |
 |---------|------|------|
-| `dash` | `docs/mockups/dashboard.html` | 자립형 HTML (CSS·JS 인라인, 라이브러리 비의존) |
-| `trend` | `docs/mockups/trend.html` | 자립형 HTML |
+| `dash` | `docs/mockups/JRN-daily-scan.html` (흡수) | 여정 페이지 |
+| `trend` | `docs/mockups/JRN-daily-scan.html` (흡수) | 여정 페이지 |
 | `compare` | `docs/mockups/JRN-axis-contrast.html` (흡수) | 여정 페이지 |
 | `sentiment` | `docs/mockups/JRN-sentiment-shift.html` | 여정 페이지에 흡수 |
 | `fairness` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
 | `trace` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
 | `reprocess` | `docs/mockups/reprocess.html` | 자립형 HTML |
-| (진입) | `docs/mockups/index.html` | `dashboard.html`로 리다이렉트 |
+| (진입) | `docs/mockups/index.html` | `JRN-daily-scan.html`로 리다이렉트 |
 
 > **흡수된 화면의 표기 규약.** 화면이 여정 페이지에 흡수되면 그 화면 id의 목업 파일은 **흡수한 여정 페이지**다.
 > 화면 파일이 삭제돼도 **id 행을 지우거나 취소선 처리하지 않는다** — 그 화면의 시각이 사라진 것이 아니라
@@ -42,6 +42,7 @@
 | `JRN-sentiment-shift` | `docs/mockups/JRN-sentiment-shift.html` | `sentiment` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` |
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
+| `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend`, `STP-shortlist` |
 
 #### 흡수된 화면의 판정 경계 (단계 ↔ 화면 id 귀속)
 
@@ -74,6 +75,14 @@
 | `STP-open-origin` | `trace` | 원문 역추적 · 보존 원문 · 링크 상태 배지 |
 | `STP-judge` | `trace` | 판정과 종료. 여정 문서가 이 단계의 터치포인트를 「`trace.html` / 제품 외부(리포트·메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 판정 화면으로 흡수했다. 판정 결과의 **영속화(검증 이력·플래그)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다. |
 
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-open-brief` | `dash` | 기본 축·기간의 상위 대상 목록과 지표 카드 |
+| `STP-scan-delta` | `dash` | 직전 동일 구간 대비 증감(`CMP-delta`) 훑기 |
+| `STP-adjust-window` | `dash` | 기간·단위 조정. 화면 단위 목업이 쓰던 `class="seg"` 의사 컨트롤은 여정 페이지에서 실제 `<select>`·`<input type=radio>`로 대체됐다(규칙 5(d)) — 화면 귀속은 그대로 `dash`다 |
+| `STP-drill-trend` | `trend` | 이 여정 맥락의 추세 상세(라인 차트 + 상위 대상 비교 표). 화면 2에서 넘어갈 때 **고른 대상과 축·기간을 그대로 승계**하는 것은 `dash`가 넘겨줘야 하는 계약이다 |
+| `STP-shortlist` | `trend` | 추림과 세션 종료. 여정 문서가 이 단계의 터치포인트를 「`trend.html` / 제품 외부(사용자 개인 메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 추림 화면으로 흡수했다. 관심 대상 **북마크·워치리스트(영속화)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
+
 `fairness`·`trace`는 구현 `web/src/App.tsx`의 `BUILT` 집합 밖이라(둘 다 `Placeholder`) 이 귀속은 아직
 `tbm_econ-opinion-monitor-mockup-render`의 「등재 화면」 허용목록에 들어가지 않는다 — 그 등재는 두 화면이
 `BUILT`에 들어와 그 모델이 실제로 대조할 때 그쪽 슬라이스가 한다. 여기 미리 선언해 두는 이유는 그때
@@ -82,11 +91,11 @@
 새 여정 페이지를 등재할 때는 이 형태의 귀속 표를 함께 넣는다. 한 단계가 두 화면에 걸치면 **더 앞선 화면**에 귀속시키고
 넘겨주는 계약을 비고에 적는다 — 판정 대상이 겹쳐 두 번 세어지는 것보다 한 번 세어지고 인계가 기록되는 편이 낫다.
 
-**규칙 1 미충족 여정 상한: 3** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-daily-scan`, `JRN-ingestion-recovery`, `JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
+**규칙 1 미충족 여정 상한: 2** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-ingestion-recovery`, `JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
 
-**규칙 5 미충족 mockup 페이지 상한: 3** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
-않는 mockup 페이지의 수다. 화면 단위로 남아 있는 3개(`dashboard`, `trend`,
-`reprocess`)가 그것이며, 여정 워크스루가 아니라 단일 화면 스냅샷이라 (a)(c)(e)를 만족할 수
+**규칙 5 미충족 mockup 페이지 상한: 1** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
+않는 mockup 페이지의 수다. 화면 단위로 남아 있는 1개(`reprocess`)가 그것이며,
+여정 워크스루가 아니라 단일 화면 스냅샷이라 (a)(c)(e)를 만족할 수
 없다. 이 격차는 여정 단위 재편이 진행되며 닫힌다 — `scripts/check-journey-mockup.py` 가 이 값을
 상한으로 읽어 늘면 실패하고, 밑돌면 값을 낮추라고 실패한다(래칫). 여정 페이지는 이 집합에서 제외되며,
 `scripts/check-journey-flow.js` 하네스가 (b)~(e)를 실제 DOM에서 집행한다.
@@ -96,6 +105,27 @@
 규칙 5(e)는 "각 화면이 정상 경로 한 벌로 끝나지 않을 것"을 요구하고, 여정 문서에 분기·예외 서술이 있으면
 그것이 최소 집합이라고 정한다. 아래가 각 여정 페이지가 그린 상태의 **단일 등재**이며, 하네스는 기대값을
 페이지가 아니라 이 표에서 읽는다(페이지에서 읽으면 자기참조라 어떤 뮤테이션도 통과한다).
+
+#### `JRN-daily-scan`
+
+| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
+|---|---|---|---|
+| `empty-window` | 밤사이 수집이 들어오지 않은 축 — 0이 아니라 「데이터 없음」으로 두고 마지막 정상 수집 시각을 표기 | 여정 문서 §4 1행 | 화면 1의 「축」 `<select>` 를 수집이 비어 있는 축(전세계)으로 바꾼다 |
+| `no-baseline` | 비교 기준 구간에 저장된 값이 없어 증감을 계산할 수 없음 — 증감 칸을 0이 아니라 `—` 로 둔다 | 이 task 결정(여정 문서 §4 1행의 「무응답과 0을 구분」 원칙을 증감 축으로 확장) | 화면 2의 「비교 기준 구간」을 「전주 동요일」로 선택 |
+| `no-selection` | 대상 미선택 — 기간을 바꿔 볼 대상이 정해지지 않음 | 이 task 결정 | 화면 2 진입 직후(오른쪽 「고른 대상」 패널) |
+| `loading` | 고른 단위로 재집계 중 | 이 task 결정 | 화면 3에서 기간·단위를 고르고 「기간 적용」 제출 |
+| `low-sample` | 시간 단위에서 구간당 표본 부족 — 해당 구간을 흐리게 그리고 순위 해석에서 제외 | 이 task 결정(여정 문서 §4의 「단위를 바꿀 때마다 순위가 뒤집히면 판단이 서지 않는다」 페인포인트 대응) | 화면 3에서 단위를 「시간」으로 두고 「기간 적용」 제출 |
+| `invalid` | 추림 입력 검증 실패 | 이 task 결정 | 화면 5에서 후보 미선택 또는 메모 공란으로 「추림 확정하고 닫기」 제출 |
+| `recorded` | 추림 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 후보를 고르고 메모를 채워 제출 |
+
+> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
+> `STP-shortlist`의 페인포인트로 적은 「관심 대상 북마크·워치리스트」를 문서 자신이
+> **「현재 범위 밖, 백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한
+> 「2~3개를 추리고 세션을 닫는다」까지만 그린다 — `JRN-spike-verification`의 `recorded`와 같은 규약이다.
+
+여정 문서 §4 2·3행(급등 신뢰 불가 → `JRN-spike-verification`, 축 간 차이 → `JRN-axis-contrast`)은 이 여정을
+벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다. §4 4행(중도 이탈)은 상태가 아니라
+화면 5의 「저장 없이 닫고 이 조건으로 다시 열기」 컨트롤로, 다음 진입의 조회 조건 복원을 보여 준다.
 
 #### `JRN-sentiment-shift`
 
@@ -151,20 +181,16 @@
 발생하는데 2행의 조건은 3단계에서 발생한다). 각 상황의 **처리**는 해당 화면 안에도 그대로 있다
 (1행 → 화면 5의 링크 상태 배지·보존 원문, 2행 → 화면 3의 분리 표기 토글, 5행 → 화면 2의 정규화 소멸 배너).
 
-> 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 6개 페이지(화면 3 + 여정 페이지 3)의 `:root`를 함께 수정한다.
-> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(`dash`는 `dashboard.html`, 흡수된 `sentiment`·`compare`·`fairness`·`trace`는 각각 흡수한 여정 페이지, 나머지는 `<id>.html`).
+> 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 5개 페이지(화면 1 + 여정 페이지 4)의 `:root`를 함께 수정한다.
+> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(흡수된 `dash`·`trend`·`sentiment`·`compare`·`fairness`·`trace`는 각각 흡수한 여정 페이지, 나머지는 `<id>.html`).
 
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
-### 화면 1 · `dash` 추세 대시보드
-- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3) · `JRN-spike-verification` / `STP-notice-spike`(급등 인지 지점)
+### 여정 페이지 · `JRN-daily-scan` 아침 정기 스캔
+- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3), `STP-drill-trend`(AC3.5, AC3.2), `STP-shortlist`
+- **파일**: `docs/mockups/JRN-daily-scan.html` (구 `dash`·`trend` 두 화면을 흡수, 화면 파일은 삭제. `JRN-spike-verification` / `STP-notice-spike`(급등 인지 지점)와 `JRN-axis-contrast` / `STP-verify-in-trend`는 각 여정 페이지가 자기 맥락의 화면을 원본으로 이미 갖고 있다 — 같은 화면이 여러 여정에 등장하는 것은 규칙 2의 중복이 아니다)
 - **가치**: V1 시계열 추세 가시화
-- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
-
-### 화면 2 · `trend` 대상 추세 상세
-- **여정 단계**: `JRN-daily-scan` / `STP-drill-trend`(AC3.5, AC3.2)
-- **가치**: V1 시계열 추세 가시화
-- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-card`, `CMP-table`, `CMP-legend`, `CMP-axpill`, `CMP-seg`, `CMP-delta`, `CMP-mapstrip`
+- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-table`, `CMP-legend`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-axis-contrast` 지역 온도차 확인
 - **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`, `STP-verify-in-trend`(AC3.5)
@@ -190,22 +216,20 @@
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-seg`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-mapstrip`
 
 ## 화면 간 이동(클릭 동선, 실제 링크)
-- `dashboard.html` → `JRN-axis-contrast.html` ("3축 나란히 비교" 버튼), `dashboard.html` → `trend.html` (상위 대상 순위 행 클릭)
-- 좌측 네비(`<a href>`)에서 3개 화면 + 여정 페이지 3개(`JRN-sentiment-shift.html`, `JRN-axis-contrast.html`, `JRN-spike-verification.html`) 임의 전환, `index.html`은 대시보드로 리다이렉트
+- `JRN-daily-scan.html` 안에서는 단계 레일·화면 안의 주요 행동 버튼·`#STP-<슬러그>` 딥링크로 5단계를 이동하고, §분기 4행이 각각 `#STP-scan-delta`·`JRN-spike-verification.html#STP-notice-spike`·`JRN-axis-contrast.html#STP-open-compare`·`#STP-open-brief`로 이동한다
+- 좌측 네비(`<a href>`)에서 화면 1개(`reprocess.html`) + 여정 페이지 4개(`JRN-daily-scan.html`, `JRN-sentiment-shift.html`, `JRN-axis-contrast.html`, `JRN-spike-verification.html`) 임의 전환, `index.html`은 `JRN-daily-scan.html`로 리다이렉트
 - `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `JRN-spike-verification.html#STP-open-origin`·`reprocess.html`)으로 이동한다
 - `JRN-axis-contrast.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 4행이 `#STP-scan-axis-tops`(2건)·`JRN-spike-verification.html#STP-check-normalized`·`JRN-sentiment-shift.html`로 이동한다
 - `JRN-spike-verification.html` 안에서는 같은 방식으로 6단계를 이동하고, 「검증 중 이런 상황이라면」 목록의 §분기 5행이 `#STP-open-origin`·`#STP-inspect-sources`·`reprocess.html`(2건)·`#STP-judge`로 이동한다
 - **이관된 여정 사이의 인계는 이제 화면 파일이 아니라 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로 갔지만, 두 분기가 선언한 대상은 처음부터 `JRN-spike-verification`의 단계였다
 
-## 여정 단계 커버리지 (24/30 완전 · 2 부분 · 4 미시각화)
+## 여정 단계 커버리지 (25/30 완전 · 2 부분 · 3 미시각화)
 
 여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
 
 | 여정 | 단계 | 화면 | 상태 |
 |------|------|------|------|
-| `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window` | `dash` | 🟢 |
-| `JRN-daily-scan` | `STP-drill-trend` | `trend` | 🟢 |
-| `JRN-daily-scan` | `STP-shortlist` | (없음) | 🔴 제품 외부 메모에 의존 |
+| `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend`, `STP-shortlist` | `JRN-daily-scan.html` (여정 페이지) | 🟢 |
 | `JRN-spike-verification` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` | `JRN-spike-verification.html` (여정 페이지) | 🟢 |
 | `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` | `JRN-axis-contrast.html` (여정 페이지) | 🟢 |
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |

@@ -35,22 +35,24 @@
 
 ## 여정 ↔ mockup 현황
 
-여정 단위 재편이 **3/6** 진행됐다. 이관된 여정은 자기 전용 페이지 하나(`JRN-<슬러그>.html`)를 갖고,
-흡수한 화면 파일은 삭제됐다. 남은 3개는 아직 화면 단위 mockup 여러 개에 걸쳐 있다.
+여정 단위 재편이 **4/6** 진행됐다. 이관된 여정은 자기 전용 페이지 하나(`JRN-<슬러그>.html`)를 갖고,
+흡수한 화면 파일은 삭제됐다. 남은 2개는 아직 화면 단위 mockup(`reprocess`)에 걸쳐 있다.
 
 | 여정 | 대응 mockup | 미시각화·부분 단계 |
 |---|---|---|
-| `JRN-daily-scan` | `dash`, `trend` (화면 단위) | 🔴 `STP-shortlist` |
+| `JRN-daily-scan` | ✅ `JRN-daily-scan.html` (여정 페이지 — 구 `dash`·`trend` 흡수·삭제) | (없음) |
 | `JRN-spike-verification` | ✅ `JRN-spike-verification.html` (여정 페이지 — 구 `fairness`·`trace` 흡수·삭제) | (없음) |
 | `JRN-axis-contrast` | ✅ `JRN-axis-contrast.html` (여정 페이지 — 구 `compare` 흡수·삭제) | (없음) |
 | `JRN-sentiment-shift` | ✅ `JRN-sentiment-shift.html` (여정 페이지 — 구 `sentiment` 흡수·삭제) | (없음) |
 | `JRN-ingestion-recovery` | `reprocess` 일부 (화면 단위) | 🔴 `STP-backfill` · 🟠 `STP-diagnose-source`, `STP-verify-integrity` |
 | `JRN-logic-backfill` | `reprocess` (화면 단위) | 🔴 `STP-dry-run`, `STP-publish` |
 
-단계 커버리지 24/30(완전) · 2(부분) · 4(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
+단계 커버리지 25/30(완전) · 2(부분) · 3(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
 
-남은 3개는 저마다 🔴 미시각화 단계를 하나 이상 안고 있어 **제품 범위 확정이 이관보다 먼저**다.
-`STP-judge` 는 여정 페이지의 판정 화면으로 해소됐으나, 그 단계가 적은 「검증 이력·플래그」 영속화는
-문서가 파킹한 백로그 그대로다 — 판정은 세션 안에서만 유지된다.
+남은 2개(`JRN-ingestion-recovery`·`JRN-logic-backfill`)는 저마다 🔴 미시각화 단계를 안고 있고 둘 다
+`reprocess` 화면을 공유한다 — 운영 축은 **제품 범위 확정이 이관보다 먼저**다.
+`STP-judge`·`STP-shortlist` 는 각각 여정 페이지의 판정 화면·추림 화면으로 해소됐으나, 두 단계가 적은
+「검증 이력·플래그」·「북마크·워치리스트」 영속화는 문서가 파킹한 백로그 그대로다 — 판정도 추림도
+세션 안에서만 유지된다.
 mockup 을 두지 않기로 한 여정은 `../econ-opinion-monitor-design-tracker.md` 의 「규칙 8 예외 등재」에
 사유·재검토 시점을 적어야 하며, 현재 등재는 0건이다.
