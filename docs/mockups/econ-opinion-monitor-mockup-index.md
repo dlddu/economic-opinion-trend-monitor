@@ -42,6 +42,31 @@
 | `JRN-sentiment-shift` | `docs/mockups/JRN-sentiment-shift.html` | `sentiment` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` |
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 
+#### 흡수된 화면의 판정 경계 (단계 ↔ 화면 id 귀속)
+
+여정 페이지가 화면을 흡수해도 **그 페이지의 모든 단계가 그 화면인 것은 아니다.** 여정은 화면을 가로지르며 걷고,
+워크스루는 그 경로를 한 파일에 이어 붙인 것이기 때문이다. 목업↔구현 렌더링 정합성
+(`tbm_econ-opinion-monitor-mockup-render`)은 화면 단위로 판정하므로, **어느 단계가 어느 화면 id의 시각인지**를
+여기에 선언한다 — 선언이 없으면 판정자마다 경계를 새로 그어 같은 표면이 사이클마다 다르게 세어진다.
+
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-open-compare` | `compare` | 비교 기준 설정 · 축별 수집 현황 |
+| `STP-scan-axis-tops` | `compare` | 축별 상위 대상 대조 |
+| `STP-disambiguate-axis` | `compare` | 출처 축 ↔ 대상 축 구분 |
+| `STP-pick-outlier` | `compare` | 축 간 격차 · 편차 대상 선택 |
+| `STP-verify-in-trend` | `trend` | 이 여정 맥락의 추세 상세. `trend`는 아직 `Placeholder`라 구현 의무는 `tbm_econ-opinion-monitor-docs-impl` 소관이다. 다만 이 단계가 선언하는 **「비교 뷰의 축·기간을 그대로 승계」는 `compare`가 넘겨줘야 하는 계약**이므로, 승계 자체의 구현은 `compare`의 인계 항목으로 남는다. |
+
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-open-sentiment` | `sentiment` | 분포 열기 |
+| `STP-check-unanalyzed` | `sentiment` | 미분석 비중 확인 |
+| `STP-overlay-time` | `sentiment` | 기간·단위 중첩 |
+| `STP-confirm-cause` | `sentiment` | 원인 확인 · 판별 기록 |
+
+새 여정 페이지를 등재할 때는 이 형태의 귀속 표를 함께 넣는다. 한 단계가 두 화면에 걸치면 **더 앞선 화면**에 귀속시키고
+넘겨주는 계약을 비고에 적는다 — 판정 대상이 겹쳐 두 번 세어지는 것보다 한 번 세어지고 인계가 기록되는 편이 낫다.
+
 **규칙 1 미충족 여정 상한: 4** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-daily-scan`, `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
 
 **규칙 5 미충족 mockup 페이지 상한: 5** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
