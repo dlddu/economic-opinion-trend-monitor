@@ -1,4 +1,4 @@
-"""Normalize/aggregate Silver into Gold (stub logic).
+"""Normalize/aggregate Silver into Gold.
 
 Silver carries only the analysis plus the Bronze tracking key, so this step
 joins back to Bronze on ``record_id`` (exercising V5/AC2.6) to recover axis,
@@ -12,6 +12,12 @@ first, then averaged across the sources present in an axis, so a high-volume
 source cannot dominate; the averaged values are renormalized to sum to 1 across
 subjects. This is a deliberately simple placeholder — the real formula is
 follow-up work.
+
+``delta`` and ``spark`` are read off the subject's *own* bucket history rather
+than synthesized: shares are computed for every bucket first, then each row
+looks back along the same (axis, subject) series. A subject's first bucket has
+nothing to compare against, so it reports ``delta = 0.0`` and a single-point
+spark — that degenerate case is the honest answer, not a placeholder.
 """
 
 from __future__ import annotations
@@ -23,15 +29,13 @@ from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
 
 BUCKET_UNIT = "hour"
 
+# How many trailing buckets the sparkline carries, the current one included.
+SPARK_WINDOW = 6
+
 
 def _bucket(collected_at: str) -> str:
     """2026-06-23T14:00:00+00:00 -> 2026-06-23T14 (hour bucket, AC3.3)."""
     return collected_at[:13]
-
-
-def _spark(share: float) -> list[float]:
-    """Deterministic faux ramp toward the current share (skeleton placeholder)."""
-    return [round(share * f, 4) for f in (0.7, 0.8, 0.85, 0.9, 0.95, 1.0)]
 
 
 def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
@@ -48,7 +52,9 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
         for subject in analysis["narrative_subjects"]:
             counts[axis][bucket][source][subject] += 1
 
-    trends: list[dict] = []
+    # shares[axis][bucket][subject] -> (normalized_share, raw_count). Built in
+    # full before any row is emitted: delta/spark need the neighbouring buckets.
+    shares: dict[str, dict[str, dict[str, tuple[float, int]]]] = defaultdict(dict)
     for axis, buckets in counts.items():
         for bucket, sources in buckets.items():
             averaged: dict[str, float] = defaultdict(float)
@@ -60,8 +66,30 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
                     averaged[subject] += (n / source_total) / n_sources
                     raw_total[subject] += n
             denom = sum(averaged.values()) or 1.0
-            for subject, share in sorted(averaged.items(), key=lambda kv: kv[1], reverse=True):
-                normalized = round(share / denom, 4)
+            shares[axis][bucket] = {
+                subject: (round(share / denom, 4), raw_total[subject])
+                for subject, share in averaged.items()
+            }
+
+    trends: list[dict] = []
+    for axis, buckets in shares.items():
+        # Bucket keys are zero-padded ISO prefixes, so lexical order is
+        # chronological order within a unit — the same assumption the serving
+        # layer's latest-bucket pick makes.
+        ordered = sorted(buckets)
+        # history[subject] -> shares so far, oldest first (only buckets the
+        # subject actually appears in; an absent bucket is not a zero reading).
+        history: dict[str, list[float]] = defaultdict(list)
+        for bucket in ordered:
+            rows = buckets[bucket]
+            for subject, (normalized, raw) in sorted(
+                rows.items(), key=lambda kv: kv[1][0], reverse=True
+            ):
+                past = history[subject]
+                # Percentage points, matching the contract's `delta` doc.
+                delta = round((normalized - past[-1]) * 100, 4) if past else 0.0
+                spark = [*past, normalized][-SPARK_WINDOW:]
+                past.append(normalized)
                 trends.append(
                     asdict(
                         SubjectTrend(
@@ -69,10 +97,10 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
                             axis=axis,
                             bucket_unit=BUCKET_UNIT,
                             time_bucket=bucket,
-                            raw_count=raw_total[subject],
+                            raw_count=raw,
                             normalized_share=normalized,
-                            delta=0.0,
-                            spark=_spark(normalized),
+                            delta=delta,
+                            spark=spark,
                         )
                     )
                 )

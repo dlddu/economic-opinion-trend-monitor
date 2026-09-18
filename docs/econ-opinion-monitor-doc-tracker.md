@@ -30,24 +30,34 @@
     배선돼 있다. 단 그 스케줄은 아직 꺼져 있다(아래 잔여 「운영」).
   - **AC3.6 · AC3.7 · AC3.8**: 전용 e2e spec 까지 착지한 3건
     ([AC↔e2e 1:1 매핑표](#ace2e-11-매핑표)의 `✅ 착지`). AC3.7 은 `/compare` 실화면을 함께 당겨 왔다.
+  - **AC3.2 (슬라이스 4)**: 서술 대상 키 집계가 **배치 DAG 에 배선됐다** —
+    `deploy/batch/workflow-template.yaml` ∋ `name: aggregate` 이고 `pipeline` 이
+    ingest → analyze → aggregate 3단이다. 같은 슬라이스에서 `SubjectTrend` 의 `delta`·`spark` 가
+    가짜 램프(`_spark()`)에서 **자기 버킷 이력 실값**으로 바뀌어 집계 계층의 자기선언 페이크가
+    사라졌다. 단 이 배선이 프로덕션에서 **실행되는** 것은 아래 「운영」의 suspend 가 풀린 뒤다.
 
   **잔여** (= 이 모델이 후속 슬라이스로 여는 대상. 페이크/스텁은 충족으로 세지 않는다)
-  - **AC3.2 · AC3.3 (슬라이스 4)**: `econ_aggregation` 패키지는 있으나 **배치 어디에도 배선돼 있지
-    않아 프로덕션에서 Gold 가 생성되지 않는다** — `deploy/batch/workflow-template.yaml` 의 템플릿은
-    `ingest`·`analyze`·`pipeline` 셋뿐이고, 서빙은 Gold 파일이 없으면 빈 데이터셋으로 뜬다
-    (`deploy/base/deployment.yaml` ∋ `treats missing files as empty datasets`). 더해
-    `python/packages/aggregation/src/econ_aggregation/aggregate.py` ∋ `(skeleton placeholder)` 가
-    스스로 페이크임을 밝힌다.
+  - **AC3.3 (슬라이스 4 잔여)**: 시간 버킷은 산출되지만 **일·주 롤업이 없다** — 산출 단위가
+    `python/packages/aggregation/src/econ_aggregation/aggregate.py` ∋ `BUCKET_UNIT = "hour"` 상수
+    하나로 고정돼 Gold 에 `day`/`week` 레코드가 한 건도 나오지 않는다(타입·Avro 스키마는 셋을 허용).
+    **자매 축과 결합된 잔여다**: 그 상수 문자열은 [e2e 매핑](#e2e-매핑) 절 구현 대기 표
+    (`…-test-aggregation-viz.md#시나리오 3`)의 **해제 신호**여서, 롤업을 구현해 상수를 걷으면
+    `make lint-scenario-mapping` 이 규칙 6 으로 실패한다(2026-09-18 실측 확인). 그래서 이 잔여는
+    구현과 그 표의 재판정을 **함께** 다루는 슬라이스로만 닫을 수 있다 — 그 표의 소유는 자매 모델
+    `tbm_econ-opinion-monitor-scenario-e2e` 다.
   - **AC3.5 (슬라이스 5)**: `/api/trend` 가 자기선언 스텁이고 `/trend` 는 플레이스홀더다 —
     `go/internal/handlers/handlers.go` ∋ `stub: single-bucket skeleton data`.
   - **AC3.4 (슬라이스 6) · AC3.1 (슬라이스 8)**: 담당 화면이 아직 플레이스홀더다.
   - **화면**: 실화면은 `dash`·`compare` 둘뿐이다 — `web/src/App.tsx` ∋
     `const BUILT = new Set(["dash", "compare"]);` 밖의 5화면(trend·sentiment·fairness·trace·
     reprocess)은 `Placeholder` 를 렌더한다.
-  - **운영**: 실 LLM 분석은 **프로덕션 스케줄로 정기 실행된 적이 없다** —
+  - **운영**: 실 LLM 분석도 **집계도 프로덕션 스케줄로 정기 실행된 적이 없다** —
     `deploy/batch/cronworkflow-pipeline.yaml` ∋ `suspend: true`. 켜는 것은 전제(`econ-llm` Secret)와
     순서가 있는 비가역 운영 행위이므로 같은 파일 머리 주석의 절차를 따른다. 현재 상시 가동은
-    수집 전용 스케줄뿐이다.
+    수집 전용 스케줄(`ingest` 단독)뿐이다. **이 스위치가 이 축의 마지막 한 칸이다**: `aggregate`
+    템플릿이 배선된 지금, Gold 가 프로덕션에 처음 생기는 시점은 이 스케줄이 켜지는 시점이고
+    그때까지 서빙은 빈 데이터셋으로 뜬다
+    (`deploy/base/deployment.yaml` ∋ `treats missing files as empty datasets`).
 
   순서·배정은 아래 [구현 수렴 로드맵](#구현-수렴-로드맵-reconciler-정합성-루프) 참조.
 - **시나리오↔e2e 매칭**: 테스트 문서의 시나리오 하나하나에 전용 e2e spec 파일이 있는지는 별도
@@ -401,3 +411,4 @@ AC3.6·AC3.8은 대상 동작이 이미 대시보드에 있어 spec만 추가하
 | 2026-08-08 | `## e2e 매핑` 절 신설(선언 규약·실측 집계·예외 목록·비-AC 등재·공백 목록) + 1:1 매칭 단위를 테스트 **케이스**에서 **파일**로 확정해 매핑표를 AC별 전용 파일로 재절단 + `make lint-ac-mapping` 게이트 신설 | e2e 선언 규약·예외 목록·집계 부재, `serving.spec.ts` 고아, 매핑표가 한 파일에 여러 AC 배정 | 매칭 2 · 예외 3 · 스모크 1 · 공백 16, 규칙 2·3·4·5·6 위반 0 (task rct_20260808-0001) |
 | 2026-09-09 | `## e2e 매핑` 절의 판정 축을 **AC → 테스트 문서 시나리오**로 이관: spec 헤더 선언을 `// 검증 시나리오: <문서 파일명>#시나리오 <N>` 으로 바꾸고, 21개 시나리오를 매칭·예외·**구현 대기(신설)**·공백 네 통에 실측 근거와 함께 등재. 게이트를 `check_scenario_mapping.py`(`make lint-scenario-mapping`)로 개정해 네 통 분할 회계와 구현 대기 **해제 신호 생존**을 강제 | 시나리오 축 선언 0건 · 등재 절이 전부 AC 축 · 시나리오 축을 보는 게이트 없음 | 매칭 3 · 예외 1 · 구현 대기 2 · 공백 15, 규칙 1·2·3·4·5·6 위반 0 (task rct_20260909-0001) |
 | 2026-09-18 | 「현재 상태 요약」의 문서↔구현 정합성 항목을 **착지/잔여 2분할 실측**으로 정정. 각 잔여 항목에 관측 좌표(파일 ∋ 문자열)를 달아, 구현이 착지하면 좌표가 먼저 틀려져 재판정이 강제되게 함 | 현재형 "21개 AC 전부가 미구현(페이크/스텁)" — `576438e`(2026-07-24) 이후 문구 정체. 슬라이스 2·3 착지와 AC3.6·3.7·3.8 착지를 놓쳐 같은 문서의 매핑표와 모순 | 착지(슬라이스 2·3 + AC3.6·3.7·3.8) / 잔여(AC3.1·3.2·3.3·3.4·3.5 · 5화면 플레이스홀더 · 집계 배치 미배선 · `econ-pipeline-hourly` suspend) 구분 기재 (task rct_20260918-0002) |
+| 2026-09-18 | 슬라이스 4 전반부 착지 — `econ_aggregation` 을 배치 DAG 에 배선(`aggregate` 템플릿 신설, `pipeline` 을 ingest→analyze→aggregate 3단으로 확장)하고 `SubjectTrend` 의 `delta`·`spark` 를 가짜 램프에서 자기 버킷 이력 실값으로 교체. 「현재 상태 요약」을 그에 맞춰 재분할 | AC3.2·AC3.3 이 한 항목으로 묶여 잔여, 집계는 배치 미배선이라 프로덕션 Gold 0건, `aggregate.py` 가 `(skeleton placeholder)` 로 자기선언 페이크 | AC3.2 착지(관측 좌표 `workflow-template.yaml` ∋ `name: aggregate`) / AC3.3 은 일·주 롤업만 잔여이며 자매 축 해제 신호(`BUCKET_UNIT = "hour"`)와 결합돼 있음을 명시. 프로덕션 Gold 는 `econ-pipeline-hourly` unsuspend 시점까지 여전히 0건 (task rct_20260918-0003) |
