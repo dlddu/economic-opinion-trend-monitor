@@ -61,8 +61,6 @@ def read(path):
         return fh.read()
 
 
-# ---------------------------------------------------------------- SSOT 파싱
-
 def definitions():
     """디자인 시스템이 정의한 CMP-*/PAT-* 식별자 집합 (정의 표의 첫 칸)."""
     return set(re.findall(r"^\|\s*`((?:CMP|PAT)-[a-z0-9-]+)`", read(DS), re.M))
@@ -170,8 +168,6 @@ def r5_caps(section):
     return caps
 
 
-# ---------------------------------------------------------------- CSS 파싱
-
 def css_rules(css):
     """최상위 규칙을 (선택자, 선언 본문) 목록으로 쪼갠다."""
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
@@ -259,8 +255,6 @@ def css_index(rules):
 def inline_css(html):
     return "\n".join(re.findall(r"<style[^>]*>(.*?)</style>", html, re.S))
 
-
-# ---------------------------------------------------------------- 판정
 
 def check_r3(section):
     defined = definitions()

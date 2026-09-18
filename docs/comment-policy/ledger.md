@@ -10,14 +10,18 @@
 - 남음이 0이면 그 파일은 이후 지문에서 빠진다.
 - 비고의 "판단 분기"는 애매해서 남긴 것 — 근거는 해당 패스 문서의 「판단이 갈려 남긴 것」.
 - 새 주석이 생기면 이 원장의 행은 바뀌지 않는다. 다음 패스가 그 파일을 다시 판정하며 행을 갱신한다.
+- 각 행은 그 파일을 **마지막으로 판정한 패스** 기준이며, initial-pass가 아니면 판정 칸 머리에 패스 이름을 적는다.
+- 「패스 이력」의 줄 수는 **레포 전체 지문** 값이다. 표적 패스(일부 파일만 재판정)가 실제로 어떤 파일을
+  판정했는지는 그 패스 문서에 있다 — 판정하지 않은 파일은 이 원장에 행을 만들지 않는다.
 
 ## 패스 이력
 
 | 판정일 | 패스 | 기준 커밋 | 판정 전 | 제거 | 남음 | 파일 수(전→후) |
 |---|---|---|---|---|---|---|
 | 2026-09-18 | [initial-pass](passes/2026-09-18-initial-pass.md) | `9d6122b` | 776 | 121 | 655 | 62 → 60 |
+| 2026-09-18 | [regression-pass](passes/2026-09-18-regression-pass.md) | `a62eae1` | 960 | 7 | 953 | 81 → 80 |
 
-## 파일별 원장 (2026-09-18 initial-pass 기준)
+## 파일별 원장
 
 | 파일 | 판정 전 | 제거 | 남음 | 판정 |
 |---|---:|---:|---:|---|
@@ -57,9 +61,11 @@
 | `python/packages/ingestion/tests/test_feeds.py` | 21 | 0 | 21 | 유지 — 테스트 의도(AC1.x 태그 판단 분기) |
 | `python/packages/ingestion/tests/test_sources.py` | 10 | 0 | 10 | 유지 — 테스트 의도(AC1.x 태그 판단 분기) |
 | `scripts/check-journey-flow.js` | 45 | 4 | 41 | 제거 4줄 — `/* ===== … ===== */` 구분선. 유지: 정적 대조로 안 되는 이유·자기참조 금지·fail-closed 근거, (a)~(h) 규칙 표지(규칙 문자로 모델 정의와 대응 — 애매, 유지) |
-| `scripts/check-journey-mockup.py` | 46 | 8 | 38 | 제거 8줄 — `# ----- …` 구분선. 유지: 오탐 회피 근거, 헤더 판정 방식 근거, 래칫 근거, 모델 정의 인용(reconciler 레포에만 있어 이 레포에서 복원 불가) |
+| `scripts/check-journey-mockup.py` | 42 | 0 | 42 | regression-pass — 전량 유지. `#36`이 들인 4줄은 「조각(`#STP-`)을 무시하면 상대 여정의 1단계로 떨어지는 링크를 게이트가 통과시킨다」는 게이트 설계 근거로 복원 불가. initial-pass가 남긴 38줄(오탐 회피·헤더 판정 방식·래칫·모델 정의 인용)의 판정은 유효 |
+| `scripts/check-mockup-render.py` | 3 | 3 | 0 | regression-pass — 전량 제거. 지문에 걸린 주석이 구분선 배너 3줄뿐이었다(`# ---- SSOT 파싱`·`CSS 파싱`·`판정`). 절 이름은 바로 아래 함수 이름이 복원한다(`definitions()` / `css_rules(css)` / `check_r3()`·`check_r5()`). 파일 설명은 모듈 docstring에 있고 docstring은 지문의 사각지대라 이 파일은 지문에서 빠진다 |
 | `scripts/journey-scenarios/JRN-axis-contrast.js` | 28 | 4 | 24 | 제거 4줄 — 러너/시나리오 역할 분담 설명(check-journey-flow.js 머리 주석의 재진술). 유지: 조작별 의도·jsdom `.value` 함정 |
 | `scripts/journey-scenarios/JRN-sentiment-shift.js` | 27 | 7 | 20 | 제거 7줄 — 역할 분담 재진술(러너 머리 주석; '두 가지'라 쓰고 넷을 나열한 낡은 서술 포함). 유지: 시나리오 훅 목록(inputs/states/unlock/renders) |
+| `scripts/journey-scenarios/JRN-spike-verification.js` | 29 | 4 | 25 | regression-pass — 제거 4줄: 머리의 러너/시나리오 역할 분담 산문 3줄(`check-journey-flow.js` 「── 구조 ──」 절의 재진술) + 매달린 ` *` 1줄. `JRN-axis-contrast.js`와 같은 식별 1줄 형태로 줄였다. 유지: 훅별 `(c)(d)(e)(h)` 주석 4줄, 조작별 의도, jsdom `.value` 함정 |
 | `tests/e2e/check_scenario_mapping.py` | 22 | 4 | 18 | 제거 4줄 — `# --- … ---` 구분선. 유지: 판정 규칙 근거(첫 열만 읽는 이유, 등재 공백을 쓰는 이유 등) |
 | `tests/e2e/k8s/e2e-patch.yaml` | 5 | 0 | 5 | 유지 — runc가 read-only 마운트 안에 mountpoint를 못 만드는 런타임 함정 |
 | `tests/e2e/k8s/kustomization.yaml` | 5 | 0 | 5 | 유지 — side-load·ConfigMap 픽스처 배선 근거 |
@@ -74,7 +80,7 @@
 | `web/src/App.tsx` | 1 | 0 | 1 | 유지 — 실화면/플레이스홀더 목록의 역할 |
 | `web/src/api/client.ts` | 5 | 0 | 5 | 유지 — 상대 /api 베이스가 dev·prod 모두에서 되는 이유 |
 | `web/src/api/types.ts` | 5 | 0 | 5 | 유지 — 손으로 유지하는 서빙 API 뷰라는 경계, export JSDoc |
-| `web/src/screens/Compare.tsx` | 9 | 2 | 7 | 제거 2줄 — `AC3.7 … (J2 / V2)` 배너(작업 흔적 + 폐기 식별자 J2). 유지: 공통 기준·공통 스케일 근거 |
+| `web/src/screens/Compare.tsx` | 10 | 0 | 10 | regression-pass — 전량 유지. `#37`이 들인 3줄은 「수집 0인 축을 `0%`로 그리지 않고 '비교 제외'로 적는 이유 — `0%`는 '거기선 아무도 말하지 않았다'로 읽힌다」는 제품 의미론의 근거로 코드·문서 어디서도 복원되지 않는다. initial-pass가 지운 `AC3.7 … (J2 / V2)` 배너는 재발하지 않았다 |
 | `web/src/screens/Dashboard.tsx` | 1 | 1 | 0 | 제거 1줄 — '다른 6화면은 플레이스홀더'(README「범위」재진술이며 compare 착지 후 낡음) |
 | `web/src/screens/Placeholder.tsx` | 3 | 0 | 3 | 유지 — 플레이스홀더가 증명하는 것 |
 | `web/src/shell/AppShell.tsx` | 1 | 0 | 1 | 유지 — 디자인 시스템 패턴 식별자(PAT-screen-shell) |
@@ -82,5 +88,5 @@
 | `web/src/shell/Sidebar.tsx` | 2 | 0 | 2 | 유지 — 컴포넌트 식별자, 페르소나 태그의 목업 근거 |
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
-| `web/src/tokens/tokens.css` | 31 | 0 | 31 | 유지 — 토큰·컴포넌트 식별자(TKN-*/CMP-*/PAT-*)는 디자인 시스템 추적 앵커. 2줄(`* {`, `#root {`)은 주석이 아니라 CSS 셀렉터가 지문 패턴에 걸린 오탐 |
-| **합계 (62개 파일)** | **776** | **121** | **655** | |
+| `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
+| **regression-pass 기준 · 레포 전체** | **960** | **7** | **953** | 지문 값(`a62eae1` → 이 패스 후). 이 표는 그중 **64개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |
