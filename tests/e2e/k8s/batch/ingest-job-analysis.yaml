@@ -1,0 +1,65 @@
+# 분석 묶음(`…-test-analysis.md#시나리오 1·2·3·6`)의 입력이 되는 한 주기 수집.
+# 분석은 Bronze 를 입력으로 받으므로(메달리온 계층) 분석 Job 앞에 수집이 한 번 더 필요하다.
+#
+# 데이터 루트를 `/data/analysis` 로 가른다 — 정상 주기(`/data`) · 고장 주입(`/data/faults`) ·
+# 3주기(`/data/cycles`) 와 같은 관례다. 한 루트를 공유하면 ingestion 2~5 의 소스별 건수 단정이
+# 이 묶음의 아홉 건에 오염된다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-analysis
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-16 — 이 주기의 상류를 분석 묶음 전용 설정(`e2e-feeds-analysis.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-analysis.json
+            - --cycle
+            - "2026-01-03T00:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/analysis
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-15 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}
