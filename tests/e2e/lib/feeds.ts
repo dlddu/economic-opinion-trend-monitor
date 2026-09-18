@@ -26,8 +26,9 @@ export type ProvidedEntry = {
   body: string | null;
 };
 
-export function feedConfigs(): FeedConfig[] {
-  return JSON.parse(readFileSync(path.join(FIXTURE_DIR, "e2e-feeds.json"), "utf-8"));
+/** 기본 주기가 쓰는 소스 설정. 고장 주입·다주기는 각자의 설정 파일을 쓴다. */
+export function feedConfigs(file = "e2e-feeds.json"): FeedConfig[] {
+  return JSON.parse(readFileSync(path.join(FIXTURE_DIR, file), "utf-8"));
 }
 
 export function feedConfig(sourceId: string): FeedConfig {
@@ -38,6 +39,8 @@ export function feedConfig(sourceId: string): FeedConfig {
 
 /** 설정의 feed_url 마지막 경로 조각이 곧 픽스처 파일명이다(더블이 디렉터리를 그대로 서빙한다). */
 function fixtureFileFor(config: FeedConfig): string {
+  // 고장 주입 경로(`/__flaky__/2/<파일>` 등)도 마지막 조각이 픽스처 파일명이다 — 더블이
+  // 접두사를 벗겨 같은 디렉터리의 그 파일을 돌려주므로, 상류가 끝내 주는 내용은 같다.
   const name = config.feed_url.split("/").pop();
   if (!name) throw new Error(`feed_url 에서 파일명을 못 읽었다: ${config.feed_url}`);
   return path.join(FIXTURE_DIR, name);
@@ -58,7 +61,11 @@ function urlOf(block: string): string {
 
 /** 픽스처가 그 소스에 대해 제공하는 항목 전부를, 피드에 적힌 순서 그대로. */
 export function providedEntries(sourceId: string): ProvidedEntry[] {
-  const config = feedConfig(sourceId);
+  return entriesOf(feedConfig(sourceId));
+}
+
+/** 설정 하나가 가리키는 픽스처의 제공 항목. 소스 목록이 기본 설정 밖에 있을 때 쓴다. */
+export function entriesOf(config: FeedConfig): ProvidedEntry[] {
   const raw = readFileSync(fixtureFileFor(config), "utf-8");
   const blocks = raw.match(/<(item|entry)>[\s\S]*?<\/\1>/g) ?? [];
   return blocks.map((block) => ({

@@ -166,14 +166,14 @@
 | 예외 등재 | 1 |
 | 구현 대기 등재 | 2 |
 | 1:1 대상 (시나리오 − 예외 − 구현 대기) | 18 |
-| 시나리오 매칭 spec 파일 | 7 |
-| 공백 (1:1 대상 중 파일 없음) | 11 |
+| 시나리오 매칭 spec 파일 | 9 |
+| 공백 (1:1 대상 중 파일 없음) | 9 |
 | 비-시나리오(스모크·인프라) spec 파일 | 1 |
 
 **불변식 현황**: 모델이 요구하는 `(시나리오 − 예외 − 구현 대기) = 매칭 파일` 은 **아직 성립하지
-않는다** — 18 ≠ 7 이고 그 차이가 공백 11이다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
+않는다** — 18 ≠ 9 이고 그 차이가 공백 9다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
 사실대로 적고 있는지**만 본다(격차가 없다가 아니라 격차를 정직하게 말한다). 회계는 닫힌다:
-`전집 21 = 매칭 7 + 예외 1 + 구현 대기 2 + 공백 11`.
+`전집 21 = 매칭 9 + 예외 1 + 구현 대기 2 + 공백 9`.
 
 ### 시나리오 ↔ spec 파일 (실측)
 | 시나리오 | spec 파일 |
@@ -182,14 +182,20 @@
 | `econ-opinion-monitor-test-ingestion.md#시나리오 3` | `tests/e2e/specs/ingestion-3-axis-tagging.spec.ts` |
 | `econ-opinion-monitor-test-ingestion.md#시나리오 4` | `tests/e2e/specs/ingestion-4-link-and-body.spec.ts` |
 | `econ-opinion-monitor-test-ingestion.md#시나리오 5` | `tests/e2e/specs/ingestion-5-metadata-completeness.spec.ts` |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 6` | `tests/e2e/specs/ingestion-6-failure-isolation.spec.ts` |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 7` | `tests/e2e/specs/ingestion-7-body-dedup-versioning.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 6` | `tests/e2e/specs/ac3-6-sentiment-ratio-viz.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 7` | `tests/e2e/specs/ac3-7-three-axis-compare.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 8` | `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` |
 
 aggregation-viz 6·7·8 은 **순수 서빙·시각화**라 픽스처 Gold ConfigMap → Go API → 웹 렌더만으로
-"기대 결과"를 그대로 단언할 수 있어 먼저 착지했다. ingestion 2~5 는 그 뒤에 선 **수집 배치
+"기대 결과"를 그대로 단언할 수 있어 먼저 착지했다. ingestion 2~7 은 그 뒤에 선 **수집 배치
 하네스**(배치 이미지 kind 로드 → 클러스터 안 피드 더블 → 수집 Job → Bronze 반출,
 `tests/e2e/k8s/batch/`)를 타고 착지한 것으로, 단정 대상이 화면이 아니라 배치가 쓴 Bronze 레코드다.
+2·3·4·5 는 **정적** 피드 한 주기로 섰고, 6·7 은 2026-09-18 `rct_20260918-0004` 가 그 더블에
+**고장 주입 경로**(`/__fail__/`·`/__flaky__/`·`/__slow__/`)와 **주기별 상류**를 더해 닫았다.
+두 건은 Bronze 만으로는 관측되지 않는다 — 걸러진 중복과 격리된 소스는 레코드를 남기지 않으므로
+수집 CLI 가 찍는 집계(Job 로그)를 함께 반출해 단정한다.
 파일명 관례가 둘로 갈린 것(`ac3-6…` vs `ingestion-2…`)은 위 매칭 규약의 마지막 항목대로 의도된
 상태다 — 이름이 아니라 선언 한 줄이 매핑을 정하고, 기존 3개의 개명은 별도 슬라이스다.
 
@@ -233,8 +239,6 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 
 ### 공백 (1:1 대상 중 파일 없음)
 <!-- gap-list:begin — 이 마커 사이만 공백 목록으로 읽는다(산문에 적힌 식별자가 목록을 오염시키지 않도록) -->
-`econ-opinion-monitor-test-ingestion.md#시나리오 6` ·
-`econ-opinion-monitor-test-ingestion.md#시나리오 7` ·
 `econ-opinion-monitor-test-analysis.md#시나리오 1` ·
 `econ-opinion-monitor-test-analysis.md#시나리오 2` ·
 `econ-opinion-monitor-test-analysis.md#시나리오 3` ·
@@ -255,21 +259,23 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 > 설명에는 자유롭게 쓸 수 있고, 반대로 **마커 안에는 목록 외의 것을 쓰지 않는다.**
 
 ### 공백 해소 경로 (이 모델 소관)
-남은 11건은 구현이 이미 main에 있고 **관측 경로만 없다**. 필요한 하네스별로 묶으면 세 덩어리이고,
-셋 다 산출물이 `tests/e2e/` 안에 머문다(= 이 모델 범위). 배치 3단 중 **수집만** e2e 안으로 들어와
-있다(`tests/e2e/k8s/batch/`, 2026-09-18 `rct_20260918-0002`) — 분석·집계는 여전히 한 번도 실행되지
-않고, 서빙은 그래서 아직 픽스처 Gold를 입력으로 쓴다.
+남은 9건은 구현이 이미 main에 있고 **관측 경로만 없다**. 필요한 하네스별로 묶으면 두 덩어리이고,
+둘 다 산출물이 `tests/e2e/` 안에 머문다(= 이 모델 범위). 배치 3단 중 **수집만** e2e 안으로 들어와
+있다(`tests/e2e/k8s/batch/`, 2026-09-18 `rct_20260918-0002`·`rct_20260918-0004`) — 분석·집계는
+여전히 한 번도 실행되지 않고, 서빙은 그래서 아직 픽스처 Gold를 입력으로 쓴다.
 
 | 묶음 | 시나리오 | 구현 근거 (관측 좌표) | 필요한 하네스 |
 |------|----------|------------------------|----------------|
-| 수집 배치 | ingestion 6·7 (2·3·4·5 는 착지) | 실 RSS/Atom 수집이 운영 기본값이다(`econ-ingestion --source feed`). 소스별 상위 N 절단·축 태깅·재시도·중복/실패 격리 통계·관측 메타데이터(순위·조회수·수집 주기)·본문 content-addressed 병합이 `python/packages/ingestion` 과 `econ_core.storage` 에 있다. | **정적** 피드 더블 + 수집 Job → Bronze 단언까지는 섰다(2·3·4·5). 남은 6·7 은 더블에 **동적 행위**가 있어야 한다 — 6은 오류·타임아웃·중복 링크 주입과 Job 로그(실패·중복 통계) 관측 표면, 7은 본문이 주기마다 달라지는 3주기 연속 실행 |
+| ~~수집 배치~~ **착지** | ~~ingestion 6·7~~ — 1(예외 등재)을 뺀 2~7 전건이 매칭됐다 | — | 2026-09-18 `rct_20260918-0004` 가 닫았다. 더블이 고장 주입 경로(`/__fail__`·`/__flaky__`·`/__slow__`)를 갖고, 주기별 상류를 가리키는 Job 이 3주기 순차로 돌며, 각 Job 의 로그가 호스트로 반출된다 — 걸러진 중복·격리된 소스는 Bronze 에 흔적이 없어 수집 CLI 의 집계를 함께 봐야 관측된다 |
 | 분석 배치 | analysis 1·2·3·4·5·6 | 실 chat-completions 분석기가 main에 있다(`--analyzer llm`, `econ_analysis/llm.py`). 대상 국가·서술 대상·분위기·신뢰도·분석 상태·Bronze 추적 키가 Silver 스키마에 있고, 설정 미비/전건 실패 가드도 있다. | 위 하네스 + **LLM 더블**(chat-completions 응답을 고정) + 분석 Job → Silver 산출물 단언. 의미적 품질은 오프라인 골든 평가가 따로 맡는다(아래 미등재 판정 표) |
 | 집계 배치 | aggregation-viz 1·2·4 | 소스 내 점유율을 먼저 계산해 축 단위로 평균·재정규화하는 정규화, 서술 대상 키 집계, 분위기 비율(미분석 분리)이 `python/packages/aggregation` 에 있다. 지금 e2e는 이 산출물 대신 **손으로 쓴 픽스처 Gold**를 넣으므로 집계 로직이 한 번도 실행되지 않는다. | 위 하네스 + 집계 Job → 픽스처가 아니라 **파이프라인이 만든 Gold**로 서빙을 띄우는 경로 |
 
 세 묶음은 같은 배치 하네스를 공유하므로 한 번 서면 나머지는 spec 신설로 이어진다. 슬라이스를 자를
 때는 수집 → 분석 → 집계 순서가 강제된다(메달리온 계층이 앞 단계 산출물을 입력으로 쓴다). 그 공유
-부분(배치 이미지 kind 로드 · 산출물을 담는 PVC · 호스트 반출 경로)은 수집 슬라이스에서 이미 섰으므로,
-분석 묶음이 더할 것은 LLM 더블과 분석 Job 한 단계다.
+부분(배치 이미지 kind 로드 · 산출물을 담는 PVC · 호스트 반출 경로 · Job 로그 반출)은 수집 묶음이
+다 세워 뒀으므로, **다음 슬라이스는 분석 묶음**이고 더할 것은 LLM 더블과 분석 Job 한 단계다.
+데이터 루트를 주기·용도별로 가르는 관례(`/data` · `/data/faults` · `/data/cycles`)도 그대로 쓴다 —
+한 루트를 공유하면 앞선 spec 의 단정이 뒤 주기의 레코드에 오염된다.
 
 **주의**: 이 절의 표는 하네스 계획이지 배정이 아니다. 실측 상태는 위 집계 표가 SSOT다.
 

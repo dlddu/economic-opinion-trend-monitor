@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 고장 주입 픽스처: 중복 노출 소스. 앞 소스(faults_ok)가 이미 준 링크 두 개를 다시
+     노출하고 자기 고유 링크 하나를 더 준다. 수집은 링크(source_url)로 중복을 거르므로
+     duplicates_skipped 가 2 로 찍히고 Bronze 에는 중복 링크가 한 번씩만 남아야 한다.
+     제공 3건 중 고유는 1건 — 이 관계를 spec 이 픽스처에서 직접 계산한다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Faults Duplicate</title>
+    <link>https://faults.e2e.invalid/dup</link>
+    <item>
+      <title>정상 소스 기사 001 (전재)</title>
+      <link>https://faults.e2e.invalid/ok/001</link>
+      <description>중복 노출된 본문 001. 링크가 같으므로 관측은 한 번만 남아야 합니다.</description>
+      <views>2200</views>
+    </item>
+    <item>
+      <title>정상 소스 기사 002 (전재)</title>
+      <link>https://faults.e2e.invalid/ok/002</link>
+      <description>중복 노출된 본문 002. 링크가 같으므로 관측은 한 번만 남아야 합니다.</description>
+      <views>2100</views>
+    </item>
+    <item>
+      <title>중복 소스 고유 기사 001</title>
+      <link>https://faults.e2e.invalid/dup/001</link>
+      <description>중복 소스만 가진 본문 001. 이 링크는 어디에도 겹치지 않습니다.</description>
+      <views>2000</views>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,7 @@
+[
+  { "source_id": "e2e-faults-ok",    "axis": "KR",     "feed_url": "http://econ-feed-double:8080/faults_ok.rss.xml",                 "limit": 100 },
+  { "source_id": "e2e-faults-flaky", "axis": "US",     "feed_url": "http://econ-feed-double:8080/__flaky__/2/faults_flaky.rss.xml",  "limit": 100 },
+  { "source_id": "e2e-faults-dup",   "axis": "GLOBAL", "feed_url": "http://econ-feed-double:8080/faults_dup.rss.xml",                "limit": 100 },
+  { "source_id": "e2e-faults-down",  "axis": "KR",     "feed_url": "http://econ-feed-double:8080/__fail__/faults_ok.rss.xml",        "limit": 100 },
+  { "source_id": "e2e-faults-slow",  "axis": "US",     "feed_url": "http://econ-feed-double:8080/__slow__/5/faults_ok.rss.xml",      "limit": 100 }
+]

@@ -5,7 +5,11 @@
 #     run the Playwright specs (API + browser) against a port-forward.
 #   * ingestion batch — build the batch image, point the real collection CLI at
 #     an in-cluster feed double and run one cycle as a Job, then pull the Bronze
-#     it wrote back out to the host for the specs to assert on.
+#     it wrote back out to the host for the specs to assert on. Two more Bronze
+#     roots are produced next to it, each by the same CLI against the same double:
+#     a fault-injection cycle (scenario 6) and three sequential cycles whose
+#     upstream changes between them (scenario 7). Their Job logs are exported too
+#     — the failure/duplicate/dedup counts the specs assert on are printed there.
 #
 # Local `make e2e` and the CI e2e job both run exactly this script.
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
@@ -21,6 +25,9 @@ IMAGE="econ-monitor:e2e"
 BATCH_IMAGE="econ-monitor-batch:e2e"
 PORT="${E2E_PORT:-18080}"
 BRONZE_DIR="$E2E_DIR/.artifacts/bronze"
+FAULTS_DIR="$E2E_DIR/.artifacts/bronze-faults"
+CYCLES_DIR="$E2E_DIR/.artifacts/bronze-cycles"
+LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 PF=""
 
 for tool in docker kind kubectl node npm curl; do
@@ -39,6 +46,36 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
+
+# Run one ingestion Job to completion and keep its log — the specs assert on the
+# counts it prints (failed_sources, duplicates_skipped, bodies new/deduplicated),
+# so a lost log is a lost observation, not just missing debug output.
+run_ingest_job() {
+  job="$1"; manifest="$2"
+  kubectl --context "$CTX" apply -f "$manifest"
+  if ! kubectl --context "$CTX" wait --for=condition=complete "job/$job" --timeout=300s; then
+    echo "[e2e] FAIL: $job did not complete — job state and logs follow" >&2
+    kubectl --context "$CTX" describe "job/$job" >&2 || true
+    kubectl --context "$CTX" logs "job/$job" --tail=100 >&2 || true
+    exit 1
+  fi
+  mkdir -p "$LOG_DIR"
+  kubectl --context "$CTX" logs "job/$job" > "$LOG_DIR/$job.log"
+  cat "$LOG_DIR/$job.log"
+}
+
+# Copy a Bronze dataset off the PVC through the shell Pod. The Job's own container
+# is gone by now, so the claim is the only place the records still exist.
+export_bronze() {
+  src_root="$1"; dest="$2"; shift 2
+  mkdir -p "$dest"
+  for dataset in "$@"; do
+    kubectl --context "$CTX" exec "$SHELL_POD" -- cat "$src_root/bronze/$dataset.jsonl" \
+      > "$dest/$dataset.jsonl"
+    [ -s "$dest/$dataset.jsonl" ] \
+      || { echo "[e2e] FAIL: $src_root/bronze/$dataset.jsonl came back empty" >&2; exit 1; }
+  done
+}
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
@@ -76,35 +113,47 @@ kubectl --context "$CTX" apply -k "$E2E_DIR/k8s/batch"
 kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=120s
 kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
 
-kubectl --context "$CTX" apply -f "$E2E_DIR/k8s/batch/ingest-job.yaml"
-if ! kubectl --context "$CTX" wait --for=condition=complete job/econ-e2e-ingest --timeout=300s; then
-  echo "[e2e] FAIL: ingestion job did not complete — job state and logs follow" >&2
-  kubectl --context "$CTX" describe job/econ-e2e-ingest >&2 || true
-  kubectl --context "$CTX" logs job/econ-e2e-ingest --tail=100 >&2 || true
-  exit 1
-fi
-INGEST_LOG="$(kubectl --context "$CTX" logs job/econ-e2e-ingest)"
-echo "$INGEST_LOG"
+# Bronze lives on the Job's PVC; a Job's container is gone once it finishes, so
+# every export below reads the claim through this shell Pod.
+SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
+  -o jsonpath='{.items[0].metadata.name}')"
+
+INGEST_LOG="$(run_ingest_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
 # A source the CLI cannot reach is isolated, not fatal — correct for production,
 # but here it would quietly shrink Bronze and surface as a puzzling spec failure.
+# This guard is for the *healthy* cycle only; the fault-injection cycle below
+# expects a non-empty failed_sources and must not be held to it.
 case "$INGEST_LOG" in
   *"failed_sources=[]"*) ;;
   *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
      exit 1 ;;
 esac
-
-# Bronze lives on the Job's PVC; the Job's container is gone, so read it through
-# the shell Pod that mounts the same claim.
-SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
-  -o jsonpath='{.items[0].metadata.name}')"
-mkdir -p "$BRONZE_DIR"
-for dataset in news_item news_body; do
-  kubectl --context "$CTX" exec "$SHELL_POD" -- cat "/data/bronze/$dataset.jsonl" \
-    > "$BRONZE_DIR/$dataset.jsonl"
-  [ -s "$BRONZE_DIR/$dataset.jsonl" ] \
-    || { echo "[e2e] FAIL: bronze/$dataset.jsonl came back empty" >&2; exit 1; }
-done
+export_bronze /data "$BRONZE_DIR" news_item news_body
 echo "[e2e] bronze exported -> $BRONZE_DIR"
+
+# 4b) Fault injection (…-test-ingestion.md#시나리오 6): one more cycle against the
+# same double, this time through its failure/flaky/slow paths. Writes to its own
+# data root so the healthy cycle's Bronze — what specs 2..5 assert on — is untouched.
+FAULTS_LOG="$(run_ingest_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
+case "$FAULTS_LOG" in
+  *"failed_sources=[]"*)
+    echo "[e2e] FAIL: the fault-injection cycle isolated no source — the double served" \
+         "the broken paths successfully, so scenario 6 has nothing to observe" >&2
+    exit 1 ;;
+esac
+export_bronze /data/faults "$FAULTS_DIR" news_item news_body
+echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
+
+# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7). news_item is
+# rewritten every cycle by the store, so the per-cycle snapshot has to be taken between
+# runs — the final file only holds cycle 3. news_body accumulates, which is the
+# point: unchanged bodies must not be re-stored and an edited one must append.
+for cycle in 1 2 3; do
+  run_ingest_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
+    >/dev/null
+  export_bronze /data/cycles "$CYCLES_DIR/cycle$cycle" news_item news_body
+done
+echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
 
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 cd "$E2E_DIR"
@@ -112,7 +161,13 @@ npm ci
 if [ "${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-0}" != "1" ]; then
   npx playwright install --with-deps chromium
 fi
-BASE_URL="http://127.0.0.1:$PORT" E2E_BRONZE_DIR="$BRONZE_DIR" npx playwright test
+BASE_URL="http://127.0.0.1:$PORT" \
+  E2E_BRONZE_DIR="$BRONZE_DIR" \
+  E2E_BRONZE_FAULTS_DIR="$FAULTS_DIR" \
+  E2E_BRONZE_CYCLES_DIR="$CYCLES_DIR" \
+  E2E_INGEST_LOG_DIR="$LOG_DIR" \
+  npx playwright test
 
 echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
 echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
+echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"

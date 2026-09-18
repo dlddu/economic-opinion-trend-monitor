@@ -1,0 +1,62 @@
+# 시나리오 7 의 **주기 3** — 주요 기사의 본문이 수정된 상류(`e2e-feeds-cycle3.json`)를 받는다.
+# 새 해시의 본문 레코드가 한 건 추가되고 기존 버전은 그대로 보존되는 것이 기대 결과다.
+# 배선 설명은 ingest-job-cycle1.yaml 의 머리 주석에 있다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-cycle3
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-14 — 주기마다 내용이 달라지는 상류로 수집 CLI를 돌린다(실 상류로는 "같은 기사의 본문이 3주기째에 수정된다"를 만들 수 없다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-cycle3.json
+            - --cycle
+            - "2026-02-01T02:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/cycles
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-13 — 주기별 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}
