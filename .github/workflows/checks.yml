@@ -3,6 +3,7 @@
 #
 #   ci    -> ci.yml                   build (gen-check · lint · test), kind e2e
 #   docs  -> docs-journey-mockup.yml  journey ↔ mockup structure + flow
+#   render-> docs-mockup-render.yml   mockup ↔ implementation render (rules 3·5)
 #   image -> image.yml                publish serving/batch images (PR head SHA)
 #
 # PRs only. Tests are not re-run on main pushes: what lands on main already
@@ -36,6 +37,9 @@ jobs:
   docs:
     uses: ./.github/workflows/docs-journey-mockup.yml
 
+  render:
+    uses: ./.github/workflows/docs-mockup-render.yml
+
   image:
     uses: ./.github/workflows/image.yml
     # GitHub validates the permissions of *every* nested job before the run,
@@ -49,7 +53,7 @@ jobs:
   required:
     name: required
     if: always()
-    needs: [ci, docs, image]
+    needs: [ci, docs, render, image]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

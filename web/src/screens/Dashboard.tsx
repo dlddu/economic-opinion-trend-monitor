@@ -83,7 +83,7 @@ export function Dashboard() {
 
       {data && (
         <>
-          <div className="grid">
+          <div className="grid g-12">
             {data.metrics.map((m) => (
               <div key={m.label} className="card metric col-3">
                 <div className="card-b">
@@ -142,7 +142,7 @@ export function Dashboard() {
               </div>
               <div className="card-b">
                 <SentBar dist={data.sentiment} />
-                <div className="note">
+                <div className="note info" style={{ marginTop: 13 }}>
                   <div>
                     <b>미분석 {pct(data.sentiment.unanalyzed)}</b>는 비율 집계에서 분리 표기됩니다. 분위기
                     100%는 분석 완료분 기준입니다.
