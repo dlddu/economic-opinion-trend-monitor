@@ -5,9 +5,12 @@
 #   ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>   batch   (Dockerfile.batch)
 #     -> deploy/batch/workflow-template.yaml (ingest + analyze)
 #
-# On main pushes the `pin` job then commits that SHA back into deploy/, so the
-# image production runs (flux-cd-apps/cluster/econ-monitor.yaml tracks main) is
-# readable from deploy/ at any single commit.
+# On main pushes the `pin` job then rewrites deploy/ to that SHA and force-pushes
+# the result (main@SHA + one pin commit, `Source-Commit:` trailer) to the
+# `deploy` branch. Production (flux-cd-apps/cluster/econ-monitor.yaml) tracks
+# `deploy`, not main: main is protected by a ruleset (required check
+# `required`) and nothing commits back to it, and no long-lived credential is
+# kept to bypass that — the default GITHUB_TOKEN is enough for `deploy`.
 #
 # No `latest` any more. This workflow used to push `latest` with no branch
 # condition, so every pull_request build overwrote the tag production was
@@ -101,12 +104,15 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 5
     permissions:
-      # The only job that commits. The workflow default stays contents: read.
+      # The only job that pushes (to `deploy`). The workflow default stays contents: read.
       contents: write
     steps:
+      # main 의 HEAD 가 아니라 방금 빌드한 커밋 그대로를 deploy 의 부모로 삼는다.
+      # 전체 히스토리는 아래 「더 새 커밋이 이미 발행됐는가」 조상 판정에 쓴다.
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Pin deploy/ images to ${{ github.sha }}
         env:
@@ -138,21 +144,31 @@ jobs:
               || { echo "::error::deploy/: ghcr.io/dlddu/${image} is not pinned anywhere"; exit 1; }
           done
 
-          if git diff --quiet; then
-            echo "Already pinned to ${SHA} — nothing to commit (re-run)."
-            exit 0
+          # ── deploy 브랜치로 발행 ─────────────────────────────────────────────
+          # main 은 ruleset(required status check)으로 보호되어 봇이 직접 커밋할 수 없고,
+          # 그러려고 장기 크레덴셜(App 키)을 두지도 않는다. 대신 「main@SHA + 고정 커밋
+          # 하나」를 deploy 브랜치로 force-push 하고, Flux 는 deploy 를 추적한다.
+          # 기본 GITHUB_TOKEN 의 push 는 새 워크플로를 트리거하지 않고, 어떤 워크플로도
+          # deploy 푸시에 걸려 있지 않으므로 재귀가 없다.
+          git fetch --no-tags origin +refs/heads/deploy:refs/remotes/origin/deploy 2>/dev/null || true
+          old=$(git rev-parse -q --verify refs/remotes/origin/deploy || true)
+
+          # 늦게 끝난 옛 실행이 더 새 배포를 덮지 않게 한다. deploy 끝 커밋의
+          # Source-Commit 트레일러가 이 SHA 의 후손이면 이미 앞서 있으니 건너뛴다.
+          # (롤백은 main 에 revert PR 을 올리는 것 — 그 머지가 새 SHA 로 다시 여기를 탄다.)
+          if [ -n "$old" ]; then
+            cur=$(git log -1 --format='%(trailers:key=Source-Commit,valueonly)' "$old" | tr -d '[:space:]')
+            if [ -n "$cur" ] && [ "$cur" != "$SHA" ] && git merge-base --is-ancestor "$SHA" "$cur" 2>/dev/null; then
+              echo "deploy 는 이미 더 새로운 main 커밋(${cur})을 가리킨다 — 건너뜀."
+              exit 0
+            fi
           fi
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -am "chore(deploy): pin images to ${SHA} [skip ci]"
+          git commit -a --allow-empty \
+            -m "deploy: econ-monitor 이미지를 ${SHA} 로 고정" \
+            -m "Source-Commit: ${SHA}"
 
-          # Pushed with the default GITHUB_TOKEN, which does not start new
-          # workflow runs (documented GitHub behaviour); [skip ci] guards the
-          # loop again if this ever moves to a PAT/App token. If merges landed
-          # meanwhile and main moved on, rebase and retry.
-          for i in 1 2 3; do
-            git push origin HEAD:main && exit 0
-            git pull --rebase origin main
-          done
-          exit 1
+          # lease 로 「읽은 뒤 누가 먼저 밀었으면」 실패시킨다(old 가 비면 = 브랜치가 없어야 함).
+          git push --force-with-lease="refs/heads/deploy:${old}" origin HEAD:refs/heads/deploy
