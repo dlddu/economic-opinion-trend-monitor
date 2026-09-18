@@ -17,7 +17,7 @@ spec:
           # rewrites this tag on every main push — do not edit it by hand. The
           # tag is immutable, so the default imagePullPolicy (IfNotPresent) is
           # correct. Previews and e2e retag it by image name via `images:`.
-          image: ghcr.io/dlddu/economic-opinion-trend-monitor:e1afa956125e9b5d295faf1920b16c232ce61733
+          image: ghcr.io/dlddu/economic-opinion-trend-monitor:15900503ef2ec205d8665210cad8e4e3abc72001
           env:
             - name: ECON_DATA_ROOT
               value: /data
