@@ -1,0 +1,48 @@
+# 수집 Job이 PVC에 남긴 Bronze를 호스트로 꺼내기 위한 대기 Pod. run.sh가 여기에
+# `kubectl exec ... cat` 해서 JSONL을 가져가고, Playwright spec들은 그 파일을 읽는다.
+# 단정은 배치가 실제로 쓴 레코드에 걸린다 — 이 Pod는 읽기만 하고 아무것도 만들지 않는다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: econ-bronze-shell
+  labels:
+    app: econ-bronze-shell
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: econ-bronze-shell
+  template:
+    metadata:
+      labels:
+        app: econ-bronze-shell
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: shell
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data

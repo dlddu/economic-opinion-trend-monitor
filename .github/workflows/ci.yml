@@ -1,9 +1,9 @@
+# Called from checks.yml — PR/main triggers and the single required
+# status check (`required`) live there.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
 
 jobs:
   build:

@@ -1,0 +1,67 @@
+# 수집 배치의 상류를 대신하는 피드 더블. 새 이미지를 끌어오지 않도록 이미 kind에
+# 사이드로드된 배치 이미지로 stdlib HTTP 서버만 띄운다 — 서빙하는 내용이 전부이고
+# 코드는 없다. 제어 가능한 상류라는 점이 요지다: 무엇을 몇 건 주는지가 픽스처에 고정된다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: econ-feed-double
+  labels:
+    app: econ-feed-double
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: econ-feed-double
+  template:
+    metadata:
+      labels:
+        app: econ-feed-double
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: feed-double
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["python", "-m", "http.server", "8080", "--directory", "/feeds"]
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /kr_wire.rss.xml
+              port: 8080
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+      volumes:
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-03 — 실 RSS/Atom 상류는 가용성·내용이 비결정적이라 고정 피드 픽스처를 더블이 서빙한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: econ-feed-double
+spec:
+  selector:
+    app: econ-feed-double
+  ports:
+    - port: 8080
+      targetPort: 8080

@@ -21,12 +21,17 @@
 # No path filter on purpose: a preview references the head SHA tag, so even a
 # docs-only PR labelled `deploy/preview` needs an image at that SHA. Unchanged
 # sources hit the buildx gha cache wholesale, so that costs little.
+#
+# Triggers: main pushes run it directly (publish + pin). PRs reach it through
+# checks.yml, so a failed publish fails the single required check `required`;
+# a called workflow sees the caller's github context, so the event/ref
+# conditions below behave the same either way. workflow_dispatch runs it alone.
 name: Image
 
 on:
   push:
     branches: [main]
-  pull_request:
+  workflow_call:
   workflow_dispatch:
 
 permissions:

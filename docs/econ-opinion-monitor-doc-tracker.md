@@ -156,26 +156,32 @@
 | 예외 등재 | 1 |
 | 구현 대기 등재 | 2 |
 | 1:1 대상 (시나리오 − 예외 − 구현 대기) | 18 |
-| 시나리오 매칭 spec 파일 | 3 |
-| 공백 (1:1 대상 중 파일 없음) | 15 |
+| 시나리오 매칭 spec 파일 | 7 |
+| 공백 (1:1 대상 중 파일 없음) | 11 |
 | 비-시나리오(스모크·인프라) spec 파일 | 1 |
 
 **불변식 현황**: 모델이 요구하는 `(시나리오 − 예외 − 구현 대기) = 매칭 파일` 은 **아직 성립하지
-않는다** — 18 ≠ 3 이고 그 차이가 공백 15다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
+않는다** — 18 ≠ 7 이고 그 차이가 공백 11이다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
 사실대로 적고 있는지**만 본다(격차가 없다가 아니라 격차를 정직하게 말한다). 회계는 닫힌다:
-`전집 21 = 매칭 3 + 예외 1 + 구현 대기 2 + 공백 15`.
+`전집 21 = 매칭 7 + 예외 1 + 구현 대기 2 + 공백 11`.
 
 ### 시나리오 ↔ spec 파일 (실측)
 | 시나리오 | spec 파일 |
 |----------|-----------|
+| `econ-opinion-monitor-test-ingestion.md#시나리오 2` | `tests/e2e/specs/ingestion-2-top-n-cap.spec.ts` |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 3` | `tests/e2e/specs/ingestion-3-axis-tagging.spec.ts` |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 4` | `tests/e2e/specs/ingestion-4-link-and-body.spec.ts` |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 5` | `tests/e2e/specs/ingestion-5-metadata-completeness.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 6` | `tests/e2e/specs/ac3-6-sentiment-ratio-viz.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 7` | `tests/e2e/specs/ac3-7-three-axis-compare.spec.ts` |
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 8` | `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` |
 
-세 시나리오 모두 **순수 서빙·시각화**라 현행 e2e 하네스(픽스처 Gold ConfigMap → Go API → 웹 렌더)
-에서 배치 파이프라인 없이 시나리오의 "기대 결과"를 그대로 단언할 수 있다. 그래서 배치 계층
-시나리오보다 먼저 착지했다. 파일명이 아직 AC 키(`ac3-6…`)인 것은 위 매칭 규약의 마지막 항목대로
-의도된 것이다 — 선언 한 줄이 매핑을 정한다.
+aggregation-viz 6·7·8 은 **순수 서빙·시각화**라 픽스처 Gold ConfigMap → Go API → 웹 렌더만으로
+"기대 결과"를 그대로 단언할 수 있어 먼저 착지했다. ingestion 2~5 는 그 뒤에 선 **수집 배치
+하네스**(배치 이미지 kind 로드 → 클러스터 안 피드 더블 → 수집 Job → Bronze 반출,
+`tests/e2e/k8s/batch/`)를 타고 착지한 것으로, 단정 대상이 화면이 아니라 배치가 쓴 Bronze 레코드다.
+파일명 관례가 둘로 갈린 것(`ac3-6…` vs `ingestion-2…`)은 위 매칭 규약의 마지막 항목대로 의도된
+상태다 — 이름이 아니라 선언 한 줄이 매핑을 정하고, 기존 3개의 개명은 별도 슬라이스다.
 
 ### 예외 목록
 E2E로 자동 검증이 **곤란한** 시나리오. 등재된 시나리오는 spec 파일이 없어도 drift가 아니다(규칙4).
@@ -217,10 +223,6 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 
 ### 공백 (1:1 대상 중 파일 없음)
 <!-- gap-list:begin — 이 마커 사이만 공백 목록으로 읽는다(산문에 적힌 식별자가 목록을 오염시키지 않도록) -->
-`econ-opinion-monitor-test-ingestion.md#시나리오 2` ·
-`econ-opinion-monitor-test-ingestion.md#시나리오 3` ·
-`econ-opinion-monitor-test-ingestion.md#시나리오 4` ·
-`econ-opinion-monitor-test-ingestion.md#시나리오 5` ·
 `econ-opinion-monitor-test-ingestion.md#시나리오 6` ·
 `econ-opinion-monitor-test-ingestion.md#시나리오 7` ·
 `econ-opinion-monitor-test-analysis.md#시나리오 1` ·
@@ -243,19 +245,21 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 > 설명에는 자유롭게 쓸 수 있고, 반대로 **마커 안에는 목록 외의 것을 쓰지 않는다.**
 
 ### 공백 해소 경로 (이 모델 소관)
-위 15건은 구현이 이미 main에 있고 **관측 경로만 없다**. 필요한 하네스별로 묶으면 세 덩어리이고,
-셋 다 산출물이 `tests/e2e/` 안에 머문다(= 이 모델 범위). 현행 하네스는 픽스처 Gold를 ConfigMap으로
-넣고 서빙 이미지만 kind에 띄우므로(`tests/e2e/run.sh`) **배치 3단(수집·분석·집계) 어느 것도 실행하지
-않는다** — 그래서 배치 계층 시나리오가 통째로 남아 있다.
+남은 11건은 구현이 이미 main에 있고 **관측 경로만 없다**. 필요한 하네스별로 묶으면 세 덩어리이고,
+셋 다 산출물이 `tests/e2e/` 안에 머문다(= 이 모델 범위). 배치 3단 중 **수집만** e2e 안으로 들어와
+있다(`tests/e2e/k8s/batch/`, 2026-09-18 `rct_20260918-0002`) — 분석·집계는 여전히 한 번도 실행되지
+않고, 서빙은 그래서 아직 픽스처 Gold를 입력으로 쓴다.
 
 | 묶음 | 시나리오 | 구현 근거 (관측 좌표) | 필요한 하네스 |
 |------|----------|------------------------|----------------|
-| 수집 배치 | ingestion 2·3·4·5·6·7 | 실 RSS/Atom 수집이 운영 기본값이다(`econ-ingestion --source feed`). 소스별 상위 N 절단·축 태깅·재시도·중복/실패 격리 통계·관측 메타데이터(순위·조회수·수집 주기)·본문 content-addressed 병합이 `python/packages/ingestion` 과 `econ_core.storage` 에 있다. | 배치 이미지 kind 로드 + **제어 가능한 피드 더블**(정해진 항목 수·오류·타임아웃·중복 링크·본문 수정을 주입) + 수집 Job → Bronze 산출물 단언 |
+| 수집 배치 | ingestion 6·7 (2·3·4·5 는 착지) | 실 RSS/Atom 수집이 운영 기본값이다(`econ-ingestion --source feed`). 소스별 상위 N 절단·축 태깅·재시도·중복/실패 격리 통계·관측 메타데이터(순위·조회수·수집 주기)·본문 content-addressed 병합이 `python/packages/ingestion` 과 `econ_core.storage` 에 있다. | **정적** 피드 더블 + 수집 Job → Bronze 단언까지는 섰다(2·3·4·5). 남은 6·7 은 더블에 **동적 행위**가 있어야 한다 — 6은 오류·타임아웃·중복 링크 주입과 Job 로그(실패·중복 통계) 관측 표면, 7은 본문이 주기마다 달라지는 3주기 연속 실행 |
 | 분석 배치 | analysis 1·2·3·4·5·6 | 실 chat-completions 분석기가 main에 있다(`--analyzer llm`, `econ_analysis/llm.py`). 대상 국가·서술 대상·분위기·신뢰도·분석 상태·Bronze 추적 키가 Silver 스키마에 있고, 설정 미비/전건 실패 가드도 있다. | 위 하네스 + **LLM 더블**(chat-completions 응답을 고정) + 분석 Job → Silver 산출물 단언. 의미적 품질은 오프라인 골든 평가가 따로 맡는다(아래 미등재 판정 표) |
 | 집계 배치 | aggregation-viz 1·2·4 | 소스 내 점유율을 먼저 계산해 축 단위로 평균·재정규화하는 정규화, 서술 대상 키 집계, 분위기 비율(미분석 분리)이 `python/packages/aggregation` 에 있다. 지금 e2e는 이 산출물 대신 **손으로 쓴 픽스처 Gold**를 넣으므로 집계 로직이 한 번도 실행되지 않는다. | 위 하네스 + 집계 Job → 픽스처가 아니라 **파이프라인이 만든 Gold**로 서빙을 띄우는 경로 |
 
 세 묶음은 같은 배치 하네스를 공유하므로 한 번 서면 나머지는 spec 신설로 이어진다. 슬라이스를 자를
-때는 수집 → 분석 → 집계 순서가 강제된다(메달리온 계층이 앞 단계 산출물을 입력으로 쓴다).
+때는 수집 → 분석 → 집계 순서가 강제된다(메달리온 계층이 앞 단계 산출물을 입력으로 쓴다). 그 공유
+부분(배치 이미지 kind 로드 · 산출물을 담는 PVC · 호스트 반출 경로)은 수집 슬라이스에서 이미 섰으므로,
+분석 묶음이 더할 것은 LLM 더블과 분석 Job 한 단계다.
 
 **주의**: 이 절의 표는 하네스 계획이지 배정이 아니다. 실측 상태는 위 집계 표가 SSOT다.
 
@@ -269,7 +273,7 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 
 | 시나리오 | 후보였던 이유 | 등재하지 않은 근거 | 예정 검증 수단 · 선행 조건 |
 |----------|---------------|--------------------|-----------------------------|
-| `econ-opinion-monitor-test-ingestion.md#시나리오 2` | 외부 뉴스 API의 rate limit·제공 한계 실경로 | 상위 N 설정·실제 수집 건수 기록은 결정적이고, "API가 100건 미만만 준다"는 상황은 **제어 가능한 피드 더블**로 정확히 재현된다. 곤란한 게 아니라 수집 경로 e2e 하네스가 아직 없을 뿐이다. | 수집 경로 e2e 하네스(피드 더블) |
+| `econ-opinion-monitor-test-ingestion.md#시나리오 2` | 외부 뉴스 API의 rate limit·제공 한계 실경로 | 상위 N 설정·실제 수집 건수 기록은 결정적이고, "API가 100건 미만만 준다"는 상황은 **제어 가능한 피드 더블**로 정확히 재현된다. 곤란한 게 아니라 수집 경로 e2e 하네스가 아직 없을 뿐이다. | **착지 완료**(2026-09-18) — 수집 경로 e2e 하네스(피드 더블)가 서면서 `tests/e2e/specs/ingestion-2-top-n-cap.spec.ts` 로 매칭됐다. 판정(예외로 빼지 않는다)은 그대로 유지한다 |
 | `econ-opinion-monitor-test-ingestion.md#시나리오 6` | 외부 소스의 부분 장애·타임아웃 실경로 | 오류·타임아웃·중복 링크는 피드 더블에 결정적으로 주입할 수 있다. 실제 외부 장애를 기다릴 필요가 없다. 위 시나리오 2와 같은 하네스로 함께 닫힌다. | 시나리오 2와 동일 |
 | `econ-opinion-monitor-test-analysis.md#시나리오 2` | 서술 대상 추출과 표기 변형 통합의 **의미적 정확도**가 실 LLM 응답에 의존 | **골든 평가 하네스로 검증한다**(검토자 판정, 2026-08-12). 예외 사유로 적혀 있던 "실 LLM 의존"은 대체 검증 수단으로 이미 "골든 입력셋 오프라인 품질 평가"를, 재검토 조건으로 "골든 평가 하네스가 생기면 이관"을 스스로 지목하고 있었다 — 해제 경로가 식별된 상태를 영구 면제로 등재하는 것은 과잉이다. 시나리오의 기대 결과(표기 변형이 한 키로 모이는가) 자체가 골든셋 판정문이다. | ① **오프라인 골든 평가 하네스** = 의미적 품질. 수용 기준은 새로 짓지 않고 이 시나리오 본문을 쓴다. 선행 조건이던 "실 LLM 분석기 main 착지"는 충족됐다(`econ_analysis/llm.py`, `--analyzer llm`). ② **배치 경로 e2e spec** = 라벨 전파 계약. 이쪽이 생겨야 이 표의 시나리오가 공백에서 빠진다(매칭 단위가 spec 파일이므로 ①만으로는 계수가 바뀌지 않는다). |
 | `econ-opinion-monitor-test-analysis.md#시나리오 3` | 분위기 4분류 **라벨 정확도**가 같은 이유로 LLM 의존 | 위 시나리오 2와 동일한 판정. 분류 **값의 저장·전파**(스키마·집계 반영)는 analysis 4·aggregation-viz 4가 각자 검증하므로 예외로 뺄 부분은 "의미적 정확도" 한 갈래뿐인데, 그것이 바로 골든셋이 재는 값이다. | 시나리오 2와 동일. 골든셋 수용 기준은 이 시나리오 본문(4분류 대표 사례 · 혼합/중립 판정 기준). |

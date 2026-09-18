@@ -1,0 +1,64 @@
+# Single entry point for every PR check, so branch protection needs to
+# require exactly one status check: `required`.
+#
+#   ci    -> ci.yml                   build (gen-check · lint · test), kind e2e
+#   docs  -> docs-journey-mockup.yml  journey ↔ mockup structure + flow
+#   image -> image.yml                publish serving/batch images (PR head SHA)
+#
+# PRs only. Tests are not re-run on main pushes: what lands on main already
+# passed `required` as a PR. On main only image.yml runs (its own push
+# trigger), to publish and pin the merged SHA.
+#
+# `required` runs even when a dependency fails or is skipped (`if: always()`)
+# and passes only when every called workflow succeeded. Without `always()` a
+# failed dependency would *skip* it, and GitHub treats a skipped required check
+# as passing.
+#
+# Adding a check: call it here and add it to `required.needs` — nothing to
+# change in branch protection.
+name: Checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to a PR supersedes the previous run.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  docs:
+    uses: ./.github/workflows/docs-journey-mockup.yml
+
+  image:
+    uses: ./.github/workflows/image.yml
+    # GitHub validates the permissions of *every* nested job before the run,
+    # including `pin`, which is skipped on PRs but declares contents: write.
+    # So the ceiling must allow write even though nothing uses it here;
+    # image.yml narrows its own default back to contents: read.
+    permissions:
+      contents: write
+      packages: write
+
+  required:
+    name: required
+    if: always()
+    needs: [ci, docs, image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Every check succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if echo "$NEEDS" | jq -e 'to_entries | any(.value.result != "success")' > /dev/null; then
+            echo "::error::not every check succeeded — see the results above"
+            exit 1
+          fi
