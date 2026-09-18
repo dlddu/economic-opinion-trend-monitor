@@ -1,21 +1,8 @@
-# Economic Opinion Trend Monitor — polyglot monorepo build orchestration.
-#
-# Layout:
-#   contracts/  schema-first contracts (bronze JSON Schema, silver/gold Avro) + codegen
-#   python/     uv workspace: batch pipelines (ingestion -> analysis -> aggregation)
-#   go/         serving: reads Gold, exposes API, serves the web build
-#   web/        Vite + React frontend
-#   data/       local data lake (bronze/silver/gold), git-ignored contents
-#
-# This skeleton has no business logic yet — pipelines use fakes/stubs. The
-# targets below wire the pieces together so the bootstrap is runnable end to end.
-
 PYTHON_DIR := python
 GO_DIR     := go
 WEB_DIR    := web
 GEN_PATHS  := go/gen python/packages/core/src/econ_core/models
 
-# Generated-output paths verified by `make gen-check`.
 .DEFAULT_GOAL := help
 
 .PHONY: help setup gen gen-check \
@@ -34,7 +21,6 @@ setup: ## Install all toolchain dependencies (uv / go / npm)
 	cd $(GO_DIR) && go mod download
 	cd $(WEB_DIR) && npm install
 
-## --- codegen -------------------------------------------------------------
 gen: ## Regenerate Go + Python types from contracts/
 	python3 contracts/codegen.py
 	gofmt -w $(GO_DIR)/gen
@@ -45,7 +31,6 @@ gen-check: gen ## Fail if committed generated code is stale (CI guard)
 	@git diff --exit-code -- $(GEN_PATHS) \
 		|| (echo "ERROR: generated code is stale. Run 'make gen' and commit." && exit 1)
 
-## --- build ---------------------------------------------------------------
 build: build-go build-web ## Build serving binary + web bundle
 
 build-go: ## Compile the Go serving binary into go/bin/serving
@@ -54,7 +39,6 @@ build-go: ## Compile the Go serving binary into go/bin/serving
 build-web: ## Build the React frontend into web/dist
 	cd $(WEB_DIR) && npm run build
 
-## --- test ----------------------------------------------------------------
 test: test-py test-go test-web test-cross ## Run all tests + cross-language smoke
 
 test-py: ## Run Python (pytest) tests
@@ -69,11 +53,9 @@ test-web: ## Run web (vitest) tests
 test-cross: ## Cross-language smoke: Python writes Gold -> Go serves it
 	./tests/smoke.sh
 
-## --- e2e (not part of `test`: needs docker + kind + kubectl) --------------
 e2e: ## kind e2e: fixture Gold -> in-cluster serving -> Playwright (docker/kind/kubectl)
 	./tests/e2e/run.sh
 
-## --- lint ----------------------------------------------------------------
 lint: lint-py lint-go lint-web lint-scenario-mapping ## Lint all languages + scenario<->e2e mapping
 
 lint-py: ## ruff check + format check
@@ -93,7 +75,6 @@ fmt: ## Auto-format Python + Go
 	cd $(PYTHON_DIR) && uv run ruff format . && uv run ruff check --fix .
 	cd $(GO_DIR) && gofmt -w .
 
-## --- run / clean ---------------------------------------------------------
 run: ## Run the serving binary (serves API + web/dist if built)
 	cd $(GO_DIR) && go run ./cmd/serving
 

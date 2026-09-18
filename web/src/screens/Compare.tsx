@@ -3,8 +3,6 @@ import { api } from "../api/client";
 import type { AxisColumn, CompareResponse, SentimentDistribution } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// AC3.7 — the three axes side by side on one basis (J2 / V2).
-//
 // The comparison only means something if every column is read on the same
 // terms, so the shared basis the API compared on (time bucket + normalized
 // ratios) is shown above the columns instead of being assumed, and the share

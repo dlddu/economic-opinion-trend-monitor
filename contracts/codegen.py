@@ -57,9 +57,6 @@ SCALARS_JSON = {
 GO_INITIALISMS = {"id": "ID", "url": "URL"}
 
 
-# --------------------------------------------------------------------------
-# Intermediate representation
-# --------------------------------------------------------------------------
 @dataclass
 class Field:
     name: str
@@ -91,9 +88,6 @@ def register_record(rec: Record) -> None:
     RECORDS[rec.name] = rec
 
 
-# --------------------------------------------------------------------------
-# Avro parsing
-# --------------------------------------------------------------------------
 def resolve_avro(t, layer: str) -> dict:
     if isinstance(t, str):
         if t in SCALARS_AVRO:
@@ -135,9 +129,6 @@ def parse_avro_file(path: Path) -> None:
     parse_avro_record(node, node.get("x-layer", "silver"))
 
 
-# --------------------------------------------------------------------------
-# JSON Schema parsing
-# --------------------------------------------------------------------------
 def resolve_json(fdef: dict) -> dict:
     if "enum" in fdef:
         name = fdef.get("x-enum-name")
@@ -167,9 +158,6 @@ def parse_json_schema_file(path: Path) -> None:
     )
 
 
-# --------------------------------------------------------------------------
-# Python emission
-# --------------------------------------------------------------------------
 def py_type(kind: dict) -> str:
     k = kind["k"]
     if k == "scalar":
@@ -292,9 +280,6 @@ def emit_python_init() -> str:
     return "\n".join(lines) + "\n"
 
 
-# --------------------------------------------------------------------------
-# Go emission
-# --------------------------------------------------------------------------
 def go_ident(snake: str) -> str:
     parts = re.split(r"[^A-Za-z0-9]+", snake)
     out = []
@@ -350,9 +335,6 @@ def emit_go_records(records: list[Record]) -> str:
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
-# --------------------------------------------------------------------------
-# Driver
-# --------------------------------------------------------------------------
 def main() -> None:
     for path in sorted((CONTRACTS / "bronze").glob("*.schema.json")):
         parse_json_schema_file(path)

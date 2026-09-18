@@ -1,9 +1,5 @@
 // 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 7
 //
-// 그 시나리오가 스스로 선언하는 검증 AC 는 AC3.7 이다(테스트 문서의 `검증 AC` 필드).
-// 아래 설명이 AC 본문을 인용하는 것은 그 연결을 따라간 것이며, 이 파일이 주검증하는
-// 단위는 위 한 줄이 선언한 **시나리오**다.
-//
 // AC3.7 "3축 비교 뷰" — docs/econ-opinion-monitor-prd-aggregation-viz.md
 // 검증 방법(AC 본문): "동일 시점·기준에서 3개 축이 정렬되어 비교 가능한지 확인한다."
 //

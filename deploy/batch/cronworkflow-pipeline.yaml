@@ -6,12 +6,6 @@
 # exclusive** — turning this one on means suspending the other, or every hour
 # would collect twice.
 #
-# ★ Lands suspended on purpose — do not flip this in the same change that
-#   introduces it. The cluster syncs this path automatically, so merging is
-#   already applying; suspend keeps "applied" and "running" separate decisions.
-#   (Same reasoning, and the same two-step landing, as
-#   cronworkflow-ingestion.yaml.)
-#
 #   Before unsuspending, in this order:
 #     1. Confirm the `econ-llm` Secret exists in the namespace with an `api-key`
 #        entry (external-secrets owns it — it is not in this repo). Without it

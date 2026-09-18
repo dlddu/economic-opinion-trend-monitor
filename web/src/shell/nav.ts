@@ -1,6 +1,4 @@
-// The 7 screens (mockup index) -> client routes. The dashboard and the 3-axis
-// compare view are built; the rest are placeholders. App.tsx holds the list of
-// which is which.
+// The 7 screens (mockup index) -> client routes.
 
 export interface ScreenDef {
   id: string;

@@ -1,0 +1,86 @@
+# 주석 판정 원장
+
+정책 본문은 [`README.md`](README.md), 판정별 근거는 [`passes/`](passes/)에 있다. 이 원장은 **파일 단위**로
+판정 전·후 주석 줄 수와 남은 주석의 성격을 적는다. 줄 수는 정책의 추출 규칙(범위·제외 경로·주석 시작 패턴·
+기계 판독 주석 제외)으로 센 값이다.
+
+## 읽는 법
+
+- **판정 전** — 해당 패스를 시작한 시점의 주석 줄 수. **제거** — 그 패스가 지운 줄 수. **남음** — 판정 후 줄 수.
+- 남음이 0이면 그 파일은 이후 지문에서 빠진다.
+- 비고의 "판단 분기"는 애매해서 남긴 것 — 근거는 해당 패스 문서의 「판단이 갈려 남긴 것」.
+- 새 주석이 생기면 이 원장의 행은 바뀌지 않는다. 다음 패스가 그 파일을 다시 판정하며 행을 갱신한다.
+
+## 패스 이력
+
+| 판정일 | 패스 | 기준 커밋 | 판정 전 | 제거 | 남음 | 파일 수(전→후) |
+|---|---|---|---|---|---|---|
+| 2026-09-18 | [initial-pass](passes/2026-09-18-initial-pass.md) | `9d6122b` | 776 | 121 | 655 | 62 → 60 |
+
+## 파일별 원장 (2026-09-18 initial-pass 기준)
+
+| 파일 | 판정 전 | 제거 | 남음 | 판정 |
+|---|---:|---:|---:|---|
+| `Makefile` | 18 | 18 | 0 | 전량 제거 — 머리 11줄은 README「디렉터리 구조」「상태」재진술(골격·페이크 서술은 낡음), 18행은 `gen-check` 타깃이 복원, `## ---` 6줄은 구분선(help 파서 `^타깃:.*## `에 걸리지 않는 장식) |
+| `contracts/codegen.py` | 23 | 18 | 5 | 구분선 배너 6개(18줄) 제거. 유지: 원시 타입 표 설명, ruff magic-trailing-comma 회피 근거, 드라이버의 `# Python`/`# Go` 절 표지(애매 — 유지) |
+| `deploy/base/deployment.yaml` | 9 | 0 | 9 | 유지 — Gold 부재 시 빈 데이터셋·emptyDir 오버레이 이음새, 핀 태그 수기 편집 금지 경고(편집 지점의 가드), 불변 태그라 IfNotPresent가 옳다는 근거 |
+| `deploy/base/kustomization.yaml` | 9 | 0 | 9 | 유지 — `images:` 트랜스포머를 base에 두지 않는 이유(프리뷰·e2e 재태깅과의 중첩) |
+| `deploy/batch/cronworkflow-ingestion.yaml` | 27 | 10 | 17 | 제거 10줄 — AC1.1 배너(시나리오1↔이 파일은 doc-tracker e2e 매핑이 복원), ★suspend 착지 문단(README「배포」재진술 + 실제 `suspend: false`와 어긋난 낡은 서술). 유지: AC1.1 의무↔필드 대응·누락 보정 근거(스케줄 계약) |
+| `deploy/batch/cronworkflow-pipeline.yaml` | 34 | 6 | 28 | 제거 6줄 — ★suspend 착지 이유(README「배포」재진술). 유지: 상호 배타 근거, 켜기 전 4단계(analyzer_version·attempted=/failed=·exit 3 등 README에 없는 운용 지식), 과금 경고 |
+| `deploy/batch/kustomization.yaml` | 17 | 3 | 14 | 제거 3줄 — 두 스케줄 중 하나만 돈다(README「배포」재진술). 유지: base 밖에 두는 이유(kind e2e·Argo 부재), 클러스터 범위 컨트롤러, kustomizeconfig 연결 |
+| `deploy/batch/kustomizeconfig.yaml` | 10 | 0 | 10 | 유지 — kustomize `images:` 트랜스포머가 WorkflowTemplate 경로를 모르는 함정과 선언 위치 근거 |
+| `deploy/batch/rbac.yaml` | 6 | 0 | 6 | 유지 — workflowtaskresults 권한이 없으면 첫 단계가 실패하는 런타임 제약 |
+| `deploy/batch/workflow-template.yaml` | 39 | 3 | 36 | 제거 3줄 — 머리 배너(AC 흔적 + 집계 후속 = README「범위」재진술). 유지: 엔트리포인트 2개 근거, imagePullSecrets 선언 위치, exit 2 재시도 금지, Secret required 근거 등. `# AC1.1`/`# AC2.1-2.6` 인라인 태그는 판단 분기로 유지 |
+| `deploy/overlays/preview/kustomization.yaml` | 30 | 0 | 30 | 유지 — efs StorageClass가 PVC 이름으로 access point를 재사용·연쇄 삭제하는 함정, Flux 분담, delete 패치가 이름 기준이라 새 CronWorkflow를 덮지 않는 함정. 머리의 serving/batch 두 절은 README「PR 프리뷰」와 겹치나 함정 서술과 한 덩어리라 판단 분기로 유지 |
+| `deploy/overlays/prod/batch-pvc.yaml` | 13 | 4 | 9 | 제거 4줄 — 체인 연결 시 공유 방식 결정 예고(README「배포」재진술, 스스로 'see README'). 유지: RWO 멀티어태치 근거, storageClassName 부재 의도 |
+| `deploy/overlays/prod/kustomization.yaml` | 32 | 12 | 20 | 제거 12줄 — `kubectl apply -k` 적용법·외부 노출(README「배포」재진술), 두 CronWorkflow 인계 목록(README·cronworkflow-pipeline.yaml 재진술). 유지: Recreate/RWO 근거, template-wide 볼륨, 주기 오버라이드 패치 예시(cronworkflow-ingestion.yaml이 가리키는 위치) |
+| `deploy/overlays/prod/pvc.yaml` | 1 | 0 | 1 | 유지 — storageClassName 부재 의도(프리뷰의 efs 함정과 대비되는 의도적 기본값) |
+| `go/cmd/serving/main.go` | 4 | 0 | 4 | 유지 — 패키지(command) doc 주석, 프로브를 액세스 로그에서 빼는 이유 |
+| `go/internal/handlers/handlers.go` | 27 | 3 | 24 | 제거 3줄 — `// --- … ---` 구분선. 유지: 패키지·export doc 주석(`New builds Handlers…`는 정의 표본 ①과 doc 주석 유지 규칙이 충돌 — 유지 규칙 우선), compare의 동일 기준 근거, 버킷 키 사전식=시간순 조건 |
+| `go/internal/handlers/handlers_test.go` | 14 | 0 | 14 | 유지 — 다중 버킷 픽스처 설계 근거, 단위/e2e 분담. AC3.7 태그는 판단 분기로 유지 |
+| `go/internal/static/static.go` | 6 | 0 | 6 | 유지 — 패키지·export doc 주석(SPA 폴백 동작 설명) |
+| `go/internal/store/store.go` | 12 | 0 | 12 | 유지 — 패키지·export doc 주석, Python LocalFsStore와의 대응, 누락 파일=빈 슬라이스 계약 |
+| `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 3 | 0 | 3 | 유지 — 중첩 dict 형태 표기(코드로 복원 어려움), AC3.4 분리 근거(태그는 판단 분기) |
+| `python/packages/aggregation/tests/test_aggregate.py` | 1 | 0 | 1 | 유지 — 테스트 의도(AC 태그 판단 분기) |
+| `python/packages/analysis/src/econ_analysis/cli.py` | 7 | 0 | 7 | 유지 — 종료 코드 의미(`#:` 속성 doc), 운영자 오류를 레이크 접근 전에 실패시키는 근거, 전량 실패 시 Silver 보존 근거 |
+| `python/packages/analysis/src/econ_analysis/fake_llm.py` | 4 | 0 | 4 | 유지 — 페이크 모델의 판정 규칙 근거(AC 태그 판단 분기) |
+| `python/packages/analysis/src/econ_analysis/llm.py` | 2 | 0 | 2 | 유지 — 저신뢰 임계 공유, 카탈로그 정규화 방침 |
+| `python/packages/analysis/tests/test_cli.py` | 5 | 0 | 5 | 유지 — 테스트 의도(기본값 전환·장애 가드) |
+| `python/packages/analysis/tests/test_fake_llm.py` | 2 | 0 | 2 | 유지 — 테스트 의도(AC 태그 판단 분기) |
+| `python/packages/analysis/tests/test_llm.py` | 8 | 0 | 8 | 유지 — 분석 결과 vs 운영 실패 구분 근거(AC 태그 판단 분기) |
+| `python/packages/core/src/econ_core/domain.py` | 3 | 0 | 3 | 유지 — 상수 묶음 표지 3줄(재진술성이나 짧고 애매 — 유지) |
+| `python/packages/core/tests/test_storage.py` | 3 | 0 | 3 | 유지 — 테스트 의도(AC1.7 태그 판단 분기) |
+| `python/packages/ingestion/src/econ_ingestion/cli.py` | 2 | 0 | 2 | 유지 — content-addressed 병합 규칙(AC1.7 태그 판단 분기) |
+| `python/packages/ingestion/src/econ_ingestion/feeds.py` | 1 | 0 | 1 | 유지 — 안정 정렬 의도 |
+| `python/packages/ingestion/src/econ_ingestion/sources.py` | 4 | 0 | 4 | 유지 — 페이크 카탈로그 설계 근거(목업 연동·결정성) |
+| `python/packages/ingestion/tests/test_default_feeds.py` | 3 | 0 | 3 | 유지 — 테스트 의도 |
+| `python/packages/ingestion/tests/test_feeds.py` | 21 | 0 | 21 | 유지 — 테스트 의도(AC1.x 태그 판단 분기) |
+| `python/packages/ingestion/tests/test_sources.py` | 10 | 0 | 10 | 유지 — 테스트 의도(AC1.x 태그 판단 분기) |
+| `scripts/check-journey-flow.js` | 45 | 4 | 41 | 제거 4줄 — `/* ===== … ===== */` 구분선. 유지: 정적 대조로 안 되는 이유·자기참조 금지·fail-closed 근거, (a)~(h) 규칙 표지(규칙 문자로 모델 정의와 대응 — 애매, 유지) |
+| `scripts/check-journey-mockup.py` | 46 | 8 | 38 | 제거 8줄 — `# ----- …` 구분선. 유지: 오탐 회피 근거, 헤더 판정 방식 근거, 래칫 근거, 모델 정의 인용(reconciler 레포에만 있어 이 레포에서 복원 불가) |
+| `scripts/journey-scenarios/JRN-axis-contrast.js` | 28 | 4 | 24 | 제거 4줄 — 러너/시나리오 역할 분담 설명(check-journey-flow.js 머리 주석의 재진술). 유지: 조작별 의도·jsdom `.value` 함정 |
+| `scripts/journey-scenarios/JRN-sentiment-shift.js` | 27 | 7 | 20 | 제거 7줄 — 역할 분담 재진술(러너 머리 주석; '두 가지'라 쓰고 넷을 나열한 낡은 서술 포함). 유지: 시나리오 훅 목록(inputs/states/unlock/renders) |
+| `tests/e2e/check_scenario_mapping.py` | 22 | 4 | 18 | 제거 4줄 — `# --- … ---` 구분선. 유지: 판정 규칙 근거(첫 열만 읽는 이유, 등재 공백을 쓰는 이유 등) |
+| `tests/e2e/k8s/e2e-patch.yaml` | 5 | 0 | 5 | 유지 — runc가 read-only 마운트 안에 mountpoint를 못 만드는 런타임 함정 |
+| `tests/e2e/k8s/kustomization.yaml` | 5 | 0 | 5 | 유지 — side-load·ConfigMap 픽스처 배선 근거 |
+| `tests/e2e/kind-config.yaml` | 2 | 0 | 2 | 유지 — 단일 노드 선택 근거 |
+| `tests/e2e/playwright.config.ts` | 2 | 0 | 2 | 유지 — BASE_URL/포트 폴백과 run.sh의 관계 |
+| `tests/e2e/run.sh` | 12 | 0 | 12 | 유지 — 전제 도구·KEEP_CLUSTER·단계 표지(애매 — 유지) |
+| `tests/e2e/specs/ac3-6-sentiment-ratio-viz.spec.ts` | 28 | 4 | 24 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드가 복원). 유지: AC 검증 방법 인용과 그에 따른 단언 설계, 스케일 무관 비교 근거 |
+| `tests/e2e/specs/ac3-7-three-axis-compare.spec.ts` | 36 | 4 | 32 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드). 유지: 세 낱말 분해 단언 설계, 공통 스케일 근거 |
+| `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` | 26 | 4 | 22 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드). 유지: 단언 설계·픽스처 대응 |
+| `tests/e2e/specs/smoke-serving.spec.ts` | 6 | 0 | 6 | 유지 — 비-시나리오 spec이 고아가 아닌 이유(doc-tracker 등재 위치 안내) |
+| `tests/smoke.sh` | 11 | 0 | 11 | 유지 — 페이크 소스·분석기 고정 근거(오프라인·결정성, exit 2 회피) |
+| `web/src/App.tsx` | 1 | 0 | 1 | 유지 — 실화면/플레이스홀더 목록의 역할 |
+| `web/src/api/client.ts` | 5 | 0 | 5 | 유지 — 상대 /api 베이스가 dev·prod 모두에서 되는 이유 |
+| `web/src/api/types.ts` | 5 | 0 | 5 | 유지 — 손으로 유지하는 서빙 API 뷰라는 경계, export JSDoc |
+| `web/src/screens/Compare.tsx` | 9 | 2 | 7 | 제거 2줄 — `AC3.7 … (J2 / V2)` 배너(작업 흔적 + 폐기 식별자 J2). 유지: 공통 기준·공통 스케일 근거 |
+| `web/src/screens/Dashboard.tsx` | 1 | 1 | 0 | 제거 1줄 — '다른 6화면은 플레이스홀더'(README「범위」재진술이며 compare 착지 후 낡음) |
+| `web/src/screens/Placeholder.tsx` | 3 | 0 | 3 | 유지 — 플레이스홀더가 증명하는 것 |
+| `web/src/shell/AppShell.tsx` | 1 | 0 | 1 | 유지 — 디자인 시스템 패턴 식별자(PAT-screen-shell) |
+| `web/src/shell/MapStrip.tsx` | 2 | 0 | 2 | 유지 — 컴포넌트 식별자, 목업을 따르는 칩 구분자 규약 |
+| `web/src/shell/Sidebar.tsx` | 2 | 0 | 2 | 유지 — 컴포넌트 식별자, 페르소나 태그의 목업 근거 |
+| `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
+| `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
+| `web/src/tokens/tokens.css` | 31 | 0 | 31 | 유지 — 토큰·컴포넌트 식별자(TKN-*/CMP-*/PAT-*)는 디자인 시스템 추적 앵커. 2줄(`* {`, `#root {`)은 주석이 아니라 CSS 셀렉터가 지문 패턴에 걸린 오탐 |
+| **합계 (62개 파일)** | **776** | **121** | **655** | |

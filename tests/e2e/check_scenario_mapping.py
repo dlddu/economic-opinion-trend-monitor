@@ -83,9 +83,6 @@ def find_refs(text: str) -> list[str]:
     return [scenario_id(doc, n) for doc, n in SCENARIO_REF.findall(text)]
 
 
-# --- 실측 --------------------------------------------------------------------
-
-
 def read_scenarios() -> tuple[list[str], list[str]]:
     """테스트 문서 전체에서 시나리오를 모은다. (정렬된 유일 목록, 중복 목록)"""
     seen: list[str] = []
@@ -137,9 +134,6 @@ def read_specs() -> tuple[dict[str, str], list[str]]:
             continue
         declarations[rel] = refs[0] if refs else NO_SCENARIO
     return declarations, problems
-
-
-# --- doc-tracker 파싱 --------------------------------------------------------
 
 
 def tracker_sections() -> dict[str, list[str]]:
@@ -204,9 +198,6 @@ def marked_block(section: list[str], marker: str, section_name: str) -> tuple[st
     if start is None or stop is None or stop <= start:
         return "", f"규칙5: `### {section_name}` 에 `{begin} -->` ~ `{end} -->` 마커 블록이 없다"
     return "\n".join(section[start + 1 : stop]), None
-
-
-# --- 검사 --------------------------------------------------------------------
 
 
 def main() -> int:
@@ -409,7 +400,6 @@ def main() -> int:
                 f"규칙5: 집계 표의 `{label}` 가 {registered_counts[label]} 인데 실측은 {value} 다"
             )
 
-    # --- 보고 ---------------------------------------------------------------
     print("시나리오 ↔ e2e 1:1 매칭 실측")
     for label, value in expected_counts.items():
         print(f"  {label:<34} {value}")

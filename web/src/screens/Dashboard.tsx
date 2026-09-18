@@ -30,7 +30,6 @@ function deltaLabel(delta: number): string {
   return "–";
 }
 
-// Representative screen (dash). The other 6 screens are placeholders.
 export function Dashboard() {
   const [axis, setAxis] = useState<Axis>("KR");
   const [data, setData] = useState<DashboardResponse | null>(null);
