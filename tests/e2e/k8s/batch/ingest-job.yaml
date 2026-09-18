@@ -1,0 +1,66 @@
+# 한 주기의 수집 배치. 운영에서 이 CLI를 도는 것은 Argo CronWorkflow가 참조하는
+# deploy/batch/workflow-template.yaml 의 `ingest` 템플릿이고, 여기서는 그 컨테이너 계약
+# (같은 배치 이미지 · `econ-ingestion` 커맨드 · ECON_DATA_ROOT=/data)을 그대로 옮긴 평범한
+# Job으로 돈다. e2e kind 클러스터에는 Argo 컨트롤러가 없기 때문이다 — 그래서 스케줄링
+# 자체(`…-test-ingestion.md#시나리오 1`)는 여전히 예외 등재 상태이고, 이 Job이 관측하게
+# 하는 것은 스케줄이 아니라 **한 주기가 무엇을 수집해 Bronze에 남기는가**다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # 주기 id를 고정해 레코드 id와 `collection_cycle`이 실행 시각에 흔들리지 않게 한다.
+          # mock-exception: FEED-05 — 수집 상류를 실 피드 대신 클러스터 안 피드 더블로 돌린다(비결정적 외부 피드로는 단정 불가) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds.json
+            - --cycle
+            - "2026-01-01T00:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-04 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,15 @@
+# 수집 배치 하네스의 **상시 자원**만 모은다: 피드 더블, Bronze를 담을 볼륨, 그 볼륨을
+# 호스트로 반출하기 위한 대기 Pod. `feed-fixtures` ConfigMap은 run.sh가 픽스처 디렉터리에서
+# 만들고(GOLD 픽스처와 같은 방식), 수집 Job(`ingest-job.yaml`)은 여기 넣지 않는다 —
+# 더블이 Ready가 된 뒤에 적용해야 첫 fetch가 헛돌지 않기 때문이다.
+#
+# deploy/base를 오버레이하는 serving 쪽(`tests/e2e/k8s/kustomization.yaml`)과 달리 이쪽은
+# 순수 e2e 자원이다. 운영 배치는 Argo WorkflowTemplate(deploy/batch/)이 담당하고 이 디렉터리는
+# 그 컨테이너 계약만 빌려 쓴다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - data-pvc.yaml
+  - feed-double.yaml
+  - bronze-shell.yaml

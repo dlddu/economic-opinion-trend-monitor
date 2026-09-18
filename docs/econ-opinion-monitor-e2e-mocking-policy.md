@@ -13,7 +13,7 @@
 
 1. **배치 산출물 치환** — 수집→분석→집계 파이프라인 대신 커밋된 픽스처 Gold를 ConfigMap(`gold-fixtures`)으로 `/data/gold`에 마운트하는 것.
 2. **더블 선택 스위치** — 제품 CLI의 결정적 오프라인 구현을 고르는 자리(`--source fake` · `--analyzer fake`).
-3. **상류 재배선** — 실 상류 대신 다른 대상을 가리키게 하는 자리(`--feeds <파일>`로 피드 더블을 가리키기 · `ECON_LLM_BASE_URL`로 LLM 더블 서버를 가리키기). 등재 시점 0건.
+3. **상류 재배선** — 실 상류 대신 다른 대상을 가리키게 하는 자리(`--feeds <파일>`로 피드 더블을 가리키기 · `ECON_LLM_BASE_URL`로 LLM 더블 서버를 가리키기). 2026-09-18 수집 배치 하네스가 서면서 `--feeds` 1건(FEED-05)이 등재됐고, `ECON_LLM_BASE_URL`은 아직 0건이다.
 4. **브라우저 네트워크 인터셉트** — Playwright `page.route`·`route.fulfill` 계열. 등재 시점 0건.
 
 더블의 **구현체**(`econ_ingestion.sources`의 페이크 카탈로그, `econ_analysis.fake_llm`)는 제품의 오프라인 모드라 지점이 아니다 — 하네스가 그것을 **고르는 자리**가 지점이다. 실 서빙 워크로드·실 kind 클러스터·port-forward는 실환경 하네스다. `tests/smoke.sh`를 범위에 넣는 것은, 배치→서빙을 한 번에 걷는 경로가 지금 그 스모크뿐이고 CI(`make test`)에서 돌기 때문이다. 단위 테스트 층(`python/packages/*/tests`·`go/**/*_test.go`·`web/src/**/*.test.ts(x)`)의 모킹은 그 층위에서 정상이므로 대상이 아니다. 운영 매니페스트(`deploy/batch/`)가 `ECON_LLM_BASE_URL`로 실 엔드포인트를 설정하는 것도 모킹이 아니다.
@@ -36,7 +36,7 @@
 
 같은 항목이 이 문서의 허용목록에도 있어야 한다. 주석만 있고 미등재이거나, 등재만 있고 코드에 없으면 drift다. (이 표기 주석은 자매 모델 `tbm_econ-opinion-monitor-comment-redundancy`가 기계 판독 주석에서 제외한다 — 두 모델의 축이 충돌하지 않는다.)
 
-## 허용목록 (등재 집합 — 2026-09-17 관측, 5지점 / 4파일 / 3종)
+## 허용목록 (등재 집합 — 2026-09-18 관측, 9지점 / 7파일 / 3종)
 
 지점은 **파일 × 토큰 쌍** 단위로 등재한다. 아래 표가 등재 집합이며, 각 행의 CODE는 코드 주석에 동일하게 부착된다. 1:1 판정 입력: (허용목록 쌍 집합) == (코드 지점 쌍 집합).
 
@@ -47,8 +47,14 @@
 | 3 | `tests/e2e/k8s/e2e-patch.yaml` | `gold-fixtures` | GOLD-03 | GOLD | serving pod에 `gold` volume(ConfigMap `gold-fixtures`)을 `/data/gold`(readOnly)로 마운트한다 | 같은 R1 원인 — 서빙이 `<ECON_DATA_ROOT>/gold/*.jsonl`을 파일 시스템에서 읽는 계약이라 픽스처를 볼륨으로 주입해야 한다 |
 | 4 | `tests/smoke.sh` | `--source fake` | FEED-01 | FEED | 스모크 수집 단계를 페이크 수집원에 고정한다 | 실 RSS/Atom 피드는 가용성·내용이 매 순간 달라 결정적 단정이 불가하다 — 스모크는 오프라인·결정적으로 유지돼야 하고(CI `make test`), 단정이 피드 내용(특정 주제 관측)에 의존한다 |
 | 5 | `tests/smoke.sh` | `--analyzer fake` | LLM-01 | LLM | 스모크 분석 단계를 페이크 분석기에 고정한다 | 실 chat-completions 호출은 `ECON_LLM_API_KEY`·과금·네트워크가 필요하고 응답이 비결정적이다 — 미설정 러너에서 스모크가 exit 2로 죽는다 |
+| 6 | `tests/e2e/run.sh` | `feed-fixtures` | FEED-02 | FEED | kind 클러스터에 커밋된 피드 픽스처(`tests/e2e/fixtures/feeds`)를 `feed-fixtures` ConfigMap으로 만든다 | 실 RSS/Atom 엔드포인트는 가용성·내용이 매 순간 달라 "상위 100건"·"60건만 제공"·"본문 미확보" 같은 단정을 걸 대상이 고정되지 않는다 |
+| 7 | `tests/e2e/k8s/batch/feed-double.yaml` | `feed-fixtures` | FEED-03 | FEED | 피드 더블 Pod가 그 ConfigMap을 `/feeds`로 마운트해 HTTP로 서빙한다 | FEED-02와 같은 원인 — 수집 CLI가 HTTP로 피드를 가져오는 계약이라 픽스처를 실제 엔드포인트로 세워야 한다 |
+| 8 | `tests/e2e/k8s/batch/ingest-job.yaml` | `feed-fixtures` | FEED-04 | FEED | 수집 Job이 같은 ConfigMap을 `/feeds`로 마운트해 피드 설정(`e2e-feeds.json`)을 읽는다 | 소스 목록·축·상한이 설정이므로(제품 계약) 더블을 가리키는 설정 자체를 주입해야 한다 |
+| 9 | `tests/e2e/k8s/batch/ingest-job.yaml` | `--feeds` | FEED-05 | FEED | 수집 CLI의 상류를 기본 피드 목록 대신 그 설정으로 돌린다(상류 재배선) | 같은 원인 — 실 상류로는 결정적 단정이 불가능하다. 파서·순위·절단·본문 주소화 등 **수집 로직은 제품 경로 그대로**이고 바뀌는 것은 상류뿐이다 |
 
-픽스처(`tests/e2e/fixtures/gold/axis_sentiment.jsonl`·`subject_trend.jsonl`)는 `contracts/gold/axis_sentiment.avsc`·`subject_trend.avsc`를 따른다(GOLD 카테고리 요건). 상류 재배선(`--feeds`·`ECON_LLM_BASE_URL`)과 브라우저 인터셉트는 등재 시점 0건 — 새로 나타나면 카테고리 판정 후 등재하거나 제거한다.
+픽스처(`tests/e2e/fixtures/gold/axis_sentiment.jsonl`·`subject_trend.jsonl`)는 `contracts/gold/axis_sentiment.avsc`·`subject_trend.avsc`를 따른다(GOLD 카테고리 요건). 브라우저 인터셉트는 여전히 **0건**이다. 상류 재배선은 2026-09-18 수집 배치 하네스가 서면서 `--feeds` 1건(FEED-05)이 생겼고, `ECON_LLM_BASE_URL`은 아직 0건이다 — 분석 배치가 e2e에 들어올 때 LLM 카테고리로 등재된다.
+
+**GOLD 카테고리는 아직 살아 있다.** 「GOLD 카테고리」의 소멸 조건은 *서빙 입력이 되는 Gold 분포를 배치 산출물로 만들 수 있게 되는 것*인데, 이번에 e2e에 들어온 것은 **수집 단계뿐**이라 서빙은 여전히 픽스처 Gold를 입력으로 받는다(집계 Job이 e2e에 없다). GOLD-01~03은 그대로 필요하다.
 
 ## 차단 요인 원장
 
@@ -71,3 +77,4 @@ AC3.1~3.5의 공백 원인(실집계 Gold와 해당 화면 착지 선행)은 같
 | 날짜 | task | 내용 |
 |------|------|------|
 | 2026-09-17 | rct_20260917-0001 | 문서 신설: 정책·허용목록 5지점(GOLD 3·FEED 1·LLM 1)·원장 R1(doc-tracker 공백 산문의 이행) 확정 |
+| 2026-09-18 | rct_20260918-0002 | 수집 배치 하네스 착지에 따라 FEED 4지점 추가 등재(FEED-02~05, 5→9지점). 등재가 아니라 **실환경 대체**로 늘어난 지점이다 — 수집 로직은 제품 경로 그대로 돌고 상류만 더블이다. **원장 R1의 판정은 이 task가 바꾸지 않는다**(자매 모델 `tbm_econ-opinion-monitor-e2e-mock-policy` 소관): 사실만 적으면 R1이 지목한 3단 중 **수집만** e2e 안으로 들어왔고 분석·집계는 그대로다 |
