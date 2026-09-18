@@ -1,7 +1,7 @@
 [project]
 name = "econ-aggregation"
 version = "0.0.0"
-description = "Aggregation batch — normalizes Silver into the Gold layer (fakes/stubs)."
+description = "Aggregation batch — normalizes Silver into the Gold layer."
 requires-python = ">=3.11"
 dependencies = ["econ-core"]
 

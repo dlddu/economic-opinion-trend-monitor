@@ -72,15 +72,18 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # One full cycle: collect into Bronze, then enrich that Bronze into Silver.
-    # Sequential on purpose — analysis reads the Bronze the ingest step just
-    # wrote, and both steps share the one `data` volume declared above.
+    # One full cycle: collect into Bronze, enrich that Bronze into Silver, then
+    # aggregate that Silver into Gold. Sequential on purpose — every step reads
+    # what the previous one just wrote, and all three share the one `data`
+    # volume declared above.
     - name: pipeline
       steps:
         - - name: ingest
             template: ingest
         - - name: analyze
             template: analyze
+        - - name: aggregate
+            template: aggregate
 
     # AC2.1-2.6 "실분석 -> 실 Silver". No args: the analyzer default is the real
     # model, exactly as the ingest step relies on the real-feed default.
@@ -113,6 +116,43 @@ spec:
               secretKeyRef:
                 name: econ-llm
                 key: api-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp
+
+    # AC3.2 "핵심 서술 대상 기준 집계" — Silver -> Gold. Until this template existed
+    # the `econ_aggregation` package was reachable only from the test harness, so
+    # no scheduled path ever produced Gold and serving fell back to empty
+    # datasets (deploy/base/deployment.yaml). No args: the CLI defaults to
+    # $ECON_DATA_ROOT and rewrites both Gold datasets from whatever Silver it
+    # finds.
+    #
+    # Pure recomputation over the shared volume — no network, no model calls —
+    # so a retry here is always safe and never billable.
+    - name: aggregate
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        command: ["econ-aggregation"]
+        args: []
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
         resources:
           requests:
             cpu: 100m
