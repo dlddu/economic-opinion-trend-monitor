@@ -3,10 +3,10 @@
 # the data volume (prod: PVC, preview/e2e: fixture Gold ConfigMap).
 #
 # No `images:` transformer here on purpose. The single source of the tag is
-# the `image:` line in deployment.yaml (where CI's `pin` job writes the main
-# SHA); consumers that need another tag retag it by image name — the PR
-# preview through its Flux Kustomization's spec.images, e2e through its own
-# overlay. A second entry for the same image here would overlap with theirs.
+# the `image:` line in deployment.yaml; consumers that need another tag retag
+# it by image name — the PR preview through its Flux Kustomization's
+# spec.images, e2e through its own overlay. A second entry for the same image
+# here would overlap with theirs.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

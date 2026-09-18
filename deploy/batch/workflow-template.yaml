@@ -10,9 +10,8 @@
 # never receive it. The `ghcr` Secret itself is injected into the namespace by
 # external-secrets.
 #
-# Both `image:` lines below are pinned to a main commit SHA by CI's `pin` job
-# (.github/workflows/image.yml), in step with the serving image in
-# deploy/base — do not edit the tags by hand.
+# The `image:` tags in this file are CI-owned and move in step with the serving
+# image in deploy/base — do not edit them by hand (README 「운영 고정(`pin` job)」).
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:

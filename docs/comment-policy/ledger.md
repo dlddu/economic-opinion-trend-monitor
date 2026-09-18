@@ -20,6 +20,12 @@
 |---|---|---|---|---|---|---|
 | 2026-09-18 | [initial-pass](passes/2026-09-18-initial-pass.md) | `9d6122b` | 776 | 121 | 655 | 62 → 60 |
 | 2026-09-18 | [regression-pass](passes/2026-09-18-regression-pass.md) | `a62eae1` | 960 | 7 | 953 | 81 → 80 |
+| 2026-09-18 | [pin-guard-pass](passes/2026-09-18-pin-guard-pass.md) | `e29dddd` | 982 | 3 | 979 | 81 → 81 |
+
+pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
+풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
+아래 파일별 행의 판정 칸에 그 사실과 추적처를 적는다 — 「각 행은 마지막으로 판정한 패스 기준」 규칙 때문에,
+적지 않으면 파일 전체가 판정된 것처럼 읽힌다.
 
 ## 파일별 원장
 
@@ -27,14 +33,14 @@
 |---|---:|---:|---:|---|
 | `Makefile` | 18 | 18 | 0 | 전량 제거 — 머리 11줄은 README「디렉터리 구조」「상태」재진술(골격·페이크 서술은 낡음), 18행은 `gen-check` 타깃이 복원, `## ---` 6줄은 구분선(help 파서 `^타깃:.*## `에 걸리지 않는 장식) |
 | `contracts/codegen.py` | 23 | 18 | 5 | 구분선 배너 6개(18줄) 제거. 유지: 원시 타입 표 설명, ruff magic-trailing-comma 회피 근거, 드라이버의 `# Python`/`# Go` 절 표지(애매 — 유지) |
-| `deploy/base/deployment.yaml` | 9 | 0 | 9 | 유지 — Gold 부재 시 빈 데이터셋·emptyDir 오버레이 이음새, 핀 태그 수기 편집 금지 경고(편집 지점의 가드), 불변 태그라 IfNotPresent가 옳다는 근거 |
-| `deploy/base/kustomization.yaml` | 9 | 0 | 9 | 유지 — `images:` 트랜스포머를 base에 두지 않는 이유(프리뷰·e2e 재태깅과의 중첩) |
+| `deploy/base/deployment.yaml` | 11 | 2 | 9 | **pin-guard-pass** — 제거 2줄: `deploy` 브랜치 발행 메커니즘 서술(어디로 발행되는지·무엇을 Flux가 추적하는지·어느 값이 운영값인지 — `.github/workflows/image.yml`과 README「운영 고정(`pin` job)」이 복원). 수기 편집 금지 가드는 **메커니즘 비의존 문면**으로 다시 써 유지. 유지: Gold 부재 시 빈 데이터셋·emptyDir 오버레이 이음새, 불변 태그라 IfNotPresent가 옳다는 근거 |
+| `deploy/base/kustomization.yaml` | 9 | 0 | 9 | **pin-guard-pass** — 줄 수 불변, 문면 정정 1곳: 거짓이 된 괄호절 `(where CI's \`pin\` job writes the main SHA)` 삭제(#35 이후 CI는 main에 쓰지 않는다). 유지 — `images:` 트랜스포머를 base에 두지 않는 이유(프리뷰·e2e 재태깅과의 중첩) |
 | `deploy/batch/cronworkflow-ingestion.yaml` | 27 | 10 | 17 | 제거 10줄 — AC1.1 배너(시나리오1↔이 파일은 doc-tracker e2e 매핑이 복원), ★suspend 착지 문단(README「배포」재진술 + 실제 `suspend: false`와 어긋난 낡은 서술). 유지: AC1.1 의무↔필드 대응·누락 보정 근거(스케줄 계약) |
 | `deploy/batch/cronworkflow-pipeline.yaml` | 34 | 6 | 28 | 제거 6줄 — ★suspend 착지 이유(README「배포」재진술). 유지: 상호 배타 근거, 켜기 전 4단계(analyzer_version·attempted=/failed=·exit 3 등 README에 없는 운용 지식), 과금 경고 |
 | `deploy/batch/kustomization.yaml` | 17 | 3 | 14 | 제거 3줄 — 두 스케줄 중 하나만 돈다(README「배포」재진술). 유지: base 밖에 두는 이유(kind e2e·Argo 부재), 클러스터 범위 컨트롤러, kustomizeconfig 연결 |
 | `deploy/batch/kustomizeconfig.yaml` | 10 | 0 | 10 | 유지 — kustomize `images:` 트랜스포머가 WorkflowTemplate 경로를 모르는 함정과 선언 위치 근거 |
 | `deploy/batch/rbac.yaml` | 6 | 0 | 6 | 유지 — workflowtaskresults 권한이 없으면 첫 단계가 실패하는 런타임 제약 |
-| `deploy/batch/workflow-template.yaml` | 39 | 3 | 36 | 제거 3줄 — 머리 배너(AC 흔적 + 집계 후속 = README「범위」재진술). 유지: 엔트리포인트 2개 근거, imagePullSecrets 선언 위치, exit 2 재시도 금지, Secret required 근거 등. `# AC1.1`/`# AC2.1-2.6` 인라인 태그는 판단 분기로 유지 |
+| `deploy/batch/workflow-template.yaml` | 46 | 1 | 45 | **pin-guard-pass — 머리 가드 블록만 판정(파일 전체 아님)** — 제거 1줄(3줄 → 2줄 가드): "pinned to a main commit SHA by CI's `pin` job (.github/workflows/image.yml)"는 #35 이후 거짓이고 코드·README가 복원한다. 가드("손으로 고치지 않는다" + 서빙 이미지와 보조를 맞춘다)는 **메커니즘도 개수도 없이** 유지 — 대상을 "both"로 세던 초안은 #38이 세 번째 `image:`를 들이자 거짓이 됐고, 그래서 개수 비의존 문면으로 다시 썼다(같은 교훈을 정책 본문 가드 항에 반영). initial-pass에서 이미 제거한 머리 배너 3줄(AC 흔적 + 집계 후속 = README「범위」재진술)은 그대로. 유지: 엔트리포인트 2개 근거, imagePullSecrets 선언 위치, exit 2 재시도 금지, Secret required 근거 등. `# AC1.1`/`# AC2.1-2.6` 인라인 태그는 판단 분기로 유지. **미판정 10줄** — #38(`33e24ea`)이 들인 AC3.2 aggregate 블록(136행 이후)은 이 패스의 범위 밖이고 `rct_20260918-0006`이 판정한다. 판정 전 46은 그 10줄을 **포함한** 현 실측값이므로, 이 행의 제거·남음은 "판정한 것이 1줄"이라는 뜻이지 나머지 45줄이 모두 유지 판정을 받았다는 뜻이 아니다 |
 | `deploy/overlays/preview/kustomization.yaml` | 30 | 0 | 30 | 유지 — efs StorageClass가 PVC 이름으로 access point를 재사용·연쇄 삭제하는 함정, Flux 분담, delete 패치가 이름 기준이라 새 CronWorkflow를 덮지 않는 함정. 머리의 serving/batch 두 절은 README「PR 프리뷰」와 겹치나 함정 서술과 한 덩어리라 판단 분기로 유지 |
 | `deploy/overlays/prod/batch-pvc.yaml` | 13 | 4 | 9 | 제거 4줄 — 체인 연결 시 공유 방식 결정 예고(README「배포」재진술, 스스로 'see README'). 유지: RWO 멀티어태치 근거, storageClassName 부재 의도 |
 | `deploy/overlays/prod/kustomization.yaml` | 32 | 12 | 20 | 제거 12줄 — `kubectl apply -k` 적용법·외부 노출(README「배포」재진술), 두 CronWorkflow 인계 목록(README·cronworkflow-pipeline.yaml 재진술). 유지: Recreate/RWO 근거, template-wide 볼륨, 주기 오버라이드 패치 예시(cronworkflow-ingestion.yaml이 가리키는 위치) |
@@ -89,4 +95,4 @@
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **regression-pass 기준 · 레포 전체** | **960** | **7** | **953** | 지문 값(`a62eae1` → 이 패스 후). 이 표는 그중 **64개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |
+| **pin-guard-pass 기준 · 레포 전체** | **982** | **3** | **979** | 지문 값(`e29dddd` → 이 패스 후). 이 표는 그중 **64개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |
