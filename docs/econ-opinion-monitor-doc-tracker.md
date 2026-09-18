@@ -11,9 +11,45 @@
 - **건강 상태**: ⚠️ **위험 있음** — 제품 소유자 미지정으로 전 가치가 고아 가치 상태.
   연결 구조 자체(가치↔PRD↔AC↔테스트)는 끊김 없이 완전함.
 - **문서↔구현 정합성**: 위 건강 상태의 ✅는 **문서 체계**(가치↔PRD↔AC↔테스트 연결)만을
-  뜻한다. 문서가 정의한 동작을 구현이 충족하는지는 별도(reconciler 정합성 루프)로 추적하며,
-  현재 **21개 AC 전부가 미구현**(부트스트랩 골격의 페이크/스텁 — AC1.7은 골격이 메커니즘만 시연) 상태다 —
-  아래 [구현 수렴 로드맵](#구현-수렴-로드맵-reconciler-정합성-루프) 참조.
+  뜻한다. 문서가 정의한 동작을 구현이 충족하는지는 별도(reconciler 정합성 루프, 모델
+  `tbm_econ-opinion-monitor-docs-impl`)로 추적한다. 아래 현황은 **실측이며 착지분과 잔여분을
+  갈라 적는다** — 하나로 뭉친 현재형 요약("21개 AC 전부가 미구현")은 착지가 쌓여도 문구가 바뀌지
+  않아 `576438e`(2026-07-24) 이후 7주간 정체했고, 그 사이 같은 문서의
+  [AC↔e2e 1:1 매핑표](#ace2e-11-매핑표)가 세 AC를 `✅ 착지`로 적어 **한 파일이 스스로를 반증**했다
+  (2026-09-18 정정). 그래서 각 잔여 항목에 **관측 좌표(파일 ∋ 문자열)** 를 단다 — 구현이 착지하면
+  좌표가 먼저 틀려져 다음 감지가 이 절을 다시 판정하게 된다.
+
+  **착지** (구현 기준. 전용 e2e spec 이 있는지는 [e2e 매핑](#e2e-매핑) 절이 보는 다른 축이다)
+  - **슬라이스 2 — 수집(AC1.1~1.7)**: 실 RSS/Atom 수집이 운영 기본값이다
+    (`python/packages/ingestion/src/econ_ingestion/cli.py` ∋ `real RSS/Atom 'feed' (default)`,
+    packaged `default_feeds.json`). 수집 스케줄은 가동 중이다 —
+    `deploy/batch/cronworkflow-ingestion.yaml` ∋ `suspend: false`.
+  - **슬라이스 3 — 분석(AC2.1~2.6)**: 실 chat-completions 분석기가 운영 기본값이고
+    (`python/packages/analysis/src/econ_analysis/cli.py` ∋ `the operational default`),
+    `deploy/batch/workflow-template.yaml` 에 `analyze` 템플릿과 `pipeline`(ingest→analyze) DAG 가
+    배선돼 있다. 단 그 스케줄은 아직 꺼져 있다(아래 잔여 「운영」).
+  - **AC3.6 · AC3.7 · AC3.8**: 전용 e2e spec 까지 착지한 3건
+    ([AC↔e2e 1:1 매핑표](#ace2e-11-매핑표)의 `✅ 착지`). AC3.7 은 `/compare` 실화면을 함께 당겨 왔다.
+
+  **잔여** (= 이 모델이 후속 슬라이스로 여는 대상. 페이크/스텁은 충족으로 세지 않는다)
+  - **AC3.2 · AC3.3 (슬라이스 4)**: `econ_aggregation` 패키지는 있으나 **배치 어디에도 배선돼 있지
+    않아 프로덕션에서 Gold 가 생성되지 않는다** — `deploy/batch/workflow-template.yaml` 의 템플릿은
+    `ingest`·`analyze`·`pipeline` 셋뿐이고, 서빙은 Gold 파일이 없으면 빈 데이터셋으로 뜬다
+    (`deploy/base/deployment.yaml` ∋ `treats missing files as empty datasets`). 더해
+    `python/packages/aggregation/src/econ_aggregation/aggregate.py` ∋ `(skeleton placeholder)` 가
+    스스로 페이크임을 밝힌다.
+  - **AC3.5 (슬라이스 5)**: `/api/trend` 가 자기선언 스텁이고 `/trend` 는 플레이스홀더다 —
+    `go/internal/handlers/handlers.go` ∋ `stub: single-bucket skeleton data`.
+  - **AC3.4 (슬라이스 6) · AC3.1 (슬라이스 8)**: 담당 화면이 아직 플레이스홀더다.
+  - **화면**: 실화면은 `dash`·`compare` 둘뿐이다 — `web/src/App.tsx` ∋
+    `const BUILT = new Set(["dash", "compare"]);` 밖의 5화면(trend·sentiment·fairness·trace·
+    reprocess)은 `Placeholder` 를 렌더한다.
+  - **운영**: 실 LLM 분석은 **프로덕션 스케줄로 정기 실행된 적이 없다** —
+    `deploy/batch/cronworkflow-pipeline.yaml` ∋ `suspend: true`. 켜는 것은 전제(`econ-llm` Secret)와
+    순서가 있는 비가역 운영 행위이므로 같은 파일 머리 주석의 절차를 따른다. 현재 상시 가동은
+    수집 전용 스케줄뿐이다.
+
+  순서·배정은 아래 [구현 수렴 로드맵](#구현-수렴-로드맵-reconciler-정합성-루프) 참조.
 - **시나리오↔e2e 매칭**: 테스트 문서의 시나리오 하나하나에 전용 e2e spec 파일이 있는지는 별도
   정합성 루프(`tbm_econ-opinion-monitor-scenario-e2e`)가 추적한다. 실측 현황·예외·구현 대기 등재는
   [e2e 매핑](#e2e-매핑) 절이 SSOT이며, 아래 "미검증 AC (테스트 없는 AC)"는 **AC가 시나리오로 덮이는가**
@@ -360,3 +396,4 @@ AC3.6·AC3.8은 대상 동작이 이미 대시보드에 있어 spec만 추가하
 | 2026-08-14 | AC3.7(3축 비교 뷰) 착지: `/compare` 를 플레이스홀더에서 실화면으로 세우고, `/api/compare` 가 3축을 **하나의 time bucket**(응답 `basis`)으로 정렬하도록 한 뒤 전용 spec `ac3-7-three-axis-compare.spec.ts` 신설 | 매칭 2 · 공백 18 (`/compare` 플레이스홀더, 비교 기준 미노출) | 매칭 3 · 공백 17, 규칙 1·2·3·4'·5·6 위반 0 (task rct_20260814-0001) |
 | 2026-08-08 | `## e2e 매핑` 절 신설(선언 규약·실측 집계·예외 목록·비-AC 등재·공백 목록) + 1:1 매칭 단위를 테스트 **케이스**에서 **파일**로 확정해 매핑표를 AC별 전용 파일로 재절단 + `make lint-ac-mapping` 게이트 신설 | e2e 선언 규약·예외 목록·집계 부재, `serving.spec.ts` 고아, 매핑표가 한 파일에 여러 AC 배정 | 매칭 2 · 예외 3 · 스모크 1 · 공백 16, 규칙 2·3·4·5·6 위반 0 (task rct_20260808-0001) |
 | 2026-09-09 | `## e2e 매핑` 절의 판정 축을 **AC → 테스트 문서 시나리오**로 이관: spec 헤더 선언을 `// 검증 시나리오: <문서 파일명>#시나리오 <N>` 으로 바꾸고, 21개 시나리오를 매칭·예외·**구현 대기(신설)**·공백 네 통에 실측 근거와 함께 등재. 게이트를 `check_scenario_mapping.py`(`make lint-scenario-mapping`)로 개정해 네 통 분할 회계와 구현 대기 **해제 신호 생존**을 강제 | 시나리오 축 선언 0건 · 등재 절이 전부 AC 축 · 시나리오 축을 보는 게이트 없음 | 매칭 3 · 예외 1 · 구현 대기 2 · 공백 15, 규칙 1·2·3·4·5·6 위반 0 (task rct_20260909-0001) |
+| 2026-09-18 | 「현재 상태 요약」의 문서↔구현 정합성 항목을 **착지/잔여 2분할 실측**으로 정정. 각 잔여 항목에 관측 좌표(파일 ∋ 문자열)를 달아, 구현이 착지하면 좌표가 먼저 틀려져 재판정이 강제되게 함 | 현재형 "21개 AC 전부가 미구현(페이크/스텁)" — `576438e`(2026-07-24) 이후 문구 정체. 슬라이스 2·3 착지와 AC3.6·3.7·3.8 착지를 놓쳐 같은 문서의 매핑표와 모순 | 착지(슬라이스 2·3 + AC3.6·3.7·3.8) / 잔여(AC3.1·3.2·3.3·3.4·3.5 · 5화면 플레이스홀더 · 집계 배치 미배선 · `econ-pipeline-hourly` suspend) 구분 기재 (task rct_20260918-0002) |
