@@ -1,9 +1,13 @@
-# Single entry point for every PR / main check, so branch protection needs to
+# Single entry point for every PR check, so branch protection needs to
 # require exactly one status check: `required`.
 #
 #   ci    -> ci.yml                   build (gen-check · lint · test), kind e2e
 #   docs  -> docs-journey-mockup.yml  journey ↔ mockup structure + flow
-#   image -> image.yml                publish serving/batch images; pin on main
+#   image -> image.yml                publish serving/batch images (PR head SHA)
+#
+# PRs only. Tests are not re-run on main pushes: what lands on main already
+# passed `required` as a PR. On main only image.yml runs (its own push
+# trigger), to publish and pin the merged SHA.
 #
 # `required` runs even when a dependency fails or is skipped (`if: always()`)
 # and passes only when every called workflow succeeded. Without `always()` a
@@ -15,18 +19,15 @@
 name: Checks
 
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
-# A new push to a PR supersedes the previous run. main runs are never
-# cancelled here (one group per SHA); image.yml keeps its own concurrency.
+# A new push to a PR supersedes the previous run.
 concurrency:
-  group: checks-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
@@ -37,10 +38,10 @@ jobs:
 
   image:
     uses: ./.github/workflows/image.yml
-    # Ceiling for the called workflow: image.yml narrows it back to
-    # contents: read, and only its main-only `pin` job asks for write.
+    # Called on PRs only, so `pin` (main pushes) is always skipped here and
+    # contents: read is enough.
     permissions:
-      contents: write
+      contents: read
       packages: write
 
   required:

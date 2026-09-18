@@ -22,13 +22,15 @@
 # docs-only PR labelled `deploy/preview` needs an image at that SHA. Unchanged
 # sources hit the buildx gha cache wholesale, so that costs little.
 #
-# Called from checks.yml on PRs and main pushes (so a failed publish fails the
-# single required check `required`); workflow_dispatch still runs it alone.
-# The github context is the caller's, so the event/ref conditions below behave
-# exactly as when this workflow was triggered directly.
+# Triggers: main pushes run it directly (publish + pin). PRs reach it through
+# checks.yml, so a failed publish fails the single required check `required`;
+# a called workflow sees the caller's github context, so the event/ref
+# conditions below behave the same either way. workflow_dispatch runs it alone.
 name: Image
 
 on:
+  push:
+    branches: [main]
   workflow_call:
   workflow_dispatch:
 
