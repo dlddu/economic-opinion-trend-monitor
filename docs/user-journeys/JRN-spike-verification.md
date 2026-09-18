@@ -8,9 +8,9 @@
 | 여정명 | 급등 신호의 진위 확인 |
 | 상태 | 초안 (v0.1) |
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
-| 최종 수정일 | 2026-08-29 |
+| 최종 수정일 | 2026-09-18 |
 | 달성 가치 | `V4` 수집원 편차를 보정한 공정한 비교 · `V5` 원문 추적성과 재처리 가능성 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.1·AC3.2·AC3.8) · `econ-opinion-monitor-prd-analysis.md` (AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · mockup `fairness`(`fairness.html`), `trace`(`trace.html`) — 화면 단위 mockup이라 여정 1:1 페이지는 미정 |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.1·AC3.2·AC3.8) · `econ-opinion-monitor-prd-analysis.md` (AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · mockup 여정 페이지 `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -47,37 +47,37 @@
 ### `STP-check-normalized` 정규화/원시 전환 확인
 
 - **사용자 행동**: 지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다 (AC3.8)
-- **터치포인트**: `fairness.html` 정규화 토글(`CMP-norm-toggle`), 원시↔정규화 대비 패턴(`PAT-raw-vs-norm`)
+- **터치포인트**: `JRN-spike-verification.html` 정규화 토글(`CMP-norm-toggle`), 원시↔정규화 대비 패턴(`PAT-raw-vs-norm`)
 - **생각·감정**: "정규화하면 이 순위가 유지되나?"
 - **페인포인트 / 이탈 위험**: 화면 어디에도 지금 값의 종류가 표시되지 않으면 두 수치를 섞어 해석한다 → 모든 수치 옆에 정규화 여부를 상시 명시
 
 ### `STP-inspect-sources` 소스 구성 확인
 
 - **사용자 행동**: 이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다 (AC3.1)
-- **터치포인트**: `fairness.html` 소스별 기여 테이블(`CMP-table`)
+- **터치포인트**: `JRN-spike-verification.html` 소스별 기여 테이블(`CMP-table`)
 - **생각·감정**: "한 군데서 다 나온 거면 신호가 아니라 잡음이지"
 - **페인포인트 / 이탈 위험**: 소스별 분해가 없으면 정규화를 믿을 수 있는지도 확인할 수 없다 → 소스별 기여 비중을 원시·정규화 양쪽으로 제시
 
 ### `STP-drilldown-articles` 기여 뉴스 목록으로 내려가기
 
 - **사용자 행동**: 해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다 (AC3.2)
-- **터치포인트**: `fairness.html` 기여 뉴스 행 → `trace.html`
+- **터치포인트**: `JRN-spike-verification.html` 기여 뉴스 행 → 같은 페이지의 원문 역추적 단계
 - **생각·감정**: "실제로 무슨 기사들이 잡힌 거야"
 - **페인포인트 / 이탈 위험**: 목록이 제목만 나열되면 같은 사건의 재탕인지 구분이 안 된다 → 소스·수집 시각·본문 중복 여부(AC1.7)를 목록에 함께 표기
 
 ### `STP-open-origin` 원문 역추적
 
 - **사용자 행동**: 개별 뉴스의 Bronze 원문 링크·원문 전체로 도달해 분류 근거를 확인한다 (AC2.6, AC1.4)
-- **터치포인트**: `trace.html` 계보 패턴(`PAT-lineage`), 원문 링크
+- **터치포인트**: `JRN-spike-verification.html` 계보 패턴(`PAT-lineage`), 원문 링크
 - **생각·감정**: "분류가 맞게 됐네" 또는 "이건 이 대상 기사가 아닌데?"
 - **페인포인트 / 이탈 위험**: 원문 링크가 만료·삭제되어 열리지 않으면 추적이 거기서 끊긴다 → Bronze에 보존된 원문 전체를 링크 실패와 무관하게 열람 가능하게
 
 ### `STP-judge` 판정과 종료
 
 - **사용자 행동**: "유효한 신호" 또는 "수집 편중" 중 하나로 판단하고 세션을 닫는다
-- **터치포인트**: `trace.html` / 제품 외부(리포트·메모)
+- **터치포인트**: `JRN-spike-verification.html` 판정 화면 / 제품 외부(리포트·메모)
 - **생각·감정**: "이건 써도 되겠다" / "이건 빼자"
-- **페인포인트 / 이탈 위험**: 판정 결과가 제품에 남지 않아 같은 대상을 다음에 또 검증한다 → 검증 이력·플래그 남기기 (현재 범위 밖, 백로그 후보)
+- **페인포인트 / 이탈 위험**: 판정 결과가 제품에 남지 않아 같은 대상을 다음에 또 검증한다 → 검증 이력·플래그 남기기 (현재 범위 밖, 백로그 후보). mockup은 근거 요약과 두 갈래의 끝까지를 화면으로 그렸으나 **판정은 세션 안에서만 유지**되며, 영속화는 이 백로그 항목 그대로다
 
 ## 4. 분기·예외 흐름
 
@@ -103,3 +103,4 @@
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |---|---|---|---|
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J4`를 "급등 검증"이라는 단일 계기 중심으로 좁혀 재정의 | Claude |
+| v0.1 | 2026-09-18 | 단계 정의 무변경. 터치포인트를 여정 페이지(`JRN-spike-verification.html`)로 이관하고 `STP-judge`의 화면 부재를 해소(영속화는 백로그 유지). 단계 식별자 변경 없음 | Claude |
