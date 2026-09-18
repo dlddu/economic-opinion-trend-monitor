@@ -47,7 +47,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:7fec172ad50890f49d73a8c362e8fa27907d2b80
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:e1afa956125e9b5d295faf1920b16c232ce61733
         # Set explicitly (rather than relying on the image ENTRYPOINT) so the
         # emissary executor never has to look the entrypoint up from a private
         # registry. No args: the default source is the real feed list and the
@@ -96,7 +96,7 @@ spec:
         # buries the message, so stop after the first attempt.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:7fec172ad50890f49d73a8c362e8fa27907d2b80
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:e1afa956125e9b5d295faf1920b16c232ce61733
         command: ["econ-analysis"]
         args: []
         env:
