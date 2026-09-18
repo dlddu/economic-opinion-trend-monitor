@@ -17,10 +17,9 @@
 # 관리한다 — 늘면 실패하고, 줄면 상한을 낮추라고 실패한다.
 name: docs — journey ↔ mockup
 
+# checks.yml 이 호출한다 — PR/main 트리거와 단일 required 체크(`required`)는 거기 있다.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
 
 jobs:
   structure:
