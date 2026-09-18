@@ -1,0 +1,5 @@
+[
+  { "source_id": "e2e-kr-wire", "axis": "KR", "feed_url": "http://econ-feed-double:8080/kr_wire.rss.xml", "limit": 100 },
+  { "source_id": "e2e-us-markets", "axis": "US", "feed_url": "http://econ-feed-double:8080/us_markets.atom.xml", "limit": 100 },
+  { "source_id": "e2e-global-desk", "axis": "GLOBAL", "feed_url": "http://econ-feed-double:8080/global_desk.rss.xml", "limit": 100 }
+]

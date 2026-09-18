@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 피드 더블 픽스처: 소스 B(US). limit=100 설정이지만 60건만 제공한다 —
+     제공 가능한 만큼만 수집되고 패딩이 일어나지 않는지 관측하기 위한 픽스처다. -->
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>E2E US Markets</title>
+  <entry>
+    <title>US market brief 001</title>
+    <link href="https://feed.e2e.invalid/us/001"/>
+    <content>US market commentary body 001. Deterministic fixture body.</content>
+    <views>69789</views>
+  </entry>
+  <entry>
+    <title>US market brief 002</title>
+    <link href="https://feed.e2e.invalid/us/002"/>
+    <content>US market commentary body 002. Deterministic fixture body.</content>
+    <views>69578</views>
+  </entry>
+  <entry>
+    <title>US market brief 003</title>
+    <link href="https://feed.e2e.invalid/us/003"/>
+    <content>US market commentary body 003. Deterministic fixture body.</content>
+    <views>69367</views>
+  </entry>
+  <entry>
+    <title>US market brief 004</title>
+    <link href="https://feed.e2e.invalid/us/004"/>
+    <content>US market commentary body 004. Deterministic fixture body.</content>
+    <views>69156</views>
+  </entry>
+  <entry>
+    <title>US market brief 005</title>
+    <link href="https://feed.e2e.invalid/us/005"/>
+    <content>US market commentary body 005. Deterministic fixture body.</content>
+    <views>68945</views>
+  </entry>
+  <entry>
+    <title>US market brief 006</title>
+    <link href="https://feed.e2e.invalid/us/006"/>
+    <content>US market commentary body 006. Deterministic fixture body.</content>
+    <views>68734</views>
+  </entry>
+  <entry>
+    <title>US market brief 007</title>
+    <link href="https://feed.e2e.invalid/us/007"/>
+    <content>US market commentary body 007. Deterministic fixture body.</content>
+    <views>68523</views>
+  </entry>
+  <entry>
+    <title>US market brief 008</title>
+    <link href="https://feed.e2e.invalid/us/008"/>
+    <content>US market commentary body 008. Deterministic fixture body.</content>
+    <views>68312</views>
+  </entry>
+  <entry>
+    <title>US market brief 009</title>
+    <link href="https://feed.e2e.invalid/us/009"/>
+    <content>US market commentary body 009. Deterministic fixture body.</content>
+    <views>68101</views>
+  </entry>
+  <entry>
+    <title>US market brief 010</title>
+    <link href="https://feed.e2e.invalid/us/010"/>
+    <content>US market commentary body 010. Deterministic fixture body.</content>
+    <views>67890</views>
+  </entry>
+  <entry>
+    <title>US market brief 011</title>
+    <link href="https://feed.e2e.invalid/us/011"/>
+    <content>US market commentary body 011. Deterministic fixture body.</content>
+    <views>67679</views>
+  </entry>
+  <entry>
+    <title>US market brief 012</title>
+    <link href="https://feed.e2e.invalid/us/012"/>
+    <content>US market commentary body 012. Deterministic fixture body.</content>
+    <views>67468</views>
+  </entry>
+  <entry>
+    <title>US market brief 013</title>
+    <link href="https://feed.e2e.invalid/us/013"/>
+    <content>US market commentary body 013. Deterministic fixture body.</content>
+    <views>67257</views>
+  </entry>
+  <entry>
+    <title>US market brief 014</title>
+    <link href="https://feed.e2e.invalid/us/014"/>
+    <content>US market commentary body 014. Deterministic fixture body.</content>
+    <views>67046</views>
+  </entry>
+  <entry>
+    <title>US market brief 015</title>
+    <link href="https://feed.e2e.invalid/us/015"/>
+    <content>US market commentary body 015. Deterministic fixture body.</content>
+    <views>66835</views>
+  </entry>
+  <entry>
+    <title>US market brief 016</title>
+    <link href="https://feed.e2e.invalid/us/016"/>
+    <content>US market commentary body 016. Deterministic fixture body.</content>
+    <views>66624</views>
+  </entry>
+  <entry>
+    <title>US market brief 017</title>
+    <link href="https://feed.e2e.invalid/us/017"/>
+    <content>US market commentary body 017. Deterministic fixture body.</content>
+    <views>66413</views>
+  </entry>
+  <entry>
+    <title>US market brief 018</title>
+    <link href="https://feed.e2e.invalid/us/018"/>
+    <content>US market commentary body 018. Deterministic fixture body.</content>
+    <views>66202</views>
+  </entry>
+  <entry>
+    <title>US market brief 019</title>
+    <link href="https://feed.e2e.invalid/us/019"/>
+    <content>US market commentary body 019. Deterministic fixture body.</content>
+    <views>65991</views>
+  </entry>
+  <entry>
+    <title>US market brief 020</title>
+    <link href="https://feed.e2e.invalid/us/020"/>
+    <content>US market commentary body 020. Deterministic fixture body.</content>
+    <views>65780</views>
+  </entry>
+  <entry>
+    <title>US market brief 021</title>
+    <link href="https://feed.e2e.invalid/us/021"/>
+    <content>US market commentary body 021. Deterministic fixture body.</content>
+    <views>65569</views>
+  </entry>
+  <entry>
+    <title>US market brief 022</title>
+    <link href="https://feed.e2e.invalid/us/022"/>
+    <content>US market commentary body 022. Deterministic fixture body.</content>
+    <views>65358</views>
+  </entry>
+  <entry>
+    <title>US market brief 023</title>
+    <link href="https://feed.e2e.invalid/us/023"/>
+    <content>US market commentary body 023. Deterministic fixture body.</content>
+    <views>65147</views>
+  </entry>
+  <entry>
+    <title>US market brief 024</title>
+    <link href="https://feed.e2e.invalid/us/024"/>
+    <content>US market commentary body 024. Deterministic fixture body.</content>
+    <views>64936</views>
+  </entry>
+  <entry>
+    <title>US market brief 025</title>
+    <link href="https://feed.e2e.invalid/us/025"/>
+    <content>US market commentary body 025. Deterministic fixture body.</content>
+    <views>64725</views>
+  </entry>
+  <entry>
+    <title>US market brief 026</title>
+    <link href="https://feed.e2e.invalid/us/026"/>
+    <content>US market commentary body 026. Deterministic fixture body.</content>
+    <views>64514</views>
+  </entry>
+  <entry>
+    <title>US market brief 027</title>
+    <link href="https://feed.e2e.invalid/us/027"/>
+    <content>US market commentary body 027. Deterministic fixture body.</content>
+    <views>64303</views>
+  </entry>
+  <entry>
+    <title>US market brief 028</title>
+    <link href="https://feed.e2e.invalid/us/028"/>
+    <content>US market commentary body 028. Deterministic fixture body.</content>
+    <views>64092</views>
+  </entry>
+  <entry>
+    <title>US market brief 029</title>
+    <link href="https://feed.e2e.invalid/us/029"/>
+    <content>US market commentary body 029. Deterministic fixture body.</content>
+    <views>63881</views>
+  </entry>
+  <entry>
+    <title>US market brief 030</title>
+    <link href="https://feed.e2e.invalid/us/030"/>
+    <content>US market commentary body 030. Deterministic fixture body.</content>
+    <views>63670</views>
+  </entry>
+  <entry>
+    <title>US market brief 031</title>
+    <link href="https://feed.e2e.invalid/us/031"/>
+    <content>US market commentary body 031. Deterministic fixture body.</content>
+    <views>63459</views>
+  </entry>
+  <entry>
+    <title>US market brief 032</title>
+    <link href="https://feed.e2e.invalid/us/032"/>
+    <content>US market commentary body 032. Deterministic fixture body.</content>
+    <views>63248</views>
+  </entry>
+  <entry>
+    <title>US market brief 033</title>
+    <link href="https://feed.e2e.invalid/us/033"/>
+    <content>US market commentary body 033. Deterministic fixture body.</content>
+    <views>63037</views>
+  </entry>
+  <entry>
+    <title>US market brief 034</title>
+    <link href="https://feed.e2e.invalid/us/034"/>
+    <content>US market commentary body 034. Deterministic fixture body.</content>
+    <views>62826</views>
+  </entry>
+  <entry>
+    <title>US market brief 035</title>
+    <link href="https://feed.e2e.invalid/us/035"/>
+    <content>US market commentary body 035. Deterministic fixture body.</content>
+    <views>62615</views>
+  </entry>
+  <entry>
+    <title>US market brief 036</title>
+    <link href="https://feed.e2e.invalid/us/036"/>
+    <content>US market commentary body 036. Deterministic fixture body.</content>
+    <views>62404</views>
+  </entry>
+  <entry>
+    <title>US market brief 037</title>
+    <link href="https://feed.e2e.invalid/us/037"/>
+    <content>US market commentary body 037. Deterministic fixture body.</content>
+    <views>62193</views>
+  </entry>
+  <entry>
+    <title>US market brief 038</title>
+    <link href="https://feed.e2e.invalid/us/038"/>
+    <content>US market commentary body 038. Deterministic fixture body.</content>
+    <views>61982</views>
+  </entry>
+  <entry>
+    <title>US market brief 039</title>
+    <link href="https://feed.e2e.invalid/us/039"/>
+    <content>US market commentary body 039. Deterministic fixture body.</content>
+    <views>61771</views>
+  </entry>
+  <entry>
+    <title>US market brief 040</title>
+    <link href="https://feed.e2e.invalid/us/040"/>
+    <content>US market commentary body 040. Deterministic fixture body.</content>
+    <views>61560</views>
+  </entry>
+  <entry>
+    <title>US market brief 041</title>
+    <link href="https://feed.e2e.invalid/us/041"/>
+    <content>US market commentary body 041. Deterministic fixture body.</content>
+    <views>61349</views>
+  </entry>
+  <entry>
+    <title>US market brief 042</title>
+    <link href="https://feed.e2e.invalid/us/042"/>
+    <content>US market commentary body 042. Deterministic fixture body.</content>
+    <views>61138</views>
+  </entry>
+  <entry>
+    <title>US market brief 043</title>
+    <link href="https://feed.e2e.invalid/us/043"/>
+    <content>US market commentary body 043. Deterministic fixture body.</content>
+    <views>60927</views>
+  </entry>
+  <entry>
+    <title>US market brief 044</title>
+    <link href="https://feed.e2e.invalid/us/044"/>
+    <content>US market commentary body 044. Deterministic fixture body.</content>
+    <views>60716</views>
+  </entry>
+  <entry>
+    <title>US market brief 045</title>
+    <link href="https://feed.e2e.invalid/us/045"/>
+    <content>US market commentary body 045. Deterministic fixture body.</content>
+    <views>60505</views>
+  </entry>
+  <entry>
+    <title>US market brief 046</title>
+    <link href="https://feed.e2e.invalid/us/046"/>
+    <content>US market commentary body 046. Deterministic fixture body.</content>
+    <views>60294</views>
+  </entry>
+  <entry>
+    <title>US market brief 047</title>
+    <link href="https://feed.e2e.invalid/us/047"/>
+    <content>US market commentary body 047. Deterministic fixture body.</content>
+    <views>60083</views>
+  </entry>
+  <entry>
+    <title>US market brief 048</title>
+    <link href="https://feed.e2e.invalid/us/048"/>
+    <content>US market commentary body 048. Deterministic fixture body.</content>
+    <views>59872</views>
+  </entry>
+  <entry>
+    <title>US market brief 049</title>
+    <link href="https://feed.e2e.invalid/us/049"/>
+    <content>US market commentary body 049. Deterministic fixture body.</content>
+    <views>59661</views>
+  </entry>
+  <entry>
+    <title>US market brief 050</title>
+    <link href="https://feed.e2e.invalid/us/050"/>
+    <content>US market commentary body 050. Deterministic fixture body.</content>
+    <views>59450</views>
+  </entry>
+  <entry>
+    <title>US market brief 051</title>
+    <link href="https://feed.e2e.invalid/us/051"/>
+    <content>US market commentary body 051. Deterministic fixture body.</content>
+    <views>59239</views>
+  </entry>
+  <entry>
+    <title>US market brief 052</title>
+    <link href="https://feed.e2e.invalid/us/052"/>
+    <content>US market commentary body 052. Deterministic fixture body.</content>
+    <views>59028</views>
+  </entry>
+  <entry>
+    <title>US market brief 053</title>
+    <link href="https://feed.e2e.invalid/us/053"/>
+    <content>US market commentary body 053. Deterministic fixture body.</content>
+    <views>58817</views>
+  </entry>
+  <entry>
+    <title>US market brief 054</title>
+    <link href="https://feed.e2e.invalid/us/054"/>
+    <content>US market commentary body 054. Deterministic fixture body.</content>
+    <views>58606</views>
+  </entry>
+  <entry>
+    <title>US market brief 055</title>
+    <link href="https://feed.e2e.invalid/us/055"/>
+    <content>US market commentary body 055. Deterministic fixture body.</content>
+    <views>58395</views>
+  </entry>
+  <entry>
+    <title>US market brief 056</title>
+    <link href="https://feed.e2e.invalid/us/056"/>
+    <content>US market commentary body 056. Deterministic fixture body.</content>
+    <views>58184</views>
+  </entry>
+  <entry>
+    <title>US market brief 057</title>
+    <link href="https://feed.e2e.invalid/us/057"/>
+    <content>US market commentary body 057. Deterministic fixture body.</content>
+    <views>57973</views>
+  </entry>
+  <entry>
+    <title>US market brief 058</title>
+    <link href="https://feed.e2e.invalid/us/058"/>
+    <content>US market commentary body 058. Deterministic fixture body.</content>
+    <views>57762</views>
+  </entry>
+  <entry>
+    <title>US market brief 059</title>
+    <link href="https://feed.e2e.invalid/us/059"/>
+    <content>US market commentary body 059. Deterministic fixture body.</content>
+    <views>57551</views>
+  </entry>
+  <entry>
+    <title>US market brief 060</title>
+    <link href="https://feed.e2e.invalid/us/060"/>
+    <content>US market commentary body 060. Deterministic fixture body.</content>
+    <views>57340</views>
+  </entry>
+</feed>

@@ -32,6 +32,8 @@ npm-debug.log*
 # ---- e2e (Playwright) ----
 /tests/e2e/playwright-report/
 /tests/e2e/test-results/
+# Bronze pulled out of the cluster by run.sh for the ingestion specs to read.
+/tests/e2e/.artifacts/
 
 # ---- Editor / OS ----
 .DS_Store

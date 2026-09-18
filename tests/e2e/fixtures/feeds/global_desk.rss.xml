@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 피드 더블 픽스처: 소스 C(GLOBAL). 8건 중 3건(003·006·008)은 본문 요소가 없어
+     본문 미확보(body_available=false, body_hash 빈 값) 경로를 관측하게 한다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Global Desk</title>
+    <link>https://feed.e2e.invalid/global</link>
+    <item>
+      <title>Global desk 001</title>
+      <link>https://feed.e2e.invalid/global/001</link>
+      <description>Global desk body 001. Deterministic fixture body.</description>
+      <views>49599</views>
+    </item>
+    <item>
+      <title>Global desk 002</title>
+      <link>https://feed.e2e.invalid/global/002</link>
+      <description>Global desk body 002. Deterministic fixture body.</description>
+      <views>49198</views>
+    </item>
+    <item>
+      <title>Global desk 003</title>
+      <link>https://feed.e2e.invalid/global/003</link>
+      <views>48797</views>
+    </item>
+    <item>
+      <title>Global desk 004</title>
+      <link>https://feed.e2e.invalid/global/004</link>
+      <description>Global desk body 004. Deterministic fixture body.</description>
+      <views>48396</views>
+    </item>
+    <item>
+      <title>Global desk 005</title>
+      <link>https://feed.e2e.invalid/global/005</link>
+      <description>Global desk body 005. Deterministic fixture body.</description>
+      <views>47995</views>
+    </item>
+    <item>
+      <title>Global desk 006</title>
+      <link>https://feed.e2e.invalid/global/006</link>
+      <views>47594</views>
+    </item>
+    <item>
+      <title>Global desk 007</title>
+      <link>https://feed.e2e.invalid/global/007</link>
+      <description>Global desk body 007. Deterministic fixture body.</description>
+      <views>47193</views>
+    </item>
+    <item>
+      <title>Global desk 008</title>
+      <link>https://feed.e2e.invalid/global/008</link>
+      <views>46792</views>
+    </item>
+  </channel>
+</rss>
