@@ -1,0 +1,28 @@
+# 목업(docs/mockups) ↔ 구현 렌더링 소스(web/src) 정합성 게이트 — 규칙 3·5.
+#
+#   render : 규칙 3(컴포넌트·패턴 이름 대조)과 규칙 5(구조·수치 = 공통 선택자의
+#            선언값 대조)를 stdlib python 으로 재실행한다. 설치 의존성 없음.
+#
+# 이 두 축은 모델 등록 이래 사이클마다 사람이 새로 세었고 셀 때마다 수가 달랐다.
+# 잔여를 적어 두는 docs/econ-opinion-monitor-design-tracker.md 는 모델의 양 side
+# versionScript 범위 밖(docs/ 루트)이라 그 파일이 바뀌어도 재감지가 걸리지 않는다 —
+# 기계가 없으면 잔여는 다음 트리거가 우연히 올 때까지 미판정으로 남는다.
+#
+# 기대값은 언제나 SSOT 에서 읽는다(디자인 시스템 문서 · mockup 인덱스 · App.tsx 의
+# BUILT · tracker 의 「규칙 3·5 기계 판정」 절). 허용목록은 래칫이라 실측이 상한을
+# 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
+#
+# checks.yml 이 호출한다 — PR 트리거와 단일 required 체크(`required`)는 거기 있다.
+name: docs — mockup ↔ render
+
+on:
+  workflow_call:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: 목업 ↔ 구현 렌더링 정합성(규칙 3·5) 판정
+        run: python3 scripts/check-mockup-render.py .
