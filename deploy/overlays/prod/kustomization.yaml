@@ -1,11 +1,6 @@
-# Production overlay for an external cluster:
-#   kubectl apply -k deploy/overlays/prod
-# (or point a Flux Kustomization at this path).
-#
 # Adds the app namespace, pulls in the scheduled batch (deploy/batch), and
 # gives each emptyDir seam a real claim: Gold survives Pod restarts, and the
 # scheduled ingestion writes Bronze into its own batch claim.
-# Exposure (Ingress etc.) is left to the cluster's own config.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -63,10 +58,3 @@ patches:
   #           path: /spec/schedule
   #           value: "*/30 * * * *"
   # and re-apply; the change takes effect from the next tick.
-  #
-  # The same seam turns a schedule on or off: /spec/suspend. Two CronWorkflows
-  # live in deploy/batch and exactly one of them may be running:
-  #   * econ-ingestion-hourly — collection only. Live today.
-  #   * econ-pipeline-hourly  — collection + real LLM analysis. Ships suspended.
-  # See deploy/batch/cronworkflow-pipeline.yaml for the prerequisites (the
-  # `econ-llm` Secret) and the order to hand over in.

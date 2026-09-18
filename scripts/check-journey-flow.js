@@ -43,7 +43,6 @@ const is = (a, b, m) => (JSON.stringify(a) === JSON.stringify(b))
   : bad(`${m}\n        expected ${JSON.stringify(b)}\n        actual   ${JSON.stringify(a)}`);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= SSOT 파싱 ================= */
 function readSteps(doc) {
   const sec3 = doc.split('## 3. 단계별 상세')[1];
   if (!sec3) return [];
@@ -91,7 +90,6 @@ function readStates(idxMd, jid) {
   return out;
 }
 
-/* ================= 여정 페이지 발견 ================= */
 /* 화면 단위 파일은 data-journey 를 선언하지 않으므로 자연히 제외된다(미이관분). */
 function discover() {
   const found = [];
@@ -104,7 +102,6 @@ function discover() {
   return found;
 }
 
-/* ================= 한 여정 페이지 구동 ================= */
 async function runJourney({ jid, file }, idxMd) {
   console.log(`\n${'='.repeat(72)}\n여정 페이지: ${file}  →  ${jid}\n${'='.repeat(72)}`);
 
@@ -322,7 +319,6 @@ async function runJourney({ jid, file }, idxMd) {
   }
 }
 
-/* ================= 실행 ================= */
 (async function main() {
   const idxMd = fs.readFileSync(IDX, 'utf8');
   const pages = discover();

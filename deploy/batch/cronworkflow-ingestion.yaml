@@ -1,5 +1,3 @@
-# AC1.1 — 정기 수집 스케줄링 (주기 설정 가능).
-#
 # Runs one ingestion cycle per schedule tick. `econ-ingestion` derives the
 # cycle id from the current UTC hour when --cycle is omitted and is idempotent
 # per cycle, so a tick that runs late still lands in the right cycle bucket.
@@ -14,14 +12,6 @@
 #                                  retryStrategy (per-run retries) +
 #                                  concurrencyPolicy: Forbid (a late run never
 #                                  overlaps the next)
-#
-# ★ Lands suspended on purpose — do not flip this in the same change that
-#   introduces it. The cluster syncs this path automatically, so merging is
-#   already applying; suspend keeps "applied" and "running" separate decisions.
-#   Before unsuspending, submit one workflow by hand from
-#   `econ-batch-pipeline` and confirm the private batch image pulls, the data
-#   volume mounts writable, and a cycle completes. Unsuspending starts real
-#   outbound HTTP to every endpoint in default_feeds.json, every hour.
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:

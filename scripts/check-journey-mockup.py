@@ -53,7 +53,6 @@ def strip_code(md):
     md = re.sub(r"```.*?```", "", md, flags=re.S)
     return re.sub(r"`[^`]*`", "", md)
 
-# ---------------------------------------------------------------- SSOT 파싱
 journeys = {}   # jid -> {steps:[...], branches:[(when, jid, sid)], path}
 for fn in sorted(os.listdir(JDIR)):
     if not (fn.startswith("JRN-") and fn.endswith(".md")):
@@ -145,7 +144,6 @@ else:
 tracker = read(TRACKER) if os.path.exists(TRACKER) else ""
 excepted = set(re.findall(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|.*재검토", tracker, re.M))
 
-# ---------------------------------------------------------------- 여정 페이지 검사
 pages = {}   # path -> html
 for fn in sorted(os.listdir(MDIR)):
     if fn.endswith(".html"):
@@ -309,7 +307,6 @@ for jid, path in registered.items():
     if jid not in declared:
         fail("R7", f"인덱스는 `{jid}` 를 여정 페이지로 등재했는데 그 파일이 data-journey 를 선언하지 않았다")
 
-# ---------------------------------------------------------------- R1 래칫
 unmigrated = sorted(set(journeys) - set(declared) - excepted)
 if CEIL is not None:
     if len(unmigrated) > CEIL:
@@ -321,7 +318,6 @@ if CEIL is not None:
         ok("R1", f"미이관 여정 {len(unmigrated)}건 == 상한 {CEIL} (이관 완료 "
                  f"{len(declared)}/{len(journeys)})")
 
-# ---------------------------------------------------------------- 규칙 5 래칫
 # 여정 페이지가 아닌 화면 단위 mockup 은 개정된 규칙 5(프로토타입 충실도)를 구조적으로
 # 만족할 수 없다(여정 워크스루가 아니다). 하드 실패시키지 않고 상한 래칫으로 관리한다.
 screen_pages = sorted(fn for fn in pages
@@ -335,7 +331,6 @@ if CEIL5 is not None:
     else:
         ok("R5", f"규칙 5 미충족 mockup 페이지 {len(screen_pages)}건 == 상한 {CEIL5}")
 
-# ---------------------------------------------------------------- R9 하네스 배선
 # 모델 정의: "(c)(d)(e) 는 정적 대조로 확인할 수 없다 → 하네스를 레포에 커밋해 CI 게이트에
 # 얹는다. 하네스가 없거나 CI 에 걸려 있지 않은 상태는 그 자체가 drift."
 HARNESS = "scripts/check-journey-flow.js"
@@ -371,7 +366,6 @@ else:
     if declared and not missing_scen:
         ok("R9", f"여정 페이지 {len(declared)}개 전부 하네스 시나리오 보유")
 
-# ---------------------------------------------------------------- R7 허브
 hub = strip_comments(read(HUB))
 hub_mock = re.findall(r'<a class="mock" href="mockups/([^"]+)"', hub)
 missing = [h for h in hub_mock if not os.path.exists(os.path.join(MDIR, h))]
@@ -386,7 +380,6 @@ for jid, fn in declared.items():
 if not missing:
     ok("R7", f"허브의 mockup 링크 {len(hub_mock)}건 전부 실재 + 이관 여정은 여정 페이지를 가리킴")
 
-# ---------------------------------------------------------------- R8 링크 무결성
 DOCS = D("docs")
 total = broken = 0
 md_from_html = []
@@ -424,7 +417,6 @@ if md_from_html:
 if not broken and not md_from_html:
     ok("R8", f"docs/ 상대 링크 {total}건 전부 해석 · HTML→.md 직접 링크 0건")
 
-# ---------------------------------------------------------------- 결과
 print()
 if fails:
     print(f"FAIL — 위반 {len(fails)}건")

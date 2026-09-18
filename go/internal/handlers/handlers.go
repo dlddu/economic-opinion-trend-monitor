@@ -37,8 +37,6 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/reprocess", h.reprocess) // screen: reprocess
 }
 
-// --- response shapes ------------------------------------------------------
-
 type metric struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
@@ -61,8 +59,6 @@ type dashboardResponse struct {
 	TopSubjects []rankRow                 `json:"top_subjects"`
 	Sentiment   gen.SentimentDistribution `json:"sentiment"`
 }
-
-// --- handlers -------------------------------------------------------------
 
 func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -183,8 +179,6 @@ func (h *Handlers) reprocess(w http.ResponseWriter, _ *http.Request) {
 		"note":   "stub: 재처리 콘솔 자리. analyzer 버전 bump + 재분석 트리거는 후속 작업 (AC2.6)",
 	})
 }
-
-// --- helpers --------------------------------------------------------------
 
 func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 	rows := make([]rankRow, 0, len(trends))

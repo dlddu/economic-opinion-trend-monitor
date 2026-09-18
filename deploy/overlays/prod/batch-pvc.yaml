@@ -6,10 +6,6 @@
 # uses concurrencyPolicy: Forbid), so there is no multi-attach window against
 # the serving Pod — which matters here because serving is scaled to zero when
 # idle and can come back on any node.
-#
-# When the Bronze -> Silver -> Gold chain is wired end to end, that slice
-# decides how batch output reaches serving (shared ReadWriteMany claim, or a
-# copy step) — see README.
 # No storageClassName: the cluster default is used.
 apiVersion: v1
 kind: PersistentVolumeClaim
