@@ -1,0 +1,73 @@
+# `…-test-ingestion.md#시나리오 7`(본문 중복 제거와 수정 버전 보존)의 **주기 1**.
+#
+# 시나리오는 세 주기의 수집을 순차 실행하라고 요구한다. 주기를 Job 하나로 합치지 않고 셋으로
+# 나눈 것은 운영 컨테이너 계약을 그대로 두기 위해서다 — 운영의 한 주기는 `econ-ingestion` 한
+# 번이고(deploy/batch/workflow-template.yaml 의 `ingest` 템플릿), 컨테이너 command 를 쉘 루프로
+# 바꾸면 e2e 가 검증하는 것이 제품 계약이 아니게 된다.
+#
+# 세 Job 은 반드시 **순차**로 돌아야 한다(run.sh 가 하나씩 apply 하고 완료를 기다린다).
+# 동시에 돌면 같은 `news_item.jsonl` 에 함께 쓰는데, 그 데이터셋은 주기마다 **덮어쓰기**라
+# (`LakeStore.write_records`) 마지막에 남는 내용이 비결정적이 된다.
+#
+# 데이터 루트는 `/data/cycles` 로 분리한다. 본문 저장소(`news_body`)는 주기를 가로질러
+# 누적되는 것이 관측 대상이므로 세 주기가 같은 루트를 공유해야 하고, 동시에 정상 1주기가
+# 쓰는 `/data` 와는 섞이면 안 된다(기존 ingestion 2·3·4·5 의 입력이 오염된다).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-cycle1
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-10 — 주기마다 내용이 달라지는 상류로 수집 CLI를 돌린다(실 상류로는 "같은 기사의 본문이 3주기째에 수정된다"를 만들 수 없다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-cycle12.json
+            - --cycle
+            - "2026-02-01T00:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/cycles
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-09 — 주기별 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}

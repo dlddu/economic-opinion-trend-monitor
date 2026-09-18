@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 고장 주입 픽스처: 재시도 끝에 성공하는 소스가 돌려주는 내용. 더블이 이 파일을
+     `/__flaky__/<n>/` 뒤에서 서빙하므로 처음 n 번 요청은 503 이고 그 뒤에야 이 본문이 온다.
+     이 소스가 failed_sources 에 없고 아래 레코드가 Bronze 에 있으면 재시도가 동작한 것이다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Faults Flaky</title>
+    <link>https://faults.e2e.invalid/flaky</link>
+    <item>
+      <title>재시도 성공 기사 001</title>
+      <link>https://faults.e2e.invalid/flaky/001</link>
+      <description>재시도 끝에 도달한 본문 001. 첫 시도들은 503 이었습니다.</description>
+      <views>3300</views>
+    </item>
+    <item>
+      <title>재시도 성공 기사 002</title>
+      <link>https://faults.e2e.invalid/flaky/002</link>
+      <description>재시도 끝에 도달한 본문 002. 첫 시도들은 503 이었습니다.</description>
+      <views>3200</views>
+    </item>
+  </channel>
+</rss>

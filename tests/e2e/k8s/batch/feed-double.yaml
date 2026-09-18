@@ -1,6 +1,12 @@
 # 수집 배치의 상류를 대신하는 피드 더블. 새 이미지를 끌어오지 않도록 이미 kind에
-# 사이드로드된 배치 이미지로 stdlib HTTP 서버만 띄운다 — 서빙하는 내용이 전부이고
-# 코드는 없다. 제어 가능한 상류라는 점이 요지다: 무엇을 몇 건 주는지가 픽스처에 고정된다.
+# 사이드로드된 배치 이미지로 stdlib HTTP 서버만 띄운다. 제어 가능한 상류라는 점이 요지다:
+# 무엇을 몇 건 주는지가 픽스처에 고정된다.
+#
+# 2026-09-18(rct_20260918-0004)부터 `python -m http.server` 대신 픽스처 디렉터리의
+# `server.py` 를 돈다. 기본 동작은 그대로 이 디렉터리를 서빙하는 것이라 기존 피드 URL 의
+# 응답은 바이트 동일하고, 그 위에 `…-test-ingestion.md#시나리오 6` 이 요구하는 고장 주입
+# 경로(`/__fail__/` · `/__flaky__/` · `/__slow__/`)만 얹힌다. 상류의 **가용성**을 시나리오가
+# 전제하는 대로 흔드는 자리이지 수집 로직을 흉내내는 곳이 아니다.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +31,8 @@ spec:
         - name: feed-double
           image: econ-monitor-batch:e2e
           imagePullPolicy: Never
-          command: ["python", "-m", "http.server", "8080", "--directory", "/feeds"]
+          # mock-exception: FEED-06 — 실 상류의 오류·타임아웃·중복 노출을 관측하려면 상류가 그 행위를 내야 해 고장 주입 더블을 돈다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          command: ["python", "/feeds/server.py", "8080"]
           ports:
             - containerPort: 8080
           readinessProbe:

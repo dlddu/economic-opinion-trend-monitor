@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 고장 주입 픽스처: 건강한 소스. 옆 소스들이 실패·지연·중복을 내는 동안 이 소스의
+     관측 레코드가 Bronze 에 그대로 남아야 한다(부분 장애 격리). views 는 엄격히 감소한다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Faults OK</title>
+    <link>https://faults.e2e.invalid/ok</link>
+    <item>
+      <title>정상 소스 기사 001</title>
+      <link>https://faults.e2e.invalid/ok/001</link>
+      <description>정상 소스 본문 001. 옆 소스가 실패해도 이 레코드는 남아야 합니다.</description>
+      <views>4400</views>
+    </item>
+    <item>
+      <title>정상 소스 기사 002</title>
+      <link>https://faults.e2e.invalid/ok/002</link>
+      <description>정상 소스 본문 002. 옆 소스가 실패해도 이 레코드는 남아야 합니다.</description>
+      <views>4300</views>
+    </item>
+    <item>
+      <title>정상 소스 기사 003</title>
+      <link>https://faults.e2e.invalid/ok/003</link>
+      <description>정상 소스 본문 003. 옆 소스가 실패해도 이 레코드는 남아야 합니다.</description>
+      <views>4200</views>
+    </item>
+    <item>
+      <title>정상 소스 기사 004</title>
+      <link>https://faults.e2e.invalid/ok/004</link>
+      <description>정상 소스 본문 004. 옆 소스가 실패해도 이 레코드는 남아야 합니다.</description>
+      <views>4100</views>
+    </item>
+  </channel>
+</rss>
