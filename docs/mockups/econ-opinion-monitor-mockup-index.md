@@ -72,7 +72,7 @@
 | `STP-scan-axis-tops` | `compare` | 축별 상위 대상 대조 |
 | `STP-disambiguate-axis` | `compare` | 출처 축 ↔ 대상 축 구분 |
 | `STP-pick-outlier` | `compare` | 축 간 격차 · 편차 대상 선택 |
-| `STP-verify-in-trend` | `trend` | 이 여정 맥락의 추세 상세. `trend`는 아직 `Placeholder`라 구현 의무는 `tbm_econ-opinion-monitor-docs-impl` 소관이다. 다만 이 단계가 선언하는 **「비교 뷰의 축·기간을 그대로 승계」는 `compare`가 넘겨줘야 하는 계약**이므로, 승계 자체의 구현은 `compare`의 인계 항목으로 남는다. |
+| `STP-verify-in-trend` | `trend` | 이 여정 맥락의 추세 상세. `trend`는 `#45`(2026-09-19)로 `App.tsx`의 `BUILT`에 들었다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(이전 문면 「아직 `Placeholder`라 구현 의무는 `docs-impl` 소관」은 그 커밋 이후 사실과 어긋났고 rct_20260919-0002가 정정했다). 아직 화면에 없는 것을 **세우는** 일은 여전히 `docs-impl` 몫이고, 있는 것이 목업과 어긋나는지는 mockup-render 몫이다. 다만 이 단계가 선언하는 **「비교 뷰의 축·기간을 그대로 승계」는 `compare`가 넘겨줘야 하는 계약**이므로, 승계 자체의 구현은 `compare`의 인계 항목으로 남는다. |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
