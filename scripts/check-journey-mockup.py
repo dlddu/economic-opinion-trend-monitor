@@ -17,6 +17,9 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
   R6  참조 무결성: 폐기 식별자(`J1`~`J5`) 재사용 금지, 없는 여정·단계 참조 금지
   R7  인덱스 ↔ 실제 파일 ↔ 허브 링크 동기화
   R8  링크 무결성: docs/ 상대 링크가 전부 해석되고, HTML 이 `.md` 를 직접 링크하지 않는다
+  R10 인덱스·설계 트래커의 **서술 절이 재진술한 숫자**가 실측과 같다(규칙 7 의 기계화 —
+      표와 래칫만 갱신하고 산문을 남겨 두 SSOT 가 서로 다른 사실을 말하는 것을 잡는다)
+  R11 설계 트래커 「문서 목록」의 mockup 파일 등재 ↔ 실파일 양방향 일치
 """
 import os, re, sys, html
 
@@ -429,6 +432,90 @@ if md_from_html:
                "reader.html 경유로: " + "; ".join(md_from_html))
 if not broken and not md_from_html:
     ok("R8", f"docs/ 상대 링크 {total}건 전부 해석 · HTML→.md 직접 링크 0건")
+
+# ── R11 ── 설계 트래커 「문서 목록」의 mockup 파일 경로 ↔ 실파일 양방향 정합.
+# R7 이 보는 것은 인덱스의 *여정 등재*와 허브 링크뿐이라, 트래커가 삭제된 화면 파일을
+# 실파일로 계속 등재해도 아무도 잡지 못했다(rct_20260918-0004). 여기서 닫는다.
+def _expand_braces(tok):
+    m = re.search(r"\{([^}]*)\}", tok)
+    if not m:
+        return [tok]
+    out = []
+    for part in m.group(1).split(","):
+        out += _expand_braces(tok[:m.start()] + part.strip() + tok[m.end():])
+    return out
+
+_sec = re.split(r"^## ", tracker, flags=re.M)
+_doclist = next((s for s in _sec if s.startswith("문서 목록")), "")
+listed = set()
+for tok in re.findall(r"`(mockups/[^`]+)`", _doclist):
+    for one in _expand_braces(tok):
+        if one.endswith(".html"):
+            listed.add(os.path.basename(one))
+actual = set(pages)
+if not _doclist:
+    fail("R11", "설계 트래커에 「## 문서 목록」 절이 없다 — mockup 실파일 등재를 대조할 수 없다")
+else:
+    ghost = sorted(listed - actual)
+    unlisted = sorted(actual - listed)
+    if ghost:
+        fail("R11", f"트래커 문서 목록이 실재하지 않는 mockup 파일을 등재한다: {ghost}")
+    if unlisted:
+        fail("R11", f"실재하는 mockup 파일이 트래커 문서 목록에 없다: {unlisted}")
+    if not ghost and not unlisted:
+        ok("R11", f"트래커 문서 목록의 mockup 파일 {len(listed)}건 == 실파일 {len(actual)}건")
+
+# ── R10 ── 서술 절이 재진술하는 숫자 ↔ 실측 대조.
+# 규칙 7("한쪽만 갱신된 상태는 drift")의 기계화. 표·래칫은 R1/R5/R7 이 이미 보지만,
+# 같은 사실을 **산문으로 다시 적은 문장**은 아무도 보지 않아 이관 슬라이스마다 낡았다
+# (rct_20260918-0004: 인덱스는 3/6·미시각화 4단계, 트래커는 4/6·3단계 — 두 SSOT 불일치).
+# 숫자를 산문에서 추방하는 대신 **실측과 대조**한다 — 사람이 읽는 문장은 그대로 두고
+# 낡으면 CI 가 잡는다.
+#   면제: 인용 블록(`> `)과 코드 펜스. 이력·규약 서술이 과거 수치를 인용할 자리다.
+_unvis_steps = []
+_cov = next((s for s in re.split(r"^## ", idx, flags=re.M) if s.startswith("여정 단계 커버리지")), "")
+for line in _cov.splitlines():
+    cols = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("|") else []
+    if len(cols) >= 3 and cols[2] == "(없음)":
+        _unvis_steps += re.findall(r"`(STP-[a-z0-9-]+)`", cols[1])
+
+M_PAGES, M_JRN = len(declared), len(journeys)
+M_SCREENS, M_UNVIS = len(screen_pages), len(_unvis_steps)
+# (이름, 정규식, 기대값 튜플, 그 줄에 함께 있어야 하는 문맥)
+CLAIMS = [
+    ("이관 진척",   r"(?:이관|재편)[^\n]{0,40}?(\d+)\s*/\s*(\d+)", (M_PAGES, M_JRN), None),
+    ("미시각화 단계", r"미시각화\s*(\d+)\s*단계",                    (M_UNVIS,),      None),
+    ("미시각화 단계", r"미시각화\s*단계\s*(\d+)\s*개",               (M_UNVIS,),      None),
+    ("미시각화 단계", r"(\d+)\s*미시각화",                           (M_UNVIS,),      None),
+    ("여정 페이지 수", r"여정 페이지\s*(\d+)",                        (M_PAGES,),      None),
+    ("화면 단위 수",  r"화면(?:\s*단위)?(?:\s*파일)?\s*(\d+)\s*개",   (M_SCREENS,),    r"여정 페이지\s*\d+"),
+    ("이관 완료 수",  r"이관된\s*(\d+)\s*개",                         (M_PAGES,),      None),
+    ("미이관 수",    r"나머지\s*(\d+)\s*개",                          (M_JRN - M_PAGES,), r"이관|화면 단위|여정 페이지"),
+]
+stale = []
+for path, body in ((IDX, idx), (TRACKER, tracker)):
+    rel, fenced = os.path.relpath(path, ROOT), False
+    for i, line in enumerate(body.splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced or line.lstrip().startswith(">"):
+            continue
+        for name, pat, want, ctx in CLAIMS:
+            if ctx and not re.search(ctx, line):
+                continue
+            for mm in re.finditer(pat, line):
+                got = tuple(int(g) for g in mm.groups() if g is not None)
+                if got != want:
+                    stale.append(f"{rel}:{i} [{name}] 「{mm.group(0).strip()}」 "
+                                 f"— 실측 {'/'.join(map(str, want))}")
+if stale:
+    fail("R10", f"서술 절의 숫자 {len(stale)}건이 실측과 다르다(규칙 7 — 한쪽만 갱신됨):\n    "
+                + "\n    ".join(stale))
+else:
+    ok("R10", f"서술 절의 재진술 숫자 전부 실측과 일치 "
+              f"(이관 {M_PAGES}/{M_JRN} · 여정 페이지 {M_PAGES} · 화면 단위 {M_SCREENS} · "
+              f"미시각화 {M_UNVIS}단계)")
 
 print()
 if fails:

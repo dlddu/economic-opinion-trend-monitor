@@ -4,7 +4,7 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-09-18
+> 마지막 갱신: 2026-09-19
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -113,6 +113,15 @@
 없다. 이 격차는 여정 단위 재편이 진행되며 닫힌다 — `scripts/check-journey-mockup.py` 가 이 값을
 상한으로 읽어 늘면 실패하고, 밑돌면 값을 낮추라고 실패한다(래칫). 여정 페이지는 이 집합에서 제외되며,
 `scripts/check-journey-flow.js` 하네스가 (b)~(e)를 실제 DOM에서 집행한다.
+
+**서술 절의 숫자 규약(규칙 7 / 게이트 R10).** 이 문서와 `docs/econ-opinion-monitor-design-tracker.md` 의
+산문이 이관 진척(`N/6`)·여정 페이지 수·화면 단위 수·미시각화 단계 수를 다시 적으면,
+`scripts/check-journey-mockup.py` 의 R10 이 그 숫자를 **실측과 대조해** 어긋나면 실패시킨다. 표와 래칫만
+갱신하고 산문을 남겨 두 SSOT 가 같은 사실을 서로 다르게 말하는 상태(rct_20260918-0004)를 막기 위함이다.
+숫자를 산문에서 추방하지는 않는다 — 읽는 사람에게 필요한 수치이므로, 대신 낡으면 CI 가 잡는다.
+**과거 시점의 수치를 인용할 자리는 인용 블록(`> `)과 코드 펜스**이며 그 안은 대조에서 면제된다.
+마찬가지로 R11 이 트래커 「문서 목록」의 mockup 파일 등재를 실파일과 양방향 대조한다 — 흡수로 삭제된
+화면 파일이 목록에 남거나, 새 여정 페이지가 목록에서 빠지는 것을 잡는다.
 
 ### 상태 변형 등재 (규칙 5(e))
 
@@ -265,9 +274,9 @@
 | V5 원문 추적·재처리 | `JRN-spike-verification`, `reprocess` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 진행 중 (3/6)**: `JRN-sentiment-shift`·`JRN-axis-contrast`·`JRN-spike-verification` 이 여정 페이지로 이관됐고 나머지 3개는 아직 화면 단위다. 이관 순서는 **화면 소유가 배타적인 여정부터** — `sentiment`·`compare` 는 각각 그 여정 전용이었고, `trace` 도 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐이라 세 화면 모두 흡수·삭제가 끝났다. 남은 3개는 **저마다 🔴 미시각화 단계를 하나 이상 안고 있어 제품 범위 확정이 선행**이며(`STP-shortlist`·`STP-backfill`·`STP-dry-run`·`STP-publish`), 화면도 서로 공유한다(`dash`·`trend`: daily-scan, `reprocess`: ingestion-recovery+logic-backfill) — 그 화면을 쓰는 여정이 **전부** 이관될 때 함께 흡수·삭제해야 한다. `dash`·`trend` 는 이제 `JRN-daily-scan` 단독 소유이므로 그 여정을 이관하면 두 파일이 함께 사라진다.
+- **여정↔mockup 1:1 이관 진행 중 (4/6)**: `JRN-sentiment-shift`·`JRN-axis-contrast`·`JRN-spike-verification`·`JRN-daily-scan` 이 여정 페이지로 이관됐고 나머지 2개(`JRN-ingestion-recovery`·`JRN-logic-backfill`)는 아직 화면 단위다. 이관 순서는 **화면 소유가 배타적인 여정부터** — `sentiment`·`compare` 는 각각 그 여정 전용이었고, `trace` 도 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐이며, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였다 — 다섯 화면 모두 흡수·삭제가 끝났다. 남은 2개는 **둘 다 🔴 미시각화 단계를 안고 있어 제품 범위 확정이 선행**이며(`STP-backfill`·`STP-dry-run`·`STP-publish`), 화면도 서로 공유한다(`reprocess`: ingestion-recovery+logic-backfill) — 그 화면을 쓰는 여정이 **전부** 이관될 때 함께 흡수·삭제해야 하므로, 두 여정은 **함께** 이관해야 `reprocess.html` 을 지울 수 있다.
 - **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
-- **미시각화 4단계**: `STP-shortlist`, `STP-backfill`, `STP-dry-run`, `STP-publish`. `STP-shortlist` 는 제품 범위(관심 대상 북마크·워치리스트) 확정이 선행돼야 한다.
+- **미시각화 3단계**: `STP-backfill`, `STP-dry-run`, `STP-publish` — 셋 다 운영 축이고 `JRN-ingestion-recovery`·`JRN-logic-backfill` 에 속한다. 재수집 실행·표본 실행·반영 결정 컨트롤을 제품에 둘 것인지가 선행 판단이다. `STP-shortlist` 는 2026-09-18 `JRN-daily-scan` 이관으로 해소됐다(추림 화면 신설 — 다만 영속화는 여정 문서가 파킹한 백로그 그대로다).
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).
 - **여정 페이지의 DOM 하네스는 페이지별 시나리오를 요구한다**: `scripts/check-journey-flow.js` 는 `data-journey` 를 선언한 페이지를 전부 발견해 (a)~(h)를 구동하고, `scripts/journey-scenarios/<여정 식별자>.js` 가 없으면 **실패한다**(fail-closed). 여정 페이지를 새로 얹을 때는 시나리오도 함께 넣어야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.
