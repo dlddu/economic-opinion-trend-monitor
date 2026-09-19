@@ -26,7 +26,7 @@ spec:
           image: econ-monitor-batch:e2e
           imagePullPolicy: Never
           command: ["econ-ingestion"]
-          # mock-exception: FEED-16 — 이 주기의 상류를 부풀린 상태 전용 설정(`e2e-feeds-agg-skew.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          # mock-exception: FEED-20 — 이 주기의 상류를 부풀린 상태 전용 설정(`e2e-feeds-agg-skew.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
           args:
             - --source
             - feed
@@ -62,7 +62,7 @@ spec:
             claimName: econ-e2e-batch-data
         - name: feeds
           configMap:
-            # mock-exception: FEED-15 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            # mock-exception: FEED-19 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
             name: feed-fixtures
         - name: tmp
           emptyDir: {}

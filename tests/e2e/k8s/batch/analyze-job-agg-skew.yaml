@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: Never
           command: ["econ-analysis"]
           args: []
-          # mock-exception: LLM-05 — chat-completions 상류를 클러스터 안 LLM 더블로 돌린다(BASE_URL·MODEL·더미 KEY 한 묶음: 실 모델은 응답이 비결정적이고 키·과금·네트워크를 CI에 끌고 들어온다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          # mock-exception: LLM-08 — chat-completions 상류를 클러스터 안 LLM 더블로 돌린다(BASE_URL·MODEL·더미 KEY 한 묶음: 실 모델은 응답이 비결정적이고 키·과금·네트워크를 CI에 끌고 들어온다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
           env:
             - name: ECON_DATA_ROOT
               value: /data/aggregation-skew
