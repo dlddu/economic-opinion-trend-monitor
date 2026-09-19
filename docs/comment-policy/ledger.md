@@ -21,6 +21,7 @@
 | 2026-09-18 | [initial-pass](passes/2026-09-18-initial-pass.md) | `9d6122b` | 776 | 121 | 655 | 62 → 60 |
 | 2026-09-18 | [regression-pass](passes/2026-09-18-regression-pass.md) | `a62eae1` | 960 | 7 | 953 | 81 → 80 |
 | 2026-09-18 | [pin-guard-pass](passes/2026-09-18-pin-guard-pass.md) | `e29dddd` | 982 | 3 | 979 | 81 → 81 |
+| 2026-09-18 | [aggregation-harness-pass](passes/2026-09-18-aggregation-harness-pass.md) | `e7fbcae` | 1317 | 5 | 1312 | 94 → 94 |
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -40,7 +41,7 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `deploy/batch/kustomization.yaml` | 17 | 3 | 14 | 제거 3줄 — 두 스케줄 중 하나만 돈다(README「배포」재진술). 유지: base 밖에 두는 이유(kind e2e·Argo 부재), 클러스터 범위 컨트롤러, kustomizeconfig 연결 |
 | `deploy/batch/kustomizeconfig.yaml` | 10 | 0 | 10 | 유지 — kustomize `images:` 트랜스포머가 WorkflowTemplate 경로를 모르는 함정과 선언 위치 근거 |
 | `deploy/batch/rbac.yaml` | 6 | 0 | 6 | 유지 — workflowtaskresults 권한이 없으면 첫 단계가 실패하는 런타임 제약 |
-| `deploy/batch/workflow-template.yaml` | 46 | 1 | 45 | **pin-guard-pass — 머리 가드 블록만 판정(파일 전체 아님)** — 제거 1줄(3줄 → 2줄 가드): "pinned to a main commit SHA by CI's `pin` job (.github/workflows/image.yml)"는 #35 이후 거짓이고 코드·README가 복원한다. 가드("손으로 고치지 않는다" + 서빙 이미지와 보조를 맞춘다)는 **메커니즘도 개수도 없이** 유지 — 대상을 "both"로 세던 초안은 #38이 세 번째 `image:`를 들이자 거짓이 됐고, 그래서 개수 비의존 문면으로 다시 썼다(같은 교훈을 정책 본문 가드 항에 반영). initial-pass에서 이미 제거한 머리 배너 3줄(AC 흔적 + 집계 후속 = README「범위」재진술)은 그대로. 유지: 엔트리포인트 2개 근거, imagePullSecrets 선언 위치, exit 2 재시도 금지, Secret required 근거 등. `# AC1.1`/`# AC2.1-2.6` 인라인 태그는 판단 분기로 유지. **미판정 10줄** — #38(`33e24ea`)이 들인 AC3.2 aggregate 블록(136행 이후)은 이 패스의 범위 밖이고 `rct_20260918-0006`이 판정한다. 판정 전 46은 그 10줄을 **포함한** 현 실측값이므로, 이 행의 제거·남음은 "판정한 것이 1줄"이라는 뜻이지 나머지 45줄이 모두 유지 판정을 받았다는 뜻이 아니다 |
+| `deploy/batch/workflow-template.yaml` | 45 | 3 | 42 | **aggregation-harness-pass — AC3.2 aggregate 블록만 판정(파일 전체 아님)** — 제거 3줄(6줄 → 3줄): "Until this template existed … no scheduled path ever produced Gold and serving fell back to empty datasets (deploy/base/deployment.yaml)"는 #38 커밋 메시지(경로 ④)와 `deploy/base/deployment.yaml`의 유지 판정 주석(경로 ①)이 복원하며, **initial-pass가 이 파일 머리에서 지운 "aggregation gets its own entrypoint when that slice lands"의 과거형 재발**이다. 유지: `# AC3.2` 인라인 태그(판단 분기 — `# AC1.1`·`# AC2.1-2.6`과 같은 형태), `No args: …` 2줄, `Pure recomputation … never billable` 2줄. **직전 행(pin-guard-pass)이 남긴 「미판정 10줄」 포인터는 이 패스가 해소했다** — 그 10줄이 곧 여기서 판정한 #38(`33e24ea`)의 AC3.2 aggregate 블록이다. **머리 가드 2줄("The `image:` tags in this file are CI-owned … README 「운영 고정(`pin` job)」")은 pin-guard-pass의 판정분이고 이 패스는 판정하지 않았다** — 판정 전 45는 pin-guard-pass가 그 가드를 3줄 → 2줄로 줄인 뒤의 실측값이다. 이 블록 밖의 줄은 initial-pass(머리 배너 3줄 제거 — AC 흔적 + 집계 후속 = README「범위」재진술)와 pin-guard-pass의 판정이 유효하다: 엔트리포인트 2개 근거, imagePullSecrets 선언 위치, exit 2 재시도 금지, Secret required 근거 등 유지 |
 | `deploy/overlays/preview/kustomization.yaml` | 30 | 0 | 30 | 유지 — efs StorageClass가 PVC 이름으로 access point를 재사용·연쇄 삭제하는 함정, Flux 분담, delete 패치가 이름 기준이라 새 CronWorkflow를 덮지 않는 함정. 머리의 serving/batch 두 절은 README「PR 프리뷰」와 겹치나 함정 서술과 한 덩어리라 판단 분기로 유지 |
 | `deploy/overlays/prod/batch-pvc.yaml` | 13 | 4 | 9 | 제거 4줄 — 체인 연결 시 공유 방식 결정 예고(README「배포」재진술, 스스로 'see README'). 유지: RWO 멀티어태치 근거, storageClassName 부재 의도 |
 | `deploy/overlays/prod/kustomization.yaml` | 32 | 12 | 20 | 제거 12줄 — `kubectl apply -k` 적용법·외부 노출(README「배포」재진술), 두 CronWorkflow 인계 목록(README·cronworkflow-pipeline.yaml 재진술). 유지: Recreate/RWO 근거, template-wide 볼륨, 주기 오버라이드 패치 예시(cronworkflow-ingestion.yaml이 가리키는 위치) |
@@ -50,7 +51,7 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `go/internal/handlers/handlers_test.go` | 14 | 0 | 14 | 유지 — 다중 버킷 픽스처 설계 근거, 단위/e2e 분담. AC3.7 태그는 판단 분기로 유지 |
 | `go/internal/static/static.go` | 6 | 0 | 6 | 유지 — 패키지·export doc 주석(SPA 폴백 동작 설명) |
 | `go/internal/store/store.go` | 12 | 0 | 12 | 유지 — 패키지·export doc 주석, Python LocalFsStore와의 대응, 누락 파일=빈 슬라이스 계약 |
-| `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 3 | 0 | 3 | 유지 — 중첩 dict 형태 표기(코드로 복원 어려움), AC3.4 분리 근거(태그는 판단 분기) |
+| `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 12 | 1 | 11 | **aggregation-harness-pass** — 제거 1줄: `# Percentage points, matching the contract's \`delta\` doc.` — 주석이 자기 복원처를 이름으로 지목하고 원본(`contracts/gold/subject_trend.avsc` `delta` 필드 `doc`)이 AC 번호까지 달아 더 정확하다(정책 doc 주석 항의 `contracts/` 스키마 재진술). 유지: 중첩 dict 형태 표기, 버킷 키 사전식=시간순 근거, "없는 버킷은 0이 아니다", AC3.4 분리 근거(태그는 판단 분기) |
 | `python/packages/aggregation/tests/test_aggregate.py` | 1 | 0 | 1 | 유지 — 테스트 의도(AC 태그 판단 분기) |
 | `python/packages/analysis/src/econ_analysis/cli.py` | 7 | 0 | 7 | 유지 — 종료 코드 의미(`#:` 속성 doc), 운영자 오류를 레이크 접근 전에 실패시키는 근거, 전량 실패 시 Silver 보존 근거 |
 | `python/packages/analysis/src/econ_analysis/fake_llm.py` | 4 | 0 | 4 | 유지 — 페이크 모델의 판정 규칙 근거(AC 태그 판단 분기) |
@@ -73,6 +74,7 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `scripts/journey-scenarios/JRN-sentiment-shift.js` | 27 | 7 | 20 | 제거 7줄 — 역할 분담 재진술(러너 머리 주석; '두 가지'라 쓰고 넷을 나열한 낡은 서술 포함). 유지: 시나리오 훅 목록(inputs/states/unlock/renders) |
 | `scripts/journey-scenarios/JRN-spike-verification.js` | 29 | 4 | 25 | regression-pass — 제거 4줄: 머리의 러너/시나리오 역할 분담 산문 3줄(`check-journey-flow.js` 「── 구조 ──」 절의 재진술) + 매달린 ` *` 1줄. `JRN-axis-contrast.js`와 같은 식별 1줄 형태로 줄였다. 유지: 훅별 `(c)(d)(e)(h)` 주석 4줄, 조작별 의도, jsdom `.value` 함정 |
 | `tests/e2e/check_scenario_mapping.py` | 22 | 4 | 18 | 제거 4줄 — `# --- … ---` 구분선. 유지: 판정 규칙 근거(첫 열만 읽는 이유, 등재 공백을 쓰는 이유 등) |
+| `tests/e2e/k8s/batch/feed-double.yaml` | 9 | 1 | 8 | **aggregation-harness-pass** — 이력 프레이밍 재작성(둘째 문단 5줄 → 4줄): "2026-09-18(rct_20260918-0004)부터 `python -m http.server` 대신 …"은 날짜·task id를 담은 변경 이력이라 복원 경로 ③④의 정의 그 자체이자 제거 유형 「작업 흔적」. 삭제가 아니라 재작성인 것은 같은 블록의 픽스처 지식을 살리기 위함이다. 유지: 이미지 재빌드 회피(사이드로드 이미지 재사용), 고장 주입 경로 3개, "가용성을 흔드는 자리이지 수집 로직을 흉내내는 곳이 아니다" |
 | `tests/e2e/k8s/e2e-patch.yaml` | 5 | 0 | 5 | 유지 — runc가 read-only 마운트 안에 mountpoint를 못 만드는 런타임 함정 |
 | `tests/e2e/k8s/kustomization.yaml` | 5 | 0 | 5 | 유지 — side-load·ConfigMap 픽스처 배선 근거 |
 | `tests/e2e/kind-config.yaml` | 2 | 0 | 2 | 유지 — 단일 노드 선택 근거 |
@@ -95,4 +97,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **pin-guard-pass 기준 · 레포 전체** | **982** | **3** | **979** | 지문 값(`e29dddd` → 이 패스 후). 이 표는 그중 **64개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |
+| **aggregation-harness-pass 기준 · 레포 전체** | **1317** | **5** | **1312** | 지문 값(`e7fbcae` → 이 패스 후). 이 표는 그중 **65개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |

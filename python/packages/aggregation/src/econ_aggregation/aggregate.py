@@ -86,7 +86,6 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
                 rows.items(), key=lambda kv: kv[1][0], reverse=True
             ):
                 past = history[subject]
-                # Percentage points, matching the contract's `delta` doc.
                 delta = round((normalized - past[-1]) * 100, 4) if past else 0.0
                 spark = [*past, normalized][-SPARK_WINDOW:]
                 past.append(normalized)
