@@ -35,6 +35,12 @@
     ingest → analyze → aggregate 3단이다. 같은 슬라이스에서 `SubjectTrend` 의 `delta`·`spark` 가
     가짜 램프(`_spark()`)에서 **자기 버킷 이력 실값**으로 바뀌어 집계 계층의 자기선언 페이크가
     사라졌다. 단 이 배선이 프로덕션에서 **실행되는** 것은 아래 「운영」의 suspend 가 풀린 뒤다.
+  - **AC3.5 (슬라이스 5)**: `/api/trend` 가 **대상별 버킷 순 시계열**을 내려주고(선택 대상 + 상위
+    비교 대상 N + `basis`), `/trend` 가 라인 차트 + 상위 대상 비교 표의 실화면으로 착지했다 —
+    `go/internal/handlers/handlers.go` 에서 `stub: single-bucket skeleton data` 가 사라졌고
+    `web/src/App.tsx` ∋ `const BUILT = new Set(["dash", "compare", "trend"]);` 다. 전용 e2e spec
+    (`ac3-5-subject-trend-chart.spec.ts`)은 아직 없어 [e2e 매핑](#e2e-매핑) 절이 이 시나리오를
+    **공백**으로 잡고 있다(구현 대기 아님 — 관측 대상은 생겼다).
 
   **잔여** (= 이 모델이 후속 슬라이스로 여는 대상. 페이크/스텁은 충족으로 세지 않는다)
   - **AC3.3 (슬라이스 4 잔여)**: 시간 버킷은 산출되지만 **일·주 롤업이 없다** — 산출 단위가
@@ -45,11 +51,9 @@
     `make lint-scenario-mapping` 이 규칙 6 으로 실패한다(2026-09-18 실측 확인). 그래서 이 잔여는
     구현과 그 표의 재판정을 **함께** 다루는 슬라이스로만 닫을 수 있다 — 그 표의 소유는 자매 모델
     `tbm_econ-opinion-monitor-scenario-e2e` 다.
-  - **AC3.5 (슬라이스 5)**: `/api/trend` 가 자기선언 스텁이고 `/trend` 는 플레이스홀더다 —
-    `go/internal/handlers/handlers.go` ∋ `stub: single-bucket skeleton data`.
   - **AC3.4 (슬라이스 6) · AC3.1 (슬라이스 8)**: 담당 화면이 아직 플레이스홀더다.
-  - **화면**: 실화면은 `dash`·`compare` 둘뿐이다 — `web/src/App.tsx` ∋
-    `const BUILT = new Set(["dash", "compare"]);` 밖의 5화면(trend·sentiment·fairness·trace·
+  - **화면**: 실화면은 `dash`·`compare`·`trend` 셋이다 — `web/src/App.tsx` ∋
+    `const BUILT = new Set(["dash", "compare", "trend"]);` 밖의 4화면(sentiment·fairness·trace·
     reprocess)은 `Placeholder` 를 렌더한다.
   - **운영**: 실 LLM 분석도 **집계도 프로덕션 스케줄로 정기 실행된 적이 없다** —
     `deploy/batch/cronworkflow-pipeline.yaml` ∋ `suspend: true`. 켜는 것은 전제(`econ-llm` Secret)와
@@ -164,16 +168,20 @@
 |------|-----|
 | 시나리오 전집 | 21 |
 | 예외 등재 | 1 |
-| 구현 대기 등재 | 2 |
-| 1:1 대상 (시나리오 − 예외 − 구현 대기) | 18 |
+| 구현 대기 등재 | 1 |
+| 1:1 대상 (시나리오 − 예외 − 구현 대기) | 19 |
 | 시나리오 매칭 spec 파일 | 13 |
-| 공백 (1:1 대상 중 파일 없음) | 5 |
+| 공백 (1:1 대상 중 파일 없음) | 6 |
 | 비-시나리오(스모크·인프라) spec 파일 | 1 |
 
 **불변식 현황**: 모델이 요구하는 `(시나리오 − 예외 − 구현 대기) = 매칭 파일` 은 **아직 성립하지
-않는다** — 18 ≠ 13 이고 그 차이가 공백 5다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
+않는다** — 19 ≠ 13 이고 그 차이가 공백 6이다. 게이트는 이 차이를 실패로 만들지 않고 **세어서 문서가
 사실대로 적고 있는지**만 본다(격차가 없다가 아니라 격차를 정직하게 말한다). 회계는 닫힌다:
-`전집 21 = 매칭 13 + 예외 1 + 구현 대기 2 + 공백 5`.
+`전집 21 = 매칭 13 + 예외 1 + 구현 대기 1 + 공백 6`.
+
+2026-09-19 `rct_20260918-0004` 가 AC3.5 를 착지시켜 `aggregation-viz#시나리오 5` 를 구현 대기에서
+**공백**으로 옮겼다(구현 대기 2→1 · 1:1 대상 18→19 · 공백 5→6). 매칭 13 은 움직이지 않는다 — 그
+시나리오의 관측 대상이 생겼을 뿐 전용 spec 은 아직 없고, 저작은 이 모델의 하네스 몫이다.
 
 ### 시나리오 ↔ spec 파일 (실측)
 | 시나리오 | spec 파일 |
@@ -241,7 +249,6 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 | 시나리오 | 미구현 근거 (관측 좌표) | 담당 | 해제 조건 | 해제 신호 (파일 ∋ 문자열) |
 |----------|--------------------------|------|-----------|---------------------------|
 | `econ-opinion-monitor-test-aggregation-viz.md#시나리오 3` | 시간 버킷은 있으나(`_bucket()` 이 수집 시각을 시간 단위로 자른다) **일·주 롤업이 없다** — 산출 버킷 단위가 `BUCKET_UNIT` 상수 하나로 고정돼 Gold에 `day`/`week` 레코드가 한 건도 나오지 않는다(타입·Avro 스키마만 셋을 허용한다). 시나리오의 기대 결과가 "롤업 시 합산이 하위 버킷 합과 일치"를 요구하므로 그 절은 관측 대상이 없다. | `tbm_econ-opinion-monitor-docs-impl` | 집계가 일·주 롤업 Gold를 산출한다(같은 대상·기간에서 시간 버킷 합과 일 버킷 값이 일치). | `python/packages/aggregation/src/econ_aggregation/aggregate.py` ∋ `BUCKET_UNIT = "hour"` |
-| `econ-opinion-monitor-test-aggregation-viz.md#시나리오 5` | `/api/trend` 가 스텁이고 스스로 그렇게 밝힌다(응답 `note`). 화면도 없다 — 라우팅의 "착지한 화면" 집합이 `dash`·`compare` 둘뿐이라 `/trend` 는 Placeholder를 렌더한다. 차트 값 대조·대상 선택·상위 대상 비교 어느 것도 관측할 표면이 없다. | `tbm_econ-opinion-monitor-docs-impl` | `/api/trend` 가 실 시계열(대상별 버킷 순 points)을 내려주고 `/trend` 가 실화면으로 착지한다. | `go/internal/handlers/handlers.go` ∋ `stub: single-bucket skeleton data` · `web/src/App.tsx` ∋ `const BUILT = new Set(["dash", "compare"]);` |
 
 ### 비-시나리오(스모크·인프라) 등재
 | spec 파일 | 검증 대상 |
@@ -254,7 +261,8 @@ to-be는 테스트 문서 + 이 문서라, 구현이 `go/`·`python/`·`web/` �
 `econ-opinion-monitor-test-analysis.md#시나리오 5` ·
 `econ-opinion-monitor-test-aggregation-viz.md#시나리오 1` ·
 `econ-opinion-monitor-test-aggregation-viz.md#시나리오 2` ·
-`econ-opinion-monitor-test-aggregation-viz.md#시나리오 4`
+`econ-opinion-monitor-test-aggregation-viz.md#시나리오 4` ·
+`econ-opinion-monitor-test-aggregation-viz.md#시나리오 5`
 <!-- gap-list:end -->
 
 **여기 남은 것은 전부 "구현은 있는데 현행 e2e 하네스가 닿지 않는" 건이다** — 미구현이라 관측 대상이

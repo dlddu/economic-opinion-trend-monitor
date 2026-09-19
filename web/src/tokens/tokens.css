@@ -940,6 +940,111 @@ a {
   white-space: pre-wrap;
 }
 
+/* ---- PAT-line-chart ---- */
+/* .gridline / .axlab carry the mockup's declarations verbatim: they are now
+   selectors both sides declare, so the render gate compares them and its caps
+   are zero. Anything trend-only lives under .trend-* below, which the gate
+   treats as implementation detail. */
+.gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.gridline.zero {
+  stroke: var(--line-3);
+}
+
+.axlab {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  fill: var(--ink-3);
+}
+
+.trend-chart {
+  display: block;
+}
+
+.trend-legend {
+  padding-left: 6px;
+}
+
+.trend-side {
+  gap: 16px;
+  align-content: start;
+}
+
+.trend-ac {
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+/* ---- CMP-table ---- */
+/* The mockup's `STP-drill-trend` draws 「상위 대상 비교」 as table.tbl, so the
+   implementation does too and these selectors become ones both sides declare.
+   Every declaration below is the mockup's inline <style> verbatim — the render
+   gate compares them declaration by declaration and all three caps are zero.
+   Trend-only styling stays under .trend-* , which the mockup never declares. */
+table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+table.tbl th {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-2);
+  font-weight: 600;
+}
+
+table.tbl th.num,
+table.tbl td.num {
+  text-align: right;
+  font-family: var(--mono);
+}
+
+table.tbl td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+table.tbl tr:last-child td {
+  border-bottom: none;
+}
+
+table.tbl tr.click {
+  cursor: pointer;
+}
+
+table.tbl tr.click:hover td {
+  background: var(--panel-2);
+}
+
+/* Selected-subject emphasis. The mockup has no selected-row rule, so this stays
+   implementation-only and is not part of the declaration comparison. */
+table.tbl tr.click.on td {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.trend-cmp {
+  padding: 0;
+}
+
+.trend-cmp .d {
+  margin-right: 8px;
+}
+
+.trend-empty {
+  margin-bottom: 20px;
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;

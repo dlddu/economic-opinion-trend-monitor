@@ -42,6 +42,37 @@ export interface AxisColumn {
   sentiment: SentimentDistribution;
 }
 
+/** One point of a subject's time series (AC3.5). */
+export interface TrendPoint {
+  time_bucket: string;
+  normalized_share: number;
+  raw_count: number;
+}
+
+/** One subject's line. Exactly one series in a response is `selected`. */
+export interface TrendSeries {
+  subject: string;
+  selected: boolean;
+  latest_share: number;
+  delta: number;
+  points: TrendPoint[];
+}
+
+export interface TrendResponse {
+  axis: Axis;
+  /** The highlighted subject; the API resolves it, so it is never guessed here. */
+  subject: string;
+  /** The terms the lines were drawn on — one bucket unit, one x-axis. */
+  basis: {
+    bucket_unit: string;
+    first_bucket: string;
+    latest_bucket: string;
+    buckets: string[];
+    normalized: boolean;
+  };
+  series: TrendSeries[];
+}
+
 export interface CompareResponse {
   /** The terms every column was compared on — same bucket, same normalization. */
   basis: {

@@ -52,6 +52,45 @@ type rankRow struct {
 	Delta           float64   `json:"delta"`
 }
 
+// trendSeriesLimit caps how many lines the trend chart carries. The point of
+// the overlay is "where is attention moving", not an exhaustive list — past a
+// handful of lines the chart stops answering that.
+const trendSeriesLimit = 3
+
+type trendPoint struct {
+	TimeBucket      string  `json:"time_bucket"`
+	NormalizedShare float64 `json:"normalized_share"`
+	RawCount        int64   `json:"raw_count"`
+}
+
+// trendSeries is one subject's line. Selected marks the one the screen
+// highlights (exactly one series carries it), and LatestShare/Delta are read
+// off the subject's most recent point — the headline metric above the chart.
+type trendSeries struct {
+	Subject     string       `json:"subject"`
+	Selected    bool         `json:"selected"`
+	LatestShare float64      `json:"latest_share"`
+	Delta       float64      `json:"delta"`
+	Points      []trendPoint `json:"points"`
+}
+
+// trendBasis states the terms the lines were drawn on, the way compare does —
+// a chart whose x-axis unit is implicit invites reading a week as an hour.
+type trendBasis struct {
+	BucketUnit   string   `json:"bucket_unit"`
+	FirstBucket  string   `json:"first_bucket"`
+	LatestBucket string   `json:"latest_bucket"`
+	Buckets      []string `json:"buckets"`
+	Normalized   bool     `json:"normalized"`
+}
+
+type trendResponse struct {
+	Axis    string        `json:"axis"`
+	Subject string        `json:"subject"`
+	Basis   trendBasis    `json:"basis"`
+	Series  []trendSeries `json:"series"`
+}
+
 type dashboardResponse struct {
 	Axis        string                    `json:"axis"`
 	Normalized  bool                      `json:"normalized"`
@@ -92,19 +131,61 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// trend answers AC3.5: one subject's interest over time, with the axis's
+// leading subjects overlaid so the selected line can be read against them.
+//
+// Gold holds one flat row per (subject, axis, bucket), so a time series is the
+// rows of one subject read in bucket order — and the chart is only honest if
+// every line is drawn on one x-axis. Two things could break that:
+//
+//   - Mixed bucket units. Gold may hold hour, day and week rows for the same
+//     subject (the contract allows all three). Plotting them together would put
+//     a week point between two hours, so the handler settles on one unit and
+//     keeps only those rows. AC3.3 has not landed yet, so today this always
+//     resolves to "hour" — the filter is what keeps the series clean when
+//     rollups do arrive.
+//   - Ranking on stale rows. A subject that dominated yesterday and vanished
+//     today would outrank the current leaders if ranked on its own best row, so
+//     subjects are ordered by their share in the *latest* bucket.
+//
+// The selected subject is always present in the response, even when it is not
+// one of the leaders — otherwise selecting a long-tail subject would silently
+// return someone else's lines.
 func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
-	subject := r.URL.Query().Get("subject")
+	axis := axisParam(r, "KR")
+	requested := r.URL.Query().Get("subject")
+
 	trends, _ := h.lake.SubjectTrends()
-	var series []gen.SubjectTrend
+	rows := make([]gen.SubjectTrend, 0, len(trends))
 	for _, t := range trends {
-		if subject == "" || t.Subject == subject {
-			series = append(series, t)
+		if string(t.Axis) == axis {
+			rows = append(rows, t)
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"subject": subject,
-		"series":  series,
-		"note":    "stub: single-bucket skeleton data (AC3.5 time series is follow-up)",
+
+	unit := plottedUnit(rows)
+	inUnit := rows[:0:0]
+	for _, t := range rows {
+		if t.BucketUnit == unit {
+			inUnit = append(inUnit, t)
+		}
+	}
+
+	buckets := distinctBuckets(inUnit)
+	series := seriesBySubject(inUnit, buckets)
+	selected := pickSubject(series, requested)
+	series = limitSeries(series, selected, trendSeriesLimit)
+
+	basis := trendBasis{Normalized: true, BucketUnit: string(unit), Buckets: buckets}
+	if len(buckets) > 0 {
+		basis.FirstBucket, basis.LatestBucket = buckets[0], buckets[len(buckets)-1]
+	}
+
+	writeJSON(w, http.StatusOK, trendResponse{
+		Axis:    axis,
+		Subject: selected,
+		Basis:   basis,
+		Series:  series,
 	})
 }
 
@@ -204,6 +285,136 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 		rows[i].Rank = i + 1
 	}
 	return rows
+}
+
+// plottedUnit picks the bucket unit the chart is drawn in: the finest one
+// present, which is the default AC3.3 names ("기본 단위는 시간").
+//
+// Note what it does *not* do — pick the unit of the newest bucket. Bucket keys
+// are only comparable within a unit: "2026-W26" sorts above "2026-06-23T14"
+// because 'W' outranks '0', not because that week is later. Choosing by rank
+// order of the units sidesteps that entirely. Empty input yields the zero unit
+// and the caller's filter then keeps nothing — an empty chart, never a mixed
+// one. When rollups land, this is where a ?unit= parameter hangs.
+func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
+	present := make(map[gen.BucketUnit]bool, 3)
+	for _, t := range rows {
+		present[t.BucketUnit] = true
+	}
+	for _, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
+		if present[unit] {
+			return unit
+		}
+	}
+	return ""
+}
+
+// distinctBuckets returns the x-axis: every bucket present, oldest first.
+// Bucket keys are zero-padded ISO prefixes, so lexical order is chronological
+// within one unit — which is all this sees, the caller having filtered.
+func distinctBuckets(rows []gen.SubjectTrend) []string {
+	seen := make(map[string]bool, len(rows))
+	buckets := make([]string, 0, len(rows))
+	for _, t := range rows {
+		if !seen[t.TimeBucket] {
+			seen[t.TimeBucket] = true
+			buckets = append(buckets, t.TimeBucket)
+		}
+	}
+	sort.Strings(buckets)
+	return buckets
+}
+
+// seriesBySubject folds the flat Gold rows into one line per subject, ordered
+// by the subject's share in the latest bucket. A subject with no row in that
+// bucket sorts to the back on a zero share: it is still drawable history, but
+// it is not what attention is on now.
+func seriesBySubject(rows []gen.SubjectTrend, buckets []string) []trendSeries {
+	latest := ""
+	if len(buckets) > 0 {
+		latest = buckets[len(buckets)-1]
+	}
+
+	order := make([]string, 0)
+	points := make(map[string][]trendPoint)
+	head := make(map[string]gen.SubjectTrend)
+	for _, t := range rows {
+		if _, ok := points[t.Subject]; !ok {
+			order = append(order, t.Subject)
+		}
+		points[t.Subject] = append(points[t.Subject], trendPoint{
+			TimeBucket:      t.TimeBucket,
+			NormalizedShare: t.NormalizedShare,
+			RawCount:        t.RawCount,
+		})
+		if t.TimeBucket == latest {
+			head[t.Subject] = t
+		}
+	}
+
+	series := make([]trendSeries, 0, len(order))
+	for _, subject := range order {
+		pts := points[subject]
+		sort.SliceStable(pts, func(i, j int) bool { return pts[i].TimeBucket < pts[j].TimeBucket })
+		series = append(series, trendSeries{
+			Subject:     subject,
+			LatestShare: head[subject].NormalizedShare,
+			Delta:       head[subject].Delta,
+			Points:      pts,
+		})
+	}
+	sort.SliceStable(series, func(i, j int) bool {
+		return series[i].LatestShare > series[j].LatestShare
+	})
+	return series
+}
+
+// pickSubject honours an explicit ?subject= only when that subject actually has
+// a line; otherwise the leading subject is selected. Echoing back a subject the
+// response holds no data for would leave the screen highlighting nothing.
+func pickSubject(series []trendSeries, requested string) string {
+	for _, s := range series {
+		if s.Subject == requested {
+			return requested
+		}
+	}
+	if len(series) > 0 {
+		return series[0].Subject
+	}
+	return ""
+}
+
+// limitSeries trims to the leading subjects while keeping the selected one,
+// which may sit outside them, and marks it.
+func limitSeries(series []trendSeries, selected string, limit int) []trendSeries {
+	kept := make([]trendSeries, 0, limit)
+	for _, s := range series {
+		if s.Subject == selected {
+			s.Selected = true
+			kept = append(kept, s)
+			continue
+		}
+		if len(kept) < limit && countUnselected(kept) < limit-1 {
+			kept = append(kept, s)
+		}
+	}
+	if len(kept) > limit {
+		kept = kept[:limit]
+	}
+	sort.SliceStable(kept, func(i, j int) bool {
+		return kept[i].LatestShare > kept[j].LatestShare
+	})
+	return kept
+}
+
+func countUnselected(series []trendSeries) int {
+	n := 0
+	for _, s := range series {
+		if !s.Selected {
+			n++
+		}
+	}
+	return n
 }
 
 // latestBucket returns the most recent time bucket present in Gold, with the
