@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>수집 무결성 콘솔 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-ingestion-recovery) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-ingestion-recovery">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="JRN-daily-scan.html#STP-drill-trend">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="sentiment" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="JRN-spike-verification.html#STP-open-origin">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op active" data-id="reprocess" href="reprocess.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 점검 &middot; 12개 소스<br/>
+      마지막 수집 14:00 KST
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>수집 무결성 콘솔</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-scope">구간 미선택</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 — 수집 이상 인지 ============ -->
+      <section class="jstep" id="STP-spot-anomaly" data-step="STP-spot-anomaly" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>시간대별 수집 현황</h3>
+              <span class="sub" id="bk-sub">시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 봅니다</span>
+              <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select id="axis" name="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="WW">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">점검 구간</span>
+                  <select id="win" name="win">
+                    <option value="24h" selected>최근 24시간</option>
+                    <option value="7d">최근 7일</option>
+                  </select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="only-bad" name="only-bad" />
+                  이상 구간만 보기
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody id="bk-rows"></tbody>
+              </table>
+
+              <div class="emptybox" id="s-no-anomaly" data-state="no-anomaly" hidden>
+                이 축·구간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 중복 0건 &mdash; 더 볼 것이 없습니다.
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" id="sum-sub">구간을 고르면 열립니다</span></div>
+            <div class="card-b">
+              <div id="sum-kv"></div>
+
+              <div class="banner err" id="s-attempt-zero" data-state="attempt-zero" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>수집 시도 자체가 없습니다.</b>
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때 나오는 모양입니다.
+                  두 경우를 같은 0으로 두면 이상을 놓칩니다.
+                </div>
+              </div>
+
+              <div class="note info" id="sum-note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>비정상으로 보이는 구간을 고르면 소스 단위로 좁혀 볼 수 있습니다.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-locate-gap" id="cta-1" disabled>
+            소스 단위로 좁혀 보기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-1-hint">이상해 보이는 구간을 먼저 고르세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 — 누락·중복 구간 특정 ============ -->
+      <section class="jstep" id="STP-locate-gap" data-step="STP-locate-gap" hidden>
+        <div class="grid g-12">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>구간 &middot; 소스 좁히기</h3>
+              <span class="sub" id="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:16px">
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select id="f-axis" name="f-axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="WW">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">소스</span>
+                  <select id="f-source" name="f-source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">시간대</span>
+                  <select id="f-hour" name="f-hour">
+                    <option value="all" selected>전체 시간대</option>
+                    <option value="dawn">00&ndash;06시</option>
+                    <option value="am">06&ndash;12시</option>
+                    <option value="pm">12&ndash;18시</option>
+                    <option value="night">18&ndash;24시</option>
+                  </select>
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>구간</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody id="gap-rows"></tbody>
+              </table>
+
+              <div class="emptybox" id="s-filter-empty" data-state="filter-empty" hidden>
+                이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
+              </div>
+
+              <div class="note" style="margin-top:16px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>좁힌 결과가 <b id="gap-scope">전체</b>입니다. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-diagnose-source" id="cta-2">
+            원인 진단으로 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 — 원인 진단 ============ -->
+      <section class="jstep" id="STP-diagnose-source" data-step="STP-diagnose-source" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>원인 가르기</h3><span class="sub">무엇이 이 구간을 비웠는지 고릅니다</span></div>
+            <div class="card-b">
+              <div class="fld">
+                <span class="fl">판정</span>
+                <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                  <label><input type="radio" name="cause" value="schedule" /> 스케줄이 돌지 않았다 &mdash; 시도 자체가 0</label>
+                  <label><input type="radio" name="cause" value="api" /> 소스 API가 오류를 돌려줬다 &mdash; 시도는 있고 성공이 없다</label>
+                  <label><input type="radio" name="cause" value="origin" /> 원본이 이미 내려갔다 &mdash; 다시 긁어도 받을 것이 없다</label>
+                  <label><input type="radio" name="cause" value="dup" /> 같은 기사가 다시 쌓였다 &mdash; 링크 단위 &middot; 본문 단위 중복</label>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="seclabel" style="margin-bottom:8px">수집 메타데이터</div>
+              <div id="cause-meta"></div>
+
+              <div class="banner warn" id="s-source-outage" data-state="source-outage" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <div>
+                  <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채울 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-1" href="#STP-backfill"
+                       data-goto="JRN-ingestion-recovery#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="banner err" id="s-origin-gone" data-state="origin-gone" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>재수집으로는 메울 수 없습니다.</b>
+                  원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions">
+                    <a class="btn sm ghost" id="br-2" href="#STP-verify-integrity"
+                       data-goto="JRN-ingestion-recovery#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 구간</h3><span class="sub">진단 대상</span></div>
+            <div class="card-b">
+              <div id="diag-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
+                실패 사유가 수집 메타에 남아 있으면 외부 로그를 뒤지지 않아도 여기서 갈립니다.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-backfill" id="cta-3" disabled>
+            보정 실행으로 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-3-hint">원인을 먼저 가르세요 &mdash; 원인에 따라 실행할 작업이 달라집니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 — 재수집·중복 정리 실행 ============ -->
+      <section class="jstep" id="STP-backfill" data-step="STP-backfill" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" id="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">작업</span>
+                  <select id="op" name="op">
+                    <option value="refetch" selected>재수집</option>
+                    <option value="dedup">중복 정리</option>
+                    <option value="both">재수집 + 중복 정리</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">배치 크기 (건)</span>
+                  <input type="number" id="batch" name="batch" min="10" max="500" step="10" value="100" />
+                </label>
+              </div>
+
+              <label class="chk" style="margin-bottom:6px">
+                <input type="checkbox" id="preserve" name="preserve" checked />
+                기존 Bronze를 덮어쓰지 않고 새 버전으로 보존한다 (content-addressed)
+              </label>
+              <p class="muted" style="font-size:11.5px;line-height:1.6;margin-bottom:16px" id="preserve-note"></p>
+
+              <button type="button" class="btn pri" id="run">보정 실행</button>
+
+              <div class="loadbox" id="s-running" data-state="running" hidden>
+                고른 구간을 다시 긁는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <div id="run-result" style="margin-top:16px"></div>
+
+              <div class="banner warn" id="s-dup-again" data-state="dup-again" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
+                <div>
+                  <b>재수집이 중복을 다시 만들었습니다 (<span id="dup-count">0</span>건).</b>
+                  덮어쓰기로 긁으면 같은 기사가 링크 단위로 한 번, 본문 단위로 또 한 번 쌓입니다 &mdash; 중복 규칙부터 다시 보세요.
+                  <div class="actions">
+                    <a class="btn sm ghost" id="br-3" href="#STP-diagnose-source"
+                       data-goto="JRN-ingestion-recovery#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>수집은 정상인데</h3><span class="sub">결과가 이상하다면</span></div>
+            <div class="card-b">
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다. 재처리 흐름으로 넘기세요.
+              </p>
+              <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
+                <a class="btn ghost" id="br-4" href="reprocess.html"
+                   data-goto="JRN-logic-backfill#STP-scope-range">분석 결과가 이상하다 &mdash; 재처리 흐름으로 &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-verify-integrity" id="cta-4" disabled>
+            복구 확인으로 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-4-hint">보정을 먼저 실행하세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 — 복구 확인 ============ -->
+      <section class="jstep" id="STP-verify-integrity" data-step="STP-verify-integrity" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>복구 확인</h3><span class="sub" id="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">재확인 범위</span>
+                  <select id="v-window" name="v-window">
+                    <option value="scope" selected>보정한 구간만</option>
+                    <option value="day">그날 전체</option>
+                  </select>
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody id="vf-rows"></tbody>
+              </table>
+
+              <form id="close-form" style="margin-top:18px">
+                <div class="fld">
+                  <span class="fl">결론</span>
+                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                    <label><input type="radio" name="verdict" value="recovered" /> 정상 범위로 복구됐다</label>
+                    <label><input type="radio" name="verdict" value="permanent" /> 영구 누락으로 확정한다 &mdash; 집계에서 &ldquo;데이터 없음&rdquo;으로 다룬다</label>
+                  </div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">보정 이력 메모</span>
+                  <textarea id="verify-memo" name="verify-memo" placeholder="어느 구간을 왜 어떻게 보정했는지 적어 두세요 — 나중에 그 구간 수치가 왜 다른지 설명할 근거가 됩니다."></textarea>
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="verify-submit">복구 확인 기록</button>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">결론과 보정 이력 메모를 모두 채워야 기록됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>복구 확인을 기록했습니다.</b>
+                  <span id="recorded-what"></span>
+                  이 구간의 보정 이력은 이 세션 안에서만 유지됩니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>아직 못 닫겠다면</h3><span class="sub">미해결로 남깁니다</span></div>
+            <div class="card-b">
+              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
+                진단만 하고 닫으면 이 구간은 미해결로 남고, 다음에 들어올 때 다시 맨 위에 뜹니다.
+              </p>
+              <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
+                <a class="btn ghost" id="br-5" href="#STP-locate-gap"
+                   data-goto="JRN-ingestion-recovery#STP-locate-gap">미해결로 남기고 구간 목록으로 &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-ingestion-recovery</b> &mdash; 수집 이상 감지·복구.
+             <a href="../reader.html?doc=user-journeys/JRN-ingestion-recovery.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-spot-anomaly"><button type="button" class="jr-btn" data-goto-step="STP-spot-anomaly"><span class="jr-n">1</span><span class="jr-t">수집 이상 인지</span><span class="jr-id mono">STP-spot-anomaly</span></button></li>
+            <li class="jr-item" data-rail="STP-locate-gap"><button type="button" class="jr-btn" data-goto-step="STP-locate-gap"><span class="jr-n">2</span><span class="jr-t">누락·중복 구간 특정</span><span class="jr-id mono">STP-locate-gap</span></button></li>
+            <li class="jr-item" data-rail="STP-diagnose-source"><button type="button" class="jr-btn" data-goto-step="STP-diagnose-source"><span class="jr-n">3</span><span class="jr-t">원인 진단</span><span class="jr-id mono">STP-diagnose-source</span></button></li>
+            <li class="jr-item" data-rail="STP-backfill"><button type="button" class="jr-btn" data-goto-step="STP-backfill"><span class="jr-n">4</span><span class="jr-t">재수집·중복 정리 실행</span><span class="jr-id mono">STP-backfill</span></button></li>
+            <li class="jr-item" data-rail="STP-verify-integrity"><button type="button" class="jr-btn" data-goto-step="STP-verify-integrity"><span class="jr-n">5</span><span class="jr-t">복구 확인</span><span class="jr-id mono">STP-verify-integrity</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-spot-anomaly</td><td>시간대별 수집 건수·실패 건수를 훑어 비정상 구간을 찾는다</td><td>무결성 패널(PAT-integrity-panel)</td><td class="mono">AC1.6</td></tr>
+              <tr><td class="mono">STP-locate-gap</td><td>이상 구간을 시간 단위·소스 단위로 좁힌다</td><td>무결성 테이블(CMP-table)</td><td class="mono">AC1.5 · AC1.6</td></tr>
+              <tr><td class="mono">STP-diagnose-source</td><td>스케줄 미실행·소스 API 오류·링크 중복·본문 중복 중 무엇인지 가른다</td><td>상태 배지(CMP-badge), 수집 메타데이터(CMP-kv)</td><td class="mono">AC1.5 · AC1.6 · AC1.7</td></tr>
+              <tr><td class="mono">STP-backfill</td><td>특정 구간을 재수집하거나 중복 레코드를 정리한다</td><td>실행 컨트롤</td><td class="mono">AC1.6 · AC1.7</td></tr>
+              <tr><td class="mono">STP-verify-integrity</td><td>보정 후 해당 구간의 수집량·중복률이 정상 범위인지 재확인한다</td><td>무결성 패널</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>소스 API 자체가 장애 (외부 지연)</td><td>화면 3 · 소스 장애 배너</td><td class="mono">STP-backfill</td></tr>
+              <tr><td>원본이 이미 내려가 재수집 불가</td><td>화면 3 · 영구 누락 배너</td><td class="mono">STP-verify-integrity</td></tr>
+              <tr><td>재수집이 중복을 다시 만듦</td><td>화면 4 · 중복 재생성 배너</td><td class="mono">STP-diagnose-source</td></tr>
+              <tr><td>수집은 정상인데 분석 결과가 이상</td><td>화면 4 · 재처리 인계</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+              <tr><td>중도 이탈 (진단만 하고 종료)</td><td>화면 5 · 미해결로 남기기</td><td class="mono">STP-locate-gap</td></tr>
+            </tbody>
+          </table>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-ingestion-recovery</b></span>
+            <span class="chip"><b>STP-spot-anomaly</b></span>
+            <span class="chip"><b>STP-locate-gap</b></span>
+            <span class="chip"><b>STP-diagnose-source</b></span>
+            <span class="chip"><b>STP-backfill</b></span>
+            <span class="chip"><b>STP-verify-integrity</b></span>
+            <span class="chip v"><b>V5</b> 원문 추적성·재처리</span>
+            <span class="chip v"><b>V1</b> 전제(지속적 수집) 보호</span>
+            <span class="chip">AC1.1 · AC1.3 · AC1.5 · AC1.6 · AC1.7</span>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   프로토타입 데이터 — 축 × 점검 구간별 수집 버킷.
+   tried/ok/fail/dup 을 따로 들고 있어야 "시도 0" 과 "성공 0" 이 구분된다
+   (여정 문서 STP-spot-anomaly 의 페인포인트).
+   ============================================================ */
+var SOURCES = { KR:['kr-wire','kr-daily'], US:['us-desk'], WW:['gl-agg'] };
+
+var DATA = {
+  KR: {
+    '24h': [
+      {id:'k0', label:'00시', band:'dawn',  tried:96,  ok:96,  fail:0,  dup:0},
+      {id:'k1', label:'03시', band:'dawn',  tried:0,   ok:0,   fail:0,  dup:0},
+      {id:'k2', label:'06시', band:'am',    tried:104, ok:104, fail:0,  dup:0},
+      {id:'k3', label:'09시', band:'am',    tried:118, ok:106, fail:12, dup:0},
+      {id:'k4', label:'12시', band:'pm',    tried:121, ok:121, fail:0,  dup:7},
+      {id:'k5', label:'18시', band:'night', tried:110, ok:110, fail:0,  dup:0}
+    ],
+    '7d': [
+      {id:'k7', label:'D-3', band:'am',    tried:742, ok:730, fail:12, dup:0},
+      {id:'k8', label:'D-2', band:'pm',    tried:768, ok:768, fail:0,  dup:7},
+      {id:'k9', label:'D-1', band:'dawn',  tried:0,   ok:0,   fail:0,  dup:0},
+      {id:'ka', label:'오늘', band:'night', tried:549, ok:549, fail:0,  dup:0}
+    ]
+  },
+  US: {
+    '24h': [
+      {id:'u0', label:'01시', band:'dawn', tried:88, ok:88, fail:0, dup:0},
+      {id:'u1', label:'13시', band:'pm',   tried:92, ok:88, fail:4, dup:0}
+    ],
+    '7d': [
+      {id:'u2', label:'D-1', band:'pm',   tried:604, ok:600, fail:4, dup:0},
+      {id:'u3', label:'오늘', band:'am',   tried:288, ok:288, fail:0, dup:0}
+    ]
+  },
+  WW: {
+    '24h': [
+      {id:'w0', label:'02시', band:'dawn', tried:64, ok:64, fail:0, dup:0},
+      {id:'w1', label:'14시', band:'pm',   tried:71, ok:71, fail:0, dup:0}
+    ],
+    '7d': [
+      {id:'w2', label:'D-1', band:'pm',  tried:468, ok:468, fail:0, dup:0},
+      {id:'w3', label:'오늘', band:'am',  tried:204, ok:204, fail:0, dup:0}
+    ]
+  }
+};
+
+var CAUSE = {
+  schedule: {
+    label:'스케줄 미실행',
+    meta:[['워크플로 실행 기록','없음 (CronWorkflow 미기동)'],['마지막 성공 실행','3시간 전'],['실패 사유 코드','—']],
+    hint:'시도 자체가 남지 않았습니다. 소스는 멀쩡할 수 있습니다.'
+  },
+  api: {
+    label:'소스 API 오류',
+    meta:[['워크플로 실행 기록','있음 (시도 118건)'],['소스 응답','HTTP 503 · 12건 연속'],['실패 사유 코드','upstream_unavailable']],
+    hint:'시도는 남아 있고 성공만 없습니다 — 외부 장애입니다.'
+  },
+  origin: {
+    label:'원본 소실',
+    meta:[['워크플로 실행 기록','있음'],['소스 응답','HTTP 404 · 원문 삭제'],['실패 사유 코드','origin_gone']],
+    hint:'다시 긁어도 받을 것이 없습니다.'
+  },
+  dup: {
+    label:'중복 적재',
+    meta:[['링크 단위 중복','7건'],['본문 단위 중복','3건'],['실패 사유 코드','—']],
+    hint:'수집은 됐지만 같은 기사가 두 번 쌓였습니다.'
+  }
+};
+
+var state = { axis:'KR', win:'24h', onlyBad:false, bucket:null,
+              fAxis:'KR', fSource:'all', fHour:'all', gap:null,
+              cause:null, ran:false, dup:0 };
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function bad(b){ return b.tried === 0 || b.fail > 0 || b.dup > 0; }
+function buckets(){ return (DATA[state.axis] || {})[state.win] || []; }
+function verdictOf(b){
+  if(b.tried === 0) return ['b-neg','시도 0'];
+  if(b.fail > 0)    return ['b-neg','실패 ' + b.fail];
+  if(b.dup > 0)     return ['b-mix','중복 ' + b.dup];
+  return ['b-pos','정상'];
+}
+
+/* ---------------- 화면 1 : 시간대별 수집 현황 ---------------- */
+function renderBuckets(){
+  var list = buckets().filter(function(b){ return state.onlyBad ? bad(b) : true; });
+  $('bk-rows').innerHTML = list.map(function(b){
+    var v = verdictOf(b);
+    var on = (state.bucket && state.bucket.id === b.id) ? ' style="background:var(--primary-soft)"' : '';
+    return '<tr class="click" data-bucket="' + b.id + '"' + on + '>'
+      + '<td><b>' + b.label + '</b></td>'
+      + '<td class="num">' + b.tried + '</td><td class="num">' + b.ok + '</td>'
+      + '<td class="num">' + b.fail + '</td><td class="num">' + b.dup + '</td>'
+      + '<td><span class="badge ' + v[0] + '"><span class="d"></span>' + v[1] + '</span></td></tr>';
+  }).join('');
+  var anomalies = buckets().filter(bad).length;
+  show($('s-no-anomaly'), anomalies === 0);
+  $('bk-sub').textContent = '이상 구간 ' + anomalies + '건 / 전체 ' + buckets().length + '구간';
+  $('bk-rows').querySelectorAll('tr[data-bucket]').forEach(function(tr){
+    tr.addEventListener('click', function(){ pickBucket(tr.getAttribute('data-bucket')); });
+  });
+}
+
+function pickBucket(id){
+  var b = null;
+  buckets().forEach(function(x){ if(x.id === id) b = x; });
+  if(!b) return;
+  state.bucket = b;
+  renderBuckets();
+  $('tb-scope').textContent = axisName(state.axis) + ' · ' + b.label;
+  $('sum-sub').textContent = axisName(state.axis) + ' · ' + b.label;
+  $('sum-kv').innerHTML =
+      kv('시도', b.tried + '건') + kv('성공', b.ok + '건')
+    + kv('실패', b.fail + '건') + kv('중복', b.dup + '건')
+    + kv('성공률', b.tried ? Math.round(b.ok / b.tried * 100) + '%' : '—');
+  show($('s-attempt-zero'), b.tried === 0);
+  $('cta-1').disabled = false;
+  $('cta-1-hint').textContent = '';
+  renderGaps();
+  renderDiag();
+  renderVerify();
+}
+
+function kv(k, v){ return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+function axisName(a){ return a === 'KR' ? '한국' : a === 'US' ? '미국' : '전세계'; }
+
+/* ---------------- 화면 2 : 소스 단위로 좁히기 ---------------- */
+function gapRows(){
+  var out = [];
+  var list = (DATA[state.fAxis] || {})[state.win] || [];
+  list.filter(bad).forEach(function(b){
+    if(state.fHour !== 'all' && b.band !== state.fHour) return;
+    (SOURCES[state.fAxis] || []).forEach(function(src, i){
+      if(state.fSource !== 'all' && state.fSource !== src) return;
+      var miss = b.tried === 0 ? 0 : Math.round(b.fail / (i + 1));
+      var dup  = i === 0 ? b.dup : 0;
+      if(b.tried === 0 && i > 0) return;
+      out.push({ bucket:b, source:src, tried: b.tried === 0 ? 0 : Math.round(b.tried / (SOURCES[state.fAxis].length)),
+                 miss: b.tried === 0 ? '전량' : miss, dup: dup });
+    });
+  });
+  return out;
+}
+
+function renderGaps(){
+  var rows = gapRows();
+  $('gap-rows').innerHTML = rows.map(function(r, i){
+    var tag = r.bucket.tried === 0 ? ['b-neg','시도 없음']
+            : r.dup > 0 ? ['b-mix','중복'] : ['b-neg','누락'];
+    return '<tr class="click" data-gap="' + i + '">'
+      + '<td><b>' + r.bucket.label + '</b></td><td class="mono">' + r.source + '</td>'
+      + '<td class="num">' + r.tried + '</td><td class="num">' + r.miss + '</td>'
+      + '<td class="num">' + r.dup + '</td>'
+      + '<td><span class="badge ' + tag[0] + '"><span class="d"></span>' + tag[1] + '</span></td></tr>';
+  }).join('');
+  show($('s-filter-empty'), rows.length === 0);
+  $('gap-sub').textContent = '해당 구간 ' + rows.length + '건';
+  $('gap-scope').textContent = axisName(state.fAxis)
+    + ' · ' + (state.fSource === 'all' ? '전체 소스' : state.fSource)
+    + ' · ' + (state.fHour === 'all' ? '전체 시간대' : $('f-hour').options[$('f-hour').selectedIndex].textContent);
+  $('gap-rows').querySelectorAll('tr[data-gap]').forEach(function(tr){
+    tr.addEventListener('click', function(){
+      state.gap = rows[parseInt(tr.getAttribute('data-gap'), 10)];
+      $('tb-scope').textContent = axisName(state.fAxis) + ' · ' + state.gap.bucket.label + ' · ' + state.gap.source;
+      renderDiag();
+    });
+  });
+}
+
+/* ---------------- 화면 3 : 원인 진단 ---------------- */
+function renderDiag(){
+  var b = state.gap ? state.gap.bucket : state.bucket;
+  $('diag-kv').innerHTML = b
+    ? kv('구간', axisName(state.fAxis) + ' · ' + b.label)
+      + kv('소스', state.gap ? state.gap.source : '전체')
+      + kv('시도', b.tried + '건') + kv('성공', b.ok + '건')
+      + kv('실패', b.fail + '건') + kv('중복', b.dup + '건')
+    : '<p class="muted" style="font-size:12.5px">구간을 고르면 열립니다.</p>';
+  var c = state.cause ? CAUSE[state.cause] : null;
+  $('cause-meta').innerHTML = c
+    ? c.meta.map(function(m){ return kv(m[0], m[1]); }).join('')
+      + '<p class="muted" style="margin-top:10px;font-size:12px">' + c.hint + '</p>'
+    : '<p class="muted" style="font-size:12.5px">원인을 고르면 그 판정에 필요한 메타데이터만 남깁니다.</p>';
+  show($('s-source-outage'), state.cause === 'api');
+  show($('s-origin-gone'), state.cause === 'origin');
+}
+
+/* ---------------- 화면 4 : 보정 실행 ---------------- */
+function renderPreserveNote(){
+  $('preserve-note').textContent = $('preserve').checked
+    ? '수정 버전을 새 레코드로 쌓고 원본은 그대로 둡니다 — 원문 추적성이 유지됩니다.'
+    : '덮어쓰면 원문 추적성이 깨지고, 링크·본문 중복이 다시 쌓일 수 있습니다.';
+}
+
+function runBackfill(){
+  var b = state.gap ? state.gap.bucket : state.bucket;
+  var op = $('op').value, preserve = $('preserve').checked;
+  state.ran = true;
+  $('cta-4').disabled = false;
+  $('cta-4-hint').textContent = '';
+  show($('s-running'), true);
+  show($('s-dup-again'), false);
+  $('run-result').innerHTML = '';
+  window.setTimeout(function(){
+    show($('s-running'), false);
+    var got = b ? (b.tried === 0 ? 96 : b.fail) : 0;
+    var dup = (!preserve && op !== 'dedup') ? ((b && b.dup) ? b.dup : 4) : 0;
+    state.dup = dup;
+    $('run-result').innerHTML =
+        kv('적용 범위', b ? (axisName(state.fAxis) + ' · ' + b.label) : '—')
+      + kv('작업', $('op').options[$('op').selectedIndex].textContent)
+      + kv('다시 받은 건수', got + '건')
+      + kv('보존 방식', preserve ? '새 버전 보존 (덮어쓰기 없음)' : '덮어쓰기')
+      + kv('새로 생긴 중복', dup + '건');
+    $('dup-count').textContent = dup;
+    show($('s-dup-again'), dup > 0);
+    renderVerify();
+  }, 180);
+}
+
+/* ---------------- 화면 5 : 복구 확인 ---------------- */
+function renderVerify(){
+  var b = state.gap ? state.gap.bucket : state.bucket;
+  var scoped = $('v-window').value === 'scope';
+  var beforeOk = b ? b.ok : 0, tried = b ? b.tried : 0;
+  var afterOk  = b ? (b.tried === 0 ? 96 : b.ok + b.fail) : 0;
+  var mul = scoped ? 1 : 6;
+  var dupAfter = state.ran ? state.dup : (b ? b.dup : 0);
+  $('vf-rows').innerHTML =
+      row('수집 건수', (beforeOk * mul) + '건', (afterOk * mul) + '건', afterOk >= beforeOk)
+    + row('시도 대비 성공률', (tried ? Math.round(beforeOk / tried * 100) : 0) + '%',
+          (tried || afterOk ? '100%' : '—'), true)
+    + row('중복 건수', (b ? b.dup : 0) + '건', dupAfter + '건', dupAfter === 0);
+  $('vf-sub').textContent = scoped ? '보정한 구간만' : '그날 전체';
+}
+function row(k, a, b2, good){
+  return '<tr><td>' + k + '</td><td class="num">' + a + '</td><td class="num"><b>' + b2 + '</b></td>'
+    + '<td><span class="badge ' + (good ? 'b-pos' : 'b-mix') + '"><span class="d"></span>'
+    + (good ? '정상 범위' : '확인 필요') + '</span></td></tr>';
+}
+
+function submitVerify(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="verdict"]:checked');
+  var memo = $('verify-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked
+      ? '결론을 하나 고르세요.'
+      : '보정 이력 메모를 적어야 기록됩니다 — 이력이 없으면 나중에 그 구간 수치가 왜 다른지 설명할 수 없습니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  $('recorded-what').textContent = (picked.value === 'recovered' ? '정상 범위로 복구됨' : '영구 누락으로 확정')
+    + '으로 기록했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-spot-anomaly','STP-locate-gap','STP-diagnose-source','STP-backfill','STP-verify-integrity'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-verify-integrity') renderVerify();
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-ingestion-recovery'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('axis').addEventListener('change', function(){
+    state.axis = this.value; state.fAxis = this.value; state.bucket = null; state.gap = null;
+    var fa = $('f-axis');
+    for(var i = 0; i < fa.options.length; i++){ fa.options[i].selected = (fa.options[i].value === this.value); }
+    $('tb-scope').textContent = '구간 미선택';
+    $('sum-sub').textContent = '구간을 고르면 열립니다';
+    $('sum-kv').innerHTML = '';
+    show($('s-attempt-zero'), false);
+    $('cta-1').disabled = true;
+    $('cta-1-hint').textContent = '이상해 보이는 구간을 먼저 고르세요.';
+    renderBuckets(); renderGaps(); renderDiag(); renderVerify();
+  });
+  $('win').addEventListener('change', function(){
+    state.win = this.value; state.bucket = null; state.gap = null;
+    $('cta-1').disabled = true;
+    renderBuckets(); renderGaps();
+  });
+  $('only-bad').addEventListener('change', function(){
+    state.onlyBad = this.checked; renderBuckets();
+  });
+  $('f-axis').addEventListener('change', function(){ state.fAxis = this.value; state.gap = null; renderGaps(); renderDiag(); });
+  $('f-source').addEventListener('change', function(){ state.fSource = this.value; state.gap = null; renderGaps(); });
+  $('f-hour').addEventListener('change', function(){ state.fHour = this.value; state.gap = null; renderGaps(); });
+  document.querySelectorAll('input[name="cause"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      state.cause = r.value;
+      $('cta-3').disabled = false;
+      $('cta-3-hint').textContent = '';
+      renderDiag();
+    });
+  });
+  $('preserve').addEventListener('change', renderPreserveNote);
+  $('op').addEventListener('change', function(){
+    $('run-sub').textContent = $('op').options[$('op').selectedIndex].textContent + ' · 고른 구간에만 적용됩니다';
+  });
+  $('run').addEventListener('click', runBackfill);
+  $('v-window').addEventListener('change', renderVerify);
+  $('close-form').addEventListener('submit', submitVerify);
+
+  renderBuckets();
+  renderGaps();
+  renderDiag();
+  renderPreserveNote();
+  renderVerify();
+  fromHash();
+})();
+</script>
+</body>
+</html>
