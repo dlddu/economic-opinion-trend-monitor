@@ -17,7 +17,7 @@
 | `sentiment` | `docs/mockups/JRN-sentiment-shift.html` | 여정 페이지에 흡수 |
 | `fairness` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
 | `trace` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
-| `reprocess` | `docs/mockups/reprocess.html` | 자립형 HTML |
+| `reprocess` | `docs/mockups/JRN-logic-backfill.html` (흡수) | 여정 페이지 |
 | (진입) | `docs/mockups/index.html` | `JRN-daily-scan.html`로 리다이렉트 |
 
 > **흡수된 화면의 표기 규약.** 화면이 여정 페이지에 흡수되면 그 화면 id의 목업 파일은 **흡수한 여정 페이지**다.
@@ -41,7 +41,7 @@
 > `scripts/check-mockup-render.py` 의 **R4-nav** 가 이 규약을 상한 0 의 래칫으로 집행한다
 > (`docs/econ-opinion-monitor-design-tracker.md` 「규칙 4(네비) — 불일치 상한」).
 
-### 여정 페이지 (여정 단위 mockup — 이관 진행 중)
+### 여정 페이지 (여정 단위 mockup — 이관 완료)
 
 여정 하나 = 페이지 하나. `<body data-journey>` 로 대상 여정을, 각 단계 섹션의 `data-step` 으로 단계를,
 상태 변형 노드의 `data-state` 로 그 페이지가 그린 상태를 선언한다.
@@ -57,7 +57,8 @@
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
 | `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend`, `STP-shortlist` |
-| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음 — `reprocess` 는 `JRN-logic-backfill` 몫으로 존속) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
+| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
+| `JRN-logic-backfill` | `docs/mockups/JRN-logic-backfill.html` | `reprocess` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` |
 
 #### 흡수된 화면의 판정 경계 (단계 ↔ 화면 id 귀속)
 
@@ -106,11 +107,23 @@
 | `STP-backfill` | `reprocess` | 실행 컨트롤. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — `reprocess` 화면 자체가 `BUILT` 밖이라 목업↔구현 대조는 아직 열리지 않는다 |
 | `STP-verify-integrity` | `reprocess` | 보정 전후 비교 패널과 이력 기록. 보정 이력의 **영속화는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
 
-> `JRN-ingestion-recovery` 의 다섯 단계는 전부 운영 축 화면(`reprocess`)에 귀속되지만, **`reprocess` 화면 id 의
-> 목업 파일은 여전히 `docs/mockups/reprocess.html` 이다** — 그 화면을 함께 쓰는 `JRN-logic-backfill` 이 아직
-> 이관되지 않았기 때문이다. 위 「흡수된 화면의 표기 규약」이 말하는 흡수(=화면 파일 삭제)는 그 화면을 쓰는
-> 여정이 **전부** 이관될 때 일어난다. 그때까지 이 여정 페이지는 같은 화면을 **자기 여정의 맥락으로 다시 그린
-> 원본**이며(규칙 2의 중복이 아니다), 화면 id ↔ 파일 표는 손대지 않는다.
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-scope-range` | `reprocess` | 재처리 범위 선택. 기간·축·소스를 고르는 즉시 **대상 건수와 예상 소요를 표기**한다 — 여정 문서가 이 단계의 페인포인트로 적은 「범위를 감으로 정하게 된다」의 대응이다 |
+| `STP-dry-run` | `reprocess` | 표본 재분석. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — 여정 문서의 「표본 실행을 기본 경로로 두고 전량 실행은 그 뒤에 열기」를 전진 잠금으로 옮겼다 |
+| `STP-run-reprocess` | `reprocess` | 전량 실행·진행 상태. 로직 버전 병존 토글이 여정 문서의 「덮어쓰면 전후 비교가 불가능하다」 페인포인트를 그대로 집행한다 |
+| `STP-compare-before-after` | `reprocess` | 전후 비교 표와 주목 임계. 변화가 큰 항목이 먼저 오도록 정렬하고 임계 초과를 배지로 표시한다 |
+| `STP-publish` | `reprocess` | 반영·롤백 결정. **이 단계도 화면 단위 파일에 대응물이 없던 🔴 미시각화 단계**였다. 결정의 **영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 세션 한정으로 그린다 |
+
+> **`reprocess` 화면 id 의 목업 파일은 이제 `docs/mockups/JRN-logic-backfill.html` 이다.** 두 운영 여정이 그 화면을
+> 공유했고, 위 「흡수된 화면의 표기 규약」이 말하는 흡수(=화면 파일 삭제)는 그 화면을 쓰는 여정이 **전부** 이관될 때
+> 일어난다 — `JRN-logic-backfill` 이관으로 그 조건이 충족돼 `reprocess.html` 을 삭제했다. 화면 id 행은 규약대로
+> 존속하고 파일만 흡수한 여정 페이지로 옮겨간다.
+>
+> **한 화면의 귀속 단계가 두 여정 페이지에 흩어진다** — `JRN-ingestion-recovery` 의 다섯 단계도 `reprocess` 귀속이고
+> `JRN-logic-backfill` 의 다섯 단계도 그렇다. `trend` 가 `JRN-daily-scan` 과 `JRN-axis-contrast` 에 흩어진 것과 같은
+> 모양이며, 「Mockup 파일」 표의 파일 칸은 그중 **그 화면의 이름을 가진 여정**(여기서는 `JRN-logic-backfill`)을 적는다.
+> 각 여정 페이지는 같은 화면을 자기 여정의 맥락으로 다시 그린 **원본**이지 복제가 아니다(규칙 2의 중복이 아니다).
 
 `fairness`·`trace`는 구현 `web/src/App.tsx`의 `BUILT` 집합 밖이라(둘 다 `Placeholder`) 이 귀속은 아직
 `tbm_econ-opinion-monitor-mockup-render`의 「등재 화면」 허용목록에 들어가지 않는다 — 그 등재는 두 화면이
@@ -120,14 +133,15 @@
 새 여정 페이지를 등재할 때는 이 형태의 귀속 표를 함께 넣는다. 한 단계가 두 화면에 걸치면 **더 앞선 화면**에 귀속시키고
 넘겨주는 계약을 비고에 적는다 — 판정 대상이 겹쳐 두 번 세어지는 것보다 한 번 세어지고 인계가 기록되는 편이 낫다.
 
-**규칙 1 미충족 여정 상한: 1** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다(`JRN-logic-backfill`). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫).
+**규칙 1 미충족 여정 상한: 0** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 **0 이 됐다**(마지막 잔여였다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 상한이 0 이므로 이제 **여정 문서가 하나 늘고 대응 페이지가 없으면 그 즉시 PR 이 빨개진다.**
 
-**규칙 5 미충족 mockup 페이지 상한: 1** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
-않는 mockup 페이지의 수다. 화면 단위로 남아 있는 1개(`reprocess`)가 그것이며,
-여정 워크스루가 아니라 단일 화면 스냅샷이라 (a)(c)(e)를 만족할 수
-없다. 이 격차는 여정 단위 재편이 진행되며 닫힌다 — `scripts/check-journey-mockup.py` 가 이 값을
+**규칙 5 미충족 mockup 페이지 상한: 0** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
+않는 mockup 페이지의 수다. 화면 단위 스냅샷은 여정 워크스루가 아니라 (a)(c)(e)를 구조적으로 만족할 수
+없었고, 마지막 1개였던 `reprocess.html` 이 2026-09-19 `JRN-logic-backfill` 이관으로 흡수·삭제되며
+**0 이 됐다** — `scripts/check-journey-mockup.py` 가 이 값을
 상한으로 읽어 늘면 실패하고, 밑돌면 값을 낮추라고 실패한다(래칫). 여정 페이지는 이 집합에서 제외되며,
-`scripts/check-journey-flow.js` 하네스가 (b)~(e)를 실제 DOM에서 집행한다.
+`scripts/check-journey-flow.js` 하네스가 (b)~(e)를 실제 DOM에서 집행한다. 상한이 0 이므로 이제
+**화면 단위 mockup 이 하나라도 다시 들어오면 PR 이 빨개진다.**
 
 **서술 절의 숫자 규약(규칙 7 / 게이트 R10).** 이 문서와 `docs/econ-opinion-monitor-design-tracker.md` 의
 산문이 이관 진척(`N/6`)·여정 페이지 수·화면 단위 수·미시각화 단계 수를 다시 적으면,
@@ -238,13 +252,39 @@
 > 문서 자신이 **「백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한
 > 「정상 범위인지 재확인한다」까지만 그린다 — `JRN-daily-scan`·`JRN-spike-verification`의 `recorded`와 같은 규약이다.
 
+#### `JRN-logic-backfill`
+
+| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
+|---|---|---|---|
+| `empty-scope` | 고른 조합에 보관된 원문이 없음 — 재분석할 대상이 0건 | 이 task 결정 | 화면 1에서 그 축에 없는 소스(한국 축 + `us-desk`)로 좁힌다 |
+| `over-budget` | 한 번에 돌리기에 큰 범위 — 대상 건수와 예상 소요를 표기해 나눠 돌게 한다 | 여정 문서 `STP-scope-range` 페인포인트(「대상 건수·예상 비용이 안 보이면 범위를 감으로 정하게 된다」) | 화면 1의 「기간」 `<select>` 를 「지난 30일」로 넓힌다 |
+| `sample-running` | 표본을 새 로직으로 돌리는 중 | 이 task 결정 | 화면 2에서 「표본 실행」 |
+| `sample-mismatch` | 표본 결과가 의도와 다름 — **전량 실행을 잠근다** | 여정 문서 §4 1행 | 화면 2에서 「표본 추출」을 「새 로직이 건드리는 대상 우선」으로 바꾼다(재분류 62%) |
+| `running` | 범위 전체를 다시 분석하는 중 | 이 task 결정 | 화면 3에서 「전량 실행」 |
+| `overwrite-warning` | 덮어쓰기로 돌리면 이전 결과가 사라져 전후 비교·되돌리기가 불가능 | 여정 문서 `STP-run-reprocess` 페인포인트(「기존 Silver를 덮어써 이전 결과를 잃으면 전후 비교 자체가 불가능」) | 화면 3에서 「로직 버전을 붙여 병존시킨다」 체크를 푼다 |
+| `interrupted` | 재분석이 도중에 끊김 — 체크포인트까지 유지하고 그 지점부터 재개(전량 재실행 금지) | 여정 문서 §4 2행 | 화면 3에서 배치 크기를 450으로 올리고 「전량 실행」 |
+| `over-threshold` | 전후 차이가 주목 임계를 넘는 항목이 있음 | 여정 문서 §4 3행 | 화면 4에서 「주목 임계 (%p)」를 실측 최대 변화 아래로 내린다 |
+| `low-confidence` | 분석 실패·저신뢰 급증 — 미분석을 비율에 섞지 않고 분리 적재해 비중을 보고 | 여정 문서 §4 5행 | 화면 4에서 「미분석 · 저신뢰를 따로 떼어 보기」 체크 |
+| `invalid` | 반영·롤백 결정 입력 검증 실패 | 이 task 결정 | 화면 5에서 결정 미선택 또는 근거 공란으로 「결정 기록」 제출 |
+| `recorded` | 반영·롤백 결정 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 결정을 고르고 근거를 채워 제출 |
+
+> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
+> `STP-publish`의 페인포인트로 적은 「재처리 반영 시각·로직 버전을 소비자 화면 주석으로 노출」을 문서 자신이
+> **「백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한 「반영하거나 되돌리고
+> 그 결정을 기록한다」까지만 그린다 — 앞선 네 여정의 `recorded`와 같은 규약이다.
+
+여정 문서 §4 3·4행(임계 초과 → `JRN-spike-verification`, 원문 누락 → `JRN-ingestion-recovery`)은 이 여정을 벗어나는
+인계라 상태가 아니라 **이탈 컨트롤**이다. 이 페이지는 §4 3·4·5행을 화면 4의 「재처리 중 이런 상황이라면」 목록으로
+모아 두었다 — 그 셋은 모두 **전후 비교를 보고 나서야 갈리는** 갈래이고, 1·2행(표본 불일치 · 중단 재개)은 각각
+자기 화면의 배너 상태로 위 표에 있다.
+
 여정 문서 §4 4행(수집은 정상인데 분석 결과가 이상 → `JRN-logic-backfill`)은 이 여정을 벗어나는 인계라 상태가 아니라
 **이탈 컨트롤**로 화면 4에 있다. §4 5행(중도 이탈)도 상태가 아니라 화면 5의 「미해결로 남기고 구간 목록으로」
 컨트롤로, 다음 진입에 그 구간이 다시 뜬다는 처리를 보여 준다. 나머지 3행(1·2·3)은 자기 단계로 되돌아오는 분기라
 각 화면의 배너 상태로 위 표에 있다.
 
-> 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 5개 페이지(화면 1 + 여정 페이지 4)의 `:root`를 함께 수정한다.
-> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(흡수된 `dash`·`trend`·`sentiment`·`compare`·`fairness`·`trace`는 각각 흡수한 여정 페이지, 나머지는 `<id>.html`).
+> 디자인 시스템 토큰·컴포넌트 스타일은 각 페이지의 `<style>`에 동일하게 인라인된다(개념적 단일 소스는 `docs/design-system/econ-opinion-monitor-design-system.md`). 토큰을 바꿀 때는 여정 페이지 6개의 `:root`를 함께 수정한다.
+> 아래 인덱스는 **화면(=페이지 파일) 단위**로 여정·가치·디자인 항목을 매핑한다. 화면 id ↔ 파일 대응은 위 표를 따른다(흡수된 `dash`·`trend`·`sentiment`·`compare`·`fairness`·`trace`·`reprocess`는 각각 흡수한 여정 페이지이며, 화면 단위 파일은 이제 하나도 남아 있지 않다).
 
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
@@ -278,21 +318,23 @@
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자), V1의 전제(지속적 수집) 보호
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-integrity-panel`, `PAT-before-after`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`
 
-### 화면 7 · `reprocess` 재처리 콘솔
-- **여정 단계**: `JRN-logic-backfill` / `STP-scope-range`(AC1.4, AC2.6), `STP-run-reprocess`(AC2.6), `STP-compare-before-after`(AC3.2, AC3.3) — `JRN-ingestion-recovery` 의 다섯 단계는 2026-09-19 여정 페이지 이관으로 이 화면의 시각 몫에서 빠졌다(그 여정 맥락의 화면은 `JRN-ingestion-recovery.html` 이 원본으로 갖는다)
+### 여정 페이지 · `JRN-logic-backfill` 로직 개선의 소급 적용
+- **여정 단계**: `JRN-logic-backfill` / `STP-scope-range`(AC1.4, AC2.6), `STP-dry-run`, `STP-run-reprocess`(AC2.6, AC2.4), `STP-compare-before-after`(AC3.2, AC3.3), `STP-publish`
+- **파일**: `docs/mockups/JRN-logic-backfill.html` (구 `reprocess` 화면을 흡수, 화면 파일은 삭제. `JRN-ingestion-recovery` 는 같은 `reprocess` 귀속 단계를 자기 여정 맥락의 원본으로 이미 갖고 있다 — 같은 화면이 여러 여정에 등장하는 것은 규칙 2의 중복이 아니다)
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자)
-- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-seg`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-mapstrip`
+- **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`
 
 ## 화면 간 이동(클릭 동선, 실제 링크)
 - `JRN-daily-scan.html` 안에서는 단계 레일·화면 안의 주요 행동 버튼·`#STP-<슬러그>` 딥링크로 5단계를 이동하고, §분기 4행이 각각 `#STP-scan-delta`·`JRN-spike-verification.html#STP-notice-spike`·`JRN-axis-contrast.html#STP-open-compare`·`#STP-open-brief`로 이동한다
-- 좌측 네비(`<a href>`)는 화면 **7항목**(`dash`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` — `nav.ts` 의 `SCREENS` 와 같은 순서·라벨)이고, 목적지는 **5파일**이다(화면 1개 `reprocess.html` + 여정 페이지 네 개 `JRN-daily-scan.html`·`JRN-sentiment-shift.html`·`JRN-axis-contrast.html`·`JRN-spike-verification.html`). **`JRN-ingestion-recovery.html` 은 좌측 네비의 목적지가 아니다** — `reprocess` 항목은 화면 id 규약에 따라 계속 `reprocess.html`(아직 `JRN-logic-backfill` 몫)을 가리키고, 이 여정 페이지로는 허브에서 들어간다. 그래서 네비 목적지 수(여정 페이지 네 개)와 여정 페이지 실측 수는 서로 다른 축이다. 흡수된 여섯 화면은 항목을 유지한 채 흡수한 여정 페이지로 가며, 한 페이지를 나눠 쓰는 `dash`·`trend` 와 `fairness`·`trace` 는 각각 `#STP-open-brief`/`#STP-drill-trend`, `#STP-check-normalized`/`#STP-open-origin` 앵커로 갈라진다. `index.html`은 `JRN-daily-scan.html`로 리다이렉트
-- `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `JRN-spike-verification.html#STP-open-origin`·`reprocess.html`)으로 이동한다
+- 좌측 네비(`<a href>`)는 화면 **7항목**(`dash`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` — `nav.ts` 의 `SCREENS` 와 같은 순서·라벨)이고, 목적지는 **5파일**이다(`JRN-daily-scan.html`·`JRN-sentiment-shift.html`·`JRN-axis-contrast.html`·`JRN-spike-verification.html`·`JRN-logic-backfill.html`). **`JRN-ingestion-recovery.html` 은 좌측 네비의 목적지가 아니다** — `reprocess` 항목은 화면 id 규약에 따라 그 화면을 흡수한 `JRN-logic-backfill.html#STP-scope-range` 를 가리키고, 수집 복구 여정 페이지로는 허브와 다른 여정의 이탈 컨트롤로 들어간다. 그래서 네비 목적지 수와 여정 페이지 실측 수는 서로 다른 축이다. 흡수된 일곱 화면은 항목을 유지한 채 흡수한 여정 페이지로 가며, 한 페이지를 나눠 쓰는 `dash`·`trend` 와 `fairness`·`trace` 는 각각 `#STP-open-brief`/`#STP-drill-trend`, `#STP-check-normalized`/`#STP-open-origin` 앵커로 갈라진다. `index.html`은 `JRN-daily-scan.html`로 리다이렉트
+- `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `JRN-spike-verification.html#STP-open-origin`·`JRN-logic-backfill.html#STP-scope-range`)으로 이동한다
 - `JRN-axis-contrast.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 4행이 `#STP-scan-axis-tops`(2건)·`JRN-spike-verification.html#STP-check-normalized`·`JRN-sentiment-shift.html`로 이동한다
-- `JRN-spike-verification.html` 안에서는 같은 방식으로 6단계를 이동하고, 「검증 중 이런 상황이라면」 목록의 §분기 5행이 `#STP-open-origin`·`#STP-inspect-sources`·`reprocess.html`(2건)·`#STP-judge`로 이동한다
-- `JRN-ingestion-recovery.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-backfill`·`#STP-verify-integrity`·`#STP-diagnose-source`·`reprocess.html`(`JRN-logic-backfill` 이 아직 화면 단위라 그 화면에 착지)·`#STP-locate-gap` 으로 이동한다
-- **이관된 여정 사이의 인계는 이제 화면 파일이 아니라 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로 갔지만, 두 분기가 선언한 대상은 처음부터 `JRN-spike-verification`의 단계였다
+- `JRN-spike-verification.html` 안에서는 같은 방식으로 6단계를 이동하고, 「검증 중 이런 상황이라면」 목록의 §분기 5행이 `#STP-open-origin`·`#STP-inspect-sources`·`JRN-logic-backfill.html#STP-scope-range`·`JRN-ingestion-recovery.html#STP-spot-anomaly`·`#STP-judge`로 이동한다
+- `JRN-ingestion-recovery.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-backfill`·`#STP-verify-integrity`·`#STP-diagnose-source`·`JRN-logic-backfill.html#STP-scope-range`·`#STP-locate-gap` 으로 이동한다
+- `JRN-logic-backfill.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-dry-run`·`#STP-run-reprocess`·`JRN-spike-verification.html#STP-open-origin`·`JRN-ingestion-recovery.html#STP-locate-gap`·`#STP-compare-before-after` 로 이동한다
+- **여정 사이의 인계는 이제 예외 없이 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로, 세 여정의 재처리 인계가 `reprocess.html`로 갔지만, 그 분기들이 선언한 대상은 처음부터 상대 여정의 **단계**였다. 화면 파일이 모두 흡수된 지금 그 괴리는 남아 있지 않다(`JRN-spike-verification` 의 「수집 이상 점검하기」가 선언 대상 `JRN-ingestion-recovery#STP-spot-anomaly` 와 달리 `reprocess.html` 을 가리키던 것도 이번에 바로잡았다)
 
-## 여정 단계 커버리지 (28/30 완전 · 0 부분 · 2 미시각화)
+## 여정 단계 커버리지 (30/30 완전 · 0 부분 · 0 미시각화)
 
 여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
 
@@ -303,9 +345,7 @@
 | `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` | `JRN-axis-contrast.html` (여정 페이지) | 🟢 |
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |
 | `JRN-ingestion-recovery` | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` | `JRN-ingestion-recovery.html` (여정 페이지) | 🟢 |
-| `JRN-logic-backfill` | `STP-scope-range`, `STP-run-reprocess`, `STP-compare-before-after` | `reprocess` | 🟢 |
-| `JRN-logic-backfill` | `STP-dry-run` | (없음) | 🔴 표본 실행 화면 없음 |
-| `JRN-logic-backfill` | `STP-publish` | (없음) | 🔴 반영·롤백 컨트롤 없음 |
+| `JRN-logic-backfill` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` | `JRN-logic-backfill.html` (여정 페이지) | 🟢 |
 
 ## 가치 커버리지 (5/5)
 | 가치 | 시각화 화면 |
@@ -314,12 +354,12 @@
 | V2 지역 축 비교 | `JRN-axis-contrast` |
 | V3 분위기 분포 | `JRN-sentiment-shift` |
 | V4 편차 보정 | `JRN-spike-verification` |
-| V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `reprocess` |
+| V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 진행 중 (5/6)**: `JRN-sentiment-shift`·`JRN-axis-contrast`·`JRN-spike-verification`·`JRN-daily-scan`·`JRN-ingestion-recovery` 가 여정 페이지로 이관됐고 나머지 1개(`JRN-logic-backfill`)는 아직 화면 단위다. 이관 순서는 **화면 소유가 배타적인 여정부터** — `sentiment`·`compare` 는 각각 그 여정 전용이었고, `trace` 도 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐이며, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였다 — 다섯 화면 모두 흡수·삭제가 끝났다. 남은 1개(`JRN-logic-backfill`)는 🔴 미시각화 단계 2건(`STP-dry-run`·`STP-publish`)을 안고 있어 **제품 범위 확정이 선행**이다. `reprocess` 화면은 두 운영 여정이 공유했으므로 **그 화면을 쓰는 여정이 전부 이관될 때** 함께 흡수·삭제한다 — `JRN-ingestion-recovery` 만 이관된 지금은 `reprocess.html` 이 `JRN-logic-backfill` 몫으로 존속하고, 「규칙 5 미충족 mockup 페이지 상한」도 1 그대로다.
+- **여정↔mockup 1:1 이관 완료 (6/6)**: 여섯 여정 전부가 여정 페이지를 갖고, 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
 - **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
-- **미시각화 2단계**: `STP-dry-run`, `STP-publish` — 둘 다 운영 축이고 `JRN-logic-backfill` 에 속한다. 표본 실행·반영 결정 컨트롤을 제품에 둘 것인지가 선행 판단이다. `STP-backfill` 은 2026-09-19 `JRN-ingestion-recovery` 이관으로 해소됐다(보정 실행 컨트롤 신설 — 작업 선택·배치 크기·덮어쓰기 금지 토글). 같은 이관으로 🟠 부분 시각화였던 `STP-diagnose-source`(실패 사유 미표시)·`STP-verify-integrity`(결과만 표시)도 닫혔다. `STP-shortlist` 는 2026-09-18 `JRN-daily-scan` 이관으로 해소됐다(추림 화면 신설 — 다만 영속화는 여정 문서가 파킹한 백로그 그대로다).
+- **미시각화 단계 0개**: 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다. 둘 다 「제품에 둘 것인지」가 선행 판단이었고 이 슬라이스가 **둔다**로 확정했다 — 표본 실행은 전량 실행의 관문(표본이 의도와 어긋나면 전량이 잠긴다)으로, 반영·롤백은 근거를 함께 적는 결정 기록으로 그렸다. 결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 파킹한 백로그 그대로다. 앞선 해소: `STP-backfill` 은 `JRN-ingestion-recovery` 이관(2026-09-19), `STP-shortlist` 는 `JRN-daily-scan` 이관(2026-09-18). 🟠 부분 시각화였던 `STP-diagnose-source`·`STP-verify-integrity` 도 같은 흐름에서 닫혔다.
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).
 - **여정 페이지의 DOM 하네스는 페이지별 시나리오를 요구한다**: `scripts/check-journey-flow.js` 는 `data-journey` 를 선언한 페이지를 전부 발견해 (a)~(h)를 구동하고, `scripts/journey-scenarios/<여정 식별자>.js` 가 없으면 **실패한다**(fail-closed). 여정 페이지를 새로 얹을 때는 시나리오도 함께 넣어야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.

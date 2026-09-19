@@ -9,9 +9,9 @@
 ## 현재 상태 요약
 - 정의된 가치: **5개** (V1~V5, 가치 문서에서 참조)
 - 사용자 여정: **6개** (`JRN-*`, 여정당 문서 하나 · 총 30단계 · 가치 연결됨 6개 / 미연결 0개)
-- Mockup: **여정 페이지 5개 + 화면 단위 1개 + 진입 리다이렉트 1개** (페이지별 자립형 HTML, CSS·JS 인라인)
+- Mockup: **여정 페이지 6개 + 진입 리다이렉트 1개** (페이지별 자립형 HTML, CSS·JS 인라인)
 - 디자인 시스템: **정의됨** (토큰 9 · 컴포넌트 19 · 패턴 9)
-- **건강 상태**: 🟡 **주의** — 가치↔여정 연결은 끊김이 없다. 여정 단위 재편이 **5/6** 진행됐고(`JRN-sentiment-shift` 2026-08-30 · `JRN-axis-contrast` 2026-08-31 · `JRN-spike-verification` 2026-09-18 · `JRN-daily-scan` 2026-09-18 · `JRN-ingestion-recovery` 2026-09-19), 남은 1개(`JRN-logic-backfill`)가 운영 축 화면 `reprocess` 를 계속 쓴다. **미시각화 2단계**가 남고 **부분 시각화는 0단계**다.
+- **건강 상태**: 🟢 **양호** — 가치↔여정 연결은 끊김이 없다. 여정 단위 재편이 **6/6** 끝났고(`JRN-sentiment-shift` 2026-08-30 · `JRN-axis-contrast` 2026-08-31 · `JRN-spike-verification` 2026-09-18 · `JRN-daily-scan` 2026-09-18 · `JRN-ingestion-recovery` 2026-09-19 · `JRN-logic-backfill` 2026-09-19), 화면 단위 mockup 은 남아 있지 않다. **미시각화 0단계 · 부분 시각화 0단계**이며, 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 모두 0 이라 이제 여정이 하나 늘고 페이지가 따라오지 않으면 그 즉시 PR 이 빨개진다.
   가치 측 전제 위험(제품 소유자 미지정)은 product-doc-engineer 영역으로 별도 추적된다.
 
 ## 문서 목록
@@ -20,8 +20,8 @@
 | 사용자 여정 | `user-journeys/JRN-*.md` (6개) + `user-journeys/README.md` (인덱스·구 식별자 매핑) |
 | 디자인 시스템 | `design-system/econ-opinion-monitor-design-system.md` |
 | Mockup 인덱스 | `mockups/econ-opinion-monitor-mockup-index.md` |
-| Mockup — 여정 페이지 | `mockups/JRN-sentiment-shift.html` · `mockups/JRN-axis-contrast.html` · `mockups/JRN-spike-verification.html` · `mockups/JRN-daily-scan.html` · `mockups/JRN-ingestion-recovery.html` (여정 하나 = 페이지 하나, 클릭되는 제품 프로토타입) |
-| Mockup — 화면 단위(이관 대기) | `mockups/reprocess.html` + 진입 리다이렉트 `mockups/index.html` (각 페이지 자립형: CSS·JS 인라인). `reprocess` 는 `JRN-ingestion-recovery` 이관 뒤에도 `JRN-logic-backfill` 몫으로 존속한다 — 화면을 공유하는 여정이 전부 이관돼야 흡수·삭제한다. 흡수된 `dashboard`·`trend`·`compare`·`sentiment`·`fairness`·`trace` 는 파일이 삭제됐고 화면 id 는 인덱스의 「흡수된 화면의 표기 규약」에 따라 존속한다 |
+| Mockup — 여정 페이지 | `mockups/JRN-sentiment-shift.html` · `mockups/JRN-axis-contrast.html` · `mockups/JRN-spike-verification.html` · `mockups/JRN-daily-scan.html` · `mockups/JRN-ingestion-recovery.html` · `mockups/JRN-logic-backfill.html` (여정 하나 = 페이지 하나, 클릭되는 제품 프로토타입) |
+| Mockup — 진입 리다이렉트 | `mockups/index.html` (`JRN-daily-scan.html` 로 보낸다). **화면 단위 mockup 은 0개다** — 마지막이던 `reprocess.html` 은 2026-09-19 `JRN-logic-backfill` 이관으로 흡수·삭제됐다(공유 화면이라 그 화면을 쓰는 여정이 전부 이관되는 시점까지 존속했다). 흡수된 `dashboard`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` 는 파일이 삭제됐고 화면 id 는 인덱스의 「흡수된 화면의 표기 규약」에 따라 존속한다 |
 | 여정 mockup 게이트 | `scripts/check-journey-mockup.py`(정적 R1~R11 — R10 서술 숫자 ↔ 실측, R11 이 표의 mockup 등재 ↔ 실파일) · `scripts/check-journey-flow.js`(DOM 하네스) · `scripts/journey-scenarios/<여정 식별자>.js`(페이지별 조작) · `.github/workflows/docs-journey-mockup.yml` |
 | 설계·UX 상태 추적 | `econ-opinion-monitor-design-tracker.md` |
 
@@ -29,7 +29,7 @@
 | 항목 | 상태 |
 |------|------|
 | 배포 골격 | `docs/index.html` · `docs/reader.html` · `docs/.nojekyll` 모두 존재 |
-| 허브에서 도달 가능 | 문서 13개 · 여정 6개(문서 링크 + 대응 mockup 링크 — 이관된 5개는 여정 페이지를, 나머지 1개는 대응 화면 `reprocess.html` 을 가리킨다) · mockup 갤러리 1개 |
+| 허브에서 도달 가능 | 문서 13개 · 여정 6개(문서 링크 + 대응 mockup 링크 — 여섯 행이 전부 자기 여정 페이지를 가리킨다) · mockup 갤러리 1개 |
 | **허브 디자인 시스템 적용** | 🟢 **적용됨** (2026-08-30) — `docs/index.html` 이 `:root` 토큰을 mockup 과 동일하게 인라인하고 serif/sans/mono 역할 분리·`--primary` 마스트헤드·`--accent` mockup 링크를 사용한다. 구획·링크·항목은 미변경. |
 | 리더 디자인 시스템 적용 | 🟡 **미적용** — `docs/reader.html` 은 아직 중립(GitHub 기본) 팔레트. 리더는 스킬 템플릿 복사본이라 갱신 시 덮어써질 수 있어 별도 판단 필요. |
 
@@ -40,7 +40,7 @@
 | V2 지역 축 비교 | `JRN-axis-contrast` | `JRN-axis-contrast.html`(여정 페이지) | 🟢 시각화됨 |
 | V3 분위기 분포 | `JRN-sentiment-shift` | `JRN-sentiment-shift.html`(여정 페이지) | 🟢 시각화됨 |
 | V4 편차 보정 | `JRN-spike-verification` | `JRN-spike-verification.html`(여정 페이지) | 🟢 시각화됨 |
-| V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill` | `JRN-spike-verification.html`·`JRN-ingestion-recovery.html`(여정 페이지), `reprocess` | 🟡 부분 — 운영 여정 중 `JRN-logic-backfill` 이 아직 `reprocess` 화면에 남아 있음 |
+| V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill` | `JRN-spike-verification.html`·`JRN-ingestion-recovery.html`·`JRN-logic-backfill.html`(여정 페이지) | 🟢 시각화됨 |
 
 ## 여정 단계 → mockup 커버리지
 | 여정 | 단계 수 | 시각화 | 부분 | 미시각화 |
@@ -50,8 +50,8 @@
 | `JRN-axis-contrast` | 5 | 5 | 0 | 0 |
 | `JRN-sentiment-shift` | 4 | 4 | 0 | 0 |
 | `JRN-ingestion-recovery` | 5 | 5 | 0 | 0 |
-| `JRN-logic-backfill` | 5 | 3 | 0 | 2 (`STP-dry-run`, `STP-publish`) |
-| **합계** | **30** | **28** | **0** | **2** |
+| `JRN-logic-backfill` | 5 | 5 | 0 | 0 |
+| **합계** | **30** | **30** | **0** | **0** |
 
 ## 규칙 8 예외 등재 (mockup 을 두지 않기로 한 여정)
 
@@ -71,19 +71,21 @@
 | (등재 0건) | — | — |
 
 > 현재 예외는 **0건**이며, 6개 여정 전부가 판정 대상이다. 형제 레포(`feature-doc`)가 `JRN-restore-history`
-> 1건을 예외로 빼 판정 대상을 줄인 것과 달리 이 레포는 면제가 없다 — 이관이 유일한 해소 경로다.
+> 1건을 예외로 빼 판정 대상을 줄인 것과 달리 이 레포는 면제가 없다 — 이관이 유일한 해소 경로였고,
+> 2026-09-19 `JRN-logic-backfill` 이관으로 **그 경로를 끝까지 걸어 미충족 여정이 0 이 됐다.**
+> 즉 이 표가 비어 있는 것은 「아직 안 적었다」가 아니라 **적을 것이 없다**는 뜻이다.
 
 ## 위험 진단
 
 ### 🔴 가치 측 위험 (존재 이유 불분명)
 - **고아 여정**: (없음) — 6개 여정 모두 존재하는 가치를 참조함.
-- **고아 mockup**: (없음) — 여정 페이지 5개 + 화면 단위 1개(+ 진입 리다이렉트 1개) 모두 여정 단계·가치에 매핑됨.
-- **인덱스 누락 mockup**: (없음) — 실파일 7개(여정 페이지 5개 + 화면 단위 1개 + 진입 리다이렉트 1개)가 모두 인덱스에 등재됨.
+- **고아 mockup**: (없음) — 여정 페이지 6개(+ 진입 리다이렉트 1개) 모두 여정 단계·가치에 매핑됨.
+- **인덱스 누락 mockup**: (없음) — 실파일 7개(여정 페이지 6개 + 진입 리다이렉트 1개)가 모두 인덱스에 등재됨.
 
-### 🟡 시각화 누락 (구조적 공백)
-- **미시각화 단계 2개**: `STP-dry-run`, `STP-publish`(재처리 표본 실행·반영 결정 부재) — 둘 다 운영 축이다. — `STP-backfill` 은 2026-09-19 `JRN-ingestion-recovery` 이관으로 해소됐다(보정 실행 컨트롤 신설). `STP-judge` 는 2026-09-18 `JRN-spike-verification` 이관으로, `STP-shortlist` 는 같은 날 `JRN-daily-scan` 이관으로 해소됐다(각각 판정 화면·추림 화면 신설). 다만 두 단계가 적은 **검증 이력·플래그 / 북마크·워치리스트 영속화는 여정 문서가 파킹한 백로그** 그대로이고, 판정도 추림도 세션 안에서만 유지된다.
-- **부분 시각화 0개**: `STP-diagnose-source`(실패 사유 미표시)·`STP-verify-integrity`(결과만 표시)는 2026-09-19 `JRN-ingestion-recovery` 여정 페이지 이관으로 해소됐다(원인 판정별 수집 메타데이터 표기 · 보정 전후 비교 패널 신설). `STP-pick-outlier`(클릭 어포던스)는 2026-08-31 `JRN-axis-contrast` 여정 페이지 이관으로 해소됨.
-- **여정↔mockup 1:1 위반 (1/6 남음)**: 여정 하나 = mockup 페이지 하나가 목표인데 `JRN-sentiment-shift`(2026-08-30)·`JRN-axis-contrast`(2026-08-31)·`JRN-spike-verification`(2026-09-18)·`JRN-daily-scan`(2026-09-18)·`JRN-ingestion-recovery`(2026-09-19)가 이관됐다. 남은 `JRN-logic-backfill` 은 아직 화면 단위 `reprocess` 를 쓰고, **🔴 미시각화 단계 2건을 안고 있어 제품 범위 확정이 선행**이다. 실측 상한은 `mockups/econ-opinion-monitor-mockup-index.md` 의 「규칙 1 미충족 여정 상한」 래칫이 관리한다(현재 1).
+### 🟢 시각화 누락 (해소됨)
+- **미시각화 단계 0개**: 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다 — 표본 실행을 전량 실행의 관문으로, 반영·롤백을 근거와 함께 남기는 결정 기록으로 그렸다. 앞선 해소: `STP-backfill`(2026-09-19 `JRN-ingestion-recovery`), `STP-judge`(2026-09-18 `JRN-spike-verification`), `STP-shortlist`(2026-09-18 `JRN-daily-scan`). 다만 이 단계들이 적은 **검증 이력·플래그 / 북마크·워치리스트 / 재처리 이력·소비자 주석의 영속화는 여정 문서가 파킹한 백로그** 그대로이고, 판정도 추림도 재처리 결정도 세션 안에서만 유지된다.
+- **부분 시각화 0개**: `STP-diagnose-source`(실패 사유 미표시)·`STP-verify-integrity`(결과만 표시)는 2026-09-19 `JRN-ingestion-recovery` 여정 페이지 이관으로 해소됐다(원인 판정별 수집 메타데이터 표기 · 보정 전후 비교 패널 신설). `STP-pick-outlier`(클릭 어포던스)는 2026-08-31 `JRN-axis-contrast` 여정 페이지 이관으로 해소됨. `STP-scope-range`·`STP-run-reprocess`·`STP-compare-before-after` 는 화면 단위 스냅샷에 대응물이 있었으나 워크스루가 아니었고, 2026-09-19 `JRN-logic-backfill` 이관으로 셋 다 클릭되는 제품 프로토타입이 됐다.
+- **여정↔mockup 1:1 위반 (없음)**: 여정 하나 = mockup 페이지 하나가 목표였고 여섯 여정 전부가 자기 페이지를 갖는다 — `JRN-sentiment-shift`(2026-08-30)·`JRN-axis-contrast`(2026-08-31)·`JRN-spike-verification`(2026-09-18)·`JRN-daily-scan`(2026-09-18)·`JRN-ingestion-recovery`(2026-09-19)·`JRN-logic-backfill`(2026-09-19). 마지막 건은 두 운영 여정이 공유하던 `reprocess` 화면을 흡수·삭제하며 닫혔고, 같은 슬라이스가 그 여정의 🔴 미시각화 2건의 제품 범위를 확정했다. 실측 상한은 `mockups/econ-opinion-monitor-mockup-index.md` 의 「규칙 1 미충족 여정 상한」 래칫이 관리한다(현재 0).
 - **시각화 없는 가치**: (없음) — V1~V5 전부 1개 이상 화면에서 시각화됨.
 
 ### 🟢 디자인 시스템 측 위험 (일관성)
