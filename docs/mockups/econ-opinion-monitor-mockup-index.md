@@ -296,7 +296,7 @@
 
 ### 여정 페이지 · `JRN-axis-contrast` 지역 온도차 확인
 - **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`, `STP-verify-in-trend`(AC3.5)
-- **파일**: `docs/mockups/JRN-axis-contrast.html` (구 `compare` 화면을 흡수, 화면 파일은 삭제. `STP-verify-in-trend`는 이 여정 맥락의 추세 상세를 원본으로 새로 그린다 — `trend.html`은 `JRN-daily-scan` 몫으로 존속)
+- **파일**: `docs/mockups/JRN-axis-contrast.html` (구 `compare` 화면을 흡수, 화면 파일은 삭제. `STP-verify-in-trend`는 이 여정 맥락의 추세 상세를 원본으로 새로 그린다 — 구 `trend` 화면은 `JRN-daily-scan.html` 이 흡수했다)
 - **가치**: V2 지역 축 간 비교
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-axis-compare`, `PAT-line-chart`, `CMP-card`, `CMP-axpill`, `CMP-ranklist`, `CMP-badge`, `CMP-note`, `CMP-legend`, `CMP-table`, `CMP-kv`, `CMP-metric`, `CMP-delta`, `CMP-mapstrip`
 
@@ -308,13 +308,13 @@
 
 ### 여정 페이지 · `JRN-spike-verification` 급등 신호의 진위 확인
 - **여정 단계**: `JRN-spike-verification` / `STP-notice-spike`, `STP-check-normalized`(AC3.8), `STP-inspect-sources`(AC3.1, AC3.8), `STP-drilldown-articles`(AC3.2, AC1.7), `STP-open-origin`(AC2.6, AC1.4), `STP-judge`
-- **파일**: `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 두 화면을 흡수, 화면 파일은 삭제. `STP-notice-spike`는 이 여정 맥락의 급등 인지 화면을 원본으로 새로 그린다 — `dashboard.html`·`trend.html`은 `JRN-daily-scan` 몫으로 존속)
+- **파일**: `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 두 화면을 흡수, 화면 파일은 삭제. `STP-notice-spike`는 이 여정 맥락의 급등 인지 화면을 원본으로 새로 그린다 — 구 `dash`·`trend` 화면은 `JRN-daily-scan.html` 이 흡수했다)
 - **가치**: V4 수집원 편차 보정, V5 원문 추적성·재처리
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-raw-vs-norm`, `PAT-lineage`, `CMP-card`, `CMP-norm-toggle`, `CMP-ranklist`, `CMP-table`, `CMP-note`, `CMP-kv`, `CMP-badge`, `CMP-delta`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-ingestion-recovery` 수집 이상 감지·복구
 - **여정 단계**: `JRN-ingestion-recovery` / `STP-spot-anomaly`(AC1.6), `STP-locate-gap`(AC1.5, AC1.6), `STP-diagnose-source`(AC1.5, AC1.6, AC1.7), `STP-backfill`(AC1.6, AC1.7), `STP-verify-integrity`
-- **파일**: `docs/mockups/JRN-ingestion-recovery.html` (운영 축 화면을 이 여정 맥락의 원본으로 새로 그린다 — `reprocess.html` 은 아직 이관되지 않은 `JRN-logic-backfill` 몫으로 존속하므로 흡수·삭제는 그 여정이 이관될 때 일어난다)
+- **파일**: `docs/mockups/JRN-ingestion-recovery.html` (운영 축 화면을 이 여정 맥락의 원본으로 새로 그린다. 구 `reprocess` 화면은 두 운영 여정이 공유했으므로 나중 이관인 `JRN-logic-backfill` 시점에 흡수됐고, 화면 파일은 삭제)
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자), V1의 전제(지속적 수집) 보호
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-integrity-panel`, `PAT-before-after`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`
 
