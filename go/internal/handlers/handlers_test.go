@@ -530,3 +530,159 @@ func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
 		}
 	}
 }
+
+// writeRolledUpGold is one aggregation run as it now reaches Gold: the same
+// records cut three ways (AC3.3). Every hour row has a day and a week row that
+// covers it, so any reader that fails to settle on one unit triple-counts.
+//
+// The week label is the trap the compare basis used to fall into: "2026-W26"
+// sorts above "2026-06-23T14" on bytes, so a plain max over mixed rows returns
+// the rollup and calls it the latest hour.
+func writeRolledUpGold(t *testing.T, dir string) {
+	t.Helper()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	subjects := `{"subject":"한국은행 기준금리","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":5,"normalized_share":0.6,"delta":0.0,"spark":[0.6]}
+{"subject":"삼성전자","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":3,"normalized_share":0.4,"delta":0.0,"spark":[0.4]}
+{"subject":"한국은행 기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":5,"normalized_share":0.6,"delta":0.0,"spark":[0.6]}
+{"subject":"삼성전자","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":0.4,"delta":0.0,"spark":[0.4]}
+{"subject":"한국은행 기준금리","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":5,"normalized_share":0.6,"delta":0.0,"spark":[0.6]}
+{"subject":"삼성전자","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":3,"normalized_share":0.4,"delta":0.0,"spark":[0.4]}`
+	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(subjects+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sentiment := `{"axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","distribution":{"positive":0.5,"neutral":0.3,"negative":0.1,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":8}
+{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.5,"neutral":0.3,"negative":0.1,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":8}
+{"axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","distribution":{"positive":0.5,"neutral":0.3,"negative":0.1,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":8}`
+	if err := os.WriteFile(filepath.Join(gold, "axis_sentiment.jsonl"), []byte(sentiment+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The dashboard reads Gold flat, so the rollups are exactly where it could
+// start counting the same records three times.
+func TestDashboardCountsEachRecordOnceWhenGoldCarriesRollups(t *testing.T) {
+	dir := t.TempDir()
+	writeRolledUpGold(t, dir)
+
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/dashboard?axis=KR")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	var d dashboardResponse
+	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+		t.Fatal(err)
+	}
+
+	// Two subjects, not six: one row per subject in the settled unit.
+	if len(d.TopSubjects) != 2 {
+		t.Fatalf("want 2 subjects, got %d: %+v", len(d.TopSubjects), d.TopSubjects)
+	}
+	seen := map[string]bool{}
+	for _, row := range d.TopSubjects {
+		if seen[row.Subject] {
+			t.Errorf("subject %q appears more than once — a rollup row leaked in", row.Subject)
+		}
+		seen[row.Subject] = true
+	}
+
+	// "수집 뉴스 (현재 버킷)" is the raw-count sum, so triple counting shows up
+	// as 24 instead of 8.
+	var raw string
+	for _, m := range d.Metrics {
+		if m.Label == "수집 뉴스 (현재 버킷)" {
+			raw = m.Value
+		}
+	}
+	if raw != "8" {
+		t.Errorf("raw count metric = %q, want \"8\" (5+3 counted once)", raw)
+	}
+}
+
+// AC3.7's basis must stay an hour even though a week rollup sorts above every
+// hour key on bytes.
+func TestCompareSettlesTheUnitBeforePickingTheLatestBucket(t *testing.T) {
+	dir := t.TempDir()
+	writeRolledUpGold(t, dir)
+
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/compare")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	var c compareResponse
+	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
+		t.Fatal(err)
+	}
+
+	if c.Basis.BucketUnit != "hour" || c.Basis.TimeBucket != "2026-06-23T14" {
+		t.Fatalf("basis followed the rollup instead of the finest unit: %+v", c.Basis)
+	}
+	if len(c.Axes[0].TopSubjects) != 2 {
+		t.Errorf("KR column should hold the two hour rows: %+v", c.Axes[0].TopSubjects)
+	}
+	if c.Axes[0].Sentiment.Positive != 0.5 {
+		t.Errorf("KR sentiment came from the wrong row: %+v", c.Axes[0].Sentiment)
+	}
+}
+
+// Rollup-only Gold is not a broken state: with no hour rows the finest unit
+// present is the day, and the views answer in it rather than going blank.
+func TestViewsFallBackToTheCoarserUnitWhenItIsAllGoldHas(t *testing.T) {
+	dir := t.TempDir()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	subjects := `{"subject":"삼성전자","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":1.0,"delta":0.0,"spark":[1.0]}
+{"subject":"삼성전자","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":3,"normalized_share":1.0,"delta":0.0,"spark":[1.0]}`
+	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(subjects+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sentiment := `{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":1.0,"neutral":0.0,"negative":0.0,"mixed":0.0,"unanalyzed":0.0},"analyzed_total":3}
+{"axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","distribution":{"positive":1.0,"neutral":0.0,"negative":0.0,"mixed":0.0,"unanalyzed":0.0},"analyzed_total":3}`
+	if err := os.WriteFile(filepath.Join(gold, "axis_sentiment.jsonl"), []byte(sentiment+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/compare")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var c compareResponse
+	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
+		t.Fatal(err)
+	}
+	if c.Basis.BucketUnit != "day" || c.Basis.TimeBucket != "2026-06-23" {
+		t.Fatalf("basis = %+v, want the day rows", c.Basis)
+	}
+	if len(c.Axes[0].TopSubjects) != 1 {
+		t.Errorf("KR column wrong: %+v", c.Axes[0].TopSubjects)
+	}
+
+	s := getSentiment(t, dir, "?axis=KR")
+	if s.Basis.BucketUnit != "day" || len(s.Series) != 1 {
+		t.Errorf("sentiment basis = %+v, series %d — want the day rows", s.Basis, len(s.Series))
+	}
+}

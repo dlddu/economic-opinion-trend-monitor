@@ -16,7 +16,12 @@
 // (`econ_ingestion/cli.py`, `--cycle` 과 무관하다) 한 수집 Job 이 만든 레코드는 전부 같은 시간
 // 버킷에 떨어진다. 즉 e2e 한 주기에서 시간대 차원은 값이 하나다. 교차 키에 버킷이 실제로 실리고
 // 그 값이 원천과 일치하는지는 여기서 보지만, **버킷이 여럿일 때의 롤업 합산**은 이 시나리오가
-// 아니라 시나리오 3의 몫이고 그쪽은 구현 대기(일·주 롤업 미구현)로 등재돼 있다.
+// 아니라 시나리오 3의 몫이다.
+//
+// 집계가 같은 레코드를 시간·일·주 세 벌로 산출하므로(AC3.3), 아래 단정은 전부 `lib/gold.ts` 가
+// **기본 단위 한 벌로 정한** 행 위에서 돈다 — 그러지 않으면 교차표의 칸마다 롤업 행이 겹쳐
+// 이 시나리오가 재려던 것(원천과의 일치)이 단위 회계 문제에 묻힌다. 필터가 무언가를 조용히
+// 가리지 않는지는 마지막 테스트가 원본을 한 번 더 읽어 확인한다.
 
 import { expect, test } from "@playwright/test";
 
@@ -27,6 +32,7 @@ import {
   cellKey,
   crossTab,
   subjectTrends,
+  subjectTrendsAllUnits,
   trendOf,
 } from "../lib/gold";
 import { MODEL_AGG, cannedReply } from "../lib/llmdouble";
@@ -107,4 +113,11 @@ test("aggregation: every Gold row carries the time bucket its source records fal
     expect(row.bucket_unit, row.subject).toBe("hour");
     expect([...buckets], row.subject).toContain(row.time_bucket);
   }
+
+  // 위 단정이 도는 슬라이스가 **필터의 산물**이라는 사실을 그 자리에서 밝힌다: 원본 Gold 는
+  // 세 단위를 다 갖고 있고, 기본 단위가 시간이라 위 행들이 시간 버킷을 든다(AC3.3
+  // "기본 단위는 시간"). 롤업 합산이 하위 버킷 합과 일치하는지는 시나리오 3의 몫이라 여기서
+  // 재지 않는다 — 여기서 보는 것은 필터가 단위 하나를 고른 것이지 데이터를 지운 게 아니라는 점뿐이다.
+  const units = new Set(subjectTrendsAllUnits().map((row) => row.bucket_unit));
+  expect([...units].sort()).toEqual(["day", "hour", "week"]);
 });

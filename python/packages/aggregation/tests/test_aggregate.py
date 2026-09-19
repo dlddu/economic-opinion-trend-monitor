@@ -1,4 +1,12 @@
-from econ_aggregation.aggregate import build_axis_sentiment, build_subject_trends
+import pytest
+from econ_aggregation.aggregate import (
+    BUCKET_UNITS,
+    _bucket,
+    build_axis_sentiment,
+    build_axis_sentiment_all_units,
+    build_subject_trends,
+    build_subject_trends_all_units,
+)
 
 
 def _bronze(rid: str, axis: str, source: str, hour: int = 14) -> dict:
@@ -90,3 +98,112 @@ def test_axis_sentiment_separates_unanalyzed() -> None:
     # Unanalyzed is separated out; sentiment ratios are over analyzed only (AC3.4).
     assert kr["distribution"]["unanalyzed"] == 0.5
     assert kr["distribution"]["positive"] == 1.0
+
+
+# ── AC3.3 rollups ────────────────────────────────────────────────────────────
+# The corpus below deliberately spans two hours of one day, a second day in the
+# same ISO week, and a third day in the next one, so "day" and "week" each have
+# something to actually roll up and a boundary to get wrong.
+#
+# 2026-06-23 (Tue) and 2026-06-28 (Sun) are both ISO week 2026-W26;
+# 2026-06-29 (Mon) opens 2026-W27.
+_SPAN = [
+    ("1", "2026-06-23T14:00:00+00:00", ["A"]),
+    ("2", "2026-06-23T14:30:00+00:00", ["B"]),
+    ("3", "2026-06-23T15:00:00+00:00", ["A"]),
+    ("4", "2026-06-28T09:00:00+00:00", ["A"]),
+    ("5", "2026-06-29T09:00:00+00:00", ["B"]),
+]
+
+
+def _span_bronze() -> list[dict]:
+    return [
+        {"record_id": rid, "source_id": "src", "axis": "KR", "collected_at": stamp}
+        for rid, stamp, _ in _SPAN
+    ]
+
+
+def _span_silver() -> list[dict]:
+    return [_silver(rid, subjects, "positive", "analyzed") for rid, _, subjects in _SPAN]
+
+
+def test_bucket_labels_are_zero_padded_per_unit() -> None:
+    stamp = "2026-06-23T14:37:02+00:00"
+    assert _bucket(stamp) == "2026-06-23T14"
+    assert _bucket(stamp, "hour") == "2026-06-23T14"
+    assert _bucket(stamp, "day") == "2026-06-23"
+    # ISO week-numbering, so the label is not derivable from the month alone.
+    assert _bucket(stamp, "week") == "2026-W26"
+    assert _bucket("2026-06-29T09:00:00+00:00", "week") == "2026-W27"
+
+
+def test_unknown_bucket_unit_is_refused_rather_than_silently_hour() -> None:
+    with pytest.raises(ValueError, match="unknown bucket unit"):
+        _bucket("2026-06-23T14:00:00+00:00", "fortnight")
+
+
+def test_every_unit_is_emitted_finest_first() -> None:
+    rows = build_subject_trends_all_units(_span_bronze(), _span_silver())
+    units = [row["bucket_unit"] for row in rows]
+    assert set(units) == set(BUCKET_UNITS)
+    # Finest first, and each unit's rows stay contiguous — readers that stop at
+    # the first unit they recognize get the default one (AC3.3: 기본 단위는 시간).
+    assert units == sorted(units, key=lambda u: BUCKET_UNITS.index(u))
+
+
+def test_rollup_raw_counts_equal_the_sum_of_the_finer_buckets() -> None:
+    """AC3.3 검증 방법 — "롤업 시 합산이 하위 버킷 합과 일치"."""
+    bronze, silver = _span_bronze(), _span_silver()
+    by_unit = {unit: build_subject_trends(bronze, silver, unit) for unit in BUCKET_UNITS}
+
+    def counts(unit: str) -> dict[tuple[str, str], int]:
+        return {(row["time_bucket"], row["subject"]): row["raw_count"] for row in by_unit[unit]}
+
+    hours, days, weeks = counts("hour"), counts("day"), counts("week")
+
+    # A day is the sum of the hours whose label it prefixes.
+    for (day, subject), n in days.items():
+        rolled = sum(c for (bucket, s), c in hours.items() if s == subject and bucket[:10] == day)
+        assert n == rolled, f"{day}/{subject}: day {n} != hours {rolled}"
+    # And a week is the sum of its days.
+    assert weeks[("2026-W26", "A")] == days[("2026-06-23", "A")] + days[("2026-06-28", "A")]
+    assert weeks[("2026-W27", "B")] == days[("2026-06-29", "B")]
+
+    # No unit invented or dropped a record: every unit accounts for all five.
+    for unit in BUCKET_UNITS:
+        assert sum(row["raw_count"] for row in by_unit[unit]) == len(_SPAN)
+
+
+def test_rollup_shares_stay_a_distribution_inside_each_bucket() -> None:
+    """Shares are renormalized per bucket, never summed across the finer ones."""
+    bronze, silver = _span_bronze(), _span_silver()
+    for unit in BUCKET_UNITS:
+        per_bucket: dict[str, float] = {}
+        for row in build_subject_trends(bronze, silver, unit):
+            per_bucket[row["time_bucket"]] = (
+                per_bucket.get(row["time_bucket"], 0.0) + row["normalized_share"]
+            )
+        for bucket, total in per_bucket.items():
+            assert round(total, 2) == 1.0, f"{unit}/{bucket} shares sum to {total}"
+
+
+def test_axis_sentiment_rolls_up_on_the_same_buckets() -> None:
+    bronze, silver = _span_bronze(), _span_silver()
+    by_unit = {
+        unit: build_axis_sentiment_all_units(bronze, silver, (unit,)) for unit in BUCKET_UNITS
+    }
+
+    hours = {row["time_bucket"]: row["analyzed_total"] for row in by_unit["hour"]}
+    days = {row["time_bucket"]: row["analyzed_total"] for row in by_unit["day"]}
+    weeks = {row["time_bucket"]: row["analyzed_total"] for row in by_unit["week"]}
+
+    assert days["2026-06-23"] == hours["2026-06-23T14"] + hours["2026-06-23T15"]
+    assert weeks["2026-W26"] == days["2026-06-23"] + days["2026-06-28"]
+    for unit in BUCKET_UNITS:
+        assert sum(row["analyzed_total"] for row in by_unit[unit]) == len(_SPAN)
+
+
+def test_default_unit_is_the_hour_so_existing_callers_are_unchanged() -> None:
+    bronze, silver = _span_bronze(), _span_silver()
+    assert build_subject_trends(bronze, silver) == build_subject_trends(bronze, silver, "hour")
+    assert build_axis_sentiment(bronze, silver) == build_axis_sentiment(bronze, silver, "hour")
