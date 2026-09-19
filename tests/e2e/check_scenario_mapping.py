@@ -49,7 +49,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs"
 SPEC_DIR = ROOT / "tests" / "e2e" / "specs"
-TRACKER = DOCS / "econ-opinion-monitor-doc-tracker.md"
+TRACKER = sorted((DOCS / "econ-opinion-monitor-doc-tracker").glob("[0-9][0-9][0-9][0-9]-[0-9][0-9].md"))[-1]
 TEST_DOC_GLOB = "econ-opinion-monitor-test-*.md"
 
 SCENARIO_HEADING = re.compile(r"^### 시나리오 (\d+):")

@@ -1,7 +1,7 @@
 # 경제 여론 추세 모니터 설계·UX 문서 상태 추적
 
 > 이 문서는 가치 → 사용자 여정 → mockup ↔ 디자인 시스템의 연결 상태를 추적한다.
-> 제품(가치→PRD→AC→테스트) 측 추적은 `econ-opinion-monitor-doc-tracker.md`가 담당한다.
+> 제품(가치→PRD→AC→테스트) 측 추적은 `econ-opinion-monitor-doc-tracker/`가 담당한다.
 > 사용자 여정·mockup·디자인 시스템을 생성·수정할 때마다 함께 갱신한다.
 >
 > 마지막 갱신: 2026-09-19

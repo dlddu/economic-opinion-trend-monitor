@@ -1,7 +1,7 @@
 # E2E 모킹 정책
 
 > 정책·허용목록·차단 요인 원장의 SSOT. 2026-09-17 최초 등재 (reconciler `rct_20260917-0001`, 모델 `tbm_econ-opinion-monitor-e2e-mock-policy`).
-> `docs/econ-opinion-monitor-doc-tracker.md`의 「e2e 매핑」 절은 갱신이 잦은 로드맵·이력 축이므로 이 문서와 분리된다(같은 결정을 한 문서로 모으기 위한 전용 문서).
+> `docs/econ-opinion-monitor-doc-tracker/`의 「e2e 매핑」 절은 갱신이 잦은 로드맵·이력 축이므로 이 문서와 분리된다(같은 결정을 한 문서로 모으기 위한 전용 문서).
 
 ## 목적과 적용 범위
 
@@ -86,7 +86,7 @@
 
 | 행 | 차단 요인 | 해소 방향 | 소관 | 선행 | 재검토 시점 |
 |----|-----------|-----------|------|------|-------------|
-| R2 | **집계 Job이 e2e 하네스에 없어**, 서빙 입력이 되는 Gold 분포를 배치 산출물로 만들 수 없다 — `tests/e2e/k8s/batch/`에 수집(`ingest-job*.yaml` 6종)·분석(`analyze-job*.yaml` · `llm-double.yaml`) Job은 서 있으나 집계 Job이 없어, 서빙은 여전히 손으로 쓴 픽스처 Gold(GOLD-01~03)를 입력으로 받고 `python/packages/aggregation`의 집계 로직이 e2e에서 **한 번도 실행되지 않는다** — 출처: `docs/econ-opinion-monitor-doc-tracker.md` 「공백 해소 경로」 표의 **'집계 배치' 묶음**(`…-test-analysis.md#시나리오 4·5` · `…-test-aggregation-viz.md#시나리오 1·2·4`, 공백 5건)과 자매 `rct_20260918-0005`의 인계 | 등재가 아니라 실환경 대체로 닫는다: **집계 Job 한 단계**를 e2e 하네스에 더해, 픽스처가 아니라 **파이프라인이 만든 Gold**로 서빙을 띄운다(공유 부분 — 배치 이미지 kind 로드 · 산출물 PVC · 호스트 반출 · Job 로그 반출 — 은 수집 묶음이, 상류 더블 추가 방식은 분석 묶음이 이미 세워 뒀다) | `tbm_econ-opinion-monitor-scenario-e2e` — doc-tracker 「공백 해소 경로」가 **집계 묶음**을 다음 슬라이스로 지목한다. 본 모델은 그 슬라이스가 착지할 때 **픽스처 Gold 제거 여부(GOLD 카테고리 소멸)**만 판정한다 | 없음(집계 CLI `python/packages/aggregation` · 배치 이미지 · Job 계약 · PVC/반출 관례는 이미 main에 있다 — 착수 가능하나 소관이 본 모델이 아니다) | 2026-12-18 |
+| R2 | **집계 Job이 e2e 하네스에 없어**, 서빙 입력이 되는 Gold 분포를 배치 산출물로 만들 수 없다 — `tests/e2e/k8s/batch/`에 수집(`ingest-job*.yaml` 6종)·분석(`analyze-job*.yaml` · `llm-double.yaml`) Job은 서 있으나 집계 Job이 없어, 서빙은 여전히 손으로 쓴 픽스처 Gold(GOLD-01~03)를 입력으로 받고 `python/packages/aggregation`의 집계 로직이 e2e에서 **한 번도 실행되지 않는다** — 출처: `docs/econ-opinion-monitor-doc-tracker/` 「공백 해소 경로」 표의 **'집계 배치' 묶음**(`…-test-analysis.md#시나리오 4·5` · `…-test-aggregation-viz.md#시나리오 1·2·4`, 공백 5건)과 자매 `rct_20260918-0005`의 인계 | 등재가 아니라 실환경 대체로 닫는다: **집계 Job 한 단계**를 e2e 하네스에 더해, 픽스처가 아니라 **파이프라인이 만든 Gold**로 서빙을 띄운다(공유 부분 — 배치 이미지 kind 로드 · 산출물 PVC · 호스트 반출 · Job 로그 반출 — 은 수집 묶음이, 상류 더블 추가 방식은 분석 묶음이 이미 세워 뒀다) | `tbm_econ-opinion-monitor-scenario-e2e` — doc-tracker 「공백 해소 경로」가 **집계 묶음**을 다음 슬라이스로 지목한다. 본 모델은 그 슬라이스가 착지할 때 **픽스처 Gold 제거 여부(GOLD 카테고리 소멸)**만 판정한다 | 없음(집계 CLI `python/packages/aggregation` · 배치 이미지 · Job 계약 · PVC/반출 관례는 이미 main에 있다 — 착수 가능하나 소관이 본 모델이 아니다) | 2026-12-18 |
 
 **R2가 닫히면 GOLD 카테고리의 전제도 함께 사라진다**: 집계 Job이 더블 상류 파이프라인 끝에서 E2E 안에 서는 순간, 서빙 입력이 되는 Gold 분포를 배치 산출물로 만들 수 있게 되어 픽스처 Gold(GOLD-01..03)는 제거 후보가 된다 — 「GOLD 카테고리」의 소멸 조건과 묶인다. **R1(수집·분석 경로)이 닫힌 것만으로는 이 전제가 사라지지 않는다** — 2026-09-19 실측에서 집계 Job 부재를 확인했고(`tests/e2e/k8s/batch/`), 소멸 조건은 *서빙 입력 Gold를 배치 산출물로 만들 수 있게 되는 것*이지 *배치의 앞 두 단계가 e2e에 들어오는 것*이 아니기 때문이다.
 
