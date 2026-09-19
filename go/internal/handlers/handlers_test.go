@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -375,6 +376,157 @@ func TestTrendFallsBackAndSurvivesEmptyGold(t *testing.T) {
 	for _, s := range getTrend(t, dir, "?axis=US").Series {
 		if s.Subject != "US 대상" {
 			t.Errorf("US chart leaked a KR subject: %+v", s)
+		}
+	}
+}
+
+// getSentiment runs the sentiment route against a lake rooted at dir.
+func getSentiment(t *testing.T, dir, query string) sentimentResponse {
+	t.Helper()
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/sentiment" + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var s sentimentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// AC3.4, 축별 half — the three axes have to be read at one bucket, and an axis
+// Gold has nothing for must say so rather than answer zeros.
+//
+// writeMultiBucketGold is shaped for exactly this: KR holds a stale T13 row
+// whose positive ratio (0.9) would top the comparison if the bucket filter were
+// missing, US holds only the current T14, and GLOBAL holds no sentiment row at
+// all.
+func TestSentimentComparesAxesAtOneBucket(t *testing.T) {
+	dir := t.TempDir()
+	writeMultiBucketGold(t, dir)
+
+	s := getSentiment(t, dir, "?axis=KR")
+
+	if s.Axis != "KR" || !s.Basis.Normalized || s.Basis.BucketUnit != "hour" {
+		t.Fatalf("basis wrong: %+v", s)
+	}
+	if s.Basis.LatestBucket != "2026-06-23T14" {
+		t.Fatalf("comparison bucket = %q, want the latest", s.Basis.LatestBucket)
+	}
+
+	want := []string{"KR", "US", "GLOBAL"}
+	if len(s.ByAxis) != len(want) {
+		t.Fatalf("want %d axis rows, got %d", len(want), len(s.ByAxis))
+	}
+	for i, axis := range want {
+		if s.ByAxis[i].Axis != axis {
+			t.Fatalf("axis row %d = %q, want %q", i, s.ByAxis[i].Axis, axis)
+		}
+	}
+
+	kr := s.ByAxis[0]
+	if !kr.Present || kr.AnalyzedTotal != 10 {
+		t.Errorf("KR should be present at the latest bucket: %+v", kr)
+	}
+	// The stale bucket's 0.9 must not leak into the comparison.
+	if kr.Distribution.Positive != 0.4 {
+		t.Errorf("KR positive = %v, want the current bucket's 0.4", kr.Distribution.Positive)
+	}
+	if us := s.ByAxis[1]; !us.Present || us.Distribution.Negative != 0.3 {
+		t.Errorf("US row wrong: %+v", us)
+	}
+	if global := s.ByAxis[2]; global.Present || global.AnalyzedTotal != 0 {
+		t.Errorf("GLOBAL has no row in this bucket and must be marked absent: %+v", global)
+	}
+}
+
+// AC3.4, 미분석 분리 — the four sentiment ratios are over the analyzed items and
+// unanalyzed is its own share of the whole. If the handler ever folded them
+// together the five numbers would start summing to 1, so that is what is
+// asserted against: KR's four sum to 1.0 *and* unanalyzed is 0.2 beside them.
+func TestSentimentKeepsUnanalyzedSeparate(t *testing.T) {
+	dir := t.TempDir()
+	writeMultiBucketGold(t, dir)
+
+	series := getSentiment(t, dir, "?axis=KR").Series
+	if len(series) != 2 {
+		t.Fatalf("KR has two buckets in Gold, got %d", len(series))
+	}
+	// Bucket order is chronological, so the stale bucket comes first.
+	if series[0].TimeBucket != "2026-06-23T13" || series[1].TimeBucket != "2026-06-23T14" {
+		t.Fatalf("series not in bucket order: %+v", series)
+	}
+
+	d := series[1].Distribution
+	classes := d.Positive + d.Neutral + d.Negative + d.Mixed
+	if math.Abs(classes-1.0) > 1e-9 {
+		t.Errorf("sentiment classes should be scaled over analyzed items (sum %v, want 1.0)", classes)
+	}
+	if d.Unanalyzed != 0.2 {
+		t.Errorf("unanalyzed = %v, want the aggregate's 0.2 carried through untouched", d.Unanalyzed)
+	}
+	if series[1].AnalyzedTotal != 10 {
+		t.Errorf("analyzed_total = %d, want 10", series[1].AnalyzedTotal)
+	}
+}
+
+// writeMixedUnitSentiment lays a day rollup beside the hourly rows. The day row
+// is the lexically largest key ("2026-06-24" > "2026-06-23T14"), so a handler
+// that picked the unit off the newest bucket would draw one day bar and drop
+// the hours.
+func writeMixedUnitSentiment(t *testing.T, dir string) {
+	t.Helper()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sentiment := `{"axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T13","distribution":{"positive":0.5,"neutral":0.3,"negative":0.1,"mixed":0.1,"unanalyzed":0.1},"analyzed_total":9}
+{"axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","distribution":{"positive":0.4,"neutral":0.3,"negative":0.2,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":10}
+{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-24","distribution":{"positive":0.1,"neutral":0.2,"negative":0.6,"mixed":0.1,"unanalyzed":0.3},"analyzed_total":40}`
+	if err := os.WriteFile(filepath.Join(gold, "axis_sentiment.jsonl"), []byte(sentiment+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// One chart, one unit (the AC3.3 rollups the contract already allows must not
+// land inside the hourly bars). Empty Gold must answer 200 with nothing drawn
+// rather than invent a basis.
+func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
+	dir := t.TempDir()
+	writeMixedUnitSentiment(t, dir)
+
+	s := getSentiment(t, dir, "?axis=KR")
+	if s.Basis.BucketUnit != "hour" {
+		t.Fatalf("bucket_unit = %q, want the finest unit present", s.Basis.BucketUnit)
+	}
+	if len(s.Series) != 2 {
+		t.Fatalf("want the two hourly buckets, got %d: %+v", len(s.Series), s.Series)
+	}
+	for _, p := range s.Series {
+		if p.TimeBucket == "2026-06-24" {
+			t.Errorf("a day rollup leaked into the hourly series: %+v", p)
+		}
+	}
+	if s.Basis.FirstBucket != "2026-06-23T13" || s.Basis.LatestBucket != "2026-06-23T14" {
+		t.Errorf("basis edges wrong: %+v", s.Basis)
+	}
+
+	empty := getSentiment(t, t.TempDir(), "?axis=KR")
+	if len(empty.Series) != 0 || len(empty.Basis.Buckets) != 0 || empty.Basis.BucketUnit != "" {
+		t.Errorf("empty Gold should not invent a basis: %+v", empty)
+	}
+	for _, row := range empty.ByAxis {
+		if row.Present {
+			t.Errorf("empty Gold marked %s present: %+v", row.Axis, row)
 		}
 	}
 }

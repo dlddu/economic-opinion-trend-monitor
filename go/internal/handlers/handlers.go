@@ -91,6 +91,54 @@ type trendResponse struct {
 	Series  []trendSeries `json:"series"`
 }
 
+// sentimentBasis states the terms the ratios were read on, the same way trend
+// and compare do. A distribution with an implicit window invites reading last
+// week's mood as right now.
+//
+// Buckets is the selected axis's own x-axis (what the time series is drawn on);
+// LatestBucket is the bucket every axis is compared at, which is the latest one
+// any axis reached. The two differ exactly when the selected axis has no row in
+// that bucket — and that gap is the honest answer, so it is not papered over by
+// ending the chart wherever the axis happens to stop.
+type sentimentBasis struct {
+	BucketUnit   string   `json:"bucket_unit"`
+	FirstBucket  string   `json:"first_bucket"`
+	LatestBucket string   `json:"latest_bucket"`
+	Buckets      []string `json:"buckets"`
+	Normalized   bool     `json:"normalized"`
+}
+
+// sentimentPoint is one bucket of the selected axis. The four sentiment ratios
+// are over the *analyzed* items and Unanalyzed rides alongside as its own share
+// of the whole, never folded in with them (AC3.4: 저신뢰·미분석은 비율 집계에서
+// 분리한다). AnalyzedTotal is what those ratios were taken over, so a 60% that
+// rests on five items can be told apart from one that rests on five hundred.
+type sentimentPoint struct {
+	TimeBucket    string                    `json:"time_bucket"`
+	Distribution  gen.SentimentDistribution `json:"distribution"`
+	AnalyzedTotal int64                     `json:"analyzed_total"`
+}
+
+// sentimentAxisRow is one axis at the basis bucket — the 축별 half of AC3.4.
+//
+// Present is the field that keeps the comparison honest. An axis with no Gold
+// row in that bucket comes back with the zero distribution and Present false:
+// all-zero ratios would otherwise read as "nothing was positive here", which is
+// a different claim from "this axis was not aggregated for this bucket".
+type sentimentAxisRow struct {
+	Axis          string                    `json:"axis"`
+	Distribution  gen.SentimentDistribution `json:"distribution"`
+	AnalyzedTotal int64                     `json:"analyzed_total"`
+	Present       bool                      `json:"present"`
+}
+
+type sentimentResponse struct {
+	Axis   string             `json:"axis"`
+	Basis  sentimentBasis     `json:"basis"`
+	Series []sentimentPoint   `json:"series"`
+	ByAxis []sentimentAxisRow `json:"by_axis"`
+}
+
 type dashboardResponse struct {
 	Axis        string                    `json:"axis"`
 	Normalized  bool                      `json:"normalized"`
@@ -224,9 +272,54 @@ func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-func (h *Handlers) sentiment(w http.ResponseWriter, _ *http.Request) {
-	sentiments, _ := h.lake.AxisSentiments()
-	writeJSON(w, http.StatusOK, map[string]any{"by_axis": sentiments})
+// sentiment answers AC3.4 (축별·분위기별 비율, 미분석 분리) and gives AC3.6 a
+// screen of its own: the selected axis over time, plus the three axes read
+// against each other at one bucket.
+//
+// Gold holds one AxisSentiment row per (axis, time bucket), so handing the raw
+// rows over — which is what this route used to do — leaves the caller to decide
+// which of them are comparable, and every caller would decide differently. The
+// same two traps the trend handler documents apply, and are closed the same way:
+//
+//   - Mixed bucket units. Gold may carry hour, day and week rows for one axis
+//     (the contract allows all three). Stacking them on one x-axis would put a
+//     week between two hours, so one unit is settled on and the rest dropped.
+//     AC3.3 has not landed, so today this always resolves to "hour".
+//   - Comparing axes across buckets. Whichever row each axis happens to have
+//     would silently set a stale axis beside a fresh one, so the latest bucket
+//     is picked once and every axis is filtered to it.
+func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
+	axis := axisParam(r, "KR")
+	rows, _ := h.lake.AxisSentiments()
+
+	unit := sentimentUnit(rows)
+	inUnit := make([]gen.AxisSentiment, 0, len(rows))
+	for _, s := range rows {
+		if s.BucketUnit == unit {
+			inUnit = append(inUnit, s)
+		}
+	}
+
+	series := sentimentSeries(inUnit, axis)
+	basis := sentimentBasis{
+		BucketUnit:   string(unit),
+		LatestBucket: latestSentimentBucket(inUnit),
+		Buckets:      make([]string, 0, len(series)),
+		Normalized:   true,
+	}
+	for _, p := range series {
+		basis.Buckets = append(basis.Buckets, p.TimeBucket)
+	}
+	if len(basis.Buckets) > 0 {
+		basis.FirstBucket = basis.Buckets[0]
+	}
+
+	writeJSON(w, http.StatusOK, sentimentResponse{
+		Axis:   axis,
+		Basis:  basis,
+		Series: series,
+		ByAxis: sentimentByAxis(inUnit, basis.LatestBucket),
+	})
 }
 
 func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +548,79 @@ func sentimentInBucket(rows []gen.AxisSentiment, axis, bucket string) gen.Sentim
 		}
 	}
 	return gen.SentimentDistribution{}
+}
+
+// sentimentUnit picks the bucket unit the distribution is read in: the finest
+// one present, matching plottedUnit's reasoning (bucket keys are only
+// comparable within a unit, so unit rank — not key order — decides). Empty
+// input yields the zero unit and the caller's filter then keeps nothing.
+func sentimentUnit(rows []gen.AxisSentiment) gen.BucketUnit {
+	present := make(map[gen.BucketUnit]bool, 3)
+	for _, s := range rows {
+		present[s.BucketUnit] = true
+	}
+	for _, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
+		if present[unit] {
+			return unit
+		}
+	}
+	return ""
+}
+
+// sentimentSeries folds one axis's rows into bucket order. Gold's key is
+// (axis, bucket), so a second row for a bucket is an upstream contract
+// violation rather than a value to blend: the first is kept and the rest
+// dropped, which keeps one bar per bucket instead of a silently doubled one.
+func sentimentSeries(rows []gen.AxisSentiment, axis string) []sentimentPoint {
+	out := make([]sentimentPoint, 0, len(rows))
+	seen := make(map[string]bool, len(rows))
+	for _, s := range rows {
+		if string(s.Axis) != axis || seen[s.TimeBucket] {
+			continue
+		}
+		seen[s.TimeBucket] = true
+		out = append(out, sentimentPoint{
+			TimeBucket:    s.TimeBucket,
+			Distribution:  s.Distribution,
+			AnalyzedTotal: s.AnalyzedTotal,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].TimeBucket < out[j].TimeBucket })
+	return out
+}
+
+// latestSentimentBucket returns the most recent bucket present, which is the
+// lexical max: bucket keys are zero-padded ISO prefixes, so within one unit
+// lexical order is chronological. The caller has already filtered to one unit.
+func latestSentimentBucket(rows []gen.AxisSentiment) string {
+	bucket := ""
+	for _, s := range rows {
+		if s.TimeBucket > bucket {
+			bucket = s.TimeBucket
+		}
+	}
+	return bucket
+}
+
+// sentimentByAxis lines the three axes up at one bucket. Every axis gets a row
+// whether or not Gold holds one for it, so the screen renders a fixed set of
+// columns and marks the missing ones rather than dropping them — a disappearing
+// column reads as "this axis does not exist", not "it has no data yet".
+func sentimentByAxis(rows []gen.AxisSentiment, bucket string) []sentimentAxisRow {
+	out := make([]sentimentAxisRow, 0, 3)
+	for _, axis := range []string{"KR", "US", "GLOBAL"} {
+		row := sentimentAxisRow{Axis: axis}
+		for _, s := range rows {
+			if string(s.Axis) == axis && s.TimeBucket == bucket && bucket != "" {
+				row.Distribution = s.Distribution
+				row.AnalyzedTotal = s.AnalyzedTotal
+				row.Present = true
+				break
+			}
+		}
+		out = append(out, row)
+	}
+	return out
 }
 
 func sentimentFor(rows []gen.AxisSentiment, axis string) gen.SentimentDistribution {

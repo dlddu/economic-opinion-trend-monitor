@@ -978,6 +978,140 @@ a {
   color: var(--ink-3);
 }
 
+/* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ----
+   Every selector here is .sent-* , which `JRN-sentiment-shift.html` never
+   declares. That keeps the render gate's shared-selector set unchanged: R5
+   compares only selectors both sides declare, and all three caps are zero, so
+   adding a declaration to a shared selector (.sentbar, .kv, .legend, .seg …)
+   would turn this screen red on arrival. Shared selectors stay untouched and
+   this screen's own layout lives under its own prefix — the same arrangement
+   slice 5 used for .trend-* . */
+.sent-donut-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.sent-donut {
+  flex: none;
+}
+
+.sent-donut-v {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.sent-donut-l {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  fill: var(--ink-3);
+}
+
+.sent-donut-kv {
+  flex: 1;
+}
+
+.sent-donut-kv .k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+}
+
+.sent-donut-kv .v {
+  font-family: var(--mono);
+  color: var(--ink);
+}
+
+.sent-donut-kv .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-na {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.sent-na .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-warn {
+  margin-top: 12px;
+}
+
+.sent-axisrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sent-axisrow:last-of-type {
+  border-bottom: none;
+}
+
+.sent-axisname {
+  flex: 0 0 54px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.sent-axisbar {
+  flex: 1;
+}
+
+.sent-axistotal {
+  flex: 0 0 52px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.sent-absent-inline {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.sent-legend {
+  padding-left: 6px;
+  margin-top: 12px;
+}
+
+.sent-net {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.sent-chart {
+  display: block;
+}
+
+.sent-empty {
+  margin-top: 14px;
+}
+
+.sent-absent {
+  margin-top: 4px;
+}
+
 /* ---- CMP-table ---- */
 /* The mockup's `STP-drill-trend` draws 「상위 대상 비교」 as table.tbl, so the
    implementation does too and these selectors become ones both sides declare.

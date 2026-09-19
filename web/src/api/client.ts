@@ -2,7 +2,13 @@
 // Go process (see vite.config.ts); in prod, Go serves this build under the same
 // origin — so a relative /api base works in both.
 
-import type { Axis, CompareResponse, DashboardResponse, TrendResponse } from "./types";
+import type {
+  Axis,
+  CompareResponse,
+  DashboardResponse,
+  SentimentResponse,
+  TrendResponse,
+} from "./types";
 
 const BASE = "/api";
 
@@ -24,6 +30,9 @@ export const api = {
     getJSON<TrendResponse>(
       `/trend?axis=${axis}${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`,
     ),
+  // The axis is a query parameter, not a client-side filter: the comparison
+  // bucket is chosen over all axes, so the server has to see them all.
+  sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
   // Per-screen stub endpoints (one per frontend screen). Shapes are not yet
   // finalized, so placeholders consume them as unknown JSON.
   screen: (name: string) => getJSON<unknown>(`/${name}`),

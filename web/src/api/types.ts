@@ -73,6 +73,38 @@ export interface TrendResponse {
   series: TrendSeries[];
 }
 
+/** One bucket of one axis's sentiment composition (AC3.4, AC3.6). */
+export interface SentimentPoint {
+  time_bucket: string;
+  /** Four class ratios over the analyzed items; `unanalyzed` is its own share. */
+  distribution: SentimentDistribution;
+  /** What those ratios were taken over — 60% of five is not 60% of five hundred. */
+  analyzed_total: number;
+}
+
+/** One axis at the comparison bucket. */
+export interface SentimentAxisRow {
+  axis: Axis;
+  distribution: SentimentDistribution;
+  analyzed_total: number;
+  /** False when Gold holds no row for this axis in that bucket — not "all zero". */
+  present: boolean;
+}
+
+export interface SentimentResponse {
+  axis: Axis;
+  basis: {
+    bucket_unit: string;
+    first_bucket: string;
+    /** The bucket every axis is compared at; the series may end before it. */
+    latest_bucket: string;
+    buckets: string[];
+    normalized: boolean;
+  };
+  series: SentimentPoint[];
+  by_axis: SentimentAxisRow[];
+}
+
 export interface CompareResponse {
   /** The terms every column was compared on — same bucket, same normalization. */
   basis: {
