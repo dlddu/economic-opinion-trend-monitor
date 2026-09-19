@@ -13,11 +13,9 @@ spec:
     spec:
       containers:
         - name: serving
-          # The production value lives on the `deploy` branch: CI's `pin` job
-          # (.github/workflows/image.yml) rewrites this tag to each main commit SHA
-          # and publishes that to `deploy`, which Flux tracks. The value left on
-          # main is not what production runs — do not edit it by hand. The
-          # tag is immutable, so the default imagePullPolicy (IfNotPresent) is
+          # CI owns this tag — do not edit it by hand. Which commit production
+          # actually runs is README 「운영 고정(`pin` job)」.
+          # The tag is immutable, so the default imagePullPolicy (IfNotPresent) is
           # correct. Previews and e2e retag it by image name via `images:`.
           image: ghcr.io/dlddu/economic-opinion-trend-monitor:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
           env:
