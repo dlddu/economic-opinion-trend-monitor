@@ -8,6 +8,10 @@
       디자인 시스템이 정의한 `CMP-*`/`PAT-*` 가, 그 항목을 쓴다고 mockup 인덱스가
       선언한 화면 중 **구현된 화면**(`App.tsx` 의 `BUILT`)의 소스에서 같은 이름으로
       마킹돼 있는가. 역방향(구현에만 있는 이름)도 본다.
+  R4  카피 대조 — 좌측 네비 항목
+      목업 6페이지가 공유하는 셸의 좌측 네비가 `web/src/shell/nav.ts` 의 `SCREENS`
+      와 같은 항목을 같은 순서로 같은 라벨로 갖는가. 카피 축 전체가 아니라 **네비
+      항목**만 본다 — 화면 카피는 아직 「등재된 편차」 표가 사람 손으로 맡는다.
   R5  구조·수치 대조
       in-scope 목업의 인라인 `<style>` 과 `web/src/tokens/tokens.css` 가 **공통으로
       선언한 선택자**의 선언값이 일치하는가. 양쪽 다 CSS 라 환산 없이 직접 댄다.
@@ -23,7 +27,8 @@
   정의       docs/design-system/econ-opinion-monitor-design-system.md
   사용처     docs/mockups/econ-opinion-monitor-mockup-index.md
   판정 대상  web/src/App.tsx 의 `BUILT`
-  허용목록   docs/econ-opinion-monitor-design-tracker.md 의 「규칙 3·5 기계 판정」 절
+  매핑       web/src/shell/nav.ts 의 `SCREENS` (R4-nav 의 대조군)
+  허용목록   docs/econ-opinion-monitor-design-tracker.md 의 「규칙 3·4(네비)·5 기계 판정」 절
 구현 소스에서 기대값을 읽으면 자기참조라 어떤 이탈도 통과한다.
 
 허용목록은 **래칫**이다 — 실측이 상한을 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
@@ -41,6 +46,8 @@ DS = D("docs", "design-system", "econ-opinion-monitor-design-system.md")
 IDX = D("docs", "mockups", "econ-opinion-monitor-mockup-index.md")
 TRACKER = D("docs", "econ-opinion-monitor-design-tracker.md")
 APP = D("web", "src", "App.tsx")
+NAV = D("web", "src", "shell", "nav.ts")
+MOCKDIR = D("docs", "mockups")
 TOKENS = D("web", "src", "tokens", "tokens.css")
 WEBSRC = D("web", "src")
 
@@ -149,10 +156,10 @@ def markers():
 
 
 def tracker_section():
-    """tracker 의 「규칙 3·5 기계 판정」 절 본문."""
-    m = re.search(r"### 규칙 3·5 기계 판정.*?(?=\n## |\Z)", read(TRACKER), re.S)
+    """tracker 의 「규칙 3·4(네비)·5 기계 판정」 절 본문."""
+    m = re.search(r"### 규칙 3[^\n]*기계 판정.*?(?=\n## |\Z)", read(TRACKER), re.S)
     if not m:
-        fail("R0", "tracker 에 「규칙 3·5 기계 판정」 절이 없다 — 게이트가 읽을 허용목록이 없다")
+        fail("R0", "tracker 에 「규칙 3·4(네비)·5 기계 판정」 절이 없다 — 게이트가 읽을 허용목록이 없다")
         return ""
     return m.group(0)
 
@@ -165,6 +172,17 @@ def r3_exceptions(section):
         if m:
             out[m.group(1)] = m.group(2)
     return out
+
+
+def r4_caps(section):
+    caps = {}
+    for label, key in (("페이지 간 불일치", "cross"),
+                       ("항목 id 불일치", "ids"),
+                       ("라벨 불일치", "labels")):
+        m = re.search(r"%s 상한: (\d+)" % label, section)
+        if m:
+            caps[key] = int(m.group(1))
+    return caps
 
 
 def r5_caps(section):
@@ -315,6 +333,109 @@ def check_r3(section):
           len((in_scope & defined)) - len(missing), len(missing), len(extra)))
 
 
+def nav_screens():
+    """구현의 좌측 네비 정의 — `nav.ts` 의 `SCREENS` 를 선언 순서대로."""
+    out = []
+    for m in re.finditer(r"\{[^{}]*\bid:\s*\"([^\"]+)\"[^{}]*\}", read(NAV)):
+        block = m.group(0)
+        label = re.search(r'label:\s*"([^"]+)"', block)
+        group = re.search(r'group:\s*"([^"]+)"', block)
+        if label and group:
+            out.append((m.group(1), label.group(1), group.group(1)))
+    return out
+
+
+def mock_nav(html):
+    """목업 한 페이지의 좌측 네비를 (data-id, 라벨, 그룹) 순서열로.
+
+    그룹은 `nav-group` 블록의 등장 순서로 정한다 — 그룹 머리글 표기가 페이지마다
+    `·` 와 `&middot;` 로 갈려 있어 텍스트로 잡으면 실체 없는 차이가 생긴다.
+    """
+    block = re.search(r'<nav class="nav">(.*?)</nav>', html, re.S)
+    if not block:
+        return None
+    seq, groups = [], re.split(r'<div class="nav-group">', block.group(1))[1:]
+    for idx, group in enumerate(groups):
+        kind = "observer" if idx == 0 else "operator"
+        for item in re.finditer(
+                r'<a class="nav-item[^"]*" data-id="([^"]+)"[^>]*>(.*?)</a>', group, re.S):
+            label = re.search(r"<span>([^<]+)</span>", item.group(2))
+            seq.append((item.group(1), label.group(1) if label else "", kind))
+    return seq
+
+
+def nav_pages():
+    """네비를 가진 목업 페이지 -> 순서열. index.html(리다이렉트)처럼 네비가 없는 쪽은 빠진다."""
+    out = {}
+    for name in sorted(os.listdir(MOCKDIR)):
+        if not name.endswith(".html"):
+            continue
+        seq = mock_nav(read(os.path.join(MOCKDIR, name)))
+        if seq:
+            out[name] = seq
+    return out
+
+
+def seq_diff(a, b):
+    """두 순서열의 불일치 건수와 사람이 읽을 목록."""
+    rows = []
+    for i in range(max(len(a), len(b))):
+        x = a[i] if i < len(a) else None
+        y = b[i] if i < len(b) else None
+        if x != y:
+            rows.append("#%d 목업 %s ↔ 구현 %s" % (i + 1, x, y))
+    return rows
+
+
+def check_r4(section):
+    screens = nav_screens()
+    if not screens:
+        fail("R4", "web/src/shell/nav.ts 에서 `SCREENS` 를 읽지 못했다 — 네비 대조군이 없다")
+        return
+    pages = nav_pages()
+    if not pages:
+        fail("R4", "docs/mockups 에 좌측 네비를 가진 페이지가 없다")
+        return
+
+    caps = r4_caps(section)
+    if len(caps) < 3:
+        fail("R4", "tracker 의 「규칙 3·4(네비)·5 기계 판정」 절에서 상한 3종(페이지 간 · "
+                   "항목 id · 라벨)을 모두 읽지 못했다")
+        return
+
+    names = sorted(pages)
+    base = pages[names[0]]
+    cross = [(n, seq_diff(base, pages[n])) for n in names[1:] if pages[n] != base]
+
+    ids, labels = [], []
+    for name in names:
+        seq = pages[name]
+        ids += ["%s %s" % (name, r) for r in
+                seq_diff([(i, g) for i, _l, g in seq], [(i, g) for i, _l, g in screens])]
+        labels += ["%s %s" % (name, r) for r in
+                   seq_diff([l for _i, l, _g in seq], [l for _i, l, _g in screens])]
+
+    for label, key, rows in (("페이지 간 불일치", "cross",
+                              ["%s: %s" % (n, "; ".join(d)) for n, d in cross]),
+                             ("항목 id 불일치", "ids", ids),
+                             ("라벨 불일치", "labels", labels)):
+        cap, actual = caps[key], len(rows)
+        if actual > cap:
+            listing = "\n      ".join(rows[:40])
+            more = "" if actual <= 40 else "\n      … 외 %d건" % (actual - 40)
+            fail("R4", "%s %d건이 상한 %d 을 넘는다:\n      %s%s"
+                 % (label, actual, cap, listing, more))
+        elif actual < cap:
+            fail("R4", "%s 실측 %d건이 상한 %d 보다 적다 — 상한을 %d 로 낮춰라(래칫)"
+                 % (label, actual, cap, actual))
+        else:
+            ok("R4", "%s %d건 = 상한 %d" % (label, actual, cap))
+
+    if not fails:
+        ok("R4", "목업 %d페이지 × 네비 항목 %d개 — `nav.ts` 의 SCREENS 와 id·라벨·순서 일치"
+           % (len(pages), len(screens)))
+
+
 def check_r5(section):
     built = built_screens()
     files = screen_files()
@@ -375,20 +496,21 @@ def report():
     for line in fails:
         print("  FAIL %s" % line)
     if fails:
-        print("\n목업 ↔ 구현 렌더링 정합성(규칙 3·5) 실패 %d건" % len(fails))
+        print("\n목업 ↔ 구현 렌더링 정합성(규칙 3·4·5) 실패 %d건" % len(fails))
         return 1
-    print("\n목업 ↔ 구현 렌더링 정합성(규칙 3·5) 통과")
+    print("\n목업 ↔ 구현 렌더링 정합성(규칙 3·4·5) 통과")
     return 0
 
 
 def main():
-    for path in (DS, IDX, TRACKER, APP, TOKENS):
+    for path in (DS, IDX, TRACKER, APP, TOKENS, NAV):
         if not os.path.exists(path):
             fail("R0", "필수 파일 없음: %s" % os.path.relpath(path, ROOT))
     if fails:
         return report()
     section = tracker_section()
     check_r3(section)
+    check_r4(section)
     check_r5(section)
     return report()
 
