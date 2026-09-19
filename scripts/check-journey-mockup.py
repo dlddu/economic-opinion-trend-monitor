@@ -20,6 +20,7 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
   R10 인덱스·설계 트래커의 **서술 절이 재진술한 숫자**가 실측과 같다(규칙 7 의 기계화 —
       표와 래칫만 갱신하고 산문을 남겨 두 SSOT 가 서로 다른 사실을 말하는 것을 잡는다)
   R11 설계 트래커 「문서 목록」의 mockup 파일 등재 ↔ 실파일 양방향 일치
+  R12 **현재형 서술이 가리키는 mockup 파일이 실재한다** (규칙 7 의 기계화 — R10 의 파일 참조판)
 """
 import os, re, sys, html
 
@@ -30,6 +31,7 @@ MDIR = D("docs", "mockups")
 IDX = D("docs", "mockups", "econ-opinion-monitor-mockup-index.md")
 HUB = D("docs", "index.html")
 TRACKER = D("docs", "econ-opinion-monitor-design-tracker.md")
+JREADME = D("docs", "user-journeys", "README.md")
 
 def _product_plane(h):
     """메타 레이어와 <head>·<body> 여는 태그를 걷어 낸 제품 평면 마크업만 돌려준다."""
@@ -493,7 +495,10 @@ CLAIMS = [
     ("미이관 수",    r"나머지\s*(\d+)\s*개",                          (M_JRN - M_PAGES,), r"이관|화면 단위|여정 페이지"),
 ]
 stale = []
-for path, body in ((IDX, idx), (TRACKER, tracker)):
+# README(여정 side 의 매핑 인덱스)도 같은 대조를 받는다 — 스캔 밖이라 낡은 채 살아남았다
+# (rct_20260919-0003: 「재편 4/6」·「커버리지 25/30·2·3」이 실측 6/6·30/30·0·0 과 어긋난 채 통과).
+_jreadme = read(JREADME) if os.path.exists(JREADME) else ""
+for path, body in ((IDX, idx), (TRACKER, tracker), (JREADME, _jreadme)):
     rel, fenced = os.path.relpath(path, ROOT), False
     for i, line in enumerate(body.splitlines(), 1):
         if line.lstrip().startswith("```"):
@@ -516,6 +521,41 @@ else:
     ok("R10", f"서술 절의 재진술 숫자 전부 실측과 일치 "
               f"(이관 {M_PAGES}/{M_JRN} · 여정 페이지 {M_PAGES} · 화면 단위 {M_SCREENS} · "
               f"미시각화 {M_UNVIS}단계)")
+
+# ── R12 ── 현재형 서술이 가리키는 mockup 파일이 실재하는가.
+# 규칙 7 의 기계화이자 R10 의 **파일 참조판**. R8 은 링크 문법(`](…)` · `href|src="…"`)만
+# 추출하므로 인라인 코드 `` `reprocess.html` `` 은 세지 않는다 — 그래서 화면 단위 파일이
+# 흡수·삭제될 때마다 여정 문서의 터치포인트가 유령 파일을 현재형으로 가리킨 채 초록으로 통과했다
+# (#52 가 남긴 것을 #57 이 걷지 않았고 #57 이 다시 같은 것을 남겼다 — 2연속 재발).
+#
+# **면제는 구성적이다.** 「변경 이력」 행·산문·인용 블록은 과거 사실을 적는 자리이므로
+# 애초에 수집하지 않는다. 현재형 주장만 사는 **구조화된 세 행**에서만 토큰을 뽑는다:
+#   여정 문서의 `| 연결 문서` 행 · `- **터치포인트**` 불릿, 인덱스 등재의 `- **파일**` 행.
+# (인라인 코드 전수 대조는 사료 36건을 위반으로 만들어 문서를 거짓으로 고치게 강제한다.)
+_real_mockups = set(os.listdir(MDIR)) if os.path.isdir(MDIR) else set()
+_CURRENT_FORM = (
+    (JDIR, lambda ln: ln.startswith("| 연결 문서") or ln.startswith("- **터치포인트**")),
+    (MDIR, lambda ln: ln.startswith("- **파일**")),
+)
+_dangling, _scanned = [], 0
+for _dir, _is_row in _CURRENT_FORM:
+    for _fn in sorted(os.listdir(_dir)) if os.path.isdir(_dir) else []:
+        if not _fn.endswith(".md"):
+            continue
+        for _i, _ln in enumerate(read(os.path.join(_dir, _fn)).splitlines(), 1):
+            if not _is_row(_ln.strip()):
+                continue
+            _scanned += 1
+            for _tok in re.findall(r"`([A-Za-z0-9_.-]+\.html)`", _ln):
+                if _tok not in _real_mockups:
+                    _dangling.append(
+                        f"{os.path.relpath(os.path.join(_dir, _fn), ROOT)}:{_i} "
+                        f"「{_tok}」 — docs/mockups/ 에 없다")
+if _dangling:
+    fail("R12", f"현재형 서술이 실재하지 않는 mockup 파일 {len(_dangling)}건을 가리킨다"
+                f"(규칙 7 — 한쪽만 갱신됨):\n    " + "\n    ".join(_dangling))
+else:
+    ok("R12", f"현재형 서술 행 {_scanned}건의 mockup 파일 참조 전부 실재")
 
 print()
 if fails:
