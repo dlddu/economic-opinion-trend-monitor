@@ -233,13 +233,21 @@
 `scripts/check-mockup-render.py` 가 **이 절을 SSOT 로 읽고** PR 마다 단일 required 체크로 재실행된다.
 이 절의 상한은 **래칫**이다: 실측이 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
 
-**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`)에 든 화면이 mockup
-인덱스에서 쓴다고 선언한 디자인 시스템 항목 **21종**과, 그 화면의 목업 인라인 `<style>`
+**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`·`sentiment`)에 든 화면이
+mockup 인덱스에서 쓴다고 선언한 디자인 시스템 항목 **23종**과, 그 화면의 목업 인라인 `<style>`
 ↔ `web/src/tokens/tokens.css` 가 **공통으로 선언한 선택자**의 선언값. 화면이 `BUILT` 에 하나 들어오는
 순간 그 화면의 항목이 자동으로 범위에 들어온다. **여기에 규칙 4 의 한 조각으로 좌측 네비가 더해진다**
 (아래 「규칙 4(네비)」) — 네비는 `BUILT` 화면들이 공유하는 셸이라 화면 단위 범위와 별개로 항상 in-scope 다.
 
-`rct_20260918-0004`(2026-09-19)가 `trend` 를 `BUILT` 에 들였지만 **항목 수는 21종 그대로다** —
+`rct_20260919-0002`(2026-09-19, 자매 모델 `tbm_econ-opinion-monitor-docs-impl` 의 슬라이스 6)가
+`sentiment` 를 `BUILT` 에 들여 항목이 **21종 → 23종**이 됐다. 새로 들어온 둘은 `PAT-donut` 과
+`PAT-stacked-sentiment` 이고, 그 슬라이스가 두 패턴을 실제로 구현·마킹해 **이 절의 허용목록·상한은
+한 줄도 움직이지 않았다**(등재 예외 1 · 구현 전용 1 · R4·R5 상한 전건 0 그대로, 이름 대조 성립만
+20 → 22). 범위 문자열과 항목 수만 실측으로 옮겨 적은 것이며, **이 화면의 카피·구조 판정은 아직
+없다** — 그 판정은 이 모델(`tbm_econ-opinion-monitor-mockup-render`)의 몫이고, 슬라이스 6 이
+`web/src/screens` 지문을 움직였으므로 재감지가 그 판정을 새 task 로 연다.
+
+`rct_20260918-0004`(2026-09-19)가 `trend` 를 `BUILT` 에 들였을 때는 **항목 수가 21종 그대로였다** —
 `trend` 는 `dash` 와 같은 여정 페이지(`JRN-daily-scan.html`)에 흡수돼 인덱스의 같은 절을 공유하므로
 새로 들여오는 항목이 0종이다. 범위 문자열만 `compare ∪ dash` 에서 `compare ∪ dash ∪ trend` 로 늘고
 집계 수치는 움직이지 않는다. R5 의 비교 대상 파일 집합도 그대로다(`dash` 가 이미 그 파일을 걸고 있었다).

@@ -1,0 +1,144 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import { Sentiment } from "./Sentiment";
+import type { SentimentResponse } from "../api/types";
+
+afterEach(() => vi.unstubAllGlobals());
+
+const BUCKETS = ["2026-06-23T13", "2026-06-23T14"];
+
+// Expected values are never written as constants: every assertion below is
+// derived from this stub, the way `ac3-6-sentiment-ratio-viz.spec.ts` derives
+// its expectations from the serving response. Change the numbers here and the
+// tests stay correct; they break only when the drawing stops matching the data.
+function response(axis: SentimentResponse["axis"] = "KR"): SentimentResponse {
+  const early = { positive: 0.5, neutral: 0.3, negative: 0.1, mixed: 0.1, unanalyzed: 0.05 };
+  const late = { positive: 0.2, neutral: 0.3, negative: 0.4, mixed: 0.1, unanalyzed: 0.25 };
+  return {
+    axis,
+    basis: {
+      bucket_unit: "hour",
+      first_bucket: BUCKETS[0],
+      latest_bucket: BUCKETS[1],
+      buckets: BUCKETS,
+      normalized: true,
+    },
+    series: [
+      { time_bucket: BUCKETS[0], distribution: early, analyzed_total: 19 },
+      { time_bucket: BUCKETS[1], distribution: late, analyzed_total: 12 },
+    ],
+    by_axis: [
+      { axis: "KR", distribution: late, analyzed_total: 12, present: true },
+      { axis: "US", distribution: early, analyzed_total: 8, present: true },
+      // GLOBAL was not aggregated for this bucket — not "all zero".
+      {
+        axis: "GLOBAL",
+        distribution: { positive: 0, neutral: 0, negative: 0, mixed: 0, unanalyzed: 0 },
+        analyzed_total: 0,
+        present: false,
+      },
+    ],
+  };
+}
+
+/** Captures every /api/sentiment URL the screen asks for, answering each in turn. */
+function stubSentiment(bodies: SentimentResponse[]) {
+  const urls: string[] = [];
+  let call = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      urls.push(url);
+      const body = bodies[Math.min(call, bodies.length - 1)];
+      call += 1;
+      return { ok: true, status: 200, statusText: "OK", json: async () => body };
+    }),
+  );
+  return urls;
+}
+
+function barHeights(container: HTMLElement, bucket: string): Record<string, number> {
+  const group = container.querySelector(`g[data-bucket="${bucket}"]`);
+  if (!group) throw new Error(`no bar for ${bucket}`);
+  const out: Record<string, number> = {};
+  group.querySelectorAll("rect[data-cls]").forEach((el) => {
+    out[el.getAttribute("data-cls") ?? ""] = Number.parseFloat(el.getAttribute("height") ?? "0");
+  });
+  return out;
+}
+
+describe("Sentiment", () => {
+  it("draws one stacked bar per bucket whose segments keep the aggregate's proportions", async () => {
+    const body = response();
+    stubSentiment([body]);
+    const { container } = render(<Sentiment />);
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
+
+    const dist = body.series[1].distribution;
+    const heights = barHeights(container, BUCKETS[1]);
+
+    // Comparing ratios between classes, not absolute heights: the four are
+    // scaled by the analyzed share, so the scale constant cancels out and the
+    // test does not have to know it.
+    expect(heights["s-neg"] / heights["s-pos"]).toBeCloseTo(dist.negative / dist.positive, 5);
+    expect(heights["s-neu"] / heights["s-mix"]).toBeCloseTo(dist.neutral / dist.mixed, 5);
+  });
+
+  it("keeps 미분석 as its own segment instead of folding it into the four classes", async () => {
+    const body = response();
+    stubSentiment([body]);
+    const { container } = render(<Sentiment />);
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
+
+    const dist = body.series[1].distribution;
+    const heights = barHeights(container, BUCKETS[1]);
+    const classes = heights["s-pos"] + heights["s-neu"] + heights["s-neg"] + heights["s-mix"];
+    const total = classes + heights["s-na"];
+
+    // The bar is the whole bucket: classes take the analyzed share of it and
+    // 미분석 takes the rest. If they were ever summed together the classes
+    // alone would fill the bar and this split would collapse.
+    expect(heights["s-na"] / total).toBeCloseTo(dist.unanalyzed, 5);
+    expect(classes / total).toBeCloseTo(1 - dist.unanalyzed, 5);
+  });
+
+  it("marks an axis Gold has no row for instead of drawing it as zero", async () => {
+    stubSentiment([response()]);
+    const { container, findByText } = render(<Sentiment />);
+
+    const absent = await waitFor(() => {
+      const row = container.querySelector('[data-axis="GLOBAL"]');
+      if (!row) throw new Error("no GLOBAL row");
+      return row;
+    });
+
+    expect(absent.getAttribute("data-present")).toBe("false");
+    // A marked gap, and no bar pretending the axis was measured.
+    expect(absent.querySelector(".sentbar")).toBeNull();
+    await findByText("집계 없음");
+
+    // The axes that do have rows are still drawn.
+    expect(container.querySelector('[data-axis="KR"] .sentbar')).not.toBeNull();
+  });
+
+  it("asks the server again when the axis changes", async () => {
+    const urls = stubSentiment([response("KR"), response("US")]);
+    const { container } = render(<Sentiment />);
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
+    expect(urls[0]).toContain("axis=KR");
+
+    // The switch is queried through the control, not by its text: "미국" is also
+    // the label of the US row in the axis comparison below it.
+    const buttons = container.querySelectorAll(".seg button");
+    expect(buttons).toHaveLength(3);
+    fireEvent.click(buttons[1]);
+
+    // The comparison bucket is chosen over all axes, so the axis cannot be a
+    // client-side filter — a new request is the only correct behaviour.
+    await waitFor(() => expect(urls.length).toBeGreaterThan(1));
+    expect(urls[urls.length - 1]).toContain("axis=US");
+  });
+});
