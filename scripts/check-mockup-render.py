@@ -77,20 +77,29 @@ def screen_files():
 
 
 def absorbed_screens():
-    """여정 식별자 -> 흡수한 화면 id (「여정 페이지」 표)."""
+    """여정 식별자 -> 흡수한 화면 id **집합** (「여정 페이지」 표).
+
+    한 여정 페이지는 화면을 **여럿** 흡수한다(`JRN-daily-scan` ∋ `dash`·`trend`,
+    `JRN-spike-verification` ∋ `fairness`·`trace`). 이전 판은 「흡수한 화면」 칸의 첫 id
+    하나만 집어 둘째 화면을 조용히 버렸고, 그 화면이 `BUILT` 에 들어오는 순간
+    `items_by_screen()` 이 키를 만들지 못해 「인덱스에 디자인 시스템 항목 절이 없다」로
+    떨어졌다 — 인덱스는 그 화면의 행도 항목 절도 갖고 있는데도. 칸 전체에서 읽는다.
+    """
     out = {}
     for line in read(IDX).splitlines():
-        m = re.match(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|\s*`[^`]+`\s*\|\s*`([a-z]+)`", line)
+        m = re.match(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|\s*`[^`]+`\s*\|([^|]*)\|", line)
         if m:
-            out[m.group(1)] = m.group(2)
+            out[m.group(1)] = set(re.findall(r"`([a-z]+)`", m.group(2)))
     return out
 
 
 def items_by_screen():
     """화면 id -> 그 화면이 쓴다고 인덱스가 선언한 디자인 시스템 항목 집합.
 
-    섹션 제목의 백틱 토큰이 화면 id 이거나(`dash`), 그 화면을 흡수한 여정 식별자다
-    (`JRN-axis-contrast` -> `compare`).
+    섹션 제목의 백틱 토큰이 화면 id 이거나(`reprocess`), 화면을 흡수한 여정 식별자다
+    (`JRN-axis-contrast` -> `compare`, `JRN-daily-scan` -> `dash`·`trend`). 여정 절의
+    항목은 그 여정이 흡수한 **모든** 화면에 귀속된다 — 흡수된 화면들은 한 페이지를
+    공유하므로 같은 항목 집합을 갖는다.
     """
     absorbed = absorbed_screens()
     out = {}
@@ -102,7 +111,8 @@ def items_by_screen():
             continue
         if key and line.startswith("- **디자인 시스템 항목**"):
             items = set(re.findall(r"`((?:CMP|PAT)-[a-z0-9-]+)`", line))
-            out.setdefault(absorbed.get(key, key), set()).update(items)
+            for screen in absorbed.get(key, {key}):
+                out.setdefault(screen, set()).update(items)
             key = None
     return out
 
