@@ -16,7 +16,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { aggByTitle, aggItems, axisSentiments, bucketOf, crossTab } from "../lib/gold";
+import { CELL_SEP, aggByTitle, aggItems, axisSentiments, crossTab } from "../lib/gold";
 import { MODEL_AGG, cannedReply } from "../lib/llmdouble";
 import { analysisSummary, analyzedTitled } from "../lib/silver";
 
@@ -107,8 +107,15 @@ test("analysis: aggregation separates the unanalyzed from the analyzed items", (
     const mentionsInAxis = items
       .filter((other) => other.axis === item.axis)
       .reduce((sum, other) => sum + (byRecord.get(other.record_id)?.narrative_subjects.length ?? 0), 0);
+    // 두 합의 기준은 **축**이다. 왼쪽(`mentionsInAxis`)이 축 전체 합이므로 오른쪽도 축 전체
+    // 합이어야 대조가 성립한다 — 셀을 (축, 버킷)으로 더 자르면 "축의 모든 관측이 한 버킷을
+    // 공유한다"를 암묵 전제로 깔고, 그 전제가 깨지는 순간 미분석 누수와 무관하게 0이 된다.
+    // 축 경계는 구분자까지 붙여 정확히 끊는다(맨 `startsWith(axis)` 는 축 이름이 다른 축의
+    // 접두사일 때 옆 축을 끌어온다). 구분자를 손으로 다시 쓰지 않고 `CELL_SEP` 을 쓴다 —
+    // 이 자리를 손으로 조립했다가 `cellKey` 의 구분자(당시 NUL)와 어긋나 이 단정이 한 번
+    // 깨졌다(`ci / e2e` 실측: `cells=[["KR\u0000<버킷>\u0000<대상>", n]]` vs 공백으로 조립한 접두사).
     const tabulated = [...counts.entries()]
-      .filter(([key]) => key.startsWith(`${item.axis} ${bucketOf(item)} `))
+      .filter(([key]) => key.startsWith(`${item.axis}${CELL_SEP}`))
       .reduce((sum, [, n]) => sum + n, 0);
     expect(tabulated, title).toBe(mentionsInAxis);
     // 그리고 그 기사 자신은 셀 대상이 0개다(미분석이라 라벨이 비어 있다).
