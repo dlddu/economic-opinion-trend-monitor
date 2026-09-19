@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 분석 배치 픽스처: `…-test-analysis.md#시나리오 1·2·3·6` 이 전제하는 기사 묶음.
+     한 소스(axis=KR)로만 들어오는 것이 요지다 — 대상 국가는 **기사 내용**에서 나오므로
+     수집 출처 축과 별개임을 같은 Bronze 안에서 보일 수 있다(시나리오 1).
+
+     묶음 구성:
+       * 대상 국가   — 단일(001) · 복수(002) · 글로벌(003) · 출처축과 다른 단일(008)
+       * 서술 대상   — 같은 대상을 「삼성전자」(002) · 「Samsung」(004) · 「삼성」(005) 로
+                      달리 지칭한다. 정규화는 제품 코드(`normalize_subject`)가 한다.
+       * 분위기      — 중립(001) · 긍정(006) · 부정(007) · 혼합(008)
+       * 역추적      — 아홉 건 모두 본문이 있어 전건이 분석 대상이 된다(미분석 0건).
+                      저신뢰·미분석 분리는 시나리오 5 소관이라 이 묶음에 넣지 않는다.
+
+     `<views>` 는 엄격히 감소한다 — 순위가 실행마다 흔들리면 레코드 순서에 의존하는 진단이
+     비결정적이 된다. 본문(`description`)은 더블이 기사별 응답을 고르는 키가 아니다(키는
+     제목이다) — 본문은 제품 경로가 프롬프트에 싣는 실제 입력으로만 쓰인다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Analysis Corpus</title>
+    <link>https://analysis.e2e.invalid/corpus</link>
+
+    <item>
+      <title>한국은행 기준금리 동결 — 국내 물가 안착 국면</title>
+      <link>https://analysis.e2e.invalid/corpus/001</link>
+      <description>한국은행이 기준금리를 동결했다. 국내 소비자물가 상승률이 목표 범위에 들어온 뒤 처음이며, 금통위는 추가 조정 없이 상황을 지켜보겠다고만 밝혔다. 국내 지표만을 근거로 든 결정이다.</description>
+      <views>9100</views>
+    </item>
+
+    <item>
+      <title>삼성전자 미국 공장 증설 — 한미 공급망 재편 가속</title>
+      <link>https://analysis.e2e.invalid/corpus/002</link>
+      <description>삼성전자가 미국 현지 공장 증설 계획을 확정했다. 한국 본사의 생산 물량 일부가 미국으로 옮겨 가면서 두 나라 제조 기반이 함께 재배치된다. 한국과 미국 양쪽의 정책 당국이 각각 세제 지원을 검토하고 있다.</description>
+      <views>8800</views>
+    </item>
+
+    <item>
+      <title>글로벌 공급망 운임 지수 급등 — 특정국 이슈 아니다</title>
+      <link>https://analysis.e2e.invalid/corpus/003</link>
+      <description>주요 항로 운임 지수가 일제히 올랐다. 특정 국가의 정책이나 사건이 아니라 해상 물동량 전반의 병목이 원인으로 지목된다. 어느 한 나라의 문제로 좁힐 수 없는 사안이다.</description>
+      <views>8500</views>
+    </item>
+
+    <item>
+      <title>Samsung memory prices rebound on AI demand</title>
+      <link>https://analysis.e2e.invalid/corpus/004</link>
+      <description>Samsung's memory contract prices rose for a third straight month as AI server buildouts absorbed the remaining inventory. Analysts described the recovery as broad and durable, with order books filling well into the next quarter.</description>
+      <views>8200</views>
+    </item>
+
+    <item>
+      <title>삼성 반도체 투자, 협력사 실적에도 온기</title>
+      <link>https://analysis.e2e.invalid/corpus/005</link>
+      <description>삼성의 반도체 설비 투자 집행이 재개되면서 장비·소재 협력사 수주가 늘었다. 업계는 투자 사이클이 한 해 더 이어질 것으로 본다.</description>
+      <views>7900</views>
+    </item>
+
+    <item>
+      <title>수출 호조에 무역수지 흑자 확대</title>
+      <link>https://analysis.e2e.invalid/corpus/006</link>
+      <description>반도체와 자동차가 동시에 늘며 무역수지 흑자 폭이 커졌다. 수출 증가세가 월간 기준으로 다섯 달째 이어지고 있다.</description>
+      <views>7600</views>
+    </item>
+
+    <item>
+      <title>부동산 PF 부실 우려 재확산</title>
+      <link>https://analysis.e2e.invalid/corpus/007</link>
+      <description>부동산 PF 사업장 연체율이 다시 올랐다. 만기 연장이 막힌 사업장이 늘면서 2금융권 건전성 우려가 커지고 있다는 진단이 잇따랐다.</description>
+      <views>7300</views>
+    </item>
+
+    <item>
+      <title>US CPI 둔화에도 서비스 물가 반등 — 엇갈린 신호</title>
+      <link>https://analysis.e2e.invalid/corpus/008</link>
+      <description>미국 소비자물가 상승률은 둔화했지만 서비스 부문만 따로 보면 오히려 반등했다. 둔화를 근거로 완화를 기대하는 쪽과 서비스 경직성을 이유로 신중론을 펴는 쪽이 같은 지표를 두고 갈렸다.</description>
+      <views>7000</views>
+    </item>
+
+    <item>
+      <title>전기요금 조정안 발표 예정</title>
+      <link>https://analysis.e2e.invalid/corpus/009</link>
+      <description>전기요금 조정안이 다음 달 발표된다. 인상 폭과 적용 시점은 아직 공개되지 않았고, 관계 부처는 확정된 내용이 없다고만 밝혔다.</description>
+      <views>6700</views>
+    </item>
+  </channel>
+</rss>

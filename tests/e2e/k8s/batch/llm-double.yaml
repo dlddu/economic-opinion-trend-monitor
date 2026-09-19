@@ -1,0 +1,76 @@
+# 분석 배치의 상류를 대신하는 LLM 더블. 피드 더블(feed-double.yaml)과 같은 자리이고 같은
+# 방식으로 선다 — 새 이미지를 끌어오지 않도록 이미 kind에 사이드로드된 배치 이미지로
+# stdlib HTTP 서버만 띄우고, 응답은 ConfigMap으로 마운트한 픽스처가 정한다.
+#
+# 대신하는 것은 chat-completions 엔드포인트 **한 겹**이다. 프롬프트 조립·응답 파싱·서술 대상
+# 정규화·저신뢰 판정·Silver 적재는 전부 제품 경로(`econ_analysis`)가 그대로 하고, 더블이 정하는
+# 것은 "모델이 무엇이라 답하는가" 하나다. 실 모델을 부르면 응답이 매 실행 달라져
+# `…-test-analysis.md#시나리오 1·2·3` 의 기대 결과를 단언할 대상이 고정되지 않고, 키·과금·
+# 네트워크까지 CI에 끌고 들어온다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: econ-llm-double
+  labels:
+    app: econ-llm-double
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: econ-llm-double
+  template:
+    metadata:
+      labels:
+        app: econ-llm-double
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: llm-double
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          # mock-exception: LLM-04 — 실 chat-completions 모델 대신 고정 응답 서버를 돈다(응답이 매 호출 달라지면 라벨 전파를 단언할 대상이 없다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          command: ["python", "/llm/server.py", "8080"]
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            # 픽스처 로드까지 확인한다 — 포트만 열린 상태로 Ready가 되면 분석 Job이
+            # 응답 표 없이 출발해 전건 실패로 끝난다.
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: llm
+              mountPath: /llm
+              readOnly: true
+      volumes:
+        - name: llm
+          configMap:
+            # mock-exception: LLM-03 — 더블이 돌려줄 기사별 응답을 ConfigMap으로 주입한다(실 모델 응답은 비결정적) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: llm-fixtures
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: econ-llm-double
+spec:
+  selector:
+    app: econ-llm-double
+  ports:
+    - port: 8080
+      targetPort: 8080

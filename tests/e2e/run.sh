@@ -10,6 +10,12 @@
 #     a fault-injection cycle (scenario 6) and three sequential cycles whose
 #     upstream changes between them (scenario 7). Their Job logs are exported too
 #     — the failure/duplicate/dedup counts the specs assert on are printed there.
+#   * analysis batch — one more collection cycle produces the analysis corpus in
+#     its own lake root, then the real analysis CLI runs against an in-cluster
+#     chat-completions double and writes Silver. A second pass re-runs it with a
+#     revised response set and a bumped analyzer version (scenario 6 of the
+#     analysis doc), so the first Silver is exported *between* the two — the
+#     re-analysis replaces the dataset rather than appending to it.
 #
 # Local `make e2e` and the CI e2e job both run exactly this script.
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
@@ -27,6 +33,9 @@ PORT="${E2E_PORT:-18080}"
 BRONZE_DIR="$E2E_DIR/.artifacts/bronze"
 FAULTS_DIR="$E2E_DIR/.artifacts/bronze-faults"
 CYCLES_DIR="$E2E_DIR/.artifacts/bronze-cycles"
+ANALYSIS_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-analysis"
+SILVER_DIR="$E2E_DIR/.artifacts/silver"
+SILVER_V2_DIR="$E2E_DIR/.artifacts/silver-v2"
 LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 PF=""
 
@@ -47,10 +56,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Run one ingestion Job to completion and keep its log — the specs assert on the
-# counts it prints (failed_sources, duplicates_skipped, bodies new/deduplicated),
-# so a lost log is a lost observation, not just missing debug output.
-run_ingest_job() {
+# Run one batch Job (ingestion or analysis) to completion and keep its log — the
+# specs assert on the counts it prints (failed_sources, duplicates_skipped, bodies
+# new/deduplicated; low_confidence, unanalyzed, model calls), so a lost log is a
+# lost observation, not just missing debug output.
+run_batch_job() {
   job="$1"; manifest="$2"
   kubectl --context "$CTX" apply -f "$manifest"
   if ! kubectl --context "$CTX" wait --for=condition=complete "job/$job" --timeout=300s; then
@@ -64,16 +74,17 @@ run_ingest_job() {
   cat "$LOG_DIR/$job.log"
 }
 
-# Copy a Bronze dataset off the PVC through the shell Pod. The Job's own container
-# is gone by now, so the claim is the only place the records still exist.
-export_bronze() {
-  src_root="$1"; dest="$2"; shift 2
+# Copy a dataset off the PVC through the shell Pod. The Job's own container is gone
+# by now, so the claim is the only place the records still exist. The layer is a
+# parameter because analysis writes Silver next to the Bronze the collection wrote.
+export_lake() {
+  src_root="$1"; layer="$2"; dest="$3"; shift 3
   mkdir -p "$dest"
   for dataset in "$@"; do
-    kubectl --context "$CTX" exec "$SHELL_POD" -- cat "$src_root/bronze/$dataset.jsonl" \
+    kubectl --context "$CTX" exec "$SHELL_POD" -- cat "$src_root/$layer/$dataset.jsonl" \
       > "$dest/$dataset.jsonl"
     [ -s "$dest/$dataset.jsonl" ] \
-      || { echo "[e2e] FAIL: $src_root/bronze/$dataset.jsonl came back empty" >&2; exit 1; }
+      || { echo "[e2e] FAIL: $src_root/$layer/$dataset.jsonl came back empty" >&2; exit 1; }
   done
 }
 
@@ -109,8 +120,13 @@ curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
 # rather than a startup ordering one.
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
+# 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
+# 만들어 둔다 — 없으면 Pod가 볼륨을 못 붙여 영영 Ready가 되지 않는다.
+# mock-exception: LLM-02 — 실 chat-completions 응답은 비결정적이라 기사별 고정 응답 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+kubectl --context "$CTX" create configmap llm-fixtures --from-file="$E2E_DIR/fixtures/llm"
 kubectl --context "$CTX" apply -k "$E2E_DIR/k8s/batch"
 kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=120s
+kubectl --context "$CTX" rollout status deployment/econ-llm-double --timeout=120s
 kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
 
 # Bronze lives on the Job's PVC; a Job's container is gone once it finishes, so
@@ -118,7 +134,7 @@ kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=1
 SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
   -o jsonpath='{.items[0].metadata.name}')"
 
-INGEST_LOG="$(run_ingest_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
+INGEST_LOG="$(run_batch_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
 # A source the CLI cannot reach is isolated, not fatal — correct for production,
 # but here it would quietly shrink Bronze and surface as a puzzling spec failure.
 # This guard is for the *healthy* cycle only; the fault-injection cycle below
@@ -128,20 +144,20 @@ case "$INGEST_LOG" in
   *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
      exit 1 ;;
 esac
-export_bronze /data "$BRONZE_DIR" news_item news_body
+export_lake /data bronze "$BRONZE_DIR" news_item news_body
 echo "[e2e] bronze exported -> $BRONZE_DIR"
 
 # 4b) Fault injection (…-test-ingestion.md#시나리오 6): one more cycle against the
 # same double, this time through its failure/flaky/slow paths. Writes to its own
 # data root so the healthy cycle's Bronze — what specs 2..5 assert on — is untouched.
-FAULTS_LOG="$(run_ingest_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
+FAULTS_LOG="$(run_batch_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
 case "$FAULTS_LOG" in
   *"failed_sources=[]"*)
     echo "[e2e] FAIL: the fault-injection cycle isolated no source — the double served" \
          "the broken paths successfully, so scenario 6 has nothing to observe" >&2
     exit 1 ;;
 esac
-export_bronze /data/faults "$FAULTS_DIR" news_item news_body
+export_lake /data/faults bronze "$FAULTS_DIR" news_item news_body
 echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 
 # 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7). news_item is
@@ -149,11 +165,51 @@ echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 # runs — the final file only holds cycle 3. news_body accumulates, which is the
 # point: unchanged bodies must not be re-stored and an edited one must append.
 for cycle in 1 2 3; do
-  run_ingest_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
+  run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
     >/dev/null
-  export_bronze /data/cycles "$CYCLES_DIR/cycle$cycle" news_item news_body
+  export_lake /data/cycles bronze "$CYCLES_DIR/cycle$cycle" news_item news_body
 done
 echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
+
+# 4d) Analysis batch (…-test-analysis.md#시나리오 1·2·3·6): one more collection cycle
+# builds the analysis corpus in its own lake root, then the real analysis CLI runs
+# against the in-cluster chat-completions double and writes Silver beside it.
+ANALYSIS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-analysis \
+  "$E2E_DIR/k8s/batch/ingest-job-analysis.yaml")"
+case "$ANALYSIS_INGEST_LOG" in
+  *"failed_sources=[]"*) ;;
+  *) echo "[e2e] FAIL: the analysis corpus feed did not answer — the analysis specs would" \
+          "report a judgement problem rather than a collection one" >&2
+     exit 1 ;;
+esac
+export_lake /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_item news_body
+echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
+
+# A canned reply the double does not have is a 404, which the CLI degrades to one
+# unanalyzed record and *counts*. Without this guard a stale fixture would quietly
+# turn into "the model declined to judge" — a data story, not the missing-fixture
+# story it actually is.
+ANALYZE_LOG="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"
+case "$ANALYZE_LOG" in
+  *"failed=0"*) ;;
+  *) echo "[e2e] FAIL: a model call failed — the LLM double has no canned reply for some" \
+          "article (see fixtures/llm/responses.json) or is unreachable" >&2
+     exit 1 ;;
+esac
+# Re-analysis replaces this dataset, so the first pass has to be taken off the PVC
+# *now* — scenario 6 compares the two.
+export_lake /data/analysis silver "$SILVER_DIR" analysis
+echo "[e2e] silver exported -> $SILVER_DIR"
+
+ANALYZE_V2_LOG="$(run_batch_job econ-e2e-analyze-v2 "$E2E_DIR/k8s/batch/analyze-job-v2.yaml")"
+case "$ANALYZE_V2_LOG" in
+  *"failed=0"*) ;;
+  *) echo "[e2e] FAIL: a model call failed during re-analysis — the v2 response set is" \
+          "incomplete or the double is unreachable" >&2
+     exit 1 ;;
+esac
+export_lake /data/analysis silver "$SILVER_V2_DIR" analysis
+echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 cd "$E2E_DIR"
@@ -165,9 +221,13 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_BRONZE_DIR="$BRONZE_DIR" \
   E2E_BRONZE_FAULTS_DIR="$FAULTS_DIR" \
   E2E_BRONZE_CYCLES_DIR="$CYCLES_DIR" \
+  E2E_BRONZE_ANALYSIS_DIR="$ANALYSIS_BRONZE_DIR" \
+  E2E_SILVER_DIR="$SILVER_DIR" \
+  E2E_SILVER_V2_DIR="$SILVER_V2_DIR" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
   npx playwright test
 
 echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
 echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
 echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
+echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"
