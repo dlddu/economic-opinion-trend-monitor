@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>재처리 콘솔 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-logic-backfill) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-logic-backfill">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="JRN-daily-scan.html#STP-drill-trend">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="sentiment" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="JRN-spike-verification.html#STP-open-origin">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op active" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>분석 로직 v2.4 &middot; 배포 2시간 전<br/>
+      마지막 재처리 09-18 21:40 KST
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>재처리 콘솔</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-scope">범위 미확정</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 — 재처리 범위 선택 ============ -->
+      <section class="jstep" id="STP-scope-range" data-step="STP-scope-range" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>재처리 범위</h3>
+              <span class="sub" id="scope-sub">기간 &middot; 축 &middot; 소스로 다시 분석할 원문을 좁힙니다</span>
+              <div class="r"><span class="tag">고르는 즉시 건수와 예상 소요를 셉니다</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:16px">
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">기간</span>
+                  <select id="range" name="range">
+                    <option value="24h">지난 24시간</option>
+                    <option value="7d" selected>지난 7일</option>
+                    <option value="30d">지난 30일</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">출처 축</span>
+                  <select id="axis" name="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="WW">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">소스</span>
+                  <select id="source" name="source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">원문</th><th class="num">이미 새 로직</th><th class="num">재분석 대상</th><th>상태</th></tr></thead>
+                <tbody id="scope-rows"></tbody>
+              </table>
+
+              <div class="emptybox" id="s-empty-scope" data-state="empty-scope" hidden>
+                이 조합에는 보관된 원문이 없습니다.<br/>그 축에 없는 소스를 고르면 재분석할 대상이 0건입니다 &mdash; 기간이나 소스를 넓혀 보세요.
+              </div>
+
+              <div class="banner warn" id="s-over-budget" data-state="over-budget" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>이 범위는 한 번에 돌리기에 큽니다 (<span id="budget-count">0</span>건 &middot; 예상 <span id="budget-eta">0</span>분).</b>
+                  건수와 예상 소요가 보이지 않으면 범위를 감으로 정하게 됩니다. 기간을 줄이거나 소스를 좁혀 나눠 도세요.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 범위</h3><span class="sub" id="pick-sub">이 범위만 다시 분석합니다</span></div>
+            <div class="card-b">
+              <div id="scope-kv"></div>
+              <div class="note info" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>원문은 그대로 두고 분석 결과만 다시 씁니다. 원문으로 되짚는 키는 재분석 뒤에도 유지됩니다.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-dry-run" id="cta-1">
+            표본부터 돌려 보기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">전량 실행은 표본 결과를 본 뒤에 열립니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 — 표본 재분석으로 영향 가늠 ============ -->
+      <section class="jstep" id="STP-dry-run" data-step="STP-dry-run" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>표본 재분석</h3>
+              <span class="sub" id="dry-sub">고른 범위에서 일부만 새 로직으로 돌립니다</span>
+              <div class="r"><span class="tag">전량은 아직 잠겨 있습니다</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">표본 크기 (건)</span>
+                  <input type="number" id="sample-size" name="sample-size" min="10" max="500" step="10" value="50" />
+                </label>
+                <label class="fld" style="flex:0 0 232px">
+                  <span class="fl">표본 추출</span>
+                  <select id="sample-mode" name="sample-mode">
+                    <option value="random" selected>무작위</option>
+                    <option value="touched">새 로직이 건드리는 대상 우선</option>
+                    <option value="recent">최근 수집 순</option>
+                  </select>
+                </label>
+              </div>
+
+              <button type="button" class="btn pri" id="dry-run">표본 실행</button>
+
+              <div class="loadbox" id="s-sample-running" data-state="sample-running" hidden>
+                표본을 새 로직으로 돌리는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <table class="tbl" style="margin-top:16px">
+                <thead><tr><th>표본 대상</th><th>이전 판정</th><th>새 판정</th><th class="num">건수</th><th>변화</th></tr></thead>
+                <tbody id="dry-rows"></tbody>
+              </table>
+
+              <div class="banner err" id="s-sample-mismatch" data-state="sample-mismatch" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>표본이 의도와 다르게 바뀌었습니다 (<span id="mismatch-rate">0</span>% 재분류).</b>
+                  이대로 전량을 돌리면 잘못된 기준이 과거 데이터까지 덮습니다 &mdash; 전량 실행을 막아 둡니다.
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-1" href="#STP-dry-run"
+                       data-goto="JRN-logic-backfill#STP-dry-run">로직을 고치고 표본부터 다시 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>표본 요약</h3><span class="sub">전량 실행 전의 마지막 관문</span></div>
+            <div class="card-b">
+              <div id="dry-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
+                표본을 건너뛰고 전량을 돌리면, 기준이 어긋났다는 사실을 과거 데이터가 이미 바뀐 뒤에 알게 됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-run-reprocess" id="cta-2" disabled>
+            전량 실행으로 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-2-hint">표본을 먼저 돌리세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 — 전량 재분석 실행 ============ -->
+      <section class="jstep" id="STP-run-reprocess" data-step="STP-run-reprocess" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>전량 재분석</h3>
+              <span class="sub" id="run-sub">고른 범위 전체에 새 로직을 적용합니다</span>
+              <div class="r"><span class="tag">원문 되짚기 키 유지</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">적용할 분석 로직</span>
+                  <select id="version" name="version">
+                    <option value="v2.4" selected>v2.4 (새 로직)</option>
+                    <option value="v2.5-rc">v2.5-rc (실험)</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">배치 크기 (건)</span>
+                  <input type="number" id="batch" name="batch" min="50" max="500" step="50" value="100" />
+                </label>
+              </div>
+
+              <label class="chk" style="margin-bottom:6px">
+                <input type="checkbox" id="keep-version" name="keep-version" checked />
+                이전 결과를 덮어쓰지 않고 로직 버전을 붙여 병존시킨다
+              </label>
+              <p class="muted" style="font-size:11.5px;line-height:1.6;margin-bottom:16px" id="keep-note"></p>
+
+              <button type="button" class="btn pri" id="run">전량 실행</button>
+
+              <div class="loadbox" id="s-running" data-state="running" hidden>
+                범위 전체를 다시 분석하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+
+              <div id="run-result" style="margin-top:16px"></div>
+
+              <div class="banner err" id="s-overwrite-warning" data-state="overwrite-warning" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>덮어쓰면 전후 비교 자체가 불가능해집니다.</b>
+                  이전 결과가 사라지면 다음 화면에서 무엇이 얼마나 달라졌는지 견줄 대상이 없고, 되돌릴 자리도 없습니다.
+                </div>
+              </div>
+
+              <div class="banner warn" id="s-interrupted" data-state="interrupted" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                <div>
+                  <b>배치가 커서 도중에 끊겼습니다 (<span id="ckpt">0</span>건까지 처리).</b>
+                  처음부터 다시 돌리지 않습니다 &mdash; 체크포인트까지는 그대로 두고 그 지점부터 이어서 재개하세요.
+                  <div class="actions">
+                    <a class="btn sm pri" id="br-2" href="#STP-run-reprocess"
+                       data-goto="JRN-logic-backfill#STP-run-reprocess">체크포인트부터 이어서 재개 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>실행 범위</h3><span class="sub">화면 1에서 고른 그대로</span></div>
+            <div class="card-b">
+              <div id="run-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
+                병존으로 돌리면 어느 버전을 내보낼지는 마지막 화면에서 고릅니다.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-compare-before-after" id="cta-3" disabled>
+            전후 비교로 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint" id="cta-3-hint">전량 실행을 먼저 끝내세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 — 전후 집계 비교 ============ -->
+      <section class="jstep" id="STP-compare-before-after" data-step="STP-compare-before-after" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>재처리 전후 비교</h3>
+              <span class="sub" id="cmp-sub">같은 범위를 두 로직으로 나란히 놓습니다</span>
+              <div class="r"><span class="tag">합계는 전후 모두 100%</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">정렬</span>
+                  <select id="sortby" name="sortby">
+                    <option value="delta" selected>변화가 큰 순</option>
+                    <option value="share">현재 점유율 순</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">주목 임계 (%p)</span>
+                  <input type="number" id="threshold" name="threshold" min="0.5" max="10" step="0.5" value="2" />
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" id="split-unanalyzed" name="split-unanalyzed" />
+                  미분석 &middot; 저신뢰를 따로 떼어 보기
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th>서술 대상</th><th class="num">이전</th><th class="num">이후</th><th class="num">차이</th><th>판정</th></tr></thead>
+                <tbody id="cmp-rows"></tbody>
+              </table>
+
+              <div class="banner warn" id="s-over-threshold" data-state="over-threshold" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>임계를 넘는 항목이 <span id="over-count">0</span>건 있습니다.</b>
+                  설명되지 않는 변화를 그대로 내보내면 어제 본 숫자가 왜 바뀌었는지 아무도 답할 수 없습니다.
+                </div>
+              </div>
+
+              <div class="banner good" id="s-low-confidence" data-state="low-confidence" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>미분석 &middot; 저신뢰를 따로 떼어 <span id="unanalyzed-share">0</span>% 로 보고합니다.</b>
+                  새 로직이 판단을 보류한 몫을 비율에 섞지 않고 따로 세면, 급증한 것이 관심인지 보류인지 갈립니다.
+                </div>
+              </div>
+
+              <div class="branches">
+                <h4>재처리 중 이런 상황이라면</h4>
+                <p class="bhint">비교만으로 닫히지 않는 갈래는 여기서 갈라집니다.</p>
+                <div class="br-row">
+                  <span class="br-when">차이가 임계를 크게 넘는다</span>
+                  <span class="br-how">반영을 보류하고 원인 대상의 표본을 원문까지 내려가 확인합니다</span>
+                  <a class="btn sm br-go" id="br-3" href="JRN-spike-verification.html#STP-open-origin"
+                     data-goto="JRN-spike-verification#STP-open-origin">원문까지 확인하기 &rarr;</a>
+                </div>
+                <div class="br-row">
+                  <span class="br-when">재분석할 원문이 비어 있다</span>
+                  <span class="br-how">수집 복구 흐름에 넘기고 그 구간이 채워진 뒤 범위를 다시 고릅니다</span>
+                  <a class="btn sm br-go" id="br-4" href="JRN-ingestion-recovery.html#STP-locate-gap"
+                     data-goto="JRN-ingestion-recovery#STP-locate-gap">수집 복구로 넘기기 &rarr;</a>
+                </div>
+                <div class="br-row">
+                  <span class="br-when">판단 보류가 갑자기 늘었다</span>
+                  <span class="br-how">보류분을 따로 적재하고 그 비중을 이 비교에 같이 올립니다</span>
+                  <a class="btn sm br-go" id="br-5" href="#STP-compare-before-after"
+                     data-goto="JRN-logic-backfill#STP-compare-before-after">보류 비중 같이 보기 &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>무엇이 움직였나</h3><span class="sub">비교 요약</span></div>
+            <div class="card-b">
+              <div id="cmp-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
+                변화가 큰 항목이 먼저 오도록 정렬해 두면 표를 눈으로 훑지 않아도 됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-publish" id="cta-4">
+            반영 여부 결정하기 <span class="ar">&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 — 반영 또는 롤백 결정 ============ -->
+      <section class="jstep" id="STP-publish" data-step="STP-publish" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>반영 또는 되돌리기</h3><span class="sub" id="pub-sub">이 결정으로 재처리를 닫습니다</span></div>
+            <div class="card-b">
+              <table class="tbl">
+                <thead><tr><th>확인 항목</th><th class="num">값</th><th>판정</th></tr></thead>
+                <tbody id="pub-rows"></tbody>
+              </table>
+
+              <form id="publish-form" style="margin-top:18px">
+                <div class="fld">
+                  <span class="fl">결정</span>
+                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
+                    <label><input type="radio" name="decision" value="publish" /> 새 결과를 서빙에 반영한다 &mdash; 차이가 설명된다</label>
+                    <label><input type="radio" name="decision" value="rollback" /> 이전 버전으로 되돌린다 &mdash; 설명되지 않는 변화가 남았다</label>
+                  </div>
+                </div>
+                <label class="fld" style="margin-top:18px">
+                  <span class="fl">결정 근거</span>
+                  <textarea id="publish-memo" name="publish-memo" placeholder="무엇이 왜 달라졌고 그것을 왜 내보내도 되는지(또는 안 되는지) 한 문단으로 적어 두세요."></textarea>
+                </label>
+                <label class="chk" style="margin-top:14px">
+                  <input type="checkbox" id="notify-consumer" name="notify-consumer" checked />
+                  소비자 화면에 반영 시각과 로직 버전을 주석으로 노출한다
+                </label>
+                <div class="stepact" style="margin-top:16px">
+                  <button type="submit" class="btn pri" id="publish-submit">결정 기록</button>
+                </div>
+              </form>
+
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div id="invalid-msg">결정과 근거를 모두 채워야 기록됩니다.</div>
+              </div>
+
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div>
+                  <b>결정을 기록했습니다.</b>
+                  <span id="recorded-what"></span>
+                  이 기록은 이 세션 안에서만 유지됩니다 &mdash; 제품 안에 남는 재처리 이력은 아직 없습니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>되돌릴 수 있나</h3><span class="sub">결정 전에 확인할 것</span></div>
+            <div class="card-b">
+              <div id="pub-kv"></div>
+              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
+                병존으로 돌렸다면 되돌리기는 서빙이 가리키는 버전을 바꾸는 일이고, 덮어썼다면 되돌릴 자리가 없습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-logic-backfill</b> &mdash; 로직 개선의 소급 적용.
+             <a href="../reader.html?doc=user-journeys/JRN-logic-backfill.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-scope-range"><button type="button" class="jr-btn" data-goto-step="STP-scope-range"><span class="jr-n">1</span><span class="jr-t">재처리 범위 선택</span><span class="jr-id mono">STP-scope-range</span></button></li>
+            <li class="jr-item" data-rail="STP-dry-run"><button type="button" class="jr-btn" data-goto-step="STP-dry-run"><span class="jr-n">2</span><span class="jr-t">표본 재분석으로 영향 가늠</span><span class="jr-id mono">STP-dry-run</span></button></li>
+            <li class="jr-item" data-rail="STP-run-reprocess"><button type="button" class="jr-btn" data-goto-step="STP-run-reprocess"><span class="jr-n">3</span><span class="jr-t">전량 재분석 실행</span><span class="jr-id mono">STP-run-reprocess</span></button></li>
+            <li class="jr-item" data-rail="STP-compare-before-after"><button type="button" class="jr-btn" data-goto-step="STP-compare-before-after"><span class="jr-n">4</span><span class="jr-t">전후 집계 비교</span><span class="jr-id mono">STP-compare-before-after</span></button></li>
+            <li class="jr-item" data-rail="STP-publish"><button type="button" class="jr-btn" data-goto-step="STP-publish"><span class="jr-n">5</span><span class="jr-t">반영 또는 롤백 결정</span><span class="jr-id mono">STP-publish</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-scope-range</td><td>기간·소스·축으로 재분석할 원문 범위를 정한다</td><td>범위 선택 컨트롤(CMP-kv)</td><td class="mono">AC1.4 &middot; AC2.6</td></tr>
+              <tr><td class="mono">STP-dry-run</td><td>소규모 표본만 새 로직으로 돌려 결과가 의도대로 바뀌는지 확인한다</td><td>표본 실행</td><td class="mono">&mdash; (여정 문서의 가정)</td></tr>
+              <tr><td class="mono">STP-run-reprocess</td><td>갱신된 로직으로 범위 전체를 재분석하되 추적 키를 유지한다</td><td>실행·진행 상태</td><td class="mono">AC2.6 &middot; AC2.4</td></tr>
+              <tr><td class="mono">STP-compare-before-after</td><td>재처리 전후 집계·시계열을 나란히 비교해 차이를 검토한다</td><td>전후 비교 패턴(PAT-before-after), 테이블(CMP-table)</td><td class="mono">AC3.2 &middot; AC3.3</td></tr>
+              <tr><td class="mono">STP-publish</td><td>새 결과를 서빙에 반영하거나 이전 버전으로 되돌린다</td><td>반영·롤백 컨트롤</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>표본 결과가 의도와 다름</td><td>화면 2 · 표본 불일치 배너</td><td class="mono">STP-dry-run</td></tr>
+              <tr><td>재분석 도중 실패·중단</td><td>화면 3 · 체크포인트 재개 배너</td><td class="mono">STP-run-reprocess</td></tr>
+              <tr><td>전후 차이가 임계 초과</td><td>화면 4 · 「재처리 중 이런 상황이라면」 1행</td><td class="mono">JRN-spike-verification · STP-open-origin</td></tr>
+              <tr><td>재분석 대상 원문이 누락됨</td><td>화면 4 · 같은 목록 2행</td><td class="mono">JRN-ingestion-recovery · STP-locate-gap</td></tr>
+              <tr><td>분석 실패·저신뢰 급증</td><td>화면 4 · 같은 목록 3행 + 분리 표기 토글</td><td class="mono">STP-compare-before-after</td></tr>
+            </tbody>
+          </table>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-logic-backfill</b></span>
+            <span class="chip"><b>STP-scope-range</b></span>
+            <span class="chip"><b>STP-dry-run</b></span>
+            <span class="chip"><b>STP-run-reprocess</b></span>
+            <span class="chip"><b>STP-compare-before-after</b></span>
+            <span class="chip"><b>STP-publish</b></span>
+            <span class="chip v"><b>V5</b> 원문 추적성·재처리</span>
+            <span class="chip">AC1.4 · AC2.4 · AC2.6 · AC3.2 · AC3.3</span>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   프로토타입 데이터 — 범위(기간 x 축 x 소스)별 원문 보유량과
+   재처리 전후 집계. 표본 단계가 전량 실행의 선행 관문이라는 여정 문서의
+   요구를 상태 기계로 그대로 옮긴다.
+   ============================================================ */
+var VOL = { '24h': 1180, '7d': 6210, '30d': 24880 };
+var AXIS_W = { KR: 1, US: 0.42, WW: 0.31 };
+var AXIS_SOURCES = { KR: ['kr-wire','kr-daily'], US: ['us-desk'], WW: ['gl-agg'] };
+var SOURCE_W = { 'all': 1, 'kr-wire': 0.58, 'kr-daily': 0.42, 'us-desk': 1, 'gl-agg': 1 };
+var BUDGET = 12000;
+
+/* 전후 비교 — 새 로직이 표기 변형을 통합하고 분류를 정교화한 결과. */
+var SUBJECTS = [
+  { name:'한국은행 기준금리', before:21.0, after:20.4, why:'분류 정교화' },
+  { name:'가계부채',        before:7.2,  after:10.1, why:'표기 변형 통합' },
+  { name:'삼성전자',        before:13.0, after:13.1, why:'변동 없음' },
+  { name:'전기요금',        before:6.0,  after:5.8,  why:'변동 없음' },
+  { name:'반도체 수출',     before:5.4,  after:4.2,  why:'대상 분리' }
+];
+
+var DRY = {
+  random:  { rate: 8,  rows: [
+    ['한국은행 기준금리', '긍정', '긍정', 18, '유지'],
+    ['가계부채',        '중립', '부정', 4,  '재분류'],
+    ['삼성전자',        '긍정', '긍정', 16, '유지'],
+    ['전기요금',        '부정', '부정', 12, '유지']
+  ]},
+  touched: { rate: 62, rows: [
+    ['가계부채',        '중립', '부정', 21, '재분류'],
+    ['반도체 수출',     '긍정', '중립', 10, '재분류'],
+    ['한국은행 기준금리', '긍정', '부정', 6,  '재분류'],
+    ['전기요금',        '부정', '부정', 13, '유지']
+  ]},
+  recent:  { rate: 11, rows: [
+    ['반도체 수출',     '긍정', '긍정', 22, '유지'],
+    ['가계부채',        '중립', '부정', 5,  '재분류'],
+    ['삼성전자',        '긍정', '긍정', 19, '유지'],
+    ['전기요금',        '부정', '부정', 4,  '유지']
+  ]}
+};
+
+var state = { range:'7d', axis:'KR', source:'all',
+              sampleRan:false, sampleMode:'random', mismatch:false,
+              ran:false, interrupted:false, keepVersion:true, processed:0,
+              sortby:'delta', threshold:2, split:false };
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function kv(k, v){ return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+function axisName(a){ return a === 'KR' ? '한국' : a === 'US' ? '미국' : '전세계'; }
+function rangeName(r){ return r === '24h' ? '지난 24시간' : r === '7d' ? '지난 7일' : '지난 30일'; }
+function sourceOk(){ return state.source === 'all' || (AXIS_SOURCES[state.axis] || []).indexOf(state.source) >= 0; }
+
+/* ---------------- 화면 1 : 재처리 범위 ---------------- */
+function scopeTotal(){
+  if(!sourceOk()) return 0;
+  return Math.round(VOL[state.range] * AXIS_W[state.axis] * SOURCE_W[state.source]);
+}
+function etaMinutes(n){ return Math.max(1, Math.ceil(n / 700)); }
+
+function scopeBuckets(){
+  var total = scopeTotal();
+  if(!total) return [];
+  var labels = state.range === '24h' ? ['00-08시','08-16시','16-24시']
+             : state.range === '7d'  ? ['D-6~D-4','D-3~D-2','D-1~오늘']
+             : ['1주차','2주차','3주차','4주차'];
+  var each = Math.round(total / labels.length);
+  return labels.map(function(l, i){
+    var done = i === 0 ? Math.round(each * 0.18) : 0;
+    return { label:l, kept:each, done:done, todo:each - done };
+  });
+}
+
+function renderScope(){
+  var rows = scopeBuckets(), total = scopeTotal();
+  $('scope-rows').innerHTML = rows.map(function(b){
+    var tag = b.done > 0 ? ['b-mix','일부 완료'] : ['b-neg','재분석 필요'];
+    return '<tr><td><b>' + b.label + '</b></td>'
+      + '<td class="num">' + b.kept + '</td><td class="num">' + b.done + '</td>'
+      + '<td class="num">' + b.todo + '</td>'
+      + '<td><span class="badge ' + tag[0] + '"><span class="d"></span>' + tag[1] + '</span></td></tr>';
+  }).join('');
+  show($('s-empty-scope'), total === 0);
+  show($('s-over-budget'), total > BUDGET);
+  $('budget-count').textContent = total;
+  $('budget-eta').textContent = etaMinutes(total);
+  $('scope-sub').textContent = rangeName(state.range) + ' · ' + axisName(state.axis) + ' · '
+    + (state.source === 'all' ? '전체 소스' : state.source);
+  $('scope-kv').innerHTML =
+      kv('기간', rangeName(state.range)) + kv('출처 축', axisName(state.axis))
+    + kv('소스', state.source === 'all' ? '전체 소스' : state.source)
+    + kv('재분석 대상', total + '건')
+    + kv('예상 소요', total ? etaMinutes(total) + '분' : '—');
+  $('tb-scope').textContent = total ? (axisName(state.axis) + ' · ' + rangeName(state.range) + ' · ' + total + '건')
+                                    : '범위 미확정';
+  renderDry();
+  renderRun();
+  renderPublish();
+}
+
+/* ---------------- 화면 2 : 표본 재분석 ---------------- */
+function renderDry(){
+  var d = DRY[state.sampleMode] || DRY.random;
+  var size = parseInt($('sample-size').value, 10) || 0;
+  $('dry-kv').innerHTML =
+      kv('표본 크기', size + '건')
+    + kv('추출 방식', $('sample-mode').options[$('sample-mode').selectedIndex].textContent)
+    + kv('재분류 비율', state.sampleRan ? d.rate + '%' : '—')
+    + kv('전량 실행', state.sampleRan && !state.mismatch ? '열림' : '잠김');
+  if(!state.sampleRan){
+    $('dry-rows').innerHTML = '';
+    $('dry-sub').textContent = '고른 범위에서 일부만 새 로직으로 돌립니다';
+    return;
+  }
+  var unit = Math.max(1, Math.round(size / 50));
+  $('dry-rows').innerHTML = d.rows.map(function(r){
+    var changed = r[4] === '재분류';
+    return '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td>'
+      + '<td class="num">' + (r[3] * unit) + '</td>'
+      + '<td><span class="badge ' + (changed ? 'b-mix' : 'b-pos') + '"><span class="d"></span>'
+      + r[4] + '</span></td></tr>';
+  }).join('');
+  $('dry-sub').textContent = '표본 ' + size + '건 · 재분류 ' + d.rate + '%';
+}
+
+function runSample(){
+  var d = DRY[$('sample-mode').value] || DRY.random;
+  state.sampleMode = $('sample-mode').value;
+  state.sampleRan = true;
+  state.mismatch = d.rate >= 40;
+  $('mismatch-rate').textContent = d.rate;
+  $('cta-2').disabled = state.mismatch;
+  $('cta-2-hint').textContent = state.mismatch
+    ? '표본이 의도와 다릅니다 — 로직을 고치고 다시 도세요.'
+    : '';
+  show($('s-sample-running'), true);
+  show($('s-sample-mismatch'), false);
+  $('dry-rows').innerHTML = '';
+  window.setTimeout(function(){
+    show($('s-sample-running'), false);
+    show($('s-sample-mismatch'), state.mismatch);
+    renderDry();
+  }, 180);
+}
+
+/* ---------------- 화면 3 : 전량 재분석 ---------------- */
+function renderKeepNote(){
+  $('keep-note').textContent = $('keep-version').checked
+    ? '이전 결과는 그대로 두고 새 버전을 나란히 쌓습니다 — 전후 비교와 되돌리기가 모두 가능합니다.'
+    : '이전 결과를 지우고 그 자리에 씁니다 — 되돌릴 자리가 남지 않습니다.';
+}
+
+function renderRun(){
+  $('run-kv').innerHTML =
+      kv('범위', axisName(state.axis) + ' · ' + rangeName(state.range))
+    + kv('대상', scopeTotal() + '건')
+    + kv('적용 로직', $('version').value)
+    + kv('배치 크기', ($('batch').value || '0') + '건')
+    + kv('보존 방식', $('keep-version').checked ? '버전 병존' : '덮어쓰기');
+  $('run-sub').textContent = state.ran
+    ? (state.interrupted ? '중단됨 · ' + state.processed + '건까지 처리' : '완료 · ' + state.processed + '건 처리')
+    : '고른 범위 전체에 새 로직을 적용합니다';
+}
+
+function runFull(){
+  var batch = parseInt($('batch').value, 10) || 100;
+  var total = scopeTotal();
+  state.ran = true;
+  state.interrupted = batch >= 400;
+  state.processed = state.interrupted ? Math.round(total * 0.62) : total;
+  $('ckpt').textContent = state.processed;
+  $('cta-3').disabled = state.interrupted;
+  $('cta-3-hint').textContent = state.interrupted
+    ? '중단 지점부터 이어서 재개한 뒤 넘어가세요.'
+    : '';
+  show($('s-running'), true);
+  show($('s-interrupted'), false);
+  $('run-result').innerHTML = '';
+  window.setTimeout(function(){
+    show($('s-running'), false);
+    show($('s-interrupted'), state.interrupted);
+    $('run-result').innerHTML =
+        kv('처리 건수', state.processed + '건')
+      + kv('배치 크기', batch + '건')
+      + kv('되짚기 키 보존', '100%')
+      + kv('결과 버전', $('keep-version').checked ? $('version').value + ' (병존)' : $('version').value + ' (덮어씀)');
+    renderRun();
+    renderPublish();
+  }, 180);
+}
+
+/* ---------------- 화면 4 : 전후 비교 ---------------- */
+function rowsSorted(){
+  var list = SUBJECTS.map(function(s){
+    return { name:s.name, before:s.before, after:s.after, why:s.why,
+             delta: Math.round((s.after - s.before) * 10) / 10 };
+  });
+  if(state.split){
+    list.push({ name:'미분석 · 저신뢰', before:2.1, after:5.6, why:'판단 보류 분리',
+                delta: 3.5 });
+  }
+  list.sort(function(a, b){
+    return state.sortby === 'share' ? b.after - a.after
+                                    : Math.abs(b.delta) - Math.abs(a.delta);
+  });
+  return list;
+}
+
+function renderCompare(){
+  var list = rowsSorted(), th = parseFloat($('threshold').value) || 0;
+  var over = list.filter(function(r){ return Math.abs(r.delta) >= th; });
+  $('cmp-rows').innerHTML = list.map(function(r){
+    var cls = Math.abs(r.delta) >= th ? 'b-mix' : (r.delta === 0 ? 'b-neu' : 'b-pos');
+    var label = Math.abs(r.delta) >= th ? '검토 필요' : (r.delta === 0 ? '변동 없음' : '설명됨');
+    var sign = r.delta > 0 ? '+' : '';
+    return '<tr><td><b>' + r.name + '</b> <span class="muted" style="font-size:11px">' + r.why + '</span></td>'
+      + '<td class="num">' + r.before.toFixed(1) + '%</td>'
+      + '<td class="num"><b>' + r.after.toFixed(1) + '%</b></td>'
+      + '<td class="num">' + sign + r.delta.toFixed(1) + '</td>'
+      + '<td><span class="badge ' + cls + '"><span class="d"></span>' + label + '</span></td></tr>';
+  }).join('');
+  show($('s-over-threshold'), over.length > 0);
+  $('over-count').textContent = over.length;
+  show($('s-low-confidence'), state.split);
+  $('unanalyzed-share').textContent = '5.6';
+  $('cmp-sub').textContent = '주목 임계 ' + th + '%p · 넘는 항목 ' + over.length + '건';
+  $('cmp-kv').innerHTML =
+      kv('비교 대상', list.length + '개')
+    + kv('임계 초과', over.length + '개')
+    + kv('가장 큰 변화', list.length ? (rowsSorted()[0].name) : '—')
+    + kv('합계', '전후 모두 100%');
+  renderPublish();
+}
+
+/* ---------------- 화면 5 : 반영 또는 롤백 ---------------- */
+function renderPublish(){
+  var th = parseFloat($('threshold').value) || 0;
+  var over = rowsSorted().filter(function(r){ return Math.abs(r.delta) >= th; }).length;
+  $('pub-rows').innerHTML =
+      pubRow('표본 선행', state.sampleRan ? '완료' : '건너뜀', state.sampleRan)
+    + pubRow('전량 재분석', state.ran ? (state.interrupted ? '중단' : '완료') : '미실행', state.ran && !state.interrupted)
+    + pubRow('임계 초과 항목', over + '개', over === 0)
+    + pubRow('되돌리기 가능 여부', $('keep-version').checked ? '가능 (버전 병존)' : '불가 (덮어씀)', $('keep-version').checked);
+  $('pub-kv').innerHTML =
+      kv('적용 로직', $('version').value)
+    + kv('처리 건수', state.processed + '건')
+    + kv('되짚기 키 보존', '100%')
+    + kv('소비자 주석', $('notify-consumer').checked ? '노출' : '미노출');
+  $('pub-sub').textContent = over > 0 ? '설명되지 않는 변화가 남아 있습니다' : '이 결정으로 재처리를 닫습니다';
+}
+function pubRow(k, v, good){
+  return '<tr><td>' + k + '</td><td class="num"><b>' + v + '</b></td>'
+    + '<td><span class="badge ' + (good ? 'b-pos' : 'b-mix') + '"><span class="d"></span>'
+    + (good ? '정상' : '확인 필요') + '</span></td></tr>';
+}
+
+function submitPublish(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="decision"]:checked');
+  var memo = $('publish-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked
+      ? '반영할지 되돌릴지를 먼저 고르세요.'
+      : '결정 근거를 적어야 기록됩니다 — 근거가 없으면 나중에 숫자가 왜 바뀌었는지 설명할 수 없습니다.';
+    show($('s-invalid'), true);
+    show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  $('recorded-what').textContent = (picked.value === 'publish' ? '새 결과를 반영' : '이전 버전으로 롤백')
+    + '하기로 기록했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-scope-range','STP-dry-run','STP-run-reprocess','STP-compare-before-after','STP-publish'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    if(id === 'STP-compare-before-after') renderCompare();
+    if(id === 'STP-publish') renderPublish();
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-logic-backfill'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('range').addEventListener('change', function(){ state.range = this.value; renderScope(); });
+  $('axis').addEventListener('change', function(){ state.axis = this.value; renderScope(); });
+  $('source').addEventListener('change', function(){ state.source = this.value; renderScope(); });
+  $('sample-size').addEventListener('input', renderDry);
+  $('sample-mode').addEventListener('change', function(){
+    state.sampleMode = this.value;
+    if(state.sampleRan) runSample(); else renderDry();
+  });
+  $('dry-run').addEventListener('click', runSample);
+  $('version').addEventListener('change', function(){ renderRun(); renderPublish(); });
+  $('batch').addEventListener('input', renderRun);
+  $('keep-version').addEventListener('change', function(){
+    state.keepVersion = this.checked;
+    show($('s-overwrite-warning'), !this.checked);
+    renderKeepNote(); renderRun(); renderPublish();
+  });
+  $('run').addEventListener('click', runFull);
+  $('sortby').addEventListener('change', function(){ state.sortby = this.value; renderCompare(); });
+  $('threshold').addEventListener('input', renderCompare);
+  $('split-unanalyzed').addEventListener('change', function(){ state.split = this.checked; renderCompare(); });
+  $('notify-consumer').addEventListener('change', renderPublish);
+  $('publish-form').addEventListener('submit', submitPublish);
+
+  renderScope();
+  renderKeepNote();
+  renderCompare();
+  fromHash();
+})();
+</script>
+</body>
+</html>
