@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 집계 묶음의 KR 축 두 번째 소스. wire 와 같은 축에 있으면서 **수집량이 적고 주제 구성이
+     다르다** — 시나리오 1 이 "한 소스의 수집량만 크게 늘렸을 때 다른 소스의 대상이 결과에서
+     밀려나지 않는가"를 재려면, 부풀리지 않는 쪽에만 있는 대상이 하나 필요하다. `부동산 PF` 가
+     그 자리다.
+
+     `삼성` 은 wire 의 `삼성전자`·`Samsung` 과 **같은 대상의 또 다른 표기**다. 세 표기가 소스를
+     가로질러 한 키로 모이는 것이 시나리오 2 의 기대 결과다.
+
+     마지막 기사는 본문은 있으나 톤·대상이 모호해 더블이 `analyzable: false` 로 답한다. 제품
+     경로는 그 답을 라벨 강제 대신 `unanalyzed` 로 처리한다(`analyze_llm`). 시나리오 5 의
+     "톤·대상이 모호한 기사"가 이 자리이고, 본문 없는 기사(wire)와 **다른 경로로** 같은 상태에
+     도달한다는 점이 요지다 — 하나는 모델을 부르지도 않고, 하나는 모델이 판단을 유보한다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Aggregation — KR Daily</title>
+    <link>https://agg.e2e.invalid/kr-daily</link>
+    <item>
+      <title>삼성 협력사 가동률 상승</title>
+      <link>https://agg.e2e.invalid/kr-daily/samsung-suppliers</link>
+      <description>삼성 협력사들의 가동률이 올랐습니다. 후방 산업으로 온기가 번지고 있습니다. tone=positive 대상국=대한민국.</description>
+      <views>4200</views>
+    </item>
+    <item>
+      <title>부동산 PF 우려 다시 고개</title>
+      <link>https://agg.e2e.invalid/kr-daily/re-pf</link>
+      <description>부동산 PF 부실 우려가 다시 제기됐습니다. 만기 연장 비중이 늘었습니다. tone=negative 대상국=대한민국.</description>
+      <views>4100</views>
+    </item>
+    <item>
+      <title>해석이 엇갈리는 지표 발표</title>
+      <link>https://agg.e2e.invalid/kr-daily/ambiguous</link>
+      <description>지표가 발표됐습니다. 해석은 기관마다 갈립니다.</description>
+      <views>4000</views>
+    </item>
+  </channel>
+</rss>

@@ -110,6 +110,134 @@
           "confidence": 0.9
         }
       }
+    },
+    "e2e-llm-agg": {
+      "_doc": [
+        "집계 묶음(`…-test-analysis.md#시나리오 4·5`, `…-test-aggregation-viz.md#시나리오 1·2·4`)",
+        "전용 응답. v1 을 `extends` 하지 **않는다** — 두 묶음은 기사 집합이 겹치지 않고, 물려받으면",
+        "어느 값이 실제로 쓰이는지 읽는 사람이 두 곳을 봐야 한다.",
+        "",
+        "이 묶음이 일부러 만드는 세 가지 상태:",
+        "  · **표기 변형** — 삼성전자 · Samsung · 삼성 을 세 기사에 나눠 싣는다. 한 키로 모으는 것은",
+        "    더블이 아니라 `normalize_subject` 의 일이고, 시나리오 2 가 그 결과를 본다.",
+        "  · **판단 보류** — 「해석이 엇갈리는 지표 발표」는 `analyzable: false`. 제품 경로가 라벨을",
+        "    강제로 채우지 않고 unanalyzed 로 남긴다(시나리오 5).",
+        "  · **저신뢰** — 「US jobs data beats expectations」는 confidence 0.45 로 임계(0.6) 아래다.",
+        "    라벨은 보존하되 low_confidence 로 표시된다(시나리오 5).",
+        "",
+        "「본문 없는 속보」는 여기 **없는 것이 정상**이다 — 본문이 없는 관측은 모델을 부르지 않으므로",
+        "(`analyze_llm` 이 body 없으면 즉시 반환) 404 가 나지 않고 `failed` 도 늘지 않는다.",
+        "",
+        "「삼성전자 증설 후속 N보」 여섯 건은 수집량을 부풀린 상태(`agg_kr_wire_skew.rss.xml`)에서만",
+        "등장한다. 기준 상태에서는 상류에 없으므로 수집되지 않고, 여기 응답이 있어도 쓰이지 않는다."
+      ],
+      "responses": {
+        "삼성전자 신규 팹 착공 — 국내 투자 확대": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.91
+        },
+        "Samsung 파운드리 수주 확대": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["Samsung"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.9
+        },
+        "기준금리 동결 결정": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["기준금리"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.92
+        },
+        "삼성 협력사 가동률 상승": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.88
+        },
+        "부동산 PF 우려 다시 고개": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["부동산 PF"],
+          "sentiment": "negative",
+          "analyzable": true,
+          "confidence": 0.89
+        },
+        "해석이 엇갈리는 지표 발표": {
+          "target_countries": [],
+          "narrative_subjects": [],
+          "sentiment": null,
+          "analyzable": false,
+          "confidence": 0.2
+        },
+        "Fed holds rates amid mixed signals": {
+          "target_countries": ["미국"],
+          "narrative_subjects": ["Fed"],
+          "sentiment": "mixed",
+          "analyzable": true,
+          "confidence": 0.87
+        },
+        "US jobs data beats expectations": {
+          "target_countries": ["미국"],
+          "narrative_subjects": ["US 고용지표"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.45
+        },
+        "삼성전자 미국 팹 가동 — 한미 공급망 재편": {
+          "target_countries": ["대한민국", "미국"],
+          "narrative_subjects": ["삼성전자", "한미 공급망 재편"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.9
+        },
+        "삼성전자 증설 후속 1보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        },
+        "삼성전자 증설 후속 2보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        },
+        "삼성전자 증설 후속 3보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        },
+        "삼성전자 증설 후속 4보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        },
+        "삼성전자 증설 후속 5보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        },
+        "삼성전자 증설 후속 6보": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["삼성전자"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.86
+        }
+      }
     }
   }
 }

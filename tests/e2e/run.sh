@@ -16,6 +16,12 @@
 #     revised response set and a bumped analyzer version (scenario 6 of the
 #     analysis doc), so the first Silver is exported *between* the two — the
 #     re-analysis replaces the dataset rather than appending to it.
+#   * aggregation batch — the medallion's third stage. A dedicated corpus (two KR
+#     sources + one US source) runs collection -> analysis -> aggregation in its
+#     own lake root, and the Gold it produces is pulled back to the host. The
+#     whole thing runs a second time against an upstream whose volume is skewed on
+#     one source only, so the two Golds differ in collection volume and nothing
+#     else — that pair is what scenario 1 of the aggregation-viz doc compares.
 #
 # Local `make e2e` and the CI e2e job both run exactly this script.
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
@@ -36,6 +42,10 @@ CYCLES_DIR="$E2E_DIR/.artifacts/bronze-cycles"
 ANALYSIS_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-analysis"
 SILVER_DIR="$E2E_DIR/.artifacts/silver"
 SILVER_V2_DIR="$E2E_DIR/.artifacts/silver-v2"
+AGG_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-agg"
+AGG_SILVER_DIR="$E2E_DIR/.artifacts/silver-agg"
+GOLD_DIR="$E2E_DIR/.artifacts/gold"
+GOLD_SKEW_DIR="$E2E_DIR/.artifacts/gold-skew"
 LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 PF=""
 
@@ -211,6 +221,62 @@ esac
 export_lake /data/analysis silver "$SILVER_V2_DIR" analysis
 echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 
+# 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
+# …-test-aggregation-viz.md#시나리오 1·2·4). The third medallion stage: this is where
+# `python/packages/aggregation` runs for the first time in e2e — until now serving was
+# fed hand-written fixture Gold, so normalization, cross-dimension counting and the
+# sentiment ratios never executed.
+#
+# The corpus is its own (two KR sources so the *within-source-then-average*
+# normalization has something to average, one US source so the axis dimension actually
+# crosses), and it runs twice: once as the baseline, once against an upstream whose
+# volume is inflated on one KR source only. Two completed lake roots, not two passes
+# over one — `write_records` replaces a dataset, so a second pass in the same root
+# would erase the baseline the comparison needs.
+run_aggregation_stack() {
+  suffix="$1"; root="$2"; label="$3"
+  ingest_log="$(run_batch_job "econ-e2e-ingest-agg$suffix" \
+    "$E2E_DIR/k8s/batch/ingest-job-agg$suffix.yaml")"
+  case "$ingest_log" in
+    *"failed_sources=[]"*) ;;
+    *) echo "[e2e] FAIL: a source of the $label aggregation corpus did not answer — the" \
+            "aggregation specs would report a normalization problem rather than a" \
+            "collection one" >&2
+       exit 1 ;;
+  esac
+  analyze_log="$(run_batch_job "econ-e2e-analyze-agg$suffix" \
+    "$E2E_DIR/k8s/batch/analyze-job-agg$suffix.yaml")"
+  case "$analyze_log" in
+    *"failed=0"*) ;;
+    *) echo "[e2e] FAIL: a model call failed while analyzing the $label corpus — the LLM" \
+            "double has no canned reply for some article (see fixtures/llm/responses.json," \
+            "bundle e2e-llm-agg) or is unreachable" >&2
+       exit 1 ;;
+  esac
+  # An empty Gold is a wiring failure, not a data story: the CLI exits 0 even when the
+  # join finds nothing, and a spec asserting on zero rows reads as "aggregation is
+  # wrong" rather than "aggregation had no input".
+  aggregate_log="$(run_batch_job "econ-e2e-aggregate$suffix" \
+    "$E2E_DIR/k8s/batch/aggregate-job$suffix.yaml")"
+  case "$aggregate_log" in
+    *"wrote 0 subject_trend"* | *"+ 0 axis_sentiment"*)
+      echo "[e2e] FAIL: the $label aggregation wrote an empty Gold — Silver did not join" \
+           "back to Bronze on record_id, so there is nothing for the specs to observe" >&2
+      exit 1 ;;
+  esac
+  echo "[e2e] aggregation ($label) done in $root"
+}
+
+run_aggregation_stack "" /data/aggregation baseline
+export_lake /data/aggregation bronze "$AGG_BRONZE_DIR" news_item
+export_lake /data/aggregation silver "$AGG_SILVER_DIR" analysis
+export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
+echo "[e2e] gold exported -> $GOLD_DIR"
+
+run_aggregation_stack "-skew" /data/aggregation-skew skewed
+export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
+echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
+
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 cd "$E2E_DIR"
 npm ci
@@ -224,6 +290,10 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_BRONZE_ANALYSIS_DIR="$ANALYSIS_BRONZE_DIR" \
   E2E_SILVER_DIR="$SILVER_DIR" \
   E2E_SILVER_V2_DIR="$SILVER_V2_DIR" \
+  E2E_BRONZE_AGG_DIR="$AGG_BRONZE_DIR" \
+  E2E_SILVER_AGG_DIR="$AGG_SILVER_DIR" \
+  E2E_GOLD_DIR="$GOLD_DIR" \
+  E2E_GOLD_SKEW_DIR="$GOLD_SKEW_DIR" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
   npx playwright test
 
@@ -231,3 +301,4 @@ echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
 echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
 echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
 echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"
+echo "[e2e] OK: aggregation batch -> pipeline-produced Gold (baseline + skewed volume)"

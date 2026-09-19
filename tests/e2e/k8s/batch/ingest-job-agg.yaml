@@ -1,0 +1,66 @@
+# 집계 묶음(`…-test-analysis.md#시나리오 4·5`, `…-test-aggregation-viz.md#시나리오 1·2·4`)의
+# **기준 상태**를 만드는 한 주기 수집. 메달리온 계층이 앞 단계 산출물을 입력으로 쓰므로 집계
+# 앞에는 수집 → 분석이 한 번씩 더 필요하다.
+#
+# 데이터 루트를 `/data/aggregation` 으로 가른다 — 정상 주기(`/data`) · 고장 주입(`/data/faults`) ·
+# 3주기(`/data/cycles`) · 분석(`/data/analysis`) 과 같은 관례다. 한 루트를 공유하면 앞선 묶음의
+# 소스별·건수 단정이 이 묶음의 열 건에 오염된다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-agg
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-16 — 이 주기의 상류를 집계 묶음 전용 설정(`e2e-feeds-agg.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-agg.json
+            - --cycle
+            - "2026-03-02T09:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/aggregation
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-15 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}
