@@ -107,7 +107,7 @@ kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" --wai
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
 # 2) Fixture Gold as a ConfigMap + the serving stack (e2e overlay of deploy/base).
-# mock-exception: GOLD-01 — 배치 경로 부재(원장 R1)로 서빙 입력 Gold를 배치 산출물로 만들 수 없어 커밋된 픽스처로 채움 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+# mock-exception: GOLD-01 — 집계 배치는 e2e 안에 섰지만(run_aggregation_stack) 서빙 입력을 아직 그 파이프라인 Gold로 잇지 않아(원장 R3) 커밋된 픽스처로 채움 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap gold-fixtures --from-file="$E2E_DIR/fixtures/gold"
 kubectl --context "$CTX" apply -k "$E2E_DIR/k8s"
 if ! kubectl --context "$CTX" rollout status deployment/econ-serving --timeout=120s; then
