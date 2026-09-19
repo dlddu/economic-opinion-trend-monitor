@@ -22,6 +22,7 @@
 | 2026-09-18 | [regression-pass](passes/2026-09-18-regression-pass.md) | `a62eae1` | 960 | 7 | 953 | 81 → 80 |
 | 2026-09-18 | [pin-guard-pass](passes/2026-09-18-pin-guard-pass.md) | `e29dddd` | 982 | 3 | 979 | 81 → 81 |
 | 2026-09-18 | [aggregation-harness-pass](passes/2026-09-18-aggregation-harness-pass.md) | `e7fbcae` | 1317 | 5 | 1312 | 94 → 94 |
+| 2026-09-19 | [product-surface-pass](passes/2026-09-19-product-surface-pass.md) | `d4a4cd2` | 1859 | 2 | 1857 | 111 → 111 |
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -71,6 +72,9 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `scripts/check-journey-mockup.py` | 42 | 0 | 42 | regression-pass — 전량 유지. `#36`이 들인 4줄은 「조각(`#STP-`)을 무시하면 상대 여정의 1단계로 떨어지는 링크를 게이트가 통과시킨다」는 게이트 설계 근거로 복원 불가. initial-pass가 남긴 38줄(오탐 회피·헤더 판정 방식·래칫·모델 정의 인용)의 판정은 유효 |
 | `scripts/check-mockup-render.py` | 3 | 3 | 0 | regression-pass — 전량 제거. 지문에 걸린 주석이 구분선 배너 3줄뿐이었다(`# ---- SSOT 파싱`·`CSS 파싱`·`판정`). 절 이름은 바로 아래 함수 이름이 복원한다(`definitions()` / `css_rules(css)` / `check_r3()`·`check_r5()`). 파일 설명은 모듈 docstring에 있고 docstring은 지문의 사각지대라 이 파일은 지문에서 빠진다 |
 | `scripts/journey-scenarios/JRN-axis-contrast.js` | 28 | 4 | 24 | 제거 4줄 — 러너/시나리오 역할 분담 설명(check-journey-flow.js 머리 주석의 재진술). 유지: 조작별 의도·jsdom `.value` 함정 |
+| `scripts/journey-scenarios/JRN-daily-scan.js` | 29 | 0 | 29 | **product-surface-pass** — 전량 유지. 머리는 훅 목록 4줄뿐이고 역할 분담 산문이 없다(= initial-pass가 `JRN-sentiment-shift.js`에서 유지 판정한 형태 그대로). 나머지 25줄은 조작별 의도(`/* 화면 2 → 3. 전진은 대상 선택을 요구하므로 … */`), 상태 라벨 12개(`empty-window`·`no-baseline` 등 — 어떤 조작으로 그 상태에 닿는지), jsdom `.value` 함정으로 복원 불가 |
+| `scripts/journey-scenarios/JRN-ingestion-recovery.js` | 33 | 0 | 33 | **product-surface-pass** — 전량 유지. 같은 사유. 상태 라벨이 원인 분기(`source-outage / origin-gone`)·재실행 부작용(`dup-again — 덮어쓰기로 실행하면 중복이 다시 쌓인다`)까지 담아 러너·목업 어느 쪽으로도 복원되지 않는다 |
+| `scripts/journey-scenarios/JRN-logic-backfill.js` | 38 | 0 | 38 | **product-surface-pass** — 전량 유지. 머리의 여정 뼈대 3줄(`표본이 전량의 관문` — 여정 문서 `STP-dry-run` 인용)은 **판단 분기**로 남긴다: 앞 절은 여정 문서가 복원하나 뒤 절(「그래서 2·3단계 전진이 기본 비활성이고 그것을 여는 것은 화면 안의 실행 버튼이다」)이 이 파일의 `unlock` 구조를 설명해 한 덩어리다. 나머지는 조작별 의도·상태 라벨 |
 | `scripts/journey-scenarios/JRN-sentiment-shift.js` | 27 | 7 | 20 | 제거 7줄 — 역할 분담 재진술(러너 머리 주석; '두 가지'라 쓰고 넷을 나열한 낡은 서술 포함). 유지: 시나리오 훅 목록(inputs/states/unlock/renders) |
 | `scripts/journey-scenarios/JRN-spike-verification.js` | 29 | 4 | 25 | regression-pass — 제거 4줄: 머리의 러너/시나리오 역할 분담 산문 3줄(`check-journey-flow.js` 「── 구조 ──」 절의 재진술) + 매달린 ` *` 1줄. `JRN-axis-contrast.js`와 같은 식별 1줄 형태로 줄였다. 유지: 훅별 `(c)(d)(e)(h)` 주석 4줄, 조작별 의도, jsdom `.value` 함정 |
 | `tests/e2e/check_scenario_mapping.py` | 22 | 4 | 18 | 제거 4줄 — `# --- … ---` 구분선. 유지: 판정 규칙 근거(첫 열만 읽는 이유, 등재 공백을 쓰는 이유 등) |
@@ -89,6 +93,10 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/api/client.ts` | 5 | 0 | 5 | 유지 — 상대 /api 베이스가 dev·prod 모두에서 되는 이유 |
 | `web/src/api/types.ts` | 5 | 0 | 5 | 유지 — 손으로 유지하는 서빙 API 뷰라는 경계, export JSDoc |
 | `web/src/screens/Compare.tsx` | 10 | 0 | 10 | regression-pass — 전량 유지. `#37`이 들인 3줄은 「수집 0인 축을 `0%`로 그리지 않고 '비교 제외'로 적는 이유 — `0%`는 '거기선 아무도 말하지 않았다'로 읽힌다」는 제품 의미론의 근거로 코드·문서 어디서도 복원되지 않는다. initial-pass가 지운 `AC3.7 … (J2 / V2)` 배너는 재발하지 않았다 |
+| `web/src/screens/Sentiment.tsx` | 56 | 2 | 54 | **product-surface-pass** — 제거 2줄: 머리의 AC 배너 `// AC3.4 (축별·분위기별 비율 집계, 미분석 분리) + AC3.6 (분위기 비율 시각화).` 와 매달린 `//`. 제거 유형 「작업 흔적」이고 AC↔화면 대응은 `docs/econ-opinion-monitor-design-tracker.md` 「구현 전용 — mapstrip 칩」 행과 doc-tracker e2e 매핑이 복원한다(경로 ②). initial-pass가 `Compare.tsx`에서 `AC3.7 … (J2 / V2)` 배너를 지운 것과 같은 자리·같은 근거이고, 판정 후 머리가 `Compare.tsx`와 같은 형태(배너 없이 바로 설계 근거)가 된다. 유지 54줄: 미분석을 네 분류에 접지 않는 이유, 도넛이 analyzed 몫으로 닫히는 근거, `PAT-stacked-sentiment` 의 「막대 높이는 구성이지 규모가 아니다」, `CMP-*` 앵커. **판단 분기 — design-tracker 가 승격 등재한 두 블록**(허위 컨트롤 판단 `:24-29`·`:30-33`, 고정 임계 사유 `:55-58`)은 트래커가 「기록 위치를 승격한다」고 적어 복원 경로 ②가 성립하나, 트래커 행들이 이 블록을 **줄 번호로 인용**하고 있어 제거가 자매 모델 행의 처분과 묶인다. 「애매하면 남긴다」로 유지하고 트래커의 처분 시점에 다시 본다 |
+| `web/src/screens/Sentiment.test.tsx` | 21 | 0 | 21 | **product-surface-pass** — 전량 유지. 「기대값을 상수로 박지 않는다」는 단언 설계 근거, 스케일 상수가 상쇄되므로 비율만 비교한다는 근거, 한 document 를 공유해 행 단위로 스코프하는 이유(자동 cleanup 부재) — 모두 「테스트가 왜 그 모양으로 단언하는지」 |
+| `web/src/screens/Trend.tsx` | 35 | 0 | 35 | **product-surface-pass** — 줄 수 불변, 문면 정정 1곳: 머리 첫 줄의 `AC3.5 — 대상 추세 상세.` 접두 삭제(위 `Sentiment.tsx` 와 같은 AC 배너 유형이나 산문과 한 줄에 붙어 있어 줄 삭제로는 근거까지 지워진다 — `deploy/base/kustomization.yaml` 의 문면 정정 선례). 유지: 한 x축 공유·결측 버킷을 공백으로 두는 근거, 색 배정 규칙, 눈금 반올림 이유. **판단 분기 — `:8-21` 의 「deliberately *not* here」 두 항**은 design-tracker 가 같은 사유를 등재하면서 **AC3.3 롤업 착지 시 이 주석과 함께 걷어낸다**고 처분 시점을 못박았다. 지금 지우면 자매 모델의 예약된 처분을 앞질러 집행하는 것이라 유지 |
+| `web/src/screens/Trend.test.tsx` | 12 | 0 | 12 | **product-surface-pass** — 전량 유지. 「상승 점유율이 falling y 로 와야 한다 — 반전 스케일을 잡는다」, 비교 표가 피커를 겸하는 이유(비교 집합 자체가 선택에 의존해 서버에서 풀린다), 「모든 버튼은 무언가를 해야 한다」 단언의 근거 |
 | `web/src/screens/Dashboard.tsx` | 1 | 1 | 0 | 제거 1줄 — '다른 6화면은 플레이스홀더'(README「범위」재진술이며 compare 착지 후 낡음) |
 | `web/src/screens/Placeholder.tsx` | 3 | 0 | 3 | 유지 — 플레이스홀더가 증명하는 것 |
 | `web/src/shell/AppShell.tsx` | 1 | 0 | 1 | 유지 — 디자인 시스템 패턴 식별자(PAT-screen-shell) |
@@ -97,4 +105,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **aggregation-harness-pass 기준 · 레포 전체** | **1317** | **5** | **1312** | 지문 값(`e7fbcae` → 이 패스 후). 이 표는 그중 **65개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다 |
+| **product-surface-pass 기준 · 레포 전체** | **1859** | **2** | **1857** | 지문 값(`d4a4cd2` → 이 패스 후). 이 표는 그중 **72개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. 지문 111파일 중 **아직 행이 없는 파일이 42개(664줄)** 남아 있다 — 전부 e2e 하네스 축이다(`tests/e2e/specs` 16파일 324줄 · `tests/e2e/k8s/batch` 18파일 149줄 · `tests/e2e/lib` 6파일 167줄 · `tests/e2e/fixtures/*/server.py` 2파일 24줄) |

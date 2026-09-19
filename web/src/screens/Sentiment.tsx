@@ -9,8 +9,6 @@ import type {
 } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// AC3.4 (축별·분위기별 비율 집계, 미분석 분리) + AC3.6 (분위기 비율 시각화).
-//
 // The screen answers two questions that need different shapes: "what is the
 // mood right now, and is it the same on every axis" (one bucket, three axes)
 // and "is it moving" (one axis, every bucket). So the composition and the
