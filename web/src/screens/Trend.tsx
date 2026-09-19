@@ -3,9 +3,9 @@ import { api } from "../api/client";
 import type { Axis, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// AC3.5 — 대상 추세 상세. The chart's job is to answer "where is attention
-// moving", so the selected subject is drawn against the axis's other leaders
-// rather than alone; a single line has nothing to be high or low against.
+// The chart's job is to answer "where is attention moving", so the selected
+// subject is drawn against the axis's other leaders rather than alone; a
+// single line has nothing to be high or low against.
 //
 // Two things are deliberately *not* here:
 //
