@@ -106,7 +106,7 @@ describe("Sentiment", () => {
 
   it("marks an axis Gold has no row for instead of drawing it as zero", async () => {
     stubSentiment([response()]);
-    const { container, findByText } = render(<Sentiment />);
+    const { container } = render(<Sentiment />);
 
     const absent = await waitFor(() => {
       const row = container.querySelector('[data-axis="GLOBAL"]');
@@ -117,7 +117,10 @@ describe("Sentiment", () => {
     expect(absent.getAttribute("data-present")).toBe("false");
     // A marked gap, and no bar pretending the axis was measured.
     expect(absent.querySelector(".sentbar")).toBeNull();
-    await findByText("집계 없음");
+    // Scoped to this row on purpose: these tests share one document (there is
+    // no auto-cleanup between them), so a document-wide text query would match
+    // the rows earlier cases left behind.
+    expect(absent.textContent).toContain("집계 없음");
 
     // The axes that do have rows are still drawn.
     expect(container.querySelector('[data-axis="KR"] .sentbar')).not.toBeNull();
