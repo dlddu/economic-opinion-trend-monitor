@@ -26,6 +26,20 @@
 > 항상 같아야 하며(`tbm_econ-opinion-monitor-mockup-render` 판정 기준 1), 취소선으로 행을 비우면 그 등식이
 > 깨져 라우트로 선언된 화면이 목업을 잃어도 아무도 잡지 못한다. 이후 흡수(`compare` → `JRN-axis-contrast` 등)에도
 > 같은 형태를 적용한다.
+>
+> **좌측 네비도 화면 단위로 보존한다.** 흡수돼도 네비 항목을 합치거나 지우지 않는다 —
+> `data-id` 는 **화면 id**, 라벨은 **그 화면의 라벨**(`web/src/shell/nav.ts` 의 `label` 과 같은 문자열)을
+> 유지하고 **`href` 만** 흡수한 여정 페이지 + 그 화면의 **첫 귀속 단계 앵커**로 돌린다
+> (귀속은 아래 「흡수된 화면의 판정 경계」 표가 단일 소스). 한 여정 페이지가 두 화면을 흡수하면
+> 네비 항목도 둘이고 앵커로 갈라진다 — `dash` → `JRN-daily-scan.html#STP-open-brief`,
+> `trend` → `JRN-daily-scan.html#STP-drill-trend`,
+> `fairness` → `JRN-spike-verification.html#STP-check-normalized`,
+> `trace` → `JRN-spike-verification.html#STP-open-origin`.
+> 항목을 합치거나 라벨을 여정 이름으로 바꾸면(`아침 정기 스캔`·`급등 검증` 이 그랬다) 라우트로 선언된
+> 화면이 네비에서 사라져 위 등식이 화면 목록 쪽에서 깨지고, 구현의 `Sidebar` 는 `SCREENS` 를 그대로
+> 렌더하므로 목업↔구현 카피가 즉시 갈라진다.
+> `scripts/check-mockup-render.py` 의 **R4-nav** 가 이 규약을 상한 0 의 래칫으로 집행한다
+> (`docs/econ-opinion-monitor-design-tracker.md` 「규칙 4(네비) — 불일치 상한」).
 
 ### 여정 페이지 (여정 단위 mockup — 이관 진행 중)
 
@@ -217,7 +231,7 @@
 
 ## 화면 간 이동(클릭 동선, 실제 링크)
 - `JRN-daily-scan.html` 안에서는 단계 레일·화면 안의 주요 행동 버튼·`#STP-<슬러그>` 딥링크로 5단계를 이동하고, §분기 4행이 각각 `#STP-scan-delta`·`JRN-spike-verification.html#STP-notice-spike`·`JRN-axis-contrast.html#STP-open-compare`·`#STP-open-brief`로 이동한다
-- 좌측 네비(`<a href>`)에서 화면 1개(`reprocess.html`) + 여정 페이지 4개(`JRN-daily-scan.html`, `JRN-sentiment-shift.html`, `JRN-axis-contrast.html`, `JRN-spike-verification.html`) 임의 전환, `index.html`은 `JRN-daily-scan.html`로 리다이렉트
+- 좌측 네비(`<a href>`)는 화면 **7항목**(`dash`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` — `nav.ts` 의 `SCREENS` 와 같은 순서·라벨)이고, 목적지는 **5파일**이다(화면 1개 `reprocess.html` + 여정 페이지 4개 `JRN-daily-scan.html`·`JRN-sentiment-shift.html`·`JRN-axis-contrast.html`·`JRN-spike-verification.html`). 흡수된 여섯 화면은 항목을 유지한 채 흡수한 여정 페이지로 가며, 한 페이지를 나눠 쓰는 `dash`·`trend` 와 `fairness`·`trace` 는 각각 `#STP-open-brief`/`#STP-drill-trend`, `#STP-check-normalized`/`#STP-open-origin` 앵커로 갈라진다. `index.html`은 `JRN-daily-scan.html`로 리다이렉트
 - `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `JRN-spike-verification.html#STP-open-origin`·`reprocess.html`)으로 이동한다
 - `JRN-axis-contrast.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 4행이 `#STP-scan-axis-tops`(2건)·`JRN-spike-verification.html#STP-check-normalized`·`JRN-sentiment-shift.html`로 이동한다
 - `JRN-spike-verification.html` 안에서는 같은 방식으로 6단계를 이동하고, 「검증 중 이런 상황이라면」 목록의 §분기 5행이 `#STP-open-origin`·`#STP-inspect-sources`·`reprocess.html`(2건)·`#STP-judge`로 이동한다
