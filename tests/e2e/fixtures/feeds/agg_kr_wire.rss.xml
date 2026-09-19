@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 집계 묶음(`…-test-aggregation-viz.md#시나리오 1·2·4`, `…-test-analysis.md#시나리오 4·5`)의
+     KR 축 첫 번째 소스. 같은 축에 소스를 둘 두는 것이 요지다 — 정규화(AC3.1)가 **소스 안에서
+     점유율을 먼저 내고 축 단위로 평균**하는 식이라, 축에 소스가 하나뿐이면 그 평균이 항등이 되어
+     시나리오 1 이 재려는 성질이 한 번도 실행되지 않는다.
+
+     `삼성전자` 를 서로 다른 표기(한글 정식명 · Samsung)로 두 건 싣는다. 하나의 키로 모으는 것은
+     더블이 아니라 제품 코드(`normalize_subject`)의 일이고, 시나리오 2 의 "동일 대상이 하나의
+     키로 모인다"가 그것을 본다.
+
+     마지막 기사에는 `<description>` 이 **없다**. 본문이 잡히지 않은 관측이고, 제품 경로는 그런
+     레코드를 모델에 보내지 않고 `unanalyzed` 로 남긴다(`analyze_llm`: body 가 없으면 즉시 반환).
+     시나리오 5 의 "본문이 부족한 기사"가 이 자리다 — 더블에 응답을 넣지 않는 것이 정상이다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Aggregation — KR Wire</title>
+    <link>https://agg.e2e.invalid/kr-wire</link>
+    <item>
+      <title>삼성전자 신규 팹 착공 — 국내 투자 확대</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-fab</link>
+      <description>삼성전자가 신규 파운드리 팹 착공에 들어갔습니다. 국내 설비 투자 확대 기조가 이어집니다. tone=positive 대상국=대한민국.</description>
+      <views>9800</views>
+    </item>
+    <item>
+      <title>Samsung 파운드리 수주 확대</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-foundry</link>
+      <description>Samsung expanded its foundry order book this quarter. tone=positive 대상국=대한민국.</description>
+      <views>9700</views>
+    </item>
+    <item>
+      <title>기준금리 동결 결정</title>
+      <link>https://agg.e2e.invalid/kr-wire/policy-rate</link>
+      <description>기준금리가 동결됐습니다. 물가와 경기 사이에서 관망 기조가 유지됩니다. tone=neutral 대상국=대한민국.</description>
+      <views>9600</views>
+    </item>
+    <item>
+      <title>본문 없는 속보</title>
+      <link>https://agg.e2e.invalid/kr-wire/headline-only</link>
+      <views>9500</views>
+    </item>
+  </channel>
+</rss>

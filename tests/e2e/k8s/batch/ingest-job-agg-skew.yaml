@@ -1,0 +1,68 @@
+# 집계 묶음의 **수집량을 부풀린 상태**를 만드는 한 주기 수집
+# (`…-test-aggregation-viz.md#시나리오 1`: "한 소스의 수집량만 인위적으로 크게 늘린다").
+#
+# 기준 상태(`ingest-job-agg.yaml`)와 **다른 것은 상류 설정 하나뿐이다** — KR 축의 한 소스만
+# 부풀린 피드를 가리키고, 같은 축의 다른 소스와 US 축은 두 상태에서 같은 파일을 받는다. 주기도
+# 같다. 그래야 두 Gold 의 차이가 오직 수집량 차이로 읽힌다.
+#
+# 루트를 `/data/aggregation-skew` 로 따로 두는 이유는 비교 대상이 **두 개의 완결된 Gold** 이기
+# 때문이다. 한 루트에서 두 번 돌리면 `write_records` 가 데이터셋을 교체해 기준 상태가 사라진다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-agg-skew
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-16 — 이 주기의 상류를 부풀린 상태 전용 설정(`e2e-feeds-agg-skew.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-agg-skew.json
+            - --cycle
+            - "2026-03-02T09:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/aggregation-skew
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-15 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}

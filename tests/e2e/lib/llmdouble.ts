@@ -23,12 +23,17 @@ const FIXTURE = path.resolve(__dirname, "..", "fixtures", "llm", "responses.json
 export const MODEL_V1 = "e2e-llm-v1";
 /** 재분석이 고르는 묶음 — `k8s/batch/analyze-job-v2.yaml` 의 `ECON_LLM_MODEL` 과 같아야 한다. */
 export const MODEL_V2 = "e2e-llm-v2";
+/** 집계 묶음이 고르는 묶음 — `k8s/batch/analyze-job-agg.yaml` 의 `ECON_LLM_MODEL` 과 같아야 한다. */
+export const MODEL_AGG = "e2e-llm-agg";
 
 /** 더블이 한 기사에 대해 돌려주는 응답 — 제품이 기대하는 모델 응답 스키마 그대로다. */
 export type CannedReply = {
   target_countries: string[];
   narrative_subjects: string[];
-  sentiment: "positive" | "neutral" | "negative" | "mixed";
+  // 판단을 유보한 응답(`analyzable: false`)은 분위기를 비워 둔다. 제품 경로도 그 경우
+  // sentiment 를 읽기 전에 unanalyzed 로 끊으므로(`analyze_llm`), 여기서도 null 을 허용해야
+  // 픽스처와 타입이 어긋나지 않는다.
+  sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
   analyzable: boolean;
   confidence: number;
 };

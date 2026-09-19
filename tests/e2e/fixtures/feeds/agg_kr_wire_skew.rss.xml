@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- `agg_kr_wire.rss.xml` 의 **수집량만 부풀린** 변형. `…-test-aggregation-viz.md#시나리오 1`
+     의 "한 소스의 수집량만 인위적으로 크게 늘린다"가 이 파일이고, 기준 상태는 원본 쪽이다.
+
+     세 가지를 **의도적으로 고정**한다 — 그래야 두 상태의 차이가 오직 수집량 차이로 읽힌다:
+       · 앞의 네 기사는 원본과 **바이트 동일**(같은 링크·같은 본문).
+       · 늘리는 것은 `삼성전자` 한 대상뿐이고, 다른 대상(`한국은행 기준금리`)의 건수는 그대로다.
+       · 같은 축의 다른 소스(`agg_kr_daily`)와 US 축은 두 상태에서 동일하다.
+
+     제목이 겹치면 더블의 응답 색인과 spec 의 조인이 조용히 한 건을 덮으므로 번호로 가른다.
+     더블은 주기 개념이 없는 정적 파일 서버라, "상류가 달라진 상태"는 서버 상태가 아니라 **다른
+     파일**로 만든다(3주기 픽스처가 cycle12/cycle3 을 가른 것과 같은 관례).
+
+     설계 시점 산술: 부풀리면 `삼성전자` 의 `raw_count` 는 3→9(×3.0)로 뛰지만 축 정규화를 거친
+     `normalized_share` 는 0.5833→0.6944(×1.19)에 머물고, 부풀리지 않은 소스에만 있는
+     `부동산 PF` 는 0.25 로 **변하지 않는다**. 그 둘이 시나리오의 기대 결과 두 절이다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Aggregation — KR Wire (skewed volume)</title>
+    <link>https://agg.e2e.invalid/kr-wire</link>
+    <item>
+      <title>삼성전자 신규 팹 착공 — 국내 투자 확대</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-fab</link>
+      <description>삼성전자가 신규 파운드리 팹 착공에 들어갔습니다. 국내 설비 투자 확대 기조가 이어집니다. tone=positive 대상국=대한민국.</description>
+      <views>9800</views>
+    </item>
+    <item>
+      <title>Samsung 파운드리 수주 확대</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-foundry</link>
+      <description>Samsung expanded its foundry order book this quarter. tone=positive 대상국=대한민국.</description>
+      <views>9700</views>
+    </item>
+    <item>
+      <title>기준금리 동결 결정</title>
+      <link>https://agg.e2e.invalid/kr-wire/policy-rate</link>
+      <description>기준금리가 동결됐습니다. 물가와 경기 사이에서 관망 기조가 유지됩니다. tone=neutral 대상국=대한민국.</description>
+      <views>9600</views>
+    </item>
+    <item>
+      <title>본문 없는 속보</title>
+      <link>https://agg.e2e.invalid/kr-wire/headline-only</link>
+      <views>9500</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 1보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-1</link>
+      <description>삼성전자 증설의 후속 보도입니다. 장비 발주 일정이 공개됐습니다. tone=positive 대상국=대한민국.</description>
+      <views>9400</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 2보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-2</link>
+      <description>삼성전자 증설의 두 번째 후속 보도입니다. 협력사 수주가 이어집니다. tone=positive 대상국=대한민국.</description>
+      <views>9300</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 3보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-3</link>
+      <description>삼성전자 증설의 세 번째 후속 보도입니다. 인력 채용 계획이 나왔습니다. tone=positive 대상국=대한민국.</description>
+      <views>9200</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 4보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-4</link>
+      <description>삼성전자 증설의 네 번째 후속 보도입니다. 지역 경제 파급이 언급됩니다. tone=positive 대상국=대한민국.</description>
+      <views>9100</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 5보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-5</link>
+      <description>삼성전자 증설의 다섯 번째 후속 보도입니다. 공정 전환 일정이 정리됐습니다. tone=positive 대상국=대한민국.</description>
+      <views>9000</views>
+    </item>
+    <item>
+      <title>삼성전자 증설 후속 6보</title>
+      <link>https://agg.e2e.invalid/kr-wire/samsung-followup-6</link>
+      <description>삼성전자 증설의 여섯 번째 후속 보도입니다. 투자 집행 속도가 관전 포인트입니다. tone=positive 대상국=대한민국.</description>
+      <views>8900</views>
+    </item>
+  </channel>
+</rss>

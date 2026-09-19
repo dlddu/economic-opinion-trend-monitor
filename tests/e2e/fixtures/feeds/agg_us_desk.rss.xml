@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 집계 묶음의 US 축 소스. 축이 둘 이상이어야 시나리오 2 의 "축 차원과 교차 집계"가 실제로
+     교차한다 — 축이 하나면 교차표가 한 줄로 퇴화해 축 키가 결과를 가르는지 관측되지 않는다.
+
+     세 번째 기사가 **다중 값** 사례다(대상국 2 · 서술 대상 2). 시나리오 4 의 "다중 값이 손실
+     없이 저장되고 후속 집계에서 그대로 조회된다"를 여기서 본다 — Silver 에 두 값이 살아 있고,
+     Gold 에는 그 기사가 **서술 대상마다 한 행씩** 기여해야 한다.
+
+     두 번째 기사는 더블이 `confidence: 0.45` 로 답한다. 임계(`_LOW_CONFIDENCE = 0.6`) 아래라
+     제품 경로가 `low_confidence` 로 표시하되 라벨 자체는 보존한다 — 시나리오 5 의 "강제로
+     채우지 않고 저신뢰로 표시한다" 쪽이다. 미분석과 달리 **집계에서 분리되지는 않는다**(오늘
+     Gold 계약에 저신뢰 축이 없다). 그 경계는 해당 spec 헤더에 적어 둔다. -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Aggregation — US Desk</title>
+    <link>https://agg.e2e.invalid/us-desk</link>
+    <item>
+      <title>Fed holds rates amid mixed signals</title>
+      <link>https://agg.e2e.invalid/us-desk/fed-holds</link>
+      <description>The Fed held rates steady while growth and inflation pulled in opposite directions. tone=mixed 대상국=미국.</description>
+      <views>7300</views>
+    </item>
+    <item>
+      <title>US jobs data beats expectations</title>
+      <link>https://agg.e2e.invalid/us-desk/us-jobs</link>
+      <description>US payrolls came in above forecast, though revisions muddy the read. tone=positive 대상국=미국.</description>
+      <views>7200</views>
+    </item>
+    <item>
+      <title>삼성전자 미국 팹 가동 — 한미 공급망 재편</title>
+      <link>https://agg.e2e.invalid/us-desk/samsung-us-fab</link>
+      <description>삼성전자의 미국 팹이 가동에 들어가면서 한미 공급망 재편이 빨라지고 있습니다. tone=neutral 대상국=대한민국, 미국.</description>
+      <views>7100</views>
+    </item>
+  </channel>
+</rss>

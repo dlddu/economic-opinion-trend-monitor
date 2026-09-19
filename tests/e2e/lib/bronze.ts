@@ -67,6 +67,11 @@ export function analysisBronzeDir(): string {
   return exportedDir("E2E_BRONZE_ANALYSIS_DIR");
 }
 
+/** 집계 묶음의 입력이 된 주기의 Bronze. Gold 교차표를 원천에서 다시 세는 출발점이다. */
+export function aggBronzeDir(): string {
+  return exportedDir("E2E_BRONZE_AGG_DIR");
+}
+
 function readJsonlFrom<T>(dir: string, dataset: string): T[] {
   const target = path.join(dir, `${dataset}.jsonl`);
   const raw = readFileSync(target, "utf-8");

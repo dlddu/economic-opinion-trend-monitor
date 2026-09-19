@@ -84,6 +84,14 @@ export function reanalyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_V2_DIR"));
 }
 
+/**
+ * 집계 묶음(`e2e-llm-agg`)이 쓴 Silver. 분석 묶음과 **corpus 가 다르다** — 같은 루트를 쓰면
+ * 분석 spec 들의 건수 단정이 집계 corpus 의 열 건에 오염된다.
+ */
+export function aggAnalyses(): Analysis[] {
+  return readAnalyses(exportedDir("E2E_SILVER_AGG_DIR"));
+}
+
 /** `record_id` 로 찾기 쉽게 묶는다. 역추적 단정의 공통 출발점이다. */
 export function byRecordId(records: Analysis[]): Map<string, Analysis> {
   return new Map(records.map((record) => [record.record_id, record]));
@@ -98,9 +106,14 @@ export type Analyzed = { item: NewsItem; analysis: Analysis };
  * 제목을 키로 쓰는 이유는 더블의 응답 픽스처가 제목으로 색인돼 있어서다(제품 경로가 제목을
  * 프롬프트 첫 줄에 싣는다). `record_id` 는 주기·소스·링크에서 파생되므로 픽스처만 보고는
  * 알 수 없다. 제목이 겹치면 조인이 조용히 한 건을 덮으므로 그 자리에서 끊는다.
+ *
+ * Bronze 쪽을 인자로 열어 둔 것은 집계 묶음이 **자기 corpus** 로 같은 조인을 쓰기 때문이다
+ * (`lib/gold.ts: aggByTitle`). 기본값은 분석 묶음이라 기존 호출부는 그대로다.
  */
-export function analyzedByTitle(records: Analysis[] = analyses()): Map<string, Analyzed> {
-  const items = newsItems(analysisBronzeDir());
+export function analyzedByTitle(
+  records: Analysis[] = analyses(),
+  items: NewsItem[] = newsItems(analysisBronzeDir()),
+): Map<string, Analyzed> {
   const byId = byRecordId(records);
   const joined = new Map<string, Analyzed>();
   for (const item of items) {
