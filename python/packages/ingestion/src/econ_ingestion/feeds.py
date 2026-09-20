@@ -56,22 +56,30 @@ class FetchError(RuntimeError):
     """Raised when a feed cannot be fetched after retries (network/HTTP/timeout)."""
 
 
+FEED_FORMATS = ("rss", "worldbank-json")
+
+
 @dataclass(frozen=True)
 class FeedConfig:
     """One configured feed source.
 
     ``axis`` tags every item collected from this source (AC1.3); ``limit`` is the
-    per-source top-N cap (AC1.2); ``feed_url`` is the real RSS/Atom endpoint.
+    per-source top-N cap (AC1.2); ``feed_url`` is the real endpoint and ``format``
+    picks its parser — ``rss`` (RSS 2.0 / Atom) or ``worldbank-json`` (the World
+    Bank search API, which publishes no usable RSS/Atom).
     """
 
     source_id: str
     axis: Axis
     feed_url: str
     limit: int = 100
+    format: str = "rss"
 
     def __post_init__(self) -> None:
         if self.axis not in AXIS_VALUES:
             raise ValueError(f"unknown axis {self.axis!r} (expected one of {AXIS_VALUES})")
+        if self.format not in FEED_FORMATS:
+            raise ValueError(f"unknown format {self.format!r} (expected one of {FEED_FORMATS})")
         if self.limit < 1:
             raise ValueError(f"limit must be >= 1, got {self.limit}")
 
@@ -101,7 +109,7 @@ def http_fetcher(timeout: float = 15.0) -> Fetcher:
 def load_feed_configs(path: str | Path) -> list[FeedConfig]:
     """Load a list of :class:`FeedConfig` from a JSON config file.
 
-    Schema: ``[{"source_id", "axis", "feed_url", "limit"?}, ...]`` — source list,
+    Schema: ``[{"source_id", "axis", "feed_url", "limit"?, "format"?}, ...]`` — source list,
     per-source axis (AC1.3) and top-N cap (AC1.2) are all configuration, not code.
     """
     data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -111,6 +119,7 @@ def load_feed_configs(path: str | Path) -> list[FeedConfig]:
             axis=entry["axis"],
             feed_url=entry["feed_url"],
             limit=int(entry.get("limit", 100)),
+            format=entry.get("format", "rss"),
         )
         for entry in data
     ]
@@ -203,6 +212,50 @@ def parse_feed(raw: bytes) -> list[ParsedArticle]:
     return articles
 
 
+def _cdata(value: object) -> str:
+    """Unwrap the search API's ``{"cdata!": text}`` string wrapper (plain strings pass)."""
+    if isinstance(value, dict):
+        value = value.get("cdata!", "")
+    return value.strip() if isinstance(value, str) else ""
+
+
+def parse_worldbank_news(raw: bytes) -> list[ParsedArticle]:
+    """Parse a World Bank search API (``/api/v2/news?format=json``) response into articles.
+
+    ``documents`` maps document ids to records in the API's result order; non-record
+    keys (``facets``) and records without a URL are skipped. The API exposes no view
+    count, so the result order (``srt``/``order`` in the URL) stands in for ranking.
+    """
+    try:
+        documents = json.loads(raw)["documents"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise FetchError(f"malformed worldbank-json response: {exc!r}") from exc
+    if not isinstance(documents, dict):
+        raise FetchError("malformed worldbank-json response: 'documents' is not an object")
+
+    articles: list[ParsedArticle] = []
+    for doc in documents.values():
+        if not isinstance(doc, dict):
+            continue
+        url = _cdata(doc.get("url"))
+        if not url:
+            continue
+        body = _cdata(doc.get("content")) or _cdata(doc.get("descr"))
+        articles.append(
+            ParsedArticle(
+                title=_cdata(doc.get("title")) or "(제목 없음)",
+                url=url,
+                body=body,
+                body_available=bool(body),
+                view_count=0,
+            )
+        )
+    return articles
+
+
+_PARSERS = {"rss": parse_feed, "worldbank-json": parse_worldbank_news}
+
+
 def _record_id(source_id: str, url: str, cycle: str) -> str:
     digest = hashlib.sha1(f"{source_id}|{url}|{cycle}".encode())
     return digest.hexdigest()[:12]
@@ -238,7 +291,9 @@ def collect_feed(
     """
     raw = _fetch_with_retry(config, fetcher, retries)
     # Stable sort: equal (e.g. all-zero) view counts keep the feed's own order.
-    ranked = sorted(parse_feed(raw), key=lambda a: a.view_count, reverse=True)[: config.limit]
+    ranked = sorted(_PARSERS[config.format](raw), key=lambda a: a.view_count, reverse=True)[
+        : config.limit
+    ]
     for rank, article in enumerate(ranked, start=1):
         body = article.body if article.body_available else None
         item = NewsItem(

@@ -2,7 +2,6 @@
   { "source_id": "yonhap-economy", "axis": "KR", "feed_url": "https://www.yna.co.kr/rss/economy.xml", "limit": 100 },
   { "source_id": "hankyung-economy", "axis": "KR", "feed_url": "https://www.hankyung.com/feed/economy", "limit": 100 },
   { "source_id": "fed-press", "axis": "US", "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml", "limit": 100 },
-  { "source_id": "treasury-press", "axis": "US", "feed_url": "https://home.treasury.gov/system/files/126/rss_press_releases.xml", "limit": 100 },
-  { "source_id": "imf-news", "axis": "GLOBAL", "feed_url": "https://www.imf.org/en/News/rss?language=eng", "limit": 100 },
-  { "source_id": "worldbank-news", "axis": "GLOBAL", "feed_url": "https://www.worldbank.org/en/news/all.rss", "limit": 100 }
+  { "source_id": "imf-mediacenter", "axis": "GLOBAL", "feed_url": "https://mediacenter.imf.org/rss", "limit": 100 },
+  { "source_id": "worldbank-press", "axis": "GLOBAL", "format": "worldbank-json", "feed_url": "https://search.worldbank.org/api/v2/news?format=json&rows=100&lang_exact=English&displayconttype_exact=Press%20Release&srt=lnchdt&order=desc", "limit": 100 }
 ]

@@ -1,0 +1,41 @@
+{
+  "rows": 4,
+  "os": 0,
+  "page": 1,
+  "total": 14630,
+  "documents": {
+    "ZG9jLTE2": {
+      "id": "ZG9jLTE2",
+      "url": "http://www.worldbank.org/en/news/press-release/2026/08/19/country-manager-appointment",
+      "title": { "cdata!": "World Bank Group Appoints a New Country Manager" },
+      "descr": { "cdata!": "Short description of the appointment." },
+      "content": { "cdata!": " The World Bank Group today announced the appointment of a new Country Manager.&nbsp;" },
+      "lnchdt": "2026-08-19T09:03:20Z",
+      "lang": "English",
+      "displayconttype": "Press Release"
+    },
+    "ZG9jLTE3": {
+      "id": "ZG9jLTE3",
+      "url": "http://www.worldbank.org/en/news/press-release/2026/07/16/usd-funding",
+      "title": { "cdata!": "World Bank Kicks Off Fiscal Year USD Funding" },
+      "descr": { "cdata!": "Only a description is available for this release." },
+      "lnchdt": "2026-07-16T16:11:54Z",
+      "lang": "English",
+      "displayconttype": "Press Release"
+    },
+    "ZG9jLTE4": {
+      "id": "ZG9jLTE4",
+      "url": "http://www.worldbank.org/en/news/press-release/2026/07/15/no-body",
+      "title": { "cdata!": "Release Without Body Text" },
+      "lnchdt": "2026-07-15T10:00:00Z",
+      "lang": "English",
+      "displayconttype": "Press Release"
+    },
+    "ZG9jLTE5": {
+      "id": "ZG9jLTE5",
+      "title": { "cdata!": "Record Without A URL Is Dropped" },
+      "lnchdt": "2026-07-14T10:00:00Z"
+    },
+    "facets": {}
+  }
+}
