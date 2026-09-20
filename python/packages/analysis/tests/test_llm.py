@@ -10,12 +10,15 @@ import json
 
 import pytest
 from econ_analysis.llm import (
+    _SYSTEM_PROMPT,
+    Completer,
     CompletionError,
     ConfigError,
     analyze_llm,
     build_prompt,
     http_completer,
     parse_response,
+    reply_cache_key,
     run_llm_analysis,
 )
 
@@ -189,7 +192,7 @@ def test_run_counts_attempts_and_isolates_failures() -> None:
             raise CompletionError("endpoint down")
         return _reply(sentiment="positive", confidence=0.9)
 
-    records, stats = run_llm_analysis([ok, dict(bad, title="bad-title"), nobody], bodies, _flaky)
+    records, stats, _ = run_llm_analysis([ok, dict(bad, title="bad-title"), nobody], bodies, _flaky)
     by_id = {r["record_id"]: r for r in records}
     # Only items with a body reach the model; the body-less one is not an attempt.
     assert (stats.attempted, stats.failed) == (2, 1)
@@ -202,7 +205,7 @@ def test_run_counts_attempts_and_isolates_failures() -> None:
 
 def test_run_reports_total_outage() -> None:
     items = [_bronze(record_id="a"), _bronze(record_id="b")]
-    records, stats = run_llm_analysis(items, {"h": "본문"}, _boom)
+    records, stats, _ = run_llm_analysis(items, {"h": "본문"}, _boom)
     # Every record reads "unanalyzed", so only the stats can tell an outage apart.
     assert all(r["analysis_status"] == "unanalyzed" for r in records)
     assert (stats.attempted, stats.failed) == (2, 2)
@@ -250,5 +253,74 @@ def test_bad_temperature_is_a_config_error(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_run_keeps_the_last_failure_reason() -> None:
     items = [_bronze(record_id="a"), _bronze(record_id="b")]
-    _, stats = run_llm_analysis(items, {"h": "본문"}, _boom)
+    _, stats, _ = run_llm_analysis(items, {"h": "본문"}, _boom)
     assert stats.last_error
+
+
+def _counting(reply: str) -> tuple[list[str], Completer]:
+    calls: list[str] = []
+
+    def _complete(system: str, user: str) -> str:
+        calls.append(user)
+        return reply
+
+    return calls, _complete
+
+
+def test_second_cycle_reuses_unchanged_replies() -> None:
+    items = [_bronze(record_id="a", body_hash="h1"), _bronze(record_id="b", body_hash="h2")]
+    bodies = {"h1": "본문1", "h2": "본문2"}
+    calls, completer = _counting(_reply(sentiment="positive", confidence=0.9))
+
+    first, stats1, entries = run_llm_analysis(items, bodies, completer)
+    assert (stats1.attempted, stats1.reused, len(entries)) == (2, 0, 2)
+
+    cache = {e["cache_key"]: e["reply"] for e in entries}
+    second, stats2, entries2 = run_llm_analysis(items, bodies, completer, reply_cache=cache)
+    # Same prompts -> no new model calls, identical judgements, nothing new to store.
+    assert len(calls) == 2
+    assert (stats2.attempted, stats2.reused, entries2) == (0, 2, [])
+    strip = lambda rs: [{k: v for k, v in r.items() if k != "analyzed_at"} for r in rs]  # noqa: E731
+    assert strip(first) == strip(second)
+
+
+def test_edited_body_or_version_bump_calls_again() -> None:
+    item = _bronze(record_id="a", body_hash="h1")
+    calls, completer = _counting(_reply(sentiment="neutral", confidence=0.9))
+    _, _, entries = run_llm_analysis([item], {"h1": "본문"}, completer)
+    cache = {e["cache_key"]: e["reply"] for e in entries}
+
+    # Edited body (new content address) -> new prompt -> fresh call (AC1.7).
+    run_llm_analysis(
+        [dict(item, body_hash="h2")], {"h2": "수정된 본문"}, completer, reply_cache=cache
+    )
+    # Analyzer version bump -> reprocess even the unchanged body (AC2.6).
+    run_llm_analysis([item], {"h1": "본문"}, completer, "llm-v2", reply_cache=cache)
+    assert len(calls) == 3
+
+
+def test_model_switch_misses_the_cache() -> None:
+    item = _bronze(record_id="a", body_hash="h1")
+    calls, completer = _counting(_reply(sentiment="neutral", confidence=0.9))
+    completer.model = "old-model"  # type: ignore[attr-defined]
+    _, _, entries = run_llm_analysis([item], {"h1": "본문"}, completer)
+    cache = {e["cache_key"]: e["reply"] for e in entries}
+    completer.model = "new-model"  # type: ignore[attr-defined]
+    _, stats, _ = run_llm_analysis([item], {"h1": "본문"}, completer, reply_cache=cache)
+    assert (stats.attempted, stats.reused, len(calls)) == (1, 0, 2)
+
+
+def test_failed_replies_are_not_cached() -> None:
+    _, stats, entries = run_llm_analysis([_bronze(record_id="a")], {"h": "본문"}, _boom)
+    assert stats.failed == 1 and entries == []
+
+
+def test_unparseable_cached_reply_falls_back_to_the_model() -> None:
+    item = _bronze(record_id="a", body_hash="h1")
+    calls, completer = _counting(_reply(sentiment="negative", confidence=0.9))
+    key = reply_cache_key("llm-v1", "", _SYSTEM_PROMPT, build_prompt(item, "본문"))
+    records, stats, _ = run_llm_analysis(
+        [item], {"h1": "본문"}, completer, reply_cache={key: "not json"}
+    )
+    assert (stats.attempted, stats.reused, len(calls)) == (1, 0, 1)
+    assert records[0]["sentiment"] == "negative"
