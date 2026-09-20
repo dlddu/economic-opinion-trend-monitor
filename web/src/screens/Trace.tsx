@@ -9,10 +9,6 @@ import { MapStrip } from "../shell/MapStrip";
 // 서지 않는다 — 편중을 의심할 근거일 뿐이고, 근거를 확인하려면 실제로 무엇이
 // 쓰였는지 읽어야 한다. 그 내려가는 길이 이 화면이다.
 //
-// 축은 `record_id` 하나다. Bronze `news_item` 이 그 키를 갖고, Silver `analysis`
-// 가 같은 값을 갖고(AC2.6), 본문은 item 의 `body_hash` 로 따로 걸린다(AC1.7).
-// 서빙이 세 계층을 한 응답으로 모아 주므로 화면은 조인을 다시 하지 않는다.
-//
 // **이 화면의 설계 원칙은 「모자란 것을 뭉치지 않는다」이다.** 셋은 서로 다른 뜻이고
 // 독자에게 다른 행동을 시킨다:
 //
@@ -22,11 +18,6 @@ import { MapStrip } from "../shell/MapStrip";
 //
 // 셋을 한 덩어리 「데이터 없음」으로 그리면 독자는 자기 조회가 실패했다고 읽는다.
 // 그래서 계보 브레드크럼이 **끊긴 자리를 드러내며** 그려진다.
-//
-// 열지 않는 단계: 목업 여정의 `STP-judge`(판정과 종료)는 판정 결과의 영속화
-// (검증 이력·플래그)가 필요한데, 여정 문서 자신이 그것을 「현재 범위 밖, 백로그
-// 후보」로 파킹했다. 없는 저장소에 쓰는 버튼을 두는 대신 왜 없는지를 note 로 밝힌다
-// (슬라이스 5·6·8 의 선례).
 
 const STATUS_LABEL: Record<string, string> = {
   analyzed: "분석됨",
@@ -85,9 +76,8 @@ export function Trace() {
             setQuery(recordId.trim());
           }}
         >
-          {/* 클래스는 `.trace-` 접두사로 둔다 — 목업 인라인 CSS 와 선택자를
-              공유하면 규칙 5 가 선언 단위로 대조하게 되고, 이 화면의 폼은 목업의
-              폼 행과 구조가 달라 그 대조가 의미를 갖지 않는다. */}
+          {/* 이 화면의 클래스는 `.trace-` 접두사를 벗지 않는다 — 목업 인라인 CSS 와
+              이름을 공유하면 안 된다(설계 트래커 「규칙 5」). */}
           <label className="trace-field">
             <span className="trace-field-label">record_id</span>
             <input
@@ -135,10 +125,7 @@ export function Trace() {
 
       {data && data.found && bronze && (
         <>
-          {/* PAT-lineage — 원문 계보 추적. `CMP-crumb`(Bronze→Silver→Gold 경로
-              칩) + Bronze 원문 카드 + Silver 분석 카드 + 수집 메타 카드의 조합으로,
-              골드 수치에서 원문까지 역추적한다(V5, AC2.6/1.4). 목업 여정 페이지의
-              `STP-open-origin` 이 그리는 표면이다. */}
+          {/* PAT-lineage — 원문 계보 추적. */}
           <div className="trace-crumb">
             {/* CMP-crumb — 계보 경로 칩 스트립. 없는 홉을 숨기지 않고 끊긴 자리를
                 드러낸다: 「분석 없음」과 「수집 없음」은 독자에게 다른 뜻이다. */}
