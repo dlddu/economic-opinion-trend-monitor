@@ -76,12 +76,20 @@ function polylinePoints(container: HTMLElement): string[] {
   );
 }
 
+/** 범례가 이름 붙인 대상들 — 차트에 실제로 그려진 집합과 같아야 한다. */
+function legendNames(container: HTMLElement): string[] {
+  return Array.from(container.querySelectorAll(".trend-legend > span")).map((el) =>
+    (el.textContent ?? "").trim(),
+  );
+}
+
 describe("Trend", () => {
   it("plots one x position per bucket, in bucket order", async () => {
     stubTrend([response()]);
     const { container } = renderTrend();
 
-    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
+    // 겹쳐 보기는 기본이 꺼짐이므로 진입 직후의 선은 고른 대상 하나다.
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
 
     const [lead] = polylinePoints(container);
     const xs = lead.split(" ").map((p) => Number.parseFloat(p.split(",")[0]));
@@ -96,6 +104,38 @@ describe("Trend", () => {
     // inverted scale, which a shares-only assertion would miss.
     expect(ys[0]).toBeGreaterThan(ys[1]);
     expect(ys[1]).toBeGreaterThan(ys[2]);
+  });
+
+  it("draws the picked subject alone until 겹쳐 보기 is opted into", async () => {
+    stubTrend([response()]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
+    const box = container.querySelector("input[name='tr-compare']") as HTMLInputElement;
+    // 목업 `STP-drill-trend` 의 체크박스가 unchecked 로 서 있는 상태가 진입 상태다.
+    expect(box.checked).toBe(false);
+    expect(box.closest("label")?.textContent).toContain("상위 대상 3개를 겹쳐 보기");
+    // 범례는 그려진 선만 말한다 — 그리지 않은 대상이 범례에 남으면 차트와 범례가
+    // 서로 다른 집합을 가리킨다.
+    expect(legendNames(container)).toEqual(["기준금리"]);
+    // 표는 겹쳐 보기와 무관하게 전건이다. 이 화면에서 표가 곧 대상 선택기라, 겹침을
+    // 껐다고 행을 감추면 다른 대상으로 옮겨갈 길이 함께 사라진다(등재된 편차).
+    expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2);
+    const [soloPoints] = polylinePoints(container);
+    const soloStroke = container.querySelector("polyline")?.getAttribute("stroke");
+
+    fireEvent.click(box);
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
+    expect(legendNames(container)).toEqual(["기준금리", "삼성전자"]);
+    // 켜고 끄는 것은 **선의 수**뿐이다. 같은 대상의 선이 자리나 색을 바꾸면 토글이
+    // 값이나 대상을 바꾼 것처럼 읽히므로, 세로 스케일은 응답 전체로 잡혀 있어야 한다.
+    expect(polylinePoints(container)[0]).toBe(soloPoints);
+    expect(container.querySelector("polyline")?.getAttribute("stroke")).toBe(soloStroke);
+
+    fireEvent.click(box);
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
   });
 
   it("shows the selected subject's headline share and delta", async () => {
@@ -175,7 +215,7 @@ describe("Trend", () => {
     stubTrend([response()]);
     const { container } = renderTrend();
 
-    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
     // Every button on the screen must do something: only the axis segment (3)
     // is a button — subject selection rides on the comparison table's rows. A
     // 시간/일/주 switch has nothing behind it, so it must not be drawn.
@@ -204,7 +244,7 @@ describe("Trend", () => {
     const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
-    const form = container.querySelector("form") as HTMLFormElement;
+    const form = container.querySelector(".trend-sl-form") as HTMLFormElement;
     const err = container.querySelector(".trend-sl-banner.err") as HTMLElement;
     const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
     expect(err.hidden).toBe(true);
@@ -236,7 +276,7 @@ describe("Trend", () => {
     });
     expect(container.querySelector(".trend-sl-count")?.textContent).toBe("2개 선택");
 
-    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+    fireEvent.submit(container.querySelector(".trend-sl-form") as HTMLFormElement);
 
     const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
     expect(good.hidden).toBe(false);
