@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type {
   Axis,
@@ -89,10 +90,25 @@ function segments(dist: SentimentDistribution): { cls: string; label: string; co
   ];
 }
 
+/**
+ * 미분석 **건수**는 서빙이 내려주지 않는다 — Gold 는 분석 완료 건수와 미분석 *비율*만
+ * 준다. 비율의 분모가 버킷 전체이므로 전체 = `analyzed_total / (1 - unanalyzed)` 로
+ * 되짚을 수 있고, 그 차가 미분석 건수다. 되짚기라 반올림 오차가 1건 범위에서 남을 수
+ * 있고, 비율이 1 에 닿으면 전체를 복원할 수 없다 — 그때는 건수를 지어내지 않고 `null`
+ * 을 돌려 화면이 비율로만 말하게 한다.
+ */
+function unanalyzedCount(row: SentimentAxisRow): number | null {
+  const analyzedShare = 1 - row.distribution.unanalyzed;
+  if (analyzedShare <= 0) return null;
+  return Math.max(0, Math.round(row.analyzed_total / analyzedShare) - row.analyzed_total);
+}
+
 export function Sentiment() {
   const [axis, setAxis] = useState<Axis>("KR");
   const [data, setData] = useState<SentimentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 목업의 `na-exclude` 는 checked 로 열린다 — 이 화면의 기본 읽기가 「분리 표기」다.
+  const [splitUnanalyzed, setSplitUnanalyzed] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -196,6 +212,58 @@ export function Sentiment() {
                     </span>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* 분리 전후 비율 — 전환할 두 형태가 이미 이 화면 안에 다 있다.
+                `segments()` 가 네 비율을 analyzed 몫으로 스케일한 「분모에 섞은」 형태를
+                만들고, `distribution[key]` 원값이 그대로 「분리한」 형태다. 그래서 이
+                컨트롤은 API 를 다시 부르지도, 없는 값을 지어내지도 않는다 — 여정 2단계의
+                논점(분모가 바뀌면 어느 비율이 눌리는지)을 화면에서 직접 보인다. */}
+            <div className="card col-7 sent-split">
+              <div className="card-h">
+                <h3>분리 전후 비율</h3>
+                <span className="sub">체크박스로 전환</span>
+              </div>
+              <div className="card-b">
+                {selected?.present ? (
+                  <SplitRatios row={selected} split={splitUnanalyzed} />
+                ) : (
+                  <div className="note sent-absent">
+                    <div>
+                      <b>{axisDef.label}</b> 축 집계가 이 버킷에 없어 두 형태를 나란히 놓을 수
+                      없습니다.
+                    </div>
+                  </div>
+                )}
+                <label className="sent-split-chk">
+                  <input
+                    type="checkbox"
+                    name="na-exclude"
+                    checked={splitUnanalyzed}
+                    onChange={(e) => setSplitUnanalyzed(e.target.checked)}
+                  />
+                  미분석 항목을 비율 분모에서 제외 (분리 표기)
+                </label>
+              </div>
+            </div>
+
+            {/* `STP-confirm-cause` 이탈 카드. 목업이 여기 두는 세 갈래 중 `trace`·
+                `reprocess` 로 가는 둘은 `data-goto` 를 단 여정 워크스루 진행 장치라 제품
+                표면이 아니고, 남는 하나가 `fairness` 로 가는 평범한 이탈 링크다. */}
+            <div className="card col-5 sent-exit">
+              <div className="card-h">
+                <h3>판별이 어렵다면</h3>
+                <span className="sub">다른 흐름으로 넘깁니다</span>
+              </div>
+              <div className="card-b">
+                <p className="sent-exit-lede">
+                  분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로
+                  넘기세요.
+                </p>
+                <Link className="btn ghost" to="/fairness">
+                  정규화 비율로 다시 확인 →
+                </Link>
               </div>
             </div>
 
@@ -322,6 +390,66 @@ function Donut({ row }: { row: SentimentAxisRow }) {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * The same bucket under the two denominators the journey's step 2 argues about.
+ *
+ * 분리(체크): the four ratios are `distribution[key]` — over the analyzed items,
+ * closing at 100% by themselves, with 미분석 counted beside them rather than in
+ * them. 섞음(해제): the same four scaled by the analyzed share, so 미분석 takes a
+ * segment of the same bar and every class ratio is pressed down by exactly that
+ * much. No second request and no new field: both arrays come from one response.
+ */
+function SplitRatios({ row, split }: { row: SentimentAxisRow; split: boolean }) {
+  const mixed = segments(row.distribution);
+  const separated = CLASSES.map((c) => ({
+    cls: c.cls,
+    label: c.label,
+    color: c.color,
+    share: row.distribution[c.key],
+  }));
+  const shown = split ? separated : mixed;
+  const naCount = unanalyzedCount(row);
+
+  return (
+    <>
+      <div className="sentbar sent-split-bar" data-split={split}>
+        {shown.map((s) => (
+          <i key={s.cls} className={s.cls} style={{ width: pct(s.share) }} />
+        ))}
+      </div>
+
+      <div className="sent-split-kv">
+        {shown.map((s) => (
+          <div className="kv" key={s.cls}>
+            <span className="k">
+              <span className="d" style={{ background: s.color }} />
+              {s.label}
+            </span>
+            <span className="v" data-cls={s.cls}>
+              {pct(s.share)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="sent-split-note">
+        {split ? (
+          naCount === null ? (
+            <>이 버킷은 전량 미분석이라 분모로 쓸 분석 완료분이 없습니다.</>
+          ) : (
+            <>
+              지금 보는 비율은 분석된 {row.analyzed_total}건만을 분모로 씁니다. 미분석 {naCount}건은
+              분리해 따로 셉니다.
+            </>
+          )
+        ) : (
+          <>미분석을 분모에 섞으면 각 비율이 그만큼 눌립니다 — 어느 쪽이 줄었는지 구분되지 않습니다.</>
+        )}
+      </p>
     </>
   );
 }

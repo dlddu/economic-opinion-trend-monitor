@@ -117,3 +117,24 @@ it("states why the source breakdown is missing and offers no control for it", as
   expect(note?.textContent).toContain("수집원 차원이 없");
   expect(note?.querySelectorAll("a, button").length).toBe(0);
 });
+
+// 표기 원칙은 데이터가 아니라 읽는 법에 대한 문면이라, 응답이 아직 없어도 서 있어야
+// 한다 — 비율과 건수를 섞어 읽는 사고는 표가 그려지기 전에 예방되어야 의미가 있다.
+it("states the notation principle, and states it before any data arrives", () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise(() => {})),
+  );
+  const { container } = render(<Fairness />);
+
+  expect(container.querySelectorAll("tbody tr").length).toBe(0);
+
+  const note = [...container.querySelectorAll(".note")].find((n) =>
+    n.textContent?.includes("세는 방식을 항상 적어"),
+  );
+  expect(note, "표기 원칙 note 가 화면에 없다").toBeTruthy();
+  expect(note?.textContent).toContain("모든 수치 옆에 세는 방식을 항상 적어 둡니다.");
+  expect(note?.textContent).toContain(
+    "표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.",
+  );
+});

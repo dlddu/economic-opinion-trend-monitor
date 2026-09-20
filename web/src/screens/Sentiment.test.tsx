@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Sentiment } from "./Sentiment";
 import type { SentimentResponse } from "../api/types";
 
@@ -57,6 +58,15 @@ function stubSentiment(bodies: SentimentResponse[]) {
   return urls;
 }
 
+// 화면이 `Link` 로 이탈 동선을 그리므로 라우터 컨텍스트 없이는 렌더가 던진다.
+function renderScreen() {
+  return render(
+    <MemoryRouter>
+      <Sentiment />
+    </MemoryRouter>,
+  );
+}
+
 function barHeights(container: HTMLElement, bucket: string): Record<string, number> {
   const group = container.querySelector(`g[data-bucket="${bucket}"]`);
   if (!group) throw new Error(`no bar for ${bucket}`);
@@ -71,7 +81,7 @@ describe("Sentiment", () => {
   it("draws one stacked bar per bucket whose segments keep the aggregate's proportions", async () => {
     const body = response();
     stubSentiment([body]);
-    const { container } = render(<Sentiment />);
+    const { container } = renderScreen();
 
     await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
 
@@ -88,7 +98,7 @@ describe("Sentiment", () => {
   it("keeps 미분석 as its own segment instead of folding it into the four classes", async () => {
     const body = response();
     stubSentiment([body]);
-    const { container } = render(<Sentiment />);
+    const { container } = renderScreen();
 
     await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
 
@@ -106,7 +116,7 @@ describe("Sentiment", () => {
 
   it("marks an axis Gold has no row for instead of drawing it as zero", async () => {
     stubSentiment([response()]);
-    const { container } = render(<Sentiment />);
+    const { container } = renderScreen();
 
     const absent = await waitFor(() => {
       const row = container.querySelector('[data-axis="GLOBAL"]');
@@ -128,7 +138,7 @@ describe("Sentiment", () => {
 
   it("asks the server again when the axis changes", async () => {
     const urls = stubSentiment([response("KR"), response("US")]);
-    const { container } = render(<Sentiment />);
+    const { container } = renderScreen();
 
     await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
     expect(urls[0]).toContain("axis=KR");
@@ -143,5 +153,88 @@ describe("Sentiment", () => {
     // client-side filter — a new request is the only correct behaviour.
     await waitFor(() => expect(urls.length).toBeGreaterThan(1));
     expect(urls[urls.length - 1]).toContain("axis=US");
+  });
+});
+
+/** 분리 전후 비율 카드의 네 분류 비율, 클래스별로. */
+function splitShares(container: HTMLElement): Record<string, string> {
+  const out: Record<string, string> = {};
+  container.querySelectorAll(".sent-split-kv .v[data-cls]").forEach((el) => {
+    out[el.getAttribute("data-cls") ?? ""] = el.textContent ?? "";
+  });
+  return out;
+}
+
+describe("분리 전후 비율 전환", () => {
+  // 체크박스가 실제로 분모를 갈아 끼우는지 — 목업이 이 컨트롤을 둔 이유가 「분모가
+  // 바뀌면 어느 비율이 눌리는지 보인다」이므로, 문면만 있고 수치가 안 바뀌면 허위
+  // 컨트롤이다. 기대값은 응답 stub 에서 직접 유도한다.
+  it("swaps the denominator, so every class ratio moves by the unanalyzed share", async () => {
+    stubSentiment([response()]);
+    const { container } = renderScreen();
+
+    const kr = response().by_axis.find((r) => r.axis === "KR")!;
+    const analyzed = 1 - kr.distribution.unanalyzed;
+
+    await waitFor(() => expect(container.querySelector(".sent-split-kv")).not.toBeNull());
+
+    // 기본값은 「분리」 — 네 비율이 분석 완료분만을 분모로 쓴다.
+    const chk = container.querySelector(".sent-split-chk input") as HTMLInputElement;
+    expect(chk.checked).toBe(true);
+    expect(splitShares(container)["s-neg"]).toBe(
+      `${(kr.distribution.negative * 100).toFixed(1)}%`,
+    );
+
+    fireEvent.click(chk);
+
+    // 해제하면 같은 비율이 미분석 몫만큼 눌린다.
+    expect(splitShares(container)["s-neg"]).toBe(
+      `${(kr.distribution.negative * analyzed * 100).toFixed(1)}%`,
+    );
+    // 눌린 값은 원값보다 작아야 한다 — 두 형태가 실제로 다르다는 것부터 막아 둔다.
+    expect(kr.distribution.unanalyzed).toBeGreaterThan(0);
+  });
+
+  it("says which denominator is in use, and switches that sentence with the box", async () => {
+    stubSentiment([response()]);
+    const { container } = renderScreen();
+
+    const kr = response().by_axis.find((r) => r.axis === "KR")!;
+    const total = Math.round(kr.analyzed_total / (1 - kr.distribution.unanalyzed));
+
+    await waitFor(() => expect(container.querySelector(".sent-split-note")).not.toBeNull());
+
+    const note = () => container.querySelector(".sent-split-note")?.textContent ?? "";
+    expect(note()).toContain(
+      `지금 보는 비율은 분석된 ${kr.analyzed_total}건만을 분모로 씁니다.`,
+    );
+    expect(note()).toContain(`미분석 ${total - kr.analyzed_total}건은 분리해 따로 셉니다.`);
+
+    fireEvent.click(container.querySelector(".sent-split-chk input") as HTMLInputElement);
+
+    expect(note()).toContain(
+      "미분석을 분모에 섞으면 각 비율이 그만큼 눌립니다 — 어느 쪽이 줄었는지 구분되지 않습니다.",
+    );
+  });
+
+  // `STP-confirm-cause` 의 이탈 카드. 대상은 `BUILT` 인 `fairness` 하나뿐이라
+  // 플레이스홀더로 보내지 않는다.
+  it("offers the one exit whose destination is a real screen", async () => {
+    stubSentiment([response()]);
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(container.querySelector(".sent-exit")).not.toBeNull());
+
+    const card = container.querySelector(".sent-exit") as HTMLElement;
+    expect(card.textContent).toContain("판별이 어렵다면");
+    expect(card.textContent).toContain("다른 흐름으로 넘깁니다");
+    expect(card.textContent).toContain(
+      "분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.",
+    );
+
+    const links = [...card.querySelectorAll("a")];
+    expect(links.length).toBe(1);
+    expect(links[0].textContent).toContain("정규화 비율로 다시 확인");
+    expect(links[0].getAttribute("href")).toBe("/fairness");
   });
 });
