@@ -3,7 +3,12 @@ import { fireEvent, render, waitFor } from "@testing-library/react";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  // 화면이 마지막 조회 조건을 세션에 남긴다(여정 §4 의 중도 이탈 분기). 지우지 않으면
+  // 앞 테스트가 고른 축·대상이 다음 테스트의 첫 질의로 새어 나간다.
+  sessionStorage.clear();
+});
 
 const BUCKETS = ["2026-06-23T12", "2026-06-23T13", "2026-06-23T14"];
 
@@ -165,5 +170,99 @@ describe("Trend", () => {
     const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent ?? "");
     expect(labels.filter((l) => ["시간", "일", "주"].includes(l.trim()))).toHaveLength(0);
     expect(container.querySelectorAll(".seg button")).toHaveLength(3);
+  });
+
+  it("offers every compared subject as a shortlist candidate, with the drilled one pre-picked", async () => {
+    stubTrend([response()]);
+    const { container } = render(<Trend />);
+
+    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
+
+    const boxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>(".trend-sl-cand input"),
+    );
+    // 후보는 이미 받은 비교 대상이다 — 서빙에 새로 묻는 것이 없다는 사실이 여기서 보인다.
+    expect(boxes.map((b) => b.value)).toEqual(["기준금리", "삼성전자"]);
+    // 상세로 내려간 대상은 미리 골라 둔다(목업 `renderCandidates()`).
+    expect(boxes.map((b) => b.checked)).toEqual([true, false]);
+    expect(container.querySelector(".trend-sl-count")?.textContent).toBe("1개 선택");
+  });
+
+  it("names which half of the shortlist form is missing instead of one blanket message", async () => {
+    stubTrend([response()]);
+    const { container } = render(<Trend />);
+
+    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
+    const form = container.querySelector("form") as HTMLFormElement;
+    const err = container.querySelector(".trend-sl-banner.err") as HTMLElement;
+    const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
+    expect(err.hidden).toBe(true);
+
+    // 후보는 골라져 있고 메모만 비었다 — 배너는 그 쪽을 지목해야 한다.
+    fireEvent.submit(form);
+    expect(err.hidden).toBe(false);
+    expect(err.textContent).toContain("왜 오늘 이것을 챙기는지 한 줄이라도");
+    expect(good.hidden).toBe(true);
+
+    // 반대로 메모만 채우고 후보를 전부 풀면 다른 쪽을 지목한다.
+    fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
+      target: { value: "금리 결정 주간이라 하루 더 본다" },
+    });
+    fireEvent.click(container.querySelectorAll(".trend-sl-cand input")[0]);
+    fireEvent.submit(form);
+    expect(err.hidden).toBe(false);
+    expect(err.textContent).toContain("후보를 하나 이상 고르세요");
+  });
+
+  it("records the shortlist for the session and says so, without claiming a watchlist", async () => {
+    stubTrend([response()]);
+    const { container } = render(<Trend />);
+
+    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
+    fireEvent.click(container.querySelectorAll(".trend-sl-cand input")[1]);
+    fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
+      target: { value: "반도체 수출 지표 발표 전" },
+    });
+    expect(container.querySelector(".trend-sl-count")?.textContent).toBe("2개 선택");
+
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+    const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
+    expect(good.hidden).toBe(false);
+    expect(good.textContent).toContain("오늘 볼 대상을 추렸습니다.");
+    expect(good.textContent).toContain("기준금리 · 삼성전자 — 2개를 오늘 볼 대상으로 남겼습니다.");
+    // 영속화는 여정 문서가 파킹한 항목이다. 배너가 그 경계를 직접 말해야, 화면이
+    // 하지 않는 일을 한다고 읽히지 않는다.
+    expect(good.textContent).toContain("이 세션 안에서만");
+    expect(good.textContent).toContain("워치리스트는 아직 없습니다");
+    expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
+  });
+
+  it("reopens on the conditions the reader left, as the scan summary promises", async () => {
+    const urls = stubTrend([response(), response("삼성전자")]);
+    const first = render(<Trend />);
+
+    await waitFor(() =>
+      expect(first.container.querySelectorAll("table.tbl tr.click")).toHaveLength(2),
+    );
+    fireEvent.click(first.container.querySelectorAll("table.tbl tr.click")[1]);
+    await waitFor(() => expect(urls).toHaveLength(2));
+    first.unmount();
+
+    // 다시 진입 — 「닫을 때의 조건이 다음 진입에 복원됩니다」가 사실이려면 첫 질의가
+    // 기본값이 아니라 두고 간 대상이어야 한다.
+    const again = render(<Trend />);
+    await waitFor(() => expect(urls).toHaveLength(3));
+    expect(urls[2]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
+
+    await waitFor(() =>
+      expect(again.container.querySelector(".trend-sl-cand")).not.toBeNull(),
+    );
+    const summary = Array.from(again.container.querySelectorAll(".kv")).map(
+      (kv) => kv.textContent ?? "",
+    );
+    expect(summary.some((row) => row.includes("상세로 내려간 대상") && row.includes("삼성전자"))).toBe(
+      true,
+    );
   });
 });

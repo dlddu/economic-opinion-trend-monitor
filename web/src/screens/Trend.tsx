@@ -19,6 +19,12 @@ import { MapStrip } from "../shell/MapStrip";
 //     not a free-form pick, and there is no endpoint behind "add an arbitrary
 //     subject" yet. Selecting one of the compared subjects is real, so that is
 //     what the comparison list does.
+//
+// This screen receives three journey steps, not one: `STP-drill-trend` and
+// `STP-shortlist` from `JRN-daily-scan`, plus `STP-verify-in-trend` from
+// `JRN-axis-contrast` (mockup index, 「흡수된 화면의 판정 경계」). The walkthrough
+// walks them; a product screen lays them out one under another, so 추림 lives
+// at the bottom of the same view rather than behind a 전진 CTA.
 
 const AXES: { id: Axis; label: string; pill: string }[] = [
   { id: "KR", label: "한국", pill: "ax-kr" },
@@ -76,11 +82,56 @@ function strokeFor(series: TrendSeries, compareIndex: number): string {
   return series.selected ? "var(--primary)" : COMPARE_STROKES[compareIndex % COMPARE_STROKES.length];
 }
 
+// 여정 §4 의 네 번째 분기 — 「중도 이탈(목록만 보고 종료) → 다음 진입 시 마지막 조회
+// 조건 복원」. 세션 스토리지를 쓰는 것이 이 화면의 주장과 맞는다: 추림이 세션 안에서만
+// 사는 것과 같은 수명이라, 탭을 닫으면 조건도 함께 사라진다. 영속 저장(북마크·워치리스트)은
+// 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 항목이라 여기서도 만들지 않는다.
+const VIEW_KEY = "econ-monitor:trend:view";
+
+type StoredView = { axis: Axis; subject?: string };
+
+function readStoredView(): StoredView | null {
+  try {
+    const raw = sessionStorage.getItem(VIEW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredView;
+    return AXES.some((a) => a.id === parsed.axis) ? parsed : null;
+  } catch {
+    // 스토리지가 막힌 브라우저에서도 화면은 그대로 열려야 한다 — 복원만 포기한다.
+    return null;
+  }
+}
+
+function storeView(view: StoredView): void {
+  try {
+    sessionStorage.setItem(VIEW_KEY, JSON.stringify(view));
+  } catch {
+    // 같은 이유로 조용히 넘어간다. 저장 실패는 조회를 막지 않는다.
+  }
+}
+
 export function Trend() {
-  const [axis, setAxis] = useState<Axis>("KR");
-  const [subject, setSubject] = useState<string | undefined>(undefined);
+  const restored = useState(readStoredView)[0];
+  const [axis, setAxis] = useState<Axis>(restored?.axis ?? "KR");
+  const [subject, setSubject] = useState<string | undefined>(restored?.subject);
   const [data, setData] = useState<TrendResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 추림 상태는 이 화면이 들고 있는다. 응답이 바뀌면 후보 카드가 잠시 사라지는데,
+  // 상태가 그 안에 있으면 표에서 다른 대상을 고를 때마다 쓰던 메모까지 날아간다.
+  const [picked, setPicked] = useState<string[]>([]);
+  const [memo, setMemo] = useState("");
+  const [shortlist, setShortlist] = useState<ShortlistVerdict>({ kind: "idle" });
+
+  useEffect(() => {
+    storeView({ axis, subject });
+  }, [axis, subject]);
+
+  // 상세로 내려간 대상을 미리 골라 둔다 — 목업 `renderCandidates()` 와 같다. 새 응답은
+  // 새 모집단이므로(축을 바꾸면 대상 자체가 다르다) 고른 것은 거기에 맞춰 다시 세운다.
+  useEffect(() => {
+    if (!data) return;
+    setPicked(data.series.filter((s) => s.selected).map((s) => s.subject));
+  }, [data]);
 
   useEffect(() => {
     let active = true;
@@ -249,6 +300,21 @@ export function Trend() {
                 </table>
               </div>
             </div>
+
+            <Shortlist
+              series={data.series}
+              axisLabel={axisDef.label}
+              unitLabel={unitLabel}
+              firstBucket={data.basis.first_bucket}
+              latestBucket={data.basis.latest_bucket}
+              drilled={selected?.subject}
+              picked={picked}
+              setPicked={setPicked}
+              memo={memo}
+              setMemo={setMemo}
+              verdict={shortlist}
+              setVerdict={setShortlist}
+            />
           </div>
 
           <MapStrip
@@ -261,6 +327,171 @@ export function Trend() {
           />
         </>
       )}
+    </>
+  );
+}
+
+// STP-shortlist — 오늘 볼 대상 추리기. 목업(`JRN-daily-scan.html` 화면 5)이 그대로 스펙이다:
+// 서빙에 새로 물을 것이 없고(후보는 이미 받은 `series`, 선택·메모는 화면 상태), 여정 문서가
+// 「현재 범위 밖, 백로그 후보」로 파킹한 것은 **영속화(북마크·워치리스트)뿐**이라 세션 한정
+// 추림까지는 만들 수 있다. recorded 배너가 그 경계를 문면으로 직접 말한다.
+//
+// 선택자를 전부 `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다. 목업의
+// `.chk`·`.fld`·`.banner` 를 `tokens.css` 에 들이면 규칙 5 가 선언 단위로 대조하기 시작해
+// 대조면이 움직이는데, 이 슬라이스가 옮기는 것은 **문면과 동작**이지 레이아웃 선언이 아니다.
+// 배너의 초기 문면. 목업도 정적 마크업에 이 문장을 두고 제출 시점에 무엇이 모자란지에
+// 따라 덮어쓴다 — 같은 구조를 그대로 옮긴다.
+const INVALID_DEFAULT = "후보를 하나 이상 고르고 메모를 채워야 확정됩니다.";
+
+type ShortlistVerdict =
+  | { kind: "idle" }
+  | { kind: "invalid"; message: string }
+  | { kind: "recorded"; subjects: string[] };
+
+function Shortlist({
+  series,
+  axisLabel,
+  unitLabel,
+  firstBucket,
+  latestBucket,
+  drilled,
+  picked,
+  setPicked,
+  memo,
+  setMemo,
+  verdict,
+  setVerdict,
+}: {
+  series: TrendSeries[];
+  axisLabel: string;
+  unitLabel: string;
+  firstBucket: string;
+  latestBucket: string;
+  drilled?: string;
+  picked: string[];
+  setPicked: React.Dispatch<React.SetStateAction<string[]>>;
+  memo: string;
+  setMemo: (value: string) => void;
+  verdict: ShortlistVerdict;
+  setVerdict: (verdict: ShortlistVerdict) => void;
+}) {
+  function toggle(subject: string) {
+    setPicked((prev) =>
+      prev.includes(subject) ? prev.filter((s) => s !== subject) : [...prev, subject],
+    );
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const note = memo.trim();
+    // 두 실패를 한 문장으로 뭉치지 않는다 — 무엇이 모자란지 말해야 고칠 수 있다.
+    if (picked.length === 0) {
+      setVerdict({
+        kind: "invalid",
+        message: "후보를 하나 이상 고르세요 — 아무것도 남기지 않으면 오늘 볼 것이 없습니다.",
+      });
+      return;
+    }
+    if (!note) {
+      setVerdict({
+        kind: "invalid",
+        message: "왜 오늘 이것을 챙기는지 한 줄이라도 적어야 내일의 자신이 읽을 수 있습니다.",
+      });
+      return;
+    }
+    setVerdict({ kind: "recorded", subjects: picked });
+  }
+
+  const recorded = verdict.kind === "recorded" ? verdict.subjects : [];
+
+  return (
+    <>
+      <div className="card col-7">
+        <div className="card-h">
+          <h3>오늘 챙길 대상</h3>
+          <span className="sub">2~3개만 남기고 세션을 닫습니다</span>
+        </div>
+        <div className="card-b">
+          <form className="trend-sl-form" onSubmit={submit}>
+            <div className="trend-sl-field">
+              <span className="trend-sl-label">후보</span>
+              <div className="trend-sl-cands">
+                {series.map((s) => (
+                  <label className="trend-sl-cand" key={s.subject}>
+                    <input
+                      type="checkbox"
+                      name="cand"
+                      value={s.subject}
+                      checked={picked.includes(s.subject)}
+                      onChange={() => toggle(s.subject)}
+                    />
+                    {s.subject}
+                    <span className="trend-sl-share">· {pct(s.latest_share)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <label className="trend-sl-field trend-sl-memo">
+              <span className="trend-sl-label">브리핑 메모</span>
+              <textarea
+                name="shortlist-memo"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="왜 오늘 이것을 챙기는지 한 줄로 적어 두세요."
+              />
+            </label>
+
+            <div className="trend-sl-act">
+              <button type="submit" className="trend-sl-submit">
+                추림 확정하고 닫기
+              </button>
+              <span className="trend-sl-count">{picked.length}개 선택</span>
+            </div>
+          </form>
+
+          <div className="trend-sl-banner err" hidden={verdict.kind !== "invalid"}>
+            {verdict.kind === "invalid" ? verdict.message : INVALID_DEFAULT}
+          </div>
+
+          <div className="trend-sl-banner good" hidden={verdict.kind !== "recorded"}>
+            <b>오늘 볼 대상을 추렸습니다.</b>{" "}
+            {recorded.join(" · ")} — {recorded.length}개를 오늘 볼 대상으로 남겼습니다.
+            <div className="trend-sl-hint">
+              이 추림은 <b>이 세션 안에서만</b>
+              {" 유지됩니다 — 제품 안에 담아 두는 워치리스트는 아직 없습니다."}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card col-5">
+        <div className="card-h">
+          <h3>이번 스캔 요약</h3>
+          <span className="sub">닫을 때의 조건이 다음 진입에 복원됩니다</span>
+        </div>
+        <div className="card-b">
+          {/* CMP-kv */}
+          <div className="kv">
+            <span className="k">축</span>
+            <span className="v">{axisLabel}</span>
+          </div>
+          <div className="kv">
+            <span className="k">기간 · 단위</span>
+            <span className="v mono">
+              {firstBucket} ~ {latestBucket} · {unitLabel}
+            </span>
+          </div>
+          <div className="kv">
+            <span className="k">세는 방식</span>
+            <span className="v">정규화 비율</span>
+          </div>
+          <div className="kv">
+            <span className="k">상세로 내려간 대상</span>
+            <span className="v">{drilled ?? "없음"}</span>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
