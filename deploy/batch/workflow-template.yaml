@@ -104,7 +104,11 @@ spec:
           - name: ECON_LLM_BASE_URL
             value: https://api.openai.com/v1
           - name: ECON_LLM_MODEL
-            value: gpt-4o-mini
+            value: gpt-5.6-luna
+          # GPT-5.x rejects any temperature but its own default (400
+          # unsupported_value), so the field is omitted rather than pinned to 0.
+          - name: ECON_LLM_TEMPERATURE
+            value: default
           # The key is the one piece that cannot live in git. Like the `ghcr`
           # pull secret, the `econ-llm` Secret is injected into the namespace by
           # external-secrets; this manifest only names it. Declared required

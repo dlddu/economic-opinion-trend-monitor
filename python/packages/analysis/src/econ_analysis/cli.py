@@ -83,7 +83,18 @@ def main(argv: list[str] | None = None) -> int:
 
     stats: llm.AnalysisStats | None = None
     if completer is not None:
-        analyses, stats = llm.run_llm_analysis(bronze, bodies, completer, version)
+        # Replies from earlier cycles, keyed by exact prompt + model + version: the
+        # hourly cycle re-observes mostly unchanged articles, so only new or edited
+        # ones reach the model.
+        reply_cache = {
+            r["cache_key"]: r["reply"]
+            for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
+        }
+        analyses, stats, new_replies = llm.run_llm_analysis(
+            bronze, bodies, completer, version, reply_cache
+        )
+        # Keep what the model did answer even if the batch as a whole fails below.
+        store.merge_records(domain.SILVER, domain.DS_ANALYSIS_CACHE, "cache_key", new_replies)
         if stats.attempted and stats.attempted == stats.failed:
             # Nobody answered: writing now would replace good Silver with an
             # all-unanalyzed batch and blur the AC2.5 signal. Keep what is there.
@@ -91,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"analysis[llm]: all {stats.attempted} model calls failed; Silver left unchanged",
                 file=sys.stderr,
             )
+            print(f"  last error: {stats.last_error}", file=sys.stderr)
             return EXIT_ALL_CALLS_FAILED
     else:
         analyses = [
@@ -109,5 +121,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed}")
     if stats is not None:
-        print(f"  model calls: attempted={stats.attempted} failed={stats.failed}")
+        print(
+            f"  model calls: attempted={stats.attempted} failed={stats.failed} "
+            f"reused={stats.reused}"
+        )
+        if stats.failed:
+            print(f"  last error: {stats.last_error}")
     return 0

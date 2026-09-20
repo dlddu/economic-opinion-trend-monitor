@@ -10,10 +10,6 @@
 // 같은 루트의 Bronze·Silver도 함께 읽는다. 시나리오 2의 "차원별 교차 집계값이 원천 데이터와
 // 일치한다"는 Gold만 봐서는 판정할 수 없고 — 집계가 스스로 만든 값을 자기와 비교하는 꼴이다 —
 // 원천에서 **독립적으로 다시 센** 교차표와 대조해야 한다. `crossTab()`이 그 재계산이다.
-//
-// 이 디렉터리는 `specs/` 밖이다 — `tests/e2e/specs/*.spec.ts` 만이 시나리오 매칭 단위이고
-// (docs/econ-opinion-monitor-doc-tracker.md 「e2e 매핑 › 매칭 규약」), 헬퍼가 그 집합에
-// 섞이면 `check_scenario_mapping.py` 가 선언 없는 매칭 단위로 읽는다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -79,7 +75,6 @@ function readJsonlFrom<T>(dir: string, dataset: string): T[] {
   return records;
 }
 
-/** 기준 상태의 Gold 반출 디렉터리. */
 export function goldDir(): string {
   return exportedDir("E2E_GOLD_DIR");
 }
@@ -94,7 +89,6 @@ export function rollupGoldDir(): string {
   return exportedDir("E2E_GOLD_ROLLUP_DIR");
 }
 
-/** 수집량을 부풀린 상태의 Gold 반출 디렉터리. */
 export function goldSkewDir(): string {
   return exportedDir("E2E_GOLD_SKEW_DIR");
 }
@@ -122,7 +116,6 @@ export function subjectTrends(dir: string = goldDir()): SubjectTrend[] {
   return inFinestUnit(subjectTrendsAllUnits(dir));
 }
 
-/** 기본 단위의 `axis_sentiment` 행. */
 export function axisSentiments(dir: string = goldDir()): AxisSentiment[] {
   return inFinestUnit(axisSentimentsAllUnits(dir));
 }
@@ -198,7 +191,6 @@ export function cellKey(axis: string, bucket: string, subject: string): string {
   return [axis, bucket, subject].join(CELL_SEP);
 }
 
-/* ── 롤업 루트(시나리오 3) ─────────────────────────────────────────────────────────────── */
 
 /** 버킷 단위. Gold 의 `bucket_unit` 값과 같은 문자열이다. */
 export type BucketUnit = (typeof UNIT_RANK)[number];

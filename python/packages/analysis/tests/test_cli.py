@@ -150,3 +150,20 @@ def test_llm_bodyless_batch_writes_without_calling_the_model(
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
     records = [json.loads(line) for line in _silver(tmp_path).read_text().splitlines()]
     assert all(r["analysis_status"] == "unanalyzed" for r in records)
+
+
+def test_second_run_reuses_stored_replies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The hourly cycle re-observes the same articles: the second run must not re-ask.
+    _seed_lake(tmp_path)
+    reply = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    monkeypatch.setattr(llm, "http_completer", _canned(reply))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert "attempted=2 failed=0 reused=0" in capsys.readouterr().out
+    cache = (tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()
+    assert len(cache) == 2
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert "attempted=0 failed=0 reused=2" in capsys.readouterr().out
+    assert len((tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()) == 2

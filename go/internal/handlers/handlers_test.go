@@ -834,8 +834,6 @@ func TestFairnessSurvivesEmptyGold(t *testing.T) {
 	}
 }
 
-// --- trace (slice 9) ---------------------------------------------------------
-
 // writeLineage lays down one collected article, its preserved body and its
 // analysis, so the join has something to walk. The three datasets are written
 // separately on purpose — each hop of the lineage can be knocked out on its own
@@ -894,8 +892,7 @@ const (
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 )
 
-// The point of the endpoint: one record id reaches all three layers at once.
-// Before slice 9 this returned a fixed string with no lake read behind it, so
+// The point of the endpoint: one record id reaches all three layers at once, so
 // the assertion that matters is that the *stored* values come back.
 func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
 	dir := t.TempDir()

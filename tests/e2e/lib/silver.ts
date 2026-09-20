@@ -10,10 +10,6 @@
 // 분석 Job이 찍은 집계도 같이 읽는다. 저신뢰·미분석 건수와 모델 호출 실패 건수는 레코드만
 // 봐서는 "모델이 판단을 유보했다"와 "아무도 응답하지 않았다"가 구별되지 않는데, 분석 CLI는
 // 그 구별을 집계로 찍는다(`econ_analysis/cli.py`).
-//
-// 이 디렉터리는 `specs/` 밖이다 — `tests/e2e/specs/*.spec.ts` 만이 시나리오 매칭 단위이고
-// (docs/econ-opinion-monitor-doc-tracker.md 「e2e 매핑 › 매칭 규약」), 헬퍼가 그 집합에
-// 섞이면 `check_scenario_mapping.py` 가 선언 없는 매칭 단위로 읽는다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";

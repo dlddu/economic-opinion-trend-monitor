@@ -20,6 +20,7 @@ GOLD = "gold"
 DS_NEWS_ITEM = "news_item"  # bronze  -> models.NewsItem
 DS_NEWS_BODY = "news_body"  # bronze  -> models.NewsBody (content-addressed bodies)
 DS_ANALYSIS = "analysis"  # silver  -> models.Analysis
+DS_ANALYSIS_CACHE = "analysis_cache"  # silver  -> model replies keyed by prompt (not a contract)
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
 DS_AXIS_SENTIMENT = "axis_sentiment"  # gold    -> models.AxisSentiment
 

@@ -5,10 +5,6 @@
 // 3주기 연속 실행($E2E_BRONZE_CYCLES_DIR/cycleN), 분석 묶음의 입력 주기
 // ($E2E_BRONZE_ANALYSIS_DIR). 넷을 한 루트에 섞지 않는 이유는 각자의 단정이 서로의 레코드에
 // 오염되기 때문이다(정상 주기의 소스별 건수 단정이 대표적이다).
-//
-// 이 디렉터리는 `specs/` 밖이다 — `tests/e2e/specs/*.spec.ts` 만이 시나리오 매칭 단위이고
-// (docs/econ-opinion-monitor-doc-tracker.md 「e2e 매핑 › 매칭 규약」), 헬퍼가 그 집합에
-// 섞이면 `check_scenario_mapping.py` 가 선언 없는 매칭 단위로 읽는다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";

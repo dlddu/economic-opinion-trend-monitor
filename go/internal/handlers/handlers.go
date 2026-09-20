@@ -307,12 +307,7 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 // rows of one subject read in bucket order — and the chart is only honest if
 // every line is drawn on one x-axis. Two things could break that:
 //
-//   - Mixed bucket units. Gold may hold hour, day and week rows for the same
-//     subject (the contract allows all three). Plotting them together would put
-//     a week point between two hours, so the handler settles on one unit and
-//     keeps only those rows. AC3.3 has not landed yet, so today this always
-//     resolves to "hour" — the filter is what keeps the series clean when
-//     rollups do arrive.
+//   - Mixed bucket units, which plottedUnit settles before the rows are folded.
 //   - Ranking on stale rows. A subject that dominated yesterday and vanished
 //     today would outrank the current leaders if ranked on its own best row, so
 //     subjects are ordered by their share in the *latest* bucket.
@@ -402,14 +397,11 @@ func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 // against each other at one bucket.
 //
 // Gold holds one AxisSentiment row per (axis, time bucket), so handing the raw
-// rows over — which is what this route used to do — leaves the caller to decide
-// which of them are comparable, and every caller would decide differently. The
-// same two traps the trend handler documents apply, and are closed the same way:
+// rows over leaves the caller to decide which of them are comparable, and
+// every caller would decide differently. The same two traps the trend handler
+// documents apply, and are closed the same way:
 //
-//   - Mixed bucket units. Gold may carry hour, day and week rows for one axis
-//     (the contract allows all three). Stacking them on one x-axis would put a
-//     week between two hours, so one unit is settled on and the rest dropped.
-//     AC3.3 has not landed, so today this always resolves to "hour".
+//   - Mixed bucket units, which sentimentUnit settles before the series is read.
 //   - Comparing axes across buckets. Whichever row each axis happens to have
 //     would silently set a stale axis beside a fresh one, so the latest bucket
 //     is picked once and every axis is filtered to it.
@@ -457,13 +449,9 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
 // gotten by dividing raw counts. A subject that leads on raw and falls on
 // normalized was one outlet's volume, not the axis's attention.
 //
-// The two traps the other Gold readers document apply here too, and until now
-// this route closed neither:
+// The two traps the other Gold readers document apply here too:
 //
-//   - Mixed bucket units. Gold carries hour, day and week rows for the same
-//     subject since AC3.3 landed, so ranking the rows flat returned one subject
-//     three times over and ranked it against its own rollups. The unit is
-//     settled first, the same way trend does it.
+//   - Mixed bucket units, which plottedUnit settles before anything is ranked.
 //   - Ranking on stale rows. Within a unit, a subject that dominated an earlier
 //     bucket would outrank the current leaders on its own best row, so one
 //     basis bucket is picked (the latest of that unit) and every row is read
@@ -887,11 +875,6 @@ func countUnselected(series []trendSeries) int {
 	return n
 }
 
-// latestBucket returns the most recent time bucket present in Gold, with the
-// unit it was bucketed by. Bucket keys are zero-padded ISO prefixes
-// ("2026-06-23T14", "2026-06-23", "2026-W25"), so lexical max is chronological
-// max within a unit. Empty Gold yields the zero values, which the callers below
-// treat as "no rows match".
 // latestBucket picks the basis of the compare view: the newest bucket of the
 // finest unit present.
 //

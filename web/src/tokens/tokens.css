@@ -384,6 +384,9 @@ a {
 .col-7 {
   grid-column: span 7;
 }
+.col-8 {
+  grid-column: span 8;
+}
 .col-12 {
   grid-column: span 12;
 }
@@ -996,6 +999,33 @@ a {
   color: var(--ink-3);
 }
 
+/* ---- STP-drill-trend 겹쳐 보기 (trend screen) ----
+   목업 `JRN-daily-scan.html` 의 `#trend-form` 이 쓰는 `.formrow`·`.chk` 의 선언을
+   그대로 옮기고 **선택자만** `.trend-ov-` 로 접두한다 — `.trend-sl-*` 와 같은 이유다.
+   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기 시작하는데,
+   세 상한이 전부 0 이라 대조면이 그 순간 움직인다. */
+.trend-ov-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.trend-ov-chk {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+/* 차트와 겹치지 않게 폼 아래에만 간격을 준다 — 목업도 `#trendchart` 쪽
+   (`margin-top:10px`)에 같은 자리의 간격을 둔다. */
+.trend-ov-form {
+  margin-bottom: 10px;
+}
+
 /* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ----
    Every selector here is .sent-* , which `JRN-sentiment-shift.html` never
    declares. That keeps the render gate's shared-selector set unchanged: R5
@@ -1462,6 +1492,185 @@ button.norm-toggle {
   word-break: break-all;
 }
 
+/* ---- STP-shortlist (trend screen) ----
+   목업 `JRN-daily-scan.html` 화면 5 의 추림 폼·배너. 값은 목업의 대응 규칙
+   (`.fld` · `.chk` · `.banner` · `.btn.pri` · `.stepact`)에서 그대로 옮겼고,
+   **선택자만** `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다.
+   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기
+   시작하는데, 세 상한이 전부 0 이라 대조면이 그 순간 움직인다. 이 슬라이스가
+   옮기는 것은 문면과 동작이지 공용 레이아웃 선언이 아니다. */
+.trend-sl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trend-sl-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.trend-sl-cand {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.trend-sl-share {
+  color: var(--ink-3);
+}
+
+.trend-sl-memo {
+  margin-top: 18px;
+}
+
+.trend-sl-memo textarea {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-height: 74px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.trend-sl-memo textarea:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.trend-sl-act {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.trend-sl-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--primary-2);
+  box-shadow: var(--sh-1);
+}
+
+.trend-sl-submit:hover {
+  background: var(--primary-2);
+}
+
+.trend-sl-count {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.trend-sl-banner {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-top: 14px;
+}
+
+.trend-sl-banner.err {
+  background: #f6e3de;
+  border: 1px solid #dbb6ac;
+  color: #6b2e1c;
+}
+
+.trend-sl-banner.good {
+  background: var(--primary-soft);
+  border: 1px solid var(--line-3);
+  color: var(--primary-2);
+}
+
+.trend-sl-banner b {
+  font-weight: 700;
+}
+
+.trend-sl-hint {
+  margin-top: 6px;
+  color: var(--ink-2);
+}
+
+/* ---- STP-open-brief (dash screen) ----
+   목업 `JRN-daily-scan.html` 의 `오늘의 조회 조건` 카드. 값은 목업의 대응 규칙
+   (`.fld` · `.fld .fl` · `.chk` · `.emptybox`)에서 그대로 옮겼고, **선택자만**
+   `.dash-brief-` 로 접두한다 — `.trend-sl-` 과 같은 이유다. 목업이 쓰는 이름을
+   여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기 시작하는데 세 상한이
+   전부 0 이라 대조면이 그 순간 움직인다. `.col-8` 만은 예외로 같은 이름을 쓴다:
+   격자 폭은 카드마다 고르는 **수치 자체**여서 접두하면 목업과 나란히 놓고 볼 수
+   없고, 선언이 바이트 동일이라 공통 선택자가 돼도 값 충돌이 0 으로 남는다. */
+.dash-brief-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dash-brief-field .dash-brief-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.dash-brief-field input[type="search"],
+.dash-brief-field select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+.dash-brief-field input:focus,
+.dash-brief-field select:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.dash-brief-check {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+/* 검색에 걸리는 대상이 없을 때. 「데이터가 없다」와 같은 자리에 같은 모양으로
+   그리되 문면은 갈린다 — 수집이 없는 것과 검색어가 좁힌 것은 다른 사건이다. */
+.dash-brief-empty {
+  padding: 34px 18px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;
@@ -1475,9 +1684,11 @@ button.norm-toggle {
     display: none;
   }
   .col-3,
+  .col-4,
   .col-5,
   .col-6,
-  .col-7 {
+  .col-7,
+  .col-8 {
     grid-column: span 12;
   }
 }
