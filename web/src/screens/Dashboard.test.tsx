@@ -79,8 +79,6 @@ describe("Dashboard", () => {
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(2));
     fireEvent.click(container.querySelectorAll(".rankrow")[1]);
 
-    // 승계 계약의 보내는 쪽. 대상만 넘기면 받는 쪽이 축을 추측해야 하고, 그 추측이 틀리면
-    // 그 축에 없는 대상을 묻게 된다 — 그래서 축·대상이 **함께** 실려야 한다.
     await waitFor(() =>
       expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe(
         `/trend?axis=KR&subject=${encodeURIComponent("삼성전자")}`,

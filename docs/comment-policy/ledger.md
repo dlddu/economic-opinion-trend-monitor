@@ -30,6 +30,8 @@
 | 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `32faf64` | 1954 | 12 | 1942 | 112 → 112 |
 | 2026-09-20 | [scenario-spec-pass](passes/2026-09-20-scenario-spec-pass.md) | `ddaef4f` | 2201 | 42 | 2159 | 118 → 118 |
 | 2026-09-20 | [unrowed-files-pass](passes/2026-09-20-unrowed-files-pass.md) | `4ddbdaa` | 2350 | 33 | 2317 | 121 → 121 |
+| 2026-09-20 | [trend-surface-pass](passes/2026-09-20-trend-surface-pass.md) | `473b3cc` | 2398 | 38 | 2360 | 123 → 123 |
+| 2026-09-20 | [dashboard-surface-pass](passes/2026-09-20-dashboard-surface-pass.md) | `50dbd2d` | 2360 | 5 | 2355 | 123 → 122 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
@@ -55,6 +57,49 @@ unrowed-files-pass도 표적 패스다 — 판정 시점(`473a965`)에 **행이 
 `*.spec.ts` 파일이고 하네스는 매칭 단위가 아니다」를 못박는다. 주석 스스로 ②를 인용하면서 경로를
 `docs/econ-opinion-monitor-doc-tracker.md` 로 적은 것도 이미 낡아 있었다 — 그 문서는 2026-08에 월별 디렉터리
 (`docs/econ-opinion-monitor-doc-tracker/2026-09.md`)로 갈라졌다.
+
+trend-surface-pass도 표적 패스다 — 그것도 **행이 없는 파일이 아니라 ⑵(행보다 자란 파일)를 닫는**
+첫 패스다. 판정 시점(`473b3cc`)에 `web/src/screens/Trend.tsx`(35 → 75)와 `Trend.test.tsx`(12 → 35)가
+`trend` 화면이 세 번째 여정 단계와 승계 계약을 받으며 63줄을 들였고, 그 63줄은 두 파일에 **행이 있다는
+이유로** 어느 행에도 잡히지 않고 있었다. 제거 33줄 + 문면 정정 4곳(5줄 감소)의 특징은 복원처가 **같은
+커밋 안에서 함께 열렸다**는 것이다 — #79·#80·#81 이 화면을 세우며 doc-tracker 2026-09 변동 이력과
+design-tracker 행에 같은 사실을 산문으로 적었고, 주석이 그것을 다시 적었다. 같은 창이 들인
+`web/src/tokens/tokens.css`(38 → 54, 증가분 16)를 뺀 것은 열린 PR #76 이 그 파일을 수정 중이기
+때문이다(직전 두 패스가 `Fairness.tsx` 를 뺀 것과 같은 이유 — 막은 PR 번호만 바뀌었다).
+`Trend.tsx:8-21` 의 「deliberately *not* here」 두 항은 design-tracker 가 처분 시점을 「단위가
+**선택 가능해질 때**」로 못박았고 `/api/trend` 가 아직 `?unit=` 을 받지 않아 유지이며, 이 패스의
+제거분은 전부 22행 이후라 트래커가 인용한 줄 범위는 움직이지 않는다.
+
+이 패스는 **한 번 거부되고 기준 커밋을 옮겨 다시 판정했다.** 첫 판(`aca481c` 기준, 45줄 증가분)이
+준비된 사이 자매 PR #81 이 같은 두 파일에 주석 18줄을 더 들였고, 그대로 머지했다면 원장이 **읽은 적
+없는 18줄을 「판정됨」으로 인증**하면서 동시에 `현재 줄 수 == 남음` 을 만들어 계수 규약 ⑵ 가 그 18줄에
+영영 도달하지 못하게 만들 참이었다(「읽는 법」이 스스로 경고한 자리다). 그래서 #81 착지를 기다려
+기준 커밋을 `473b3cc` 로 옮기고 증가분 전량(63줄)을 다시 판정했다 — **원장 행의 `남음` 은 그 행의
+비고가 열거로 해명하는 줄 수와 같아야 하고, 숫자만 갈아끼우는 갱신은 그 불변식을 깬다.**
+
+dashboard-surface-pass도 표적 패스다 — 기준 커밋(`50dbd2d`)에서 **열린 어느 PR 에도 소유자가 없던 10줄**
+(`web/src/screens/Dashboard.tsx` 3 · `Dashboard.test.tsx` 7)만 판정했다. 그 10줄은 모두 `#81 (squash)` 한 창이
+들였고 잔여의 **두 몫에 나뉘어** 있었다 — 테스트 파일은 행이 없어 ⑴, 화면 파일은 행이 `남음 0` 이라 ⑵.
+후자를 함께 집은 것은 행을 갱신하지 않으면 **원장이 「0줄」을 계속 주장**해 원장만 읽는 다음 패스가
+재발한 주석에 도달하지 못하기 때문이다. **기준 커밋은 준비 사이 `473b3cc` 에서 `50dbd2d` 로 옮겼다** —
+자매 PR #82(trend-surface-pass)가 먼저 착지해 같은 요약 행과 패스 이력 표를 고쳤기 때문이고, 리베이스 후
+지문·잔여·행 수를 전부 재측정했다(#82 는 `Trend.*` 만 건드려 이 패스가 판정하는 10줄 자체는 움직이지 않았다).
+제거 5줄은 주석을 들인 **그 PR 자신의 본문**이 축자로 복원하는 승계 계약 근거이고(경로 ③ — 앞선 패스들이
+doc-tracker·design-tracker 로 복원한 것과 달리 **같은 PR 본문**이 복원처인 첫 사례다), 유지 5줄은 「테스트가 왜
+그 모양으로 단언하는지」라 `Sentiment.test.tsx`·`Fairness.test.tsx` 의 전량 유지와 같은 판정이다. 판정 후
+`Dashboard.tsx` 는 남음이 0 이라 지문 파일 집합에서 빠지지만 **행은 남긴다** — 지우면 다음 패스가 「아직 아무도
+보지 않은 파일」로 오해한다.
+
+**판정 표면을 수정 중인 열린 PR 이 있다 — 미루지 않고 판정한 근거.** 머지 직전 열린 PR 여섯
+(#84 · #78 · #76 · #75 · #73 · #72) 중 **#84 가 이 두 파일을 모두 수정 중**이다(앞 세 패스가 `Fairness.tsx`·
+`tokens.css` 를 뺀 것과 같은 상황). 그럼에도 뺀 것이 아니라 판정한 것은, #84 가 하는 일이 `오늘의 조회 조건`
+카드를 들이며 **주석 31줄을 새로 더하는 것**이고 이 패스가 지우는 5줄과는 **줄이 겹치지 않기** 때문이다 —
+제거 대상 문장(「축을 추측해야 하고」)을 #84 의 두 파일 패치에서 축자로 찾으면 0히트이고, 패치 헝크도
+제거 지점(`Dashboard.tsx:112-114` · `Dashboard.test.tsx:78-79`)을 비껴간다. 더 중요한 것은 **착지 순서와
+무관하게 그 31줄이 묻히지 않는다**는 점이다: 이 패스 뒤 두 파일 모두 행을 가지므로, #84 가 뒤에 착지하면
+그 증가분은 계수 규약 ⑵ 로 다음 패스에 그대로 도달한다(두 행의 `남음` 0 · 5 는 착지 시점 실측값이라
+⑵ 가 0 을 내지 않는다). 앞 패스들이 파일을 뺀 이유는 「판정 근거가 낡은 트리에서 세워지는 것」이었고,
+여기서는 판정 근거(복원 경로 ③)가 #84 가 더하는 줄과 무관하므로 그 위험이 성립하지 않는다.
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -175,9 +220,10 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/screens/Fairness.test.tsx` | 16 | 0 | 16 | **unrowed-files-pass** — 전량 유지. `Sentiment.test.tsx`·`Trend.test.tsx` 와 같은 유형이다 — 전부 「테스트가 왜 그 모양으로 단언하는지」이고 단정·픽스처 어느 쪽을 읽어도 복원되지 않는다. 유지: 스텁이 모든 기대값의 출처이고 리터럴을 두 번 적지 않는다는 설계, 그 스텁이 화면의 존재 이유가 되는 사례를 실어 나른다는 것(「와이어 도배」가 원시 100건 중 60건을 쥐고도 정규화 점유율은 1/4 이라 두 계수 방식이 축을 다르게 세운다), 토글이 정직하려면 눌렀을 때 화면이 말하는 바가 바뀌어야 한다는 단정 근거, 열지 못하는 두 단계를 빈 화면으로 잇지 않고 사유와 함께 이름 댄다는 **허위 컨트롤 금지** |
 | `web/src/screens/Sentiment.tsx` | 56 | 2 | 54 | **product-surface-pass** — 제거 2줄: 머리의 AC 배너 `// AC3.4 (축별·분위기별 비율 집계, 미분석 분리) + AC3.6 (분위기 비율 시각화).` 와 매달린 `//`. 제거 유형 「작업 흔적」이고 AC↔화면 대응은 `docs/econ-opinion-monitor-design-tracker.md` 「구현 전용 — mapstrip 칩」 행과 doc-tracker e2e 매핑이 복원한다(경로 ②). initial-pass가 `Compare.tsx`에서 `AC3.7 … (J2 / V2)` 배너를 지운 것과 같은 자리·같은 근거이고, 판정 후 머리가 `Compare.tsx`와 같은 형태(배너 없이 바로 설계 근거)가 된다. 유지 54줄: 미분석을 네 분류에 접지 않는 이유, 도넛이 analyzed 몫으로 닫히는 근거, `PAT-stacked-sentiment` 의 「막대 높이는 구성이지 규모가 아니다」, `CMP-*` 앵커. **판단 분기 — design-tracker 가 승격 등재한 두 블록**(허위 컨트롤 판단 `:24-29`·`:30-33`, 고정 임계 사유 `:55-58`)은 트래커가 「기록 위치를 승격한다」고 적어 복원 경로 ②가 성립하나, 트래커 행들이 이 블록을 **줄 번호로 인용**하고 있어 제거가 자매 모델 행의 처분과 묶인다. 「애매하면 남긴다」로 유지하고 트래커의 처분 시점에 다시 본다 |
 | `web/src/screens/Sentiment.test.tsx` | 21 | 0 | 21 | **product-surface-pass** — 전량 유지. 「기대값을 상수로 박지 않는다」는 단언 설계 근거, 스케일 상수가 상쇄되므로 비율만 비교한다는 근거, 한 document 를 공유해 행 단위로 스코프하는 이유(자동 cleanup 부재) — 모두 「테스트가 왜 그 모양으로 단언하는지」 |
-| `web/src/screens/Trend.tsx` | 35 | 0 | 35 | **product-surface-pass** — 줄 수 불변, 문면 정정 1곳: 머리 첫 줄의 `AC3.5 — 대상 추세 상세.` 접두 삭제(위 `Sentiment.tsx` 와 같은 AC 배너 유형이나 산문과 한 줄에 붙어 있어 줄 삭제로는 근거까지 지워진다 — `deploy/base/kustomization.yaml` 의 문면 정정 선례). 유지: 한 x축 공유·결측 버킷을 공백으로 두는 근거, 색 배정 규칙, 눈금 반올림 이유. **판단 분기 — `:8-21` 의 「deliberately *not* here」 두 항**은 design-tracker 가 같은 사유를 등재하면서 **AC3.3 롤업 착지 시 이 주석과 함께 걷어낸다**고 처분 시점을 못박았다. 지금 지우면 자매 모델의 예약된 처분을 앞질러 집행하는 것이라 유지 |
-| `web/src/screens/Trend.test.tsx` | 12 | 0 | 12 | **product-surface-pass** — 전량 유지. 「상승 점유율이 falling y 로 와야 한다 — 반전 스케일을 잡는다」, 비교 표가 피커를 겸하는 이유(비교 집합 자체가 선택에 의존해 서버에서 풀린다), 「모든 버튼은 무언가를 해야 한다」 단언의 근거 |
-| `web/src/screens/Dashboard.tsx` | 1 | 1 | 0 | 제거 1줄 — '다른 6화면은 플레이스홀더'(README「범위」재진술이며 compare 착지 후 낡음) |
+| `web/src/screens/Trend.tsx` | 75 | 25 | 47 | **trend-surface-pass — 재판정.** 직전 판정(product-surface-pass, 35줄) 이후 #62·#79·#80·#81 이 40줄을 들였고 그 증가분만 처분했다. 제거 25줄 — **승계 계약 머리 8줄**(`#81` 이 같은 커밋 안에서 복원 경로 ②를 열었다: design-tracker 「승계 표면 전체」 행이 「`Dashboard.tsx` 의 순위 행이 `/trend?axis=<축>&subject=<대상>` 으로 보내고 `Trend.tsx` 가 `useSearchParams` 로 그 쿼리를 읽어 **쿼리 > 세션** 으로 진입 조건을 정한다」를, doc-tracker 2026-09 행이 「쿼리가 한 조각이라도 있으면 진입 조건 전체를 쿼리가 정한다 — 축만 넘어온 진입에 세션의 대상을 섞으면 그 축에 없을 수도 있는 대상을 묻게 되기 때문이다」를 **축자로** 적는다. 실패 모드(「dash 에서 X 를 눌러도 세션에 남은 다른 대상 Y 의 상세가 열렸다」)도 두 문서와 `#81` 본문이 같이 적는다. 메커니즘 자체는 바로 아래 `entryView` 가 네 줄로 복원한다 — `if (axis !== undefined \|\| subject !== undefined) return { axis, subject }; return restored ?? {};` 가 「한 조각이라도 있으면 전체를 쿼리가 정한다」와 「쿼리 > 세션」 둘 다이므로 경로 ①·② 중복) · 여정 단계 귀속 6줄(주석이 자기 복원처 「mockup index, 「흡수된 화면의 판정 경계」」를 이름으로 지목하고, design-tracker 「한 화면의 귀속 단계가 여러 여정 페이지에 흩어질 수 있다」가 같은 세 단계를 다시 적는다) · 조회 조건 복원 근거 4줄 · 추림 화면 머리 5줄 · 배너 초기 문면의 구조 설명 2줄(목업 `#invalid-msg` 정적 마크업이 복원). 앞 셋은 doc-tracker 2026-09 의 #79·#80 행이 **같은 커밋 안에서** 축자로 복원한다. **문면 정정 2곳(3줄 감소)**: 구간 평균 머리 4줄 → 2줄(서빙 무접촉·`avg(s.s)` 재진술만 걷고 「왜 현재 점유율 옆인가」는 유지 — `Compare.tsx` 의 제품 의미론 계열), `.trend-sl-` 가드 3줄 → 2줄(README 가드 항 「메커니즘을 담지 않는다 … 금지만 말하고 출처를 가리킨다」 — pin-guard-pass 선례). 유지 47줄: 직전 패스 판정분 35줄 전량(차트가 답하는 질문 · 색 배정 · viewBox 상수 · `bucketTick` JSDoc · 축 전환 시 선택 해제 · `CMP-*`/`PAT-*` 앵커 · 눈금 반올림)과 이 창이 들인 12줄(스토리지 실패를 **왜** 삼키는지 2 · 추림 상태 소유의 비자명한 결과 2 · 후보 재계산의 모집단 근거 2 — ⑸에서 테스트 쪽 사본을 지우며 이 자리를 설명의 주인으로 지목했다 · 정정 후 남은 4 · `{/* CMP-kv */}` 앵커 1 — `check-mockup-render.py` 의 `markers()` 가 **주석에서** R3 대조 모집단을 긁으므로 지우면 게이트가 깨진다 · 두 실패를 뭉치지 않는다 1). **판단 분기 — `:8-21` 의 「deliberately *not* here」 두 항**은 유지가 유효하다: design-tracker 「구현 전용 — 버킷 단위 안내 `note`」 행이 처분 시점을 「서빙이 단위를 고르는 파라미터를 받아 **단위가 선택 가능해질 때**」로 적고 「AC3.3 롤업 착지(2026-09-19)만으로는 열리지 않는다」까지 괄호로 못박았으며 `/api/trend` 는 아직 `?unit=` 을 받지 않는다. 이 패스의 제거분은 전부 **22행 이후**라 트래커가 줄 번호로 인용한 `:8-21` 범위는 움직이지 않는다 |
+| `web/src/screens/Trend.test.tsx` | 35 | 8 | 25 | **trend-surface-pass — 재판정.** 직전 판정(product-surface-pass, 12줄) 이후 #79·#80·#81 이 23줄을 들였다. 제거 8줄 — **`#81` 이 들인 진입 쿼리 테스트 셋의 주석 7줄**: ⑴ 「승계 계약의 받는 쪽 … 쿼리를 읽지 않으면 `subject=` 없는 축 기본 질의가 나간다」 2줄은 테스트 **이름**(`opens the subject the entry query names, not the axis default`)과 바로 아래 두 단정이 그대로 복원하고, 실패 모드는 design-tracker 승계 행이 적는다 ⑵ 「축만 넘어온 진입은 그 축의 기본 화면이다」 1줄은 `expect(urls[0]).not.toContain("subject=")` 한 줄의 재진술 ⑶ 「세션에는 지난번에 두고 간 대상이 남아 있다」 1줄은 바로 아래 네 줄(렌더 → 행 클릭 → `unmount`)의 코드 나레이션(경로 ①) ⑷ 역전 서술 3줄(「누른 것은 `기준금리` 인데 세션에 남은 `삼성전자` 의 상세가 열린다 … 이것이 이 슬라이스가 닫는 역전이다」)은 design-tracker·doc-tracker·`#81` 본문 **셋 다** 같은 실패 모드를 적고, 마지막 절의 슬라이스 귀속은 initial-pass 가 세운 제거 유형 ③「작업 흔적」이다. 나머지 1줄 — `// 상세로 내려간 대상은 미리 골라 둔다(목업 renderCandidates()).` 는 `Trend.tsx` 의 같은 문장과 괄호 표기만 다르다(제거 유형 「다른 파일 주석의 재진술 — 설명의 주인에만 둔다」, 주인은 그 동작을 하는 구현 쪽 · `analyze-job-agg.yaml` env 주석 선례). **문면 정정 2곳(2줄 감소)**: ⑴ 「모든 버튼은 무언가를 해야 한다」 4줄 → 3줄 — **앞 패스의 유지를 뒤집은 것이 아니라 참이었다가 거짓이 된 절을 걷었다.** 「would have nothing behind it **until AC3.3 lands**」의 전제는 `32faf64`(#62) 로 AC3.3 이 착지하며 무너졌고 같은 커밋이 `Trend.tsx` 머리의 같은 변호는 고쳤으나 이 줄만 놓쳤다(정책의 「되풀이된 주석이 낡아 틀려 있으면 제거 근거가 강해진다」). ⑵ 파킹 사실 재진술 2줄 → 1줄(앞 문장은 여정 문서·mockup 인덱스·doc-tracker 가 복원하는 세 번째 사본). 유지 25줄: 직전 판정분 11줄(반전 스케일 · 비교 표가 피커를 겸하는 이유 · 정정 후 남은 단언 설계), 이 창이 들인 11줄 — 세션 정리 2(자동 cleanup 부재라는 하네스 사실), 서빙 무접촉의 **관측처 지정** 1(「여기서 보인다」 — 사실을 적은 doc-tracker 행으로는 복원되지 않는다), 배너 지목 2 · 재진입 2 · 정정 후 1, **판단 분기** 구간 평균 대조 3 — 그리고 **`#81` 이 들인 `renderTrend` 헬퍼의 JSDoc 3줄**. 이 셋은 위 제거 7줄과 달리 유지다: 「`entry` 가 곧 `Dashboard` 가 `navigate()` 로 밀어 넣는 주소다」는 이 파일의 기본 인자 `= "/trend"` 가 **왜 그 값인지**(쿼리 없는 직접 진입 = 네비게이션 바)를 제품 쪽 동선에 붙여 설명하는 하네스 전제이고, 단정이나 `MemoryRouter` 래핑 어느 쪽을 읽어도 「이 문자열은 대시보드가 미는 주소와 같은 것」이라는 대응은 복원되지 않는다. 「애매하면 남긴다」의 적용이기도 하다 — 네 테스트 파일의 하네스 설명 전량 유지와 일관(doc-tracker #79 행 검증 좌표가 같은 숫자를 적어 경로 ②가 성립할 여지가 있으나 그 행은 갱신되지 않는 변동 이력이고, 주석의 요지는 숫자가 아니라 「헤드라인 값을 베끼는 구현이 여기서 실패한다」는 픽스처 설계다 — 네 테스트 파일의 같은 유형 전량 유지와 일관). **범위 밖 관측**: 같은 테스트의 **이름** `does not offer a bucket-unit switch while rollups are unimplemented` 도 같은 이유로 낡았으나 테스트 이름은 지문의 판정 표면이 아니라 건드리지 않았다 |
+| `web/src/screens/Dashboard.tsx` | 3 | 3 | 0 | **dashboard-surface-pass — 재판정.** 직전 판정(initial-pass) 뒤 남음이 0 이었는데 `#81 (squash)` 이 순위 행에 3줄을 들였다. 제거 3줄 — 승계 계약의 근거(「축을 함께 넘기지 않으면 받는 쪽이 축을 추측해야 하고, 그 추측이 틀리면 그 축에 없는 대상을 묻게 된다」). **그 주석을 들인 PR 자신의 본문** 표 `Dashboard.tsx` 행이 같은 문장을 축자로 적고(경로 ③), 첫 문장은 바로 아래 `` navigate(`/trend?axis=${axis}&subject=…`) `` 가 말하며(경로 ①), design-tracker `:309` 가 같은 계약을 한 번 더 적는다(경로 ②) — 한 계약의 근거가 주석 3벌 + PR 본문 + 트래커 행으로 존재하던 자리다. 판정 후 남음 0 이라 지문 파일 집합에서 빠지지만 행은 남긴다 |
+| `web/src/screens/Dashboard.test.tsx` | 7 | 2 | 5 | **dashboard-surface-pass** — `#81 (squash)` 이 신설한 파일의 첫 판정. 제거 2줄: 위 `Dashboard.tsx` 와 **같은 문장의 세 번째 사본**(제거 유형 「다른 파일 주석의 재진술 — 설명의 주인에만 둔다」이며 이 파일은 주인이 아니다). 무엇을 단언하는지는 테스트 이름 `sends both the axis and the subject when a rank row drills into the trend` 가 말하고, 그 이름은 design-tracker `:309` 가 **검증 좌표로 직접 인용**하고 있어 계약↔단언 연결은 문서 쪽에 남는다. 유지 5줄: vitest 자동 cleanup 부재 2(`globals: true` 의 **부재**라 어느 파일도 적극적으로 말하지 않는다 — `Sentiment.test.tsx` 의 같은 유지와 같은 근거), 축 전환 스텁 설계 2(스텁이 축에 무감각해서 「화면 상태를 읽는 구현」과 「응답 본문을 베끼는 구현」을 가른다 — 픽스처 판별력은 단언·픽스처 어느 쪽을 읽어도 복원되지 않는다), **판단 분기** 도착 주소 JSDoc 1. **판단 분기** — `:53` `/** 라우트가 실제로 어디로 갔는지 읽는다 — 링크 문자열이 아니라 도착 주소를 단정한다. */` 는 #81 본문이 거의 같은 말을 해 경로 ③이 성립할 여지가 있으나, local 헬퍼 `Landing` 의 이름이 그 역할을 말하지 않고 담긴 것이 제품 계약의 변호가 아니라 **단언 설계**라 「애매하면 남긴다」로 유지했다 |
 | `web/src/screens/Placeholder.tsx` | 3 | 0 | 3 | 유지 — 플레이스홀더가 증명하는 것 |
 | `web/src/shell/AppShell.tsx` | 1 | 0 | 1 | 유지 — 디자인 시스템 패턴 식별자(PAT-screen-shell) |
 | `web/src/shell/MapStrip.tsx` | 2 | 0 | 2 | 유지 — 컴포넌트 식별자, 목업을 따르는 칩 구분자 규약 |
@@ -185,4 +231,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **unrowed-files-pass 기준 · 레포 전체** | **2350** | **33** | **2317** | 지문 값(`4ddbdaa` → 이 패스 후). 이 표는 그중 **120개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 659줄**이다: ⑴ 아직 행이 없는 파일 **4개 99줄**(`web/src/screens/Fairness.tsx` 37 — 판정 시점에 열린 PR #70이 수정 중이라 이 패스가 뺐다 · `web/src/screens/Trace.tsx` 36 · `web/src/screens/Trace.test.tsx` 20 · `go/internal/store/store_test.go` 6 — 셋 다 #70이 들인 신규 파일), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **12파일 560줄**(`go/internal/handlers/handlers.go` 24→252 · `handlers_test.go` 14→120 · `tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `scripts/check-journey-mockup.py` 42→65 · `test_aggregate.py` 1→19 · `go/internal/store/store.go` 12→29 · `web/src/tokens/tokens.css` 38→53 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `econ_aggregation/aggregate.py` 11→15 · `python/packages/ingestion/tests/test_feeds.py` 21→24). ⑴의 넷과 ⑵ 열두 파일 중 여섯(`handlers.go`·`handlers_test.go`·`types.ts`·`client.ts`·`tokens.css`·`store.go`)은 PR #70이 이미 머지돼(`4ddbdaa`) 재판정 트리가 고정됐다 — 재감지가 새 task로 잇는다 |
+| **dashboard-surface-pass 기준 · 레포 전체** | **2360** | **5** | **2355** | 지문 값(`50dbd2d` → 이 패스 후). 이 표는 그중 **121개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 667줄**이다: ⑴ 아직 행이 없는 파일 **4개 101줄**(`web/src/screens/Fairness.tsx` 37 — 세 패스 연속으로 열린 PR(#70 → **#76**)이 수정 중이라 빠졌다 · `web/src/screens/Trace.tsx` 36 · `web/src/screens/Trace.test.tsx` 22 — 둘 다 열린 **#78** 이 판정 중이다 · `go/internal/store/store_test.go` 6), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **13파일 566줄**(`go/internal/handlers/handlers.go` 24→252 · `handlers_test.go` 14→120 · `tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `scripts/check-journey-mockup.py` 42→65 · `python/packages/aggregation/tests/test_aggregate.py` 1→19 · `go/internal/store/store.go` 12→29 · `web/src/tokens/tokens.css` 38→54 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` 48→53 · `econ_aggregation/aggregate.py` 11→15 · `python/packages/ingestion/tests/test_feeds.py` 21→24). 직전 요약(trend-surface-pass)이 적은 677 은 이 패스의 기준 커밋 `50dbd2d` 에서 **재측정으로 전건 재현한 값**이고, 이 패스가 닫은 10줄(`Dashboard.test.tsx` 7 은 ⑴, `Dashboard.tsx` 3 은 ⑵)을 빼 667 이 된다. **열린 PR #78 이 같은 요약 행을 고치고 있고, #84 는 판정한 두 파일에 주석 31줄을 더하고 있다** — 둘 중 무엇이 먼저 머지되든 참값은 각자의 몫을 합친 값이므로, 나중에 머지되는 쪽이 이 행을 **재측정해서** 다시 쓴다(같은 문자열을 쓰면 충돌 없이 조용히 틀린 값이 남는다). |

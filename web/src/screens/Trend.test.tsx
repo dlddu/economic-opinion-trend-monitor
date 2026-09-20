@@ -178,8 +178,7 @@ describe("Trend", () => {
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
     // Every button on the screen must do something: only the axis segment (3)
     // is a button — subject selection rides on the comparison table's rows. A
-    // 시간/일/주 switch would have nothing behind it until AC3.3 lands, so it
-    // must not be drawn.
+    // 시간/일/주 switch has nothing behind it, so it must not be drawn.
     const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent ?? "");
     expect(labels.filter((l) => ["시간", "일", "주"].includes(l.trim()))).toHaveLength(0);
     expect(container.querySelectorAll(".seg button")).toHaveLength(3);
@@ -196,7 +195,6 @@ describe("Trend", () => {
     );
     // 후보는 이미 받은 비교 대상이다 — 서빙에 새로 묻는 것이 없다는 사실이 여기서 보인다.
     expect(boxes.map((b) => b.value)).toEqual(["기준금리", "삼성전자"]);
-    // 상세로 내려간 대상은 미리 골라 둔다(목업 `renderCandidates()`).
     expect(boxes.map((b) => b.checked)).toEqual([true, false]);
     expect(container.querySelector(".trend-sl-count")?.textContent).toBe("1개 선택");
   });
@@ -244,8 +242,7 @@ describe("Trend", () => {
     expect(good.hidden).toBe(false);
     expect(good.textContent).toContain("오늘 볼 대상을 추렸습니다.");
     expect(good.textContent).toContain("기준금리 · 삼성전자 — 2개를 오늘 볼 대상으로 남겼습니다.");
-    // 영속화는 여정 문서가 파킹한 항목이다. 배너가 그 경계를 직접 말해야, 화면이
-    // 하지 않는 일을 한다고 읽히지 않는다.
+    // 배너가 경계를 직접 말해야, 화면이 하지 않는 일을 한다고 읽히지 않는다.
     expect(good.textContent).toContain("이 세션 안에서만");
     expect(good.textContent).toContain("워치리스트는 아직 없습니다");
     expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
@@ -283,8 +280,6 @@ describe("Trend", () => {
     const urls = stubTrend([response("삼성전자")]);
     renderTrend(`/trend?axis=KR&subject=${encodeURIComponent("삼성전자")}`);
 
-    // 승계 계약의 받는 쪽: `Dashboard` 가 순위 행으로 밀어 넣은 대상이 **첫 질의**여야
-    // 한다. 쿼리를 읽지 않으면 여기서 `subject=` 없는 축 기본 질의가 나간다.
     await waitFor(() => expect(urls).toHaveLength(1));
     expect(urls[0]).toContain("axis=KR");
     expect(urls[0]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
@@ -296,12 +291,10 @@ describe("Trend", () => {
 
     await waitFor(() => expect(urls).toHaveLength(1));
     expect(urls[0]).toContain("/api/trend?axis=US");
-    // 축만 넘어온 진입은 그 축의 기본 화면이다 — 대상은 아직 고르지 않았다.
     expect(urls[0]).not.toContain("subject=");
   });
 
   it("lets the entry query beat the session the reader left behind", async () => {
-    // 세션에는 지난번에 두고 간 대상이 남아 있다.
     const first = stubTrend([response(), response("삼성전자")]);
     const left = renderTrend();
     await waitFor(() => expect(left.container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
@@ -309,9 +302,6 @@ describe("Trend", () => {
     await waitFor(() => expect(first).toHaveLength(2));
     left.unmount();
 
-    // 그 상태에서 대시보드가 **다른** 대상으로 보낸다. 쿼리가 이기지 않으면 누른 것은
-    // `기준금리` 인데 세션에 남은 `삼성전자` 의 상세가 열린다 — 상세로 내려간 것처럼
-    // 보이면서 다른 대상을 보고 있는 상태이고, 이것이 이 슬라이스가 닫는 역전이다.
     const urls = stubTrend([response()]);
     renderTrend(`/trend?axis=KR&subject=${encodeURIComponent("기준금리")}`);
 

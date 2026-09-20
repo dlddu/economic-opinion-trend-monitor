@@ -208,9 +208,6 @@ export function Dashboard() {
                       key={row.subject}
                       className="rankrow"
                       style={{ cursor: "pointer" }}
-                      // 승계 계약의 보내는 쪽 — 상세는 지금 보고 있는 축의 이 대상을 열어야
-                      // 한다. 축을 함께 넘기지 않으면 받는 쪽이 축을 추측해야 하고, 그 추측이
-                      // 틀리면 그 축에 없는 대상을 묻게 된다.
                       onClick={() =>
                         navigate(`/trend?axis=${axis}&subject=${encodeURIComponent(row.subject)}`)
                       }
