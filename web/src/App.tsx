@@ -5,11 +5,12 @@ import { Dashboard } from "./screens/Dashboard";
 import { Fairness } from "./screens/Fairness";
 import { Placeholder } from "./screens/Placeholder";
 import { Sentiment } from "./screens/Sentiment";
+import { Trace } from "./screens/Trace";
 import { Trend } from "./screens/Trend";
 import { SCREENS } from "./shell/nav";
 
 // Screens that have landed as real views; the rest still render Placeholder.
-const BUILT = new Set(["dash", "compare", "trend", "sentiment", "fairness"]);
+const BUILT = new Set(["dash", "compare", "trend", "sentiment", "fairness", "trace"]);
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/trend" element={<Trend />} />
         <Route path="/sentiment" element={<Sentiment />} />
         <Route path="/fairness" element={<Fairness />} />
+        <Route path="/trace" element={<Trace />} />
         {SCREENS.filter((s) => !BUILT.has(s.id)).map((s) => (
           <Route key={s.id} path={s.path} element={<Placeholder screen={s} />} />
         ))}

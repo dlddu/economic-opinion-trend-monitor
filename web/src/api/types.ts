@@ -146,3 +146,77 @@ export interface CompareResponse {
   };
   axes: AxisColumn[];
 }
+
+/** One hop of the Bronze → Silver → Gold path (`CMP-crumb`). */
+export interface TraceCrumbStep {
+  layer: "bronze" | "silver" | "gold";
+  label: string;
+  /** False when that hop has no record — the chain is drawn broken, not hidden. */
+  present: boolean;
+}
+
+/**
+ * The collected article (AC1.4, AC1.5, AC1.7).
+ *
+ * `body_available` and `body_preserved` are two different facts and neither
+ * substitutes for the other: the first is what the source looked like at
+ * collection time, the second is whether this lake still holds the text. When
+ * they disagree — a link that has since rotted — the preserved copy is the only
+ * thing left to read, which is the whole reason the screen keeps both.
+ */
+export interface TraceBronze {
+  record_id: string;
+  source_id: string;
+  axis: string;
+  title: string;
+  source_url: string;
+  body_hash: string;
+  body_available: boolean;
+  body_preserved: boolean;
+  body_text: string;
+  body_first_seen_at: string;
+  body_first_seen_cycle: string;
+}
+
+/**
+ * The analysis verdict for the same record (AC2.1–AC2.5).
+ *
+ * `sentiment` is nullable because "set aside" is an outcome, not a missing
+ * value — AC2.5 keeps low-confidence records out of the four classes instead of
+ * guessing one.
+ */
+export interface TraceSilver {
+  analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
+  sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
+  target_countries: string[];
+  narrative_subjects: string[];
+  confidence: number;
+  analyzed_at: string;
+  analyzer_version: string;
+}
+
+/** Provenance metadata ingestion is required to keep (AC1.5). */
+export interface TraceIngestion {
+  collected_at: string;
+  collection_cycle: string;
+  rank: number;
+  view_count: number;
+}
+
+/**
+ * One record's lineage, with each layer reported separately.
+ *
+ * `found=false`, a null `silver` and `bronze.body_preserved=false` mean three
+ * different things — never collected, never analyzed, text not kept — and the
+ * screen says which rather than printing one "no data".
+ */
+export interface TraceResponse {
+  record_id: string;
+  /** How `record_id` was arrived at, so a fallback never reads as a hit. */
+  selection: "requested" | "auto" | "requested-missing" | "empty";
+  found: boolean;
+  crumb: TraceCrumbStep[];
+  bronze: TraceBronze | null;
+  silver: TraceSilver | null;
+  ingestion: TraceIngestion;
+}

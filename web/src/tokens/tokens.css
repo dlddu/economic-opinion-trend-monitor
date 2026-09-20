@@ -1297,6 +1297,108 @@ button.norm-toggle {
   font-size: 24px;
 }
 
+/* PAT-lineage — 원문 계보 추적.
+   선택자를 전부 `.trace-` 로 접두한다: 목업과 이름을 공유하면 규칙 5가 선언 단위로
+   대조하는데, 이 화면의 조회 폼·계보 스트립은 목업이 인라인 스크립트로 조립하는
+   구조와 달라 그 대조가 신호를 주지 못한다. */
+.trace-lookup {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.trace-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trace-field-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.trace-field input {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 6px 9px;
+  min-width: 220px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.trace-lookup button {
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 7px 12px;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+/* CMP-crumb — 끊긴 홉을 숨기지 않는다. 없는 계층을 흐리게 두는 것이 이 스트립의
+   유일한 시각적 주장이다: 「분석 없음」과 「수집 없음」은 독자에게 다른 뜻이다. */
+.trace-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.trace-crumb-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 4px 9px;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.trace-crumb-gap {
+  color: var(--ink-3);
+  border-style: dashed;
+  background: none;
+}
+
+.trace-crumb-sep {
+  margin: 0 4px;
+  color: var(--ink-3);
+}
+
+.trace-auto {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  margin-left: 4px;
+}
+
+.trace-side {
+  align-content: start;
+  gap: 12px;
+}
+
+/* 보존된 원문. 판정 재료라 읽히는 것이 목적이므로 본문 조판에 맞춘다. */
+.trace-body {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+}
+
+/* 주소·해시는 접어서라도 전부 보여 준다 — 잘라 내면 대조에 못 쓴다. */
+.trace-url {
+  word-break: break-all;
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;

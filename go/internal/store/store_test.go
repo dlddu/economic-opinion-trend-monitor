@@ -43,3 +43,114 @@ func TestMissingDatasetReadsEmpty(t *testing.T) {
 		t.Fatalf("want empty, got %d", len(got))
 	}
 }
+
+// Lineage needs Bronze and Silver, not Gold — and the body lives in its own
+// dataset, keyed by hash rather than by record, because one body can back
+// several observations (AC1.7).
+func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
+	dir := t.TempDir()
+	for _, layer := range []string{"bronze", "silver"} {
+		if err := os.MkdirAll(filepath.Join(dir, layer), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	item := `{"record_id":"r-1","source_id":"src-a","axis":"KR","rank":1,"view_count":120,` +
+		`"title":"기준금리 동결","source_url":"https://ex.test/1","body_hash":"h1",` +
+		`"body_available":true,"collected_at":"2026-06-23T14:05:00Z","collection_cycle":"2026-06-23T14"}`
+	body := `{"body_hash":"h1","raw_text":"본문 전문","first_seen_at":"2026-06-23T14:05:00Z",` +
+		`"first_seen_cycle":"2026-06-23T14"}`
+	analysis := `{"record_id":"r-1","source_url":"https://ex.test/1","target_countries":["KR"],` +
+		`"narrative_subjects":["한국은행 기준금리"],"sentiment":"neutral","analysis_status":"analyzed",` +
+		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
+	for _, f := range []struct{ layer, name, content string }{
+		{"bronze", "news_item", item},
+		{"bronze", "news_body", body},
+		{"silver", "analysis", analysis},
+	} {
+		p := filepath.Join(dir, f.layer, f.name+".jsonl")
+		if err := os.WriteFile(p, []byte(f.content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	lake := New(dir)
+
+	items, err := lake.NewsItems()
+	if err != nil {
+		t.Fatalf("NewsItems: %v", err)
+	}
+	if len(items) != 1 || items[0].RecordID != "r-1" || items[0].Axis != gen.AxisKR {
+		t.Fatalf("news_item decoded wrong: %+v", items)
+	}
+	if !items[0].BodyAvailable || items[0].BodyHash != "h1" || items[0].ViewCount != 120 {
+		t.Errorf("news_item numerics/flags decoded wrong: %+v", items[0])
+	}
+
+	bodies, err := lake.NewsBodies()
+	if err != nil {
+		t.Fatalf("NewsBodies: %v", err)
+	}
+	if len(bodies) != 1 || bodies[0].BodyHash != "h1" || bodies[0].RawText != "본문 전문" {
+		t.Fatalf("news_body decoded wrong: %+v", bodies)
+	}
+
+	analyses, err := lake.Analyses()
+	if err != nil {
+		t.Fatalf("Analyses: %v", err)
+	}
+	if len(analyses) != 1 || analyses[0].RecordID != "r-1" {
+		t.Fatalf("analysis decoded wrong: %+v", analyses)
+	}
+	if analyses[0].Sentiment == nil || *analyses[0].Sentiment != gen.SentimentNeutral {
+		t.Errorf("sentiment decoded wrong: %+v", analyses[0])
+	}
+	if analyses[0].AnalysisStatus != gen.AnalysisStatusAnalyzed || analyses[0].AnalyzerVersion != "v3" {
+		t.Errorf("analysis status/version decoded wrong: %+v", analyses[0])
+	}
+}
+
+// A null sentiment is a value, not a decode failure — AC2.5 sets low-confidence
+// records aside rather than forcing them into one of the four classes.
+func TestAnalysisDecodesNullSentiment(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "silver"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	line := `{"record_id":"r-9","source_url":"https://ex.test/9","target_countries":[],` +
+		`"narrative_subjects":[],"sentiment":null,"analysis_status":"unanalyzed",` +
+		`"confidence":0.1,"analyzed_at":"2026-06-23T14:41:00Z","analyzer_version":"v3"}`
+	if err := os.WriteFile(filepath.Join(dir, "silver", "analysis.jsonl"), []byte(line+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := New(dir).Analyses()
+	if err != nil {
+		t.Fatalf("Analyses: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("want 1 record, got %d", len(got))
+	}
+	if got[0].Sentiment != nil {
+		t.Errorf("null sentiment decoded into a class: %v", *got[0].Sentiment)
+	}
+	if got[0].AnalysisStatus != gen.AnalysisStatusUnanalyzed {
+		t.Errorf("status decoded wrong: %+v", got[0])
+	}
+}
+
+// Bronze and Silver are absent until the pipeline has run, exactly like Gold.
+func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
+	lake := New(t.TempDir())
+	items, err := lake.NewsItems()
+	if err != nil || len(items) != 0 {
+		t.Errorf("NewsItems on an empty lake: %v / %d", err, len(items))
+	}
+	bodies, err := lake.NewsBodies()
+	if err != nil || len(bodies) != 0 {
+		t.Errorf("NewsBodies on an empty lake: %v / %d", err, len(bodies))
+	}
+	analyses, err := lake.Analyses()
+	if err != nil || len(analyses) != 0 {
+		t.Errorf("Analyses on an empty lake: %v / %d", err, len(analyses))
+	}
+}

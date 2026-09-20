@@ -833,3 +833,191 @@ func TestFairnessSurvivesEmptyGold(t *testing.T) {
 		t.Errorf("empty Gold invented a basis: %+v", f.Basis)
 	}
 }
+
+// --- trace (slice 9) ---------------------------------------------------------
+
+// writeLineage lays down one collected article, its preserved body and its
+// analysis, so the join has something to walk. The three datasets are written
+// separately on purpose — each hop of the lineage can be knocked out on its own
+// by the tests below.
+func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
+	t.Helper()
+	for _, d := range []string{"bronze", "silver"} {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(layer, name, content string) {
+		if content == "" {
+			return
+		}
+		p := filepath.Join(dir, layer, name+".jsonl")
+		if err := os.WriteFile(p, []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("bronze", "news_item", items)
+	write("bronze", "news_body", bodies)
+	write("silver", "analysis", analyses)
+}
+
+func getTrace(t *testing.T, dir, query string) traceResponse {
+	t.Helper()
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/trace" + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var tr traceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
+		t.Fatal(err)
+	}
+	return tr
+}
+
+const (
+	liveItem = `{"record_id":"r-1","source_id":"src-a","axis":"KR","rank":1,"view_count":120,` +
+		`"title":"기준금리 동결","source_url":"https://ex.test/1","body_hash":"h1",` +
+		`"body_available":true,"collected_at":"2026-06-23T14:05:00Z","collection_cycle":"2026-06-23T14"}`
+	liveBody = `{"body_hash":"h1","raw_text":"본문 전문","first_seen_at":"2026-06-23T14:05:00Z",` +
+		`"first_seen_cycle":"2026-06-23T14"}`
+	liveAnalysis = `{"record_id":"r-1","source_url":"https://ex.test/1","target_countries":["KR"],` +
+		`"narrative_subjects":["한국은행 기준금리"],"sentiment":"neutral","analysis_status":"analyzed",` +
+		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
+)
+
+// The point of the endpoint: one record id reaches all three layers at once.
+// Before slice 9 this returned a fixed string with no lake read behind it, so
+// the assertion that matters is that the *stored* values come back.
+func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
+	dir := t.TempDir()
+	writeLineage(t, dir, liveItem, liveBody, liveAnalysis)
+
+	tr := getTrace(t, dir, "?record_id=r-1")
+
+	if !tr.Found || tr.RecordID != "r-1" || tr.Selection != "requested" {
+		t.Fatalf("lookup did not resolve the requested record: %+v", tr)
+	}
+	if tr.Bronze == nil || tr.Silver == nil {
+		t.Fatalf("a layer is missing: bronze=%v silver=%v", tr.Bronze, tr.Silver)
+	}
+	if tr.Bronze.Title != "기준금리 동결" || tr.Bronze.SourceURL != "https://ex.test/1" {
+		t.Errorf("bronze values are not the stored ones: %+v", tr.Bronze)
+	}
+	if !tr.Bronze.BodyPreserved || tr.Bronze.BodyText != "본문 전문" {
+		t.Errorf("body_hash did not resolve to the stored body: %+v", tr.Bronze)
+	}
+	if tr.Silver.AnalyzerVersion != "v3" || tr.Silver.Sentiment == nil || *tr.Silver.Sentiment != "neutral" {
+		t.Errorf("silver values are not the stored ones: %+v", tr.Silver)
+	}
+	if len(tr.Silver.NarrativeSubjects) != 1 || tr.Silver.NarrativeSubjects[0] != "한국은행 기준금리" {
+		t.Errorf("narrative subjects lost in the join: %+v", tr.Silver)
+	}
+	// Provenance is what lets the reader date the observation (AC1.5).
+	if tr.Ingestion.CollectedAt != "2026-06-23T14:05:00Z" || tr.Ingestion.Rank != 1 || tr.Ingestion.ViewCount != 120 {
+		t.Errorf("ingestion metadata lost in the join: %+v", tr.Ingestion)
+	}
+	for _, step := range tr.Crumb {
+		if !step.Present {
+			t.Errorf("a fully populated lineage reported a gap at %q", step.Layer)
+		}
+	}
+}
+
+// The case the screen exists for: the original link has rotted, but the copy
+// taken at collection time is still here, so the trail does not end (AC1.4).
+// body_available=false must not be read as "nothing to show".
+func TestTraceFallsBackToPreservedBodyWhenLinkUnavailable(t *testing.T) {
+	dir := t.TempDir()
+	expired := `{"record_id":"r-2","source_id":"src-b","axis":"KR","rank":2,"view_count":40,` +
+		`"title":"만료된 기사","source_url":"https://ex.test/gone","body_hash":"h2",` +
+		`"body_available":false,"collected_at":"2026-06-23T14:06:00Z","collection_cycle":"2026-06-23T14"}`
+	body := `{"body_hash":"h2","raw_text":"수집 시점 보존 사본","first_seen_at":"2026-06-23T14:06:00Z",` +
+		`"first_seen_cycle":"2026-06-23T14"}`
+	writeLineage(t, dir, expired, body, "")
+
+	tr := getTrace(t, dir, "?record_id=r-2")
+
+	if tr.Bronze == nil {
+		t.Fatal("bronze missing")
+	}
+	if tr.Bronze.BodyAvailable {
+		t.Fatalf("fixture is wrong — this record is supposed to be link-dead: %+v", tr.Bronze)
+	}
+	if !tr.Bronze.BodyPreserved || tr.Bronze.BodyText != "수집 시점 보존 사본" {
+		t.Errorf("a dead link swallowed the preserved copy: %+v", tr.Bronze)
+	}
+	if tr.Bronze.BodyFirstSeenCycle != "2026-06-23T14" {
+		t.Errorf("preserved body lost its collection cycle: %+v", tr.Bronze)
+	}
+}
+
+// Three ways to come up short, three different answers. Collapsing them would
+// tell a reader "no data" when the truth is "collected, not yet analyzed" —
+// and AC2.5 spends a whole class on keeping that distinction.
+func TestTraceSeparatesUnanalyzedFromMissingAnalysis(t *testing.T) {
+	// (a) collected, never analyzed: Silver holds no row at all.
+	noSilver := t.TempDir()
+	writeLineage(t, noSilver, liveItem, liveBody, "")
+	tr := getTrace(t, noSilver, "?record_id=r-1")
+	if tr.Silver != nil {
+		t.Errorf("an absent analysis was reported as one: %+v", tr.Silver)
+	}
+	if tr.Bronze == nil || !tr.Bronze.BodyPreserved {
+		t.Errorf("a missing analysis dragged bronze down with it: %+v", tr.Bronze)
+	}
+	if tr.Crumb[1].Present {
+		t.Errorf("crumb claims a silver hop that is not there: %+v", tr.Crumb)
+	}
+
+	// (b) analyzed but set aside: the row exists, the sentiment is null.
+	setAside := t.TempDir()
+	unanalyzed := `{"record_id":"r-1","source_url":"https://ex.test/1","target_countries":["KR"],` +
+		`"narrative_subjects":["한국은행 기준금리"],"sentiment":null,"analysis_status":"low_confidence",` +
+		`"confidence":0.21,"analyzed_at":"2026-06-23T14:41:00Z","analyzer_version":"v3"}`
+	writeLineage(t, setAside, liveItem, liveBody, unanalyzed)
+	tr = getTrace(t, setAside, "?record_id=r-1")
+	if tr.Silver == nil {
+		t.Fatal("a low-confidence analysis was dropped instead of reported")
+	}
+	if tr.Silver.Sentiment != nil {
+		t.Errorf("a set-aside record was given one of the four classes: %v", *tr.Silver.Sentiment)
+	}
+	if tr.Silver.AnalysisStatus != "low_confidence" {
+		t.Errorf("status lost the reason it was set aside: %+v", tr.Silver)
+	}
+	if !tr.Crumb[1].Present {
+		t.Errorf("a set-aside analysis is still an analysis — crumb should show the hop: %+v", tr.Crumb)
+	}
+
+	// (c) not collected at all: the trail never starts, and says so.
+	tr = getTrace(t, setAside, "?record_id=nope")
+	if tr.Found || tr.Bronze != nil {
+		t.Errorf("an unknown record produced a lineage: %+v", tr)
+	}
+	if tr.Selection != "requested-missing" {
+		t.Errorf("a failed lookup did not say so: %q", tr.Selection)
+	}
+}
+
+// Opening the screen with no record in hand must not error, and must not let
+// the caller mistake the fallback for what they asked for.
+func TestTraceNamesItsFallbackSelection(t *testing.T) {
+	dir := t.TempDir()
+	writeLineage(t, dir, liveItem, liveBody, liveAnalysis)
+
+	if tr := getTrace(t, dir, ""); tr.Selection != "auto" || tr.RecordID != "r-1" {
+		t.Errorf("no-arg lookup did not report itself as a fallback: %+v", tr)
+	}
+	if tr := getTrace(t, t.TempDir(), ""); tr.Found || tr.Selection != "empty" {
+		t.Errorf("an empty lake invented a record: %+v", tr)
+	}
+}

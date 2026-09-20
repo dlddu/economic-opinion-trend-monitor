@@ -1,9 +1,14 @@
-// Package store reads Gold-layer datasets from the local data lake.
+// Package store reads data-lake datasets from the local filesystem.
 //
 // The skeleton serializes every layer as JSONL (one JSON object per line); this
 // reader is the Go counterpart of econ_core.storage.LocalFsStore on the Python
-// side. Gold records are decoded straight into the generated contract types so
-// the schema stays the single source of truth across both runtimes.
+// side. Records are decoded straight into the generated contract types so the
+// schema stays the single source of truth across both runtimes.
+//
+// Most screens read Gold, which is already shaped for display. Lineage is the
+// exception: tracing a Gold number back to the article it came from means
+// reading Bronze and Silver directly, because that is where the body text and
+// the analysis verdict live (AC1.4, AC2.6).
 package store
 
 import (
@@ -38,6 +43,30 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 // AxisSentiments reads the Gold axis_sentiment dataset (empty if absent).
 func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 	return readJSONL[gen.AxisSentiment](l.path("gold", "axis_sentiment"))
+}
+
+// NewsItems reads the Bronze news_item dataset (empty if absent).
+//
+// One record is one collection observation, keyed by RecordID — the same key
+// Silver analysis carries, which is what makes the lineage join possible at all
+// (AC2.6).
+func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
+	return readJSONL[gen.NewsItem](l.path("bronze", "news_item"))
+}
+
+// NewsBodies reads the Bronze news_body dataset (empty if absent).
+//
+// Bodies are content-addressed by hash and stored once, so they are a separate
+// dataset from the observations that reference them: several observations of an
+// unchanged article share one body, and an edited article appends a new version
+// rather than overwriting (AC1.7).
+func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
+	return readJSONL[gen.NewsBody](l.path("bronze", "news_body"))
+}
+
+// Analyses reads the Silver analysis dataset (empty if absent).
+func (l *Lake) Analyses() ([]gen.Analysis, error) {
+	return readJSONL[gen.Analysis](l.path("silver", "analysis"))
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an
