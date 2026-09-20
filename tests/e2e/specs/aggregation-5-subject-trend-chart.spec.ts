@@ -223,7 +223,15 @@ test("web: the comparison table repeats the API ranking, value for value", async
   await expect(selectedRow).toHaveCount(1);
   await expect(selectedRow).toContainText(selected!.subject);
 
-  // 범례도 같은 대상 묶음을 말한다 — 표와 차트가 서로 다른 집합을 가리키지 않는다.
+  // 표는 겹쳐 보기와 무관하게 전건이다(이 화면에서 표가 곧 대상 선택기다). 그래서
+  // 겹쳐 보기가 꺼진 상태의 범례는 그려진 선 하나만 말하고, 켜야 표와 같은 묶음이 된다 —
+  // 그 상태에서 둘이 갈리면 표와 차트가 서로 다른 집합을 가리키는 것이다.
+  const legend = page.locator(".trend-legend > span");
+  await expect(legend, "겹쳐 보기가 꺼졌는데 범례가 그리지 않은 대상을 말한다").toHaveCount(1);
+  await expect(legend).toContainText(selected!.subject);
+
+  await page.locator("input[name='tr-compare']").check();
+  await expect(legend).toHaveCount(api.series.length);
   for (const series of api.series) {
     await expect(page.locator(".trend-legend")).toContainText(series.subject);
   }
