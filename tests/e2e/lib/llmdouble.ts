@@ -9,10 +9,6 @@
 //
 // `extends` 해석이 더블(python)과 여기(TypeScript) 양쪽에 있다. 한 단계만 따라가는 규칙이라
 // 다섯 줄이고, 대신 spec이 더블을 거치지 않고도 같은 기대값을 읽을 수 있다.
-//
-// 이 디렉터리는 `specs/` 밖이다 — `tests/e2e/specs/*.spec.ts` 만이 시나리오 매칭 단위이고
-// (docs/econ-opinion-monitor-doc-tracker.md 「e2e 매핑 › 매칭 규약」), 헬퍼가 그 집합에
-// 섞이면 `check_scenario_mapping.py` 가 선언 없는 매칭 단위로 읽는다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
