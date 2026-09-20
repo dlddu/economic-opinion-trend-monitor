@@ -28,12 +28,8 @@ spec:
               value: /data/aggregation-skew
             - name: ECON_LLM_BASE_URL
               value: http://econ-llm-double:8080/v1
-            # 더블의 응답 묶음을 고르는 이름. 실 모델 이름 자리다.
             - name: ECON_LLM_MODEL
               value: e2e-llm-agg
-            # 운영에서는 external-secrets가 넣는 `econ-llm` Secret에서 온다. 더블은 키를 보지
-            # 않지만 CLI가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야 한다.
-            # 비밀이 아닌 고정 문자열이며, 실 엔드포인트에는 쓰이지 않는다.
             - name: ECON_LLM_API_KEY
               value: e2e-double-not-a-secret
           resources:
