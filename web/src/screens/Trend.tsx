@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Axis, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -110,10 +111,31 @@ function storeView(view: StoredView): void {
   }
 }
 
+// 승계 계약의 받는 쪽. `Dashboard` 의 순위 행은 `/trend?axis=<축>&subject=<대상>` 으로
+// 보내는데, 그 쿼리를 읽지 않으면 누른 대상이 아니라 **세션에 남아 있던 대상**이 열린다 —
+// 상세로 내려간 것처럼 보이지만 다른 대상을 보고 있는 상태다. 그래서 우선순위는
+// **쿼리 > 세션**이다: 쿼리는 방금 누른 동작이고 세션은 지난번에 두고 간 조건이라,
+// 둘이 다르면 언제나 방금 누른 쪽이 옳다.
+//
+// 쿼리가 **한 조각이라도** 있으면 진입 조건 전체를 쿼리가 정한다. 축만 넘어온 진입에
+// 세션의 대상을 섞으면 그 축에 없을 수도 있는 대상을 묻게 되기 때문이다.
+function parseAxis(raw: string | null): Axis | undefined {
+  return AXES.find((a) => a.id === raw)?.id;
+}
+
+function entryView(params: URLSearchParams, restored: StoredView | null): Partial<StoredView> {
+  const axis = parseAxis(params.get("axis"));
+  const subject = params.get("subject") || undefined;
+  if (axis !== undefined || subject !== undefined) return { axis, subject };
+  return restored ?? {};
+}
+
 export function Trend() {
+  const [params] = useSearchParams();
   const restored = useState(readStoredView)[0];
-  const [axis, setAxis] = useState<Axis>(restored?.axis ?? "KR");
-  const [subject, setSubject] = useState<string | undefined>(restored?.subject);
+  const entry = useState(() => entryView(params, restored))[0];
+  const [axis, setAxis] = useState<Axis>(entry.axis ?? "KR");
+  const [subject, setSubject] = useState<string | undefined>(entry.subject);
   const [data, setData] = useState<TrendResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 추림 상태는 이 화면이 들고 있는다. 응답이 바뀌면 후보 카드가 잠시 사라지는데,
