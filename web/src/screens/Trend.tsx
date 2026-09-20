@@ -20,12 +20,6 @@ import { MapStrip } from "../shell/MapStrip";
 //     not a free-form pick, and there is no endpoint behind "add an arbitrary
 //     subject" yet. Selecting one of the compared subjects is real, so that is
 //     what the comparison list does.
-//
-// This screen receives three journey steps, not one: `STP-drill-trend` and
-// `STP-shortlist` from `JRN-daily-scan`, plus `STP-verify-in-trend` from
-// `JRN-axis-contrast` (mockup index, 「흡수된 화면의 판정 경계」). The walkthrough
-// walks them; a product screen lays them out one under another, so 추림 lives
-// at the bottom of the same view rather than behind a 전진 CTA.
 
 const AXES: { id: Axis; label: string; pill: string }[] = [
   { id: "KR", label: "한국", pill: "ax-kr" },
@@ -52,10 +46,8 @@ function pct(x: number): string {
   return `${(x * 100).toFixed(1)}%`;
 }
 
-// 구간 평균 — 목업 `STP-drill-trend` 비교 표의 3번째 컬럼. 서빙에 새로 물을 것이 없다:
-// 그려지는 구간의 버킷 값은 이미 `points[]` 로 와 있고, 목업 인라인 스크립트도 같은
-// 자리에서 `avg(s.s)` 로 계산한다. 현재 점유율(마지막 버킷)과 나란히 놓여야 "지금이
-// 평소보다 높은가"가 한 줄에서 읽힌다.
+// 현재 점유율(마지막 버킷)과 나란히 놓여야 "지금이 평소보다 높은가"가 한 줄에서
+// 읽힌다 — 두 값이 갈릴 때에만 구간 평균 컬럼이 무언가를 말한다.
 function windowMean(series: TrendSeries): number {
   if (series.points.length === 0) return 0;
   return series.points.reduce((sum, p) => sum + p.normalized_share, 0) / series.points.length;
@@ -83,10 +75,6 @@ function strokeFor(series: TrendSeries, compareIndex: number): string {
   return series.selected ? "var(--primary)" : COMPARE_STROKES[compareIndex % COMPARE_STROKES.length];
 }
 
-// 여정 §4 의 네 번째 분기 — 「중도 이탈(목록만 보고 종료) → 다음 진입 시 마지막 조회
-// 조건 복원」. 세션 스토리지를 쓰는 것이 이 화면의 주장과 맞는다: 추림이 세션 안에서만
-// 사는 것과 같은 수명이라, 탭을 닫으면 조건도 함께 사라진다. 영속 저장(북마크·워치리스트)은
-// 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 항목이라 여기서도 만들지 않는다.
 const VIEW_KEY = "econ-monitor:trend:view";
 
 type StoredView = { axis: Axis; subject?: string };
@@ -111,14 +99,6 @@ function storeView(view: StoredView): void {
   }
 }
 
-// 승계 계약의 받는 쪽. `Dashboard` 의 순위 행은 `/trend?axis=<축>&subject=<대상>` 으로
-// 보내는데, 그 쿼리를 읽지 않으면 누른 대상이 아니라 **세션에 남아 있던 대상**이 열린다 —
-// 상세로 내려간 것처럼 보이지만 다른 대상을 보고 있는 상태다. 그래서 우선순위는
-// **쿼리 > 세션**이다: 쿼리는 방금 누른 동작이고 세션은 지난번에 두고 간 조건이라,
-// 둘이 다르면 언제나 방금 누른 쪽이 옳다.
-//
-// 쿼리가 **한 조각이라도** 있으면 진입 조건 전체를 쿼리가 정한다. 축만 넘어온 진입에
-// 세션의 대상을 섞으면 그 축에 없을 수도 있는 대상을 묻게 되기 때문이다.
 function parseAxis(raw: string | null): Axis | undefined {
   return AXES.find((a) => a.id === raw)?.id;
 }
@@ -353,16 +333,8 @@ export function Trend() {
   );
 }
 
-// STP-shortlist — 오늘 볼 대상 추리기. 목업(`JRN-daily-scan.html` 화면 5)이 그대로 스펙이다:
-// 서빙에 새로 물을 것이 없고(후보는 이미 받은 `series`, 선택·메모는 화면 상태), 여정 문서가
-// 「현재 범위 밖, 백로그 후보」로 파킹한 것은 **영속화(북마크·워치리스트)뿐**이라 세션 한정
-// 추림까지는 만들 수 있다. recorded 배너가 그 경계를 문면으로 직접 말한다.
-//
-// 선택자를 전부 `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다. 목업의
-// `.chk`·`.fld`·`.banner` 를 `tokens.css` 에 들이면 규칙 5 가 선언 단위로 대조하기 시작해
-// 대조면이 움직이는데, 이 슬라이스가 옮기는 것은 **문면과 동작**이지 레이아웃 선언이 아니다.
-// 배너의 초기 문면. 목업도 정적 마크업에 이 문장을 두고 제출 시점에 무엇이 모자란지에
-// 따라 덮어쓴다 — 같은 구조를 그대로 옮긴다.
+// 목업의 `.chk`·`.fld`·`.banner` 를 `tokens.css` 에 들이지 않는다 — 이 화면의 선택자는
+// `.trace-*`·`.sent-*` 처럼 `.trend-sl-` 로 접두한다. 근거는 설계 트래커의 규칙 5 대조 규약.
 const INVALID_DEFAULT = "후보를 하나 이상 고르고 메모를 채워야 확정됩니다.";
 
 type ShortlistVerdict =
