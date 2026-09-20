@@ -149,15 +149,15 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   머지가 곧 적용이고, suspend가 "적용됐다"와 "돌기 시작했다"를 분리한다. 켜기 전에
   `econ-batch-pipeline`에서 워크플로를 1회 수동 제출해 이미지 pull·볼륨 쓰기·해당
   스테이지가 실제로 되는지 확인한다. 현재 두 개가 있고 **동시에 하나만 돈다**:
-  `econ-ingestion-hourly`(수집만, 가동 중 — 켜는 순간부터 `default_feeds.json`의 모든
-  엔드포인트로 매시간 실제 HTTP 요청)와 `econ-pipeline-hourly`(`ingest -> analyze`,
-  suspend 착지 — 켜면 수집에 더해 매 항목이 LLM 엔드포인트로 나간다). 후자로 넘길 때는
-  전자를 먼저 suspend한다.
+  `econ-ingestion-hourly`(수집만, 현재 suspend — 켜는 순간부터 `default_feeds.json`의 모든
+  엔드포인트로 매시간 실제 HTTP 요청)와 `econ-pipeline-hourly`(`ingest -> analyze ->
+  aggregate`, 가동 중 — 수집에 더해 본문이 있는 매 항목이 LLM 엔드포인트로 나간다). 한쪽을
+  켤 때는 다른 쪽을 먼저 suspend한다.
 - 수집이 쓰는 Bronze는 서빙 클레임과 분리된 `econ-batch-data`에 쌓인다. 서빙은 Gold만
   읽으므로 아직 볼륨을 공유할 이유가 없고, 분리해 두면 RWO 클레임의 멀티어태치
   위험도 없다. Bronze→Silver→Gold 체인이 이어질 때 그 슬라이스가 배치 산출물을
   서빙까지 어떻게 넘길지(공유 RWX 클레임 또는 복사 단계) 정한다.
-- 분석 스케줄은 `econ-pipeline-hourly`로 배선됐고(suspend 착지), 그 분석 스테이지는
+- 분석 스케줄은 `econ-pipeline-hourly`로 배선돼 가동 중이고, 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.
 
