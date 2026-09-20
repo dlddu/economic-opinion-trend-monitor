@@ -1,10 +1,5 @@
 # 다중 시간 버킷 코퍼스를 심는 하네스 Job (…-test-aggregation-viz.md#시나리오 3).
 #
-# 집계 코퍼스(`/data/aggregation`)가 이미 만들어 둔 Bronze·Silver 를 읽어, 수집 시각만 고정
-# 달력으로 다시 찍어 `/data/aggregation-rollup` 에 심는다. 왜 필요한지는 스크립트 머리말에
-# 있다 — 요지는 수집 CLI 가 `collected_at` 을 실행 시각으로 찍어서 한 Job 의 레코드가 전부
-# 같은 시간 버킷에 떨어진다는 것이다.
-#
 # **배치 단계가 아니라 하네스 스텝이다.** 제품 CLI 를 부르지 않고(`command` 로 스크립트를
 # 직접 돌린다) Gold 도 만들지 않는다. 집계는 바로 다음 Job(`aggregate-job-rollup.yaml`)이
 # **실물 그대로** 돌린다. 상류 더블을 타지 않으므로 `mock-exception:` 주석이 붙지 않는다

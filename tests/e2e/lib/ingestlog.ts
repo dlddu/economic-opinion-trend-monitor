@@ -5,10 +5,6 @@
 // 걸러진 중복은 레코드가 없고, 격리된 소스도 레코드가 없다 — "없다"만 봐서는 애초에 그
 // 소스가 아무것도 주지 않은 경우와 구별되지 않는다. 수집 CLI는 그 구별을 집계로 찍으므로
 // (`econ_ingestion/cli.py`), 시나리오 6·7의 기대 결과는 Bronze와 이 집계를 함께 봐야 한다.
-//
-// 이 디렉터리는 `specs/` 밖이다 — `tests/e2e/specs/*.spec.ts` 만이 시나리오 매칭 단위이고
-// (docs/econ-opinion-monitor-doc-tracker.md 「e2e 매핑 › 매칭 규약」), 헬퍼가 그 집합에
-// 섞이면 `check_scenario_mapping.py` 가 선언 없는 매칭 단위로 읽는다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
