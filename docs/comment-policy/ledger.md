@@ -33,7 +33,7 @@
 | 2026-09-20 | [trend-surface-pass](passes/2026-09-20-trend-surface-pass.md) | `473b3cc` | 2398 | 38 | 2360 | 123 → 123 |
 | 2026-09-20 | [dashboard-surface-pass](passes/2026-09-20-dashboard-surface-pass.md) | `50dbd2d` | 2360 | 5 | 2355 | 123 → 122 |
 | 2026-09-20 | [serving-handlers-pass](passes/2026-09-20-serving-handlers-pass.md) | `c887503` | 2419 | 19 | 2400 | 123 → 123 |
-| 2026-09-20 | [lineage-surface-pass](passes/2026-09-20-lineage-surface-pass.md) | `cfe9f8b` | 2428 | 13 | 2415 | 123 → 123 |
+| 2026-09-20 | [lineage-surface-pass](passes/2026-09-20-lineage-surface-pass.md) | `9a5d32e` | 2467 | 13 | 2454 | 124 → 124 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
@@ -136,17 +136,21 @@ lineage-surface-pass도 표적 패스다 — 슬라이스 9(`4ddbdaa`/#70)가 �
 판정했다. 셋(`Trace.tsx`·`Trace.test.tsx`·`store_test.go`)은 unrowed-files-pass가 ⑴로 남긴 4파일 중
 셋이고, 넷째 `go/internal/store/store.go`는 ⑵(행보다 자란 파일)에서 끌어왔다 — `store_test.go` 의
 제거 근거가 `store.go` 의 doc 주석이라, 둘을 같이 보지 않으면 「설명의 주인」 판단이 서지 않는다.
-⑴의 남은 하나 `web/src/screens/Fairness.tsx`를 뺀 것은 **열린 PR #76이 그 파일을 수정 중**이기
-때문이다(직전 패스가 같은 파일을 #70 때문에 뺀 것과 같은 이유 — 막은 PR 번호만 바뀌었다).
+⑴의 남은 하나 `web/src/screens/Fairness.tsx`를 뺀 것은 슬라이스를 그을 때 **열린 PR #76이 그 파일을
+수정 중**이었기 때문이다(직전 패스가 같은 파일을 #70 때문에 뺀 것과 같은 이유 — 막은 PR 번호만
+바뀌었다). 그 #76은 착지 직전 머지돼(`9a5d32e`) 제약이 풀렸으므로 **다음 패스가 바로 집을 수 있다**.
 제거 13줄은 계보 조인 축 재진술 4줄(doc-tracker 변동 이력이 축자 복원) · 열지 않는 단계 서술 5줄
 (같은 파일이 화면에 그리는 `note` 문면이 복원) · `store.go` doc 주석의 재진술 3줄(설명의 주인은
 구현 쪽) · 테스트 이름이 복원하는 1줄이다. 더해 **문면 정정 2곳**(줄 수 불변): `.trace-` 접두사
 가드에서 게이트 메커니즘을 걷어 금지와 출처만 남겼고(pin-guard-pass 선례), `PAT-lineage` 앵커를
 이 파일의 다른 앵커 여섯과 같은 1줄 형태로 줄였다(구성 열거는 설계 트래커가 축자 복원).
-**판정을 마친 뒤 기준 커밋이 `83e1281` → `cfe9f8b`로 두 번 올라왔다** — 그 사이 #77이 설계 트래커에
-`trace` 전수 판정을 등재했고(복원 경로 ②가 새로 열렸다), #79가 `Trace.tsx` 의 링크 만료 배너 문면을
-목업 3문장으로 갈며 `Trace.test.tsx` 에 주석 2줄을 들였다. 둘 다 **판정 후에 생긴 복원 경로**라
-이 패스는 앞당겨 집행하지 않고 해당 행에 다음 패스 후보로 적어 두었다.
+**판정을 마친 뒤 기준 커밋이 `83e1281` → `8bad0be` → `cfe9f8b` → `9a5d32e`로 세 번 올라왔다** — 그 사이
+#77이 설계 트래커에 `trace` 전수 판정을 등재했고(복원 경로 ②가 새로 열렸다), #79가 `Trace.tsx` 의 링크
+만료 배너 문면을 목업 3문장으로 갈며 `Trace.test.tsx` 에 주석 2줄을 들였다. 둘 다 **판정 후에 생긴
+복원 경로**라 이 패스는 앞당겨 집행하지 않고 해당 행에 다음 패스 후보로 적어 두었다. 마지막 이동
+`cfe9f8b` → `9a5d32e`(#76)는 **판정 대상 4파일을 하나도 건드리지 않았다** — 주석 39줄을 다른 7파일에
+들였을 뿐이라 판정 내용은 그대로 유효하고, 위 「패스 이력」 행과 아래 말미 집계의 **숫자만** 그 tip 에서
+재측정했다(판정 전 `2428/123` → `2467/124`, 착지 후 `2415` → `2454`).
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -281,4 +285,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **lineage-surface-pass 기준 · 레포 전체** | **2428** | **13** | **2415** | 지문 값(`cfe9f8b` → 이 패스 후 · 파일 수 123 불변). 이 표는 그중 **124개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 344줄**이다: ⑴ 아직 행이 없는 파일 **1개 37줄**(`web/src/screens/Fairness.tsx` — 다섯 패스 연속으로 열린 PR(#70 → **#76**)이 수정 중이라 빠졌다. 직전 집계가 ⑴로 세던 나머지 셋은 이 패스가 판정해 행을 줬다), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **18파일 307줄**(`tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `web/src/screens/Trend.tsx` 47→72 · `scripts/check-journey-mockup.py` 42→65 · `web/src/tokens/tokens.css` 38→58 · `web/src/screens/Dashboard.tsx` 0→19 · `python/packages/aggregation/tests/test_aggregate.py` 1→19 · `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` 48→61 · `web/src/screens/Trend.test.tsx` 25→38 · `web/src/screens/Dashboard.test.tsx` 5→17 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `python/packages/aggregation/src/econ_aggregation/aggregate.py` 11→15 · `python/packages/analysis/tests/test_llm.py` 8→12 · `python/packages/analysis/src/econ_analysis/cli.py` 7→11 · `python/packages/ingestion/tests/test_feeds.py` 21→24 · `deploy/batch/workflow-template.yaml` 42→44 · `python/packages/analysis/tests/test_cli.py` 5→6). ⑵의 상위 다섯(`run.sh`·`types.ts`·`Trend.tsx`·`check-journey-mockup.py`·`tokens.css`)이 195줄로 **64%**라 파일 단위로 자르면 다음 패스의 선이 선다 — 다만 `tokens.css` 는 열린 PR #76 이 수정 중이라 착지 전에는 고르지 말 것. **잔여에 들어가지 않는 재판정 후보가 둘 더 있다**(줄이 자란 것이 아니라 **복원 경로가 자란** 자리라 계수 규약이 세지 않는다): 이 패스가 방금 행을 준 `Trace.tsx` 27줄·`Trace.test.tsx` 22줄 — 판정 종료 후 #77·#79 가 설계 트래커와 목업 문면으로 복원 경로 ②를 열었다. 해당 행의 「판단 분기」가 어느 주석에 어느 행이 걸리는지 적는다. 재감지가 새 task로 잇는다 |
+| **lineage-surface-pass 기준 · 레포 전체** | **2467** | **13** | **2454** | 지문 값(`9a5d32e` → 이 패스 후 · 파일 수 124 불변). 이 표는 **124개 파일 행**을 갖는다 — 지문의 124파일과 수가 같을 뿐 **집합은 다르다**(남음 0 이라 지문에서 빠진 행 둘 `Makefile`·`scripts/check-mockup-render.py`, 반대로 아직 행이 없는 파일이 아래 ⑴ 둘). 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 383줄**이다: ⑴ 아직 행이 없는 파일 **2개 44줄** — `web/src/screens/Fairness.tsx` 38(이 패스가 슬라이스를 그을 때 열려 있던 #76 이 수정 중이라 뺐고, 그 #76 이 `9a5d32e` 로 착지하며 37→38 이 됐다. 직전 집계가 ⑴로 세던 나머지 셋은 이 패스가 판정해 행을 줬다) · `web/src/screens/Compare.test.tsx` 6(같은 #76 이 0→6 으로 지문에 편입시켜 **새로** ⑴ 에 들어왔다 — 원장 행이 없다), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **22파일 339줄**(`tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `web/src/screens/Trend.tsx` 47→72 · `scripts/check-journey-mockup.py` 42→65 · `web/src/tokens/tokens.css` 38→60 · `web/src/screens/Dashboard.tsx` 0→19 · `python/packages/aggregation/tests/test_aggregate.py` 1→19 · `web/src/screens/Sentiment.tsx` 54→71 · `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` 48→61 · `web/src/screens/Trend.test.tsx` 25→38 · `web/src/screens/Dashboard.test.tsx` 5→17 · `web/src/api/client.ts` 5→15 · `web/src/screens/Sentiment.test.tsx` 21→31 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `python/packages/aggregation/src/econ_aggregation/aggregate.py` 11→15 · `python/packages/analysis/src/econ_analysis/cli.py` 7→11 · `python/packages/analysis/tests/test_llm.py` 8→12 · `python/packages/ingestion/tests/test_feeds.py` 21→24 · `deploy/batch/workflow-template.yaml` 42→44 · `web/src/screens/Fairness.test.tsx` 16→18 · `python/packages/analysis/tests/test_cli.py` 5→6 · `web/src/screens/Compare.tsx` 10→11). ⑵의 상위 다섯(`run.sh`·`types.ts`·`Trend.tsx`·`check-journey-mockup.py`·`tokens.css`)이 197줄로 **58%**라 파일 단위로 자르면 다음 패스의 선이 선다 — #76 이 착지해 `tokens.css` 를 막던 제약은 풀렸고, 착지 시점에 열린 PR 은 #75 하나로 ⑴·⑵ 어느 파일도 건드리지 않는다(#75 가 착지하면 신설 `scripts/check-data-format-change.py` 가 ⑴ 에 새로 들어온다). **잔여에 들어가지 않는 재판정 후보가 둘 더 있다**(줄이 자란 것이 아니라 **복원 경로가 자란** 자리라 계수 규약이 세지 않는다): 이 패스가 방금 행을 준 `Trace.tsx` 27줄·`Trace.test.tsx` 22줄 — 판정 종료 후 #77·#79 가 설계 트래커와 목업 문면으로 복원 경로 ②를 열었다. 해당 행의 「판단 분기」가 어느 주석에 어느 행이 걸리는지 적는다. 재감지가 새 task로 잇는다 |
