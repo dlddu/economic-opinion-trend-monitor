@@ -45,6 +45,15 @@ function pct(x: number): string {
   return `${(x * 100).toFixed(1)}%`;
 }
 
+// 구간 평균 — 목업 `STP-drill-trend` 비교 표의 3번째 컬럼. 서빙에 새로 물을 것이 없다:
+// 그려지는 구간의 버킷 값은 이미 `points[]` 로 와 있고, 목업 인라인 스크립트도 같은
+// 자리에서 `avg(s.s)` 로 계산한다. 현재 점유율(마지막 버킷)과 나란히 놓여야 "지금이
+// 평소보다 높은가"가 한 줄에서 읽힌다.
+function windowMean(series: TrendSeries): number {
+  if (series.points.length === 0) return 0;
+  return series.points.reduce((sum, p) => sum + p.normalized_share, 0) / series.points.length;
+}
+
 function deltaClass(delta: number): string {
   if (delta > 0) return "up";
   if (delta < 0) return "dn";
@@ -208,6 +217,7 @@ export function Trend() {
                     <tr>
                       <th>대상</th>
                       <th className="num">현재 점유율</th>
+                      <th className="num">구간 평균</th>
                       <th className="num">직전 {unitLabel} 대비</th>
                     </tr>
                   </thead>
@@ -227,6 +237,7 @@ export function Trend() {
                           {s.subject}
                         </td>
                         <td className="num">{pct(s.latest_share)}</td>
+                        <td className="num">{pct(windowMean(s))}</td>
                         <td className="num">
                           <span className={`delta ${deltaClass(s.delta)}`}>
                             {deltaLabel(s.delta)}
