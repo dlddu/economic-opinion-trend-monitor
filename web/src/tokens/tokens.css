@@ -981,6 +981,33 @@ a {
   color: var(--ink-3);
 }
 
+/* ---- STP-drill-trend 겹쳐 보기 (trend screen) ----
+   목업 `JRN-daily-scan.html` 의 `#trend-form` 이 쓰는 `.formrow`·`.chk` 의 선언을
+   그대로 옮기고 **선택자만** `.trend-ov-` 로 접두한다 — `.trend-sl-*` 와 같은 이유다.
+   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기 시작하는데,
+   세 상한이 전부 0 이라 대조면이 그 순간 움직인다. */
+.trend-ov-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.trend-ov-chk {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+/* 차트와 겹치지 않게 폼 아래에만 간격을 준다 — 목업도 `#trendchart` 쪽
+   (`margin-top:10px`)에 같은 자리의 간격을 둔다. */
+.trend-ov-form {
+  margin-bottom: 10px;
+}
+
 /* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ----
    Every selector here is .sent-* , which `JRN-sentiment-shift.html` never
    declares. That keeps the render gate's shared-selector set unchanged: R5

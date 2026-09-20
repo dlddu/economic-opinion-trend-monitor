@@ -4,9 +4,10 @@ import { api } from "../api/client";
 import type { Axis, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// The chart's job is to answer "where is attention moving", so the selected
-// subject is drawn against the axis's other leaders rather than alone; a
-// single line has nothing to be high or low against.
+// The chart draws the selected subject alone, and overlays the axis's other
+// leaders only when the reader asks for it — the mockup's `STP-drill-trend`
+// makes 겹쳐 보기 an opt-in checkbox (unchecked on arrival), so comparison is
+// something the reader turns on rather than the shape every visit starts in.
 //
 // Two things are deliberately *not* here:
 //
@@ -75,6 +76,16 @@ function strokeFor(series: TrendSeries, compareIndex: number): string {
   return series.selected ? "var(--primary)" : COMPARE_STROKES[compareIndex % COMPARE_STROKES.length];
 }
 
+// 그려질 계열 — 목업 `JRN-daily-scan.html` 의 `trendSeries()` 와 같은 규칙이다.
+// 겹쳐 보기가 꺼져 있으면 고른 대상 하나만(고른 것이 없으면 선두 하나), 켜져 있으면
+// 응답이 준 비교 대상 전부. 서빙이 이미 3개로 잘라 내려주므로(`trendSeriesLimit`)
+// 「상위 대상 3개」는 화면이 다시 자를 것 없이 그 집합 그대로다.
+function drawnSeries(series: TrendSeries[], overlay: boolean): TrendSeries[] {
+  if (overlay) return series;
+  const selected = series.filter((s) => s.selected);
+  return selected.length > 0 ? selected : series.slice(0, 1);
+}
+
 const VIEW_KEY = "econ-monitor:trend:view";
 
 type StoredView = { axis: Axis; subject?: string };
@@ -123,6 +134,9 @@ export function Trend() {
   const [picked, setPicked] = useState<string[]>([]);
   const [memo, setMemo] = useState("");
   const [shortlist, setShortlist] = useState<ShortlistVerdict>({ kind: "idle" });
+  // 겹쳐 보기는 화면 상태다. 목업이 기본값을 unchecked 로 두므로 진입 시점의 차트는
+  // 고른 대상 하나이고, 겹침은 읽는 사람이 켜는 것이다.
+  const [overlay, setOverlay] = useState(false);
 
   useEffect(() => {
     storeView({ axis, subject });
@@ -150,6 +164,7 @@ export function Trend() {
 
   const axisDef = AXES.find((a) => a.id === axis) ?? AXES[0];
   const selected = data?.series.find((s) => s.selected) ?? null;
+  const drawn = drawnSeries(data?.series ?? [], overlay);
   const unitLabel = data ? (UNIT_LABEL[data.basis.bucket_unit] ?? data.basis.bucket_unit) : "";
 
   return (
@@ -179,11 +194,6 @@ export function Trend() {
         </span>
         <span className="norm-flag">▣ 정규화 비율</span>
       </div>
-
-      <p className="lede">
-        {selected ? <span className="b">{selected.subject}</span> : "선택한 대상"}의 관심도 추세를 추적하고,{" "}
-        <span className="b">같은 축의 상위 대상</span>과 겹쳐 어디로 관심이 이동하는지 비교합니다.
-      </p>
 
       {error && (
         <div className="note">
@@ -215,14 +225,30 @@ export function Trend() {
                 </div>
               </div>
               <div className="card-b">
-                <TrendChart data={data} />
-                {/* CMP-legend */}
+                {/* 목업 `STP-drill-trend` 의 `#trend-form` — 겹쳐 보기 opt-in.
+                    선택자는 `.trend-sl-*` 와 같은 이유로 `.trend-ov-` 로 접두한다. */}
+                <form className="trend-ov-form" onSubmit={(e) => e.preventDefault()}>
+                  <div className="trend-ov-row">
+                    <label className="trend-ov-chk">
+                      <input
+                        type="checkbox"
+                        name="tr-compare"
+                        checked={overlay}
+                        onChange={(e) => setOverlay(e.target.checked)}
+                      />
+                      상위 대상 3개를 겹쳐 보기
+                    </label>
+                  </div>
+                </form>
+                <TrendChart data={data} series={drawn} />
+                {/* CMP-legend — 범례는 그려진 선만 말한다. 그리지 않은 대상을 범례가
+                    이름 붙이면 차트와 범례가 서로 다른 집합을 가리킨다. */}
                 <div className="legend trend-legend">
-                  {data.series.map((s, i) => (
+                  {drawn.map((s) => (
                     <span key={s.subject}>
                       <i
                         className="d"
-                        style={{ background: strokeFor(s, compareIndex(data.series, i)) }}
+                        style={{ background: strokeFor(s, compareIndex(data.series, data.series.indexOf(s))) }}
                       />
                       {s.subject}
                     </span>
@@ -503,8 +529,10 @@ function compareIndex(series: TrendSeries[], index: number): number {
 // line shares one x-axis: a subject missing a bucket leaves a gap in its
 // polyline rather than sliding its later points left, which would draw a
 // different subject's timeline under the same ticks.
-function TrendChart({ data }: { data: TrendResponse }) {
+function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries[] }) {
   const buckets = data.basis.buckets;
+  // 세로 스케일은 **응답 전체**에서 잡는다 — 겹쳐 보기를 켜고 끌 때 같은 대상의 선이
+  // 오르내리면 토글이 값의 변화처럼 읽힌다. 눈금은 고정하고 선만 늘고 준다.
   const peak = Math.max(...data.series.flatMap((s) => s.points.map((p) => p.normalized_share)), 0.01);
   // Round the ceiling up to a whole percentage point so the gridline labels are
   // readable numbers instead of whatever the maximum happened to be.
@@ -546,13 +574,15 @@ function TrendChart({ data }: { data: TrendResponse }) {
           </text>
         ))}
       </g>
-      {data.series.map((s, seriesIndex) => {
+      {series.map((s) => {
         const byBucket = new Map(s.points.map((p) => [p.time_bucket, p.normalized_share]));
         const points = buckets
           .map((b, i) => (byBucket.has(b) ? `${x(i)},${y(byBucket.get(b) ?? 0)}` : null))
           .filter((p): p is string => p !== null)
           .join(" ");
-        const stroke = strokeFor(s, compareIndex(data.series, seriesIndex));
+        // 색은 **응답 순서** 기준이다. 겹쳐 보기를 켜도 이미 보던 대상의 색이 바뀌지
+        // 않아야 토글이 대상을 바꾼 것처럼 보이지 않는다.
+        const stroke = strokeFor(s, compareIndex(data.series, data.series.indexOf(s)));
         return (
           <g key={s.subject}>
             <polyline
