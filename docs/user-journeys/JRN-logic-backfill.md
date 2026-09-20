@@ -10,7 +10,7 @@
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
 | 최종 수정일 | 2026-08-29 |
 | 달성 가치 | `V5` 원문 추적성과 재처리 가능성 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-analysis.md` (AC2.2·AC2.3·AC2.4·AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.2·AC3.3) · mockup `reprocess`(`reprocess.html`) — 화면 단위 mockup이라 여정 1:1 페이지는 미정 |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-analysis.md` (AC2.2·AC2.3·AC2.4·AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.2·AC3.3) · mockup 여정 페이지 `docs/mockups/JRN-logic-backfill.html` (구 `reprocess` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -42,35 +42,35 @@ Bronze 원문을 새 로직으로 재분석해 Silver/Gold를 갱신하되, 원�
 ### `STP-scope-range` 재처리 범위 선택
 
 - **사용자 행동**: 기간·소스·축으로 재분석할 Bronze 원문 범위를 정한다 (AC1.4, AC2.6)
-- **터치포인트**: `reprocess.html` 범위 선택 컨트롤(`CMP-seg`, `CMP-kv`)
+- **터치포인트**: `JRN-logic-backfill.html` 범위 선택 컨트롤(`CMP-seg`, `CMP-kv`)
 - **생각·감정**: "전체 다 돌리면 비용이 감당이 안 되는데"
 - **페인포인트 / 이탈 위험**: 대상 건수·예상 비용이 안 보이면 범위를 감으로 정하게 된다 → 선택 즉시 대상 건수와 예상 소요를 표시
 
 ### `STP-dry-run` 표본 재분석으로 영향 가늠
 
 - **사용자 행동**: 소규모 표본만 새 로직으로 돌려 결과가 의도대로 바뀌는지 확인한다 *(가정 — 현재 AC에 명시 없음)*
-- **터치포인트**: `reprocess.html` 표본 실행
+- **터치포인트**: `JRN-logic-backfill.html` 표본 실행
 - **생각·감정**: "전체 돌리기 전에 몇 건만 보자"
 - **페인포인트 / 이탈 위험**: 표본 단계 없이 전량을 돌리면 잘못된 로직이 과거 데이터까지 오염시킨다 → 표본 실행을 기본 경로로 두고 전량 실행은 그 뒤에 열기
 
 ### `STP-run-reprocess` 전량 재분석 실행
 
 - **사용자 행동**: 갱신된 로직으로 범위 전체를 재분석하되 Bronze↔Silver 추적 키를 유지한다 (AC2.6, AC2.4)
-- **터치포인트**: `reprocess.html` 실행·진행 상태
+- **터치포인트**: `JRN-logic-backfill.html` 실행·진행 상태
 - **생각·감정**: "추적 키만 안 깨지면 언제든 되돌릴 수 있다"
 - **페인포인트 / 이탈 위험**: 재분석이 기존 Silver를 덮어써 이전 결과를 잃으면 전후 비교 자체가 불가능하다 → 로직 버전을 붙여 병존시키고 Gold에서 어느 버전을 서빙할지 선택
 
 ### `STP-compare-before-after` 전후 집계 비교
 
 - **사용자 행동**: 재처리 전후 서술 대상 집계·시계열을 나란히 비교해 차이를 검토한다 (AC3.2, AC3.3)
-- **터치포인트**: `reprocess.html` 전후 비교 패턴(`PAT-before-after`), 테이블(`CMP-table`)
+- **터치포인트**: `JRN-logic-backfill.html` 전후 비교 패턴(`PAT-before-after`), 테이블(`CMP-table`)
 - **생각·감정**: "이 정도 차이는 의도한 개선이고… 이건 왜 이렇게 벌어졌지?"
 - **페인포인트 / 이탈 위험**: 차이가 큰 항목이 자동으로 부각되지 않으면 눈으로 표를 훑어야 한다 → 변화량 상위 항목을 우선 정렬하고 임계 초과를 배지 표시
 
 ### `STP-publish` 반영 또는 롤백 결정
 
 - **사용자 행동**: 새 결과를 서빙에 반영하거나, 차이가 설명되지 않으면 이전 버전으로 되돌린다
-- **터치포인트**: `reprocess.html` 반영·롤백 컨트롤
+- **터치포인트**: `JRN-logic-backfill.html` 반영·롤백 컨트롤
 - **생각·감정**: "설명 못 하는 변화를 내보낼 순 없지"
 - **페인포인트 / 이탈 위험**: 반영 사실이 소비자 화면에 드러나지 않으면 사용자는 어제 본 숫자가 왜 바뀌었는지 모른다 → 재처리 반영 시각·로직 버전을 소비자 화면 주석으로 노출 (백로그 후보)
 
@@ -98,3 +98,4 @@ Bronze 원문을 새 로직으로 재분석해 Silver/Gold를 갱신하되, 원�
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |---|---|---|---|
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J5`에서 재처리(J5.1~J5.3)를 분리하고 표본 실행·반영 결정 단계를 추가 | Claude |
+| v0.1 | 2026-09-19 | 단계 정의 무변경. 연결 문서·터치포인트를 여정 페이지(`JRN-logic-backfill.html`)로 이관하고, 구 `reprocess` 화면 흡수·삭제에 맞춰 「여정 1:1 페이지는 미정」 서술을 정정. 단계 식별자·단계 집합·분기 무변경 | Claude |
