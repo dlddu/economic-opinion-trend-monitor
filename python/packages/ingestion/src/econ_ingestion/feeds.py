@@ -281,8 +281,9 @@ def run_feed_ingestion(
     for config in configs:
         try:
             produced = list(collect_feed(config, fetcher, cycle, collected_at, retries=retries))
-        except FetchError:
+        except FetchError as exc:
             stats.failed_sources.append(config.source_id)
+            stats.failure_reasons[config.source_id] = str(exc)
             continue
         for item, body in produced:
             if item.source_url in seen:

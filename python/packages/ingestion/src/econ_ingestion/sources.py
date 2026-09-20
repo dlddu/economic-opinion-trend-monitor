@@ -155,6 +155,7 @@ class IngestStats:
     collected: int = 0
     duplicates: int = 0
     failed_sources: list[str] = field(default_factory=list)
+    failure_reasons: dict[str, str] = field(default_factory=dict)
 
 
 def run_ingestion(
@@ -176,8 +177,9 @@ def run_ingestion(
     for source in sources:
         try:
             produced = list(collect_source(source, cycle, collected_at))
-        except SourceError:
+        except SourceError as exc:
             stats.failed_sources.append(source.source_id)
+            stats.failure_reasons[source.source_id] = str(exc)
             continue
         for item, body in produced:
             if item.source_url in seen:

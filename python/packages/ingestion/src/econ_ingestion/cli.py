@@ -103,4 +103,6 @@ def main(argv: list[str] | None = None) -> int:
         f"  cycle={cycle} duplicates_skipped={stats.duplicates} "
         f"failed_sources={stats.failed_sources or '[]'}"
     )
+    for source_id, reason in stats.failure_reasons.items():
+        print(f"  failed_source {source_id}: {reason}")
     return 0
