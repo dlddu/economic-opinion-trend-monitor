@@ -1,0 +1,87 @@
+# 사람 리뷰 필요 여부 게이트 — 데이터 저장 형식(DB 스키마 등) 변경 감지.
+#
+#   PR 변경분(merge-base...head)이 저장 형식을 건드리지 않으면 PR head 커밋에
+#   commit status `review-gate/data-format` = success 를 붙인다.
+#   건드리면(또는 판정에 실패하면) 아무 status 도 붙이지 않는다.
+#
+#     status success 있음 → 사람 리뷰 불필요
+#     status 없음         → 사람 리뷰 필요
+#
+#   무엇을 "저장 형식 변경"으로 보는지는 scripts/check-data-format-change.py 에 있다.
+#   판정 근거는 이 잡의 Job Summary 표에 남는다.
+#
+# 왜 pull_request_target 인가
+#   이 status 는 "사람이 안 봐도 된다"는 신호라, PR 이 게이트 자체를 고쳐 스스로
+#   success 를 받을 수 있으면 안 된다. pull_request_target 은 워크플로와 판정기를
+#   **base 브랜치** 것으로 돌리므로 PR 이 바꾼 게이트는 그 PR 에 적용되지 않는다
+#   (게이트 파일을 바꾸는 PR 은 판정기가 따로 "리뷰 필요"로 잡는다).
+#   PR 쪽 코드는 git 객체로만 받아 diff 를 읽을 뿐 체크아웃·실행하지 않는다 —
+#   pull_request_target 에서 PR 코드를 실행하면 쓰기 토큰이 노출되니 이 원칙을 지킬 것.
+#
+# checks.yml 의 `required` 와는 독립이다. 이 게이트는 머지를 막는 체크가 아니라
+# 리뷰 필요 여부를 알리는 신호이므로 판정 결과가 `required` 를 흔들지 않는다.
+name: review gate — data format
+
+on:
+  pull_request_target:
+    # edited: base 브랜치가 바뀌면 diff 범위도 바뀐다.
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+# 새 push 가 오면 이전 판정은 버린다(이전 head 에 status 를 붙일 이유가 없다).
+concurrency:
+  group: review-gate-data-format-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  data-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+    env:
+      CONTEXT: review-gate/data-format
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      # base 브랜치 tip — 판정기는 반드시 여기서 가져온다(PR 쪽 판정기를 쓰지 않는다).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PR head 객체 가져오기(체크아웃하지 않음)
+        run: |
+          git fetch --no-tags origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+          fetched=$(git rev-parse refs/remotes/pr/head)
+          if [ "$fetched" != "$HEAD_SHA" ]; then
+            # 이벤트 이후 새 push 가 왔다 — 그 push 의 실행이 판정한다.
+            echo "::notice::PR head 가 이벤트 이후 바뀜($HEAD_SHA → $fetched) — 판정 생략"
+            echo "stale=true" >> "$GITHUB_ENV"
+          fi
+          git cat-file -e "${BASE_SHA}^{commit}"
+
+      - name: 데이터 저장 형식 변경 판정
+        id: gate
+        if: env.stale != 'true'
+        run: python3 scripts/check-data-format-change.py "$BASE_SHA" "$HEAD_SHA"
+
+      - name: 변경 없음 → success status
+        if: env.stale != 'true' && steps.gate.outputs.format_changed == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state=success \
+            -f context="$CONTEXT" \
+            -f description="데이터 저장 형식(스키마·직렬화·레이크 경로) 변경 없음 — 사람 리뷰 불필요" \
+            -f target_url="$RUN_URL" > /dev/null
+          echo "status ${CONTEXT}=success → ${HEAD_SHA}"
+
+      - name: 변경 있음 → status 없음(사람 리뷰 필요)
+        if: env.stale != 'true' && steps.gate.outputs.format_changed == 'true'
+        run: |
+          echo "::notice::데이터 저장 형식 변경 감지 — ${CONTEXT} status 를 붙이지 않음. 근거는 Job Summary 참고."
