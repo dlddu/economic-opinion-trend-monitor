@@ -155,6 +155,7 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	trends, _ := h.lake.SubjectTrends()
 	sentiments, _ := h.lake.AxisSentiments()
+	trends, sentiments = inOneUnit(trends, sentiments)
 
 	top := topSubjects(trends, axis, 8)
 	dist := sentimentFor(sentiments, axis)
@@ -246,12 +247,16 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 // latest bucket present in Gold is picked once and every column is filtered to
 // it; an axis with no data in that bucket comes back as an empty column rather
 // than borrowing an older one.
+//
+// The same mixed-unit trap the trend and sentiment handlers document applies to
+// that pick, and latestBucket closes it the same way — the unit is settled
+// before any two buckets are compared.
 func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 	trends, _ := h.lake.SubjectTrends()
 	sentiments, _ := h.lake.AxisSentiments()
 
 	bucket, unit := latestBucket(trends, sentiments)
-	inBucket := trendsInBucket(trends, bucket)
+	inBucket := trendsInBucket(trends, bucket, unit)
 
 	axes := []string{"KR", "US", "GLOBAL"}
 	columns := make([]map[string]any, 0, len(axes))
@@ -259,7 +264,7 @@ func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 		columns = append(columns, map[string]any{
 			"axis":         axis,
 			"top_subjects": topSubjects(inBucket, axis, 5),
-			"sentiment":    sentimentInBucket(sentiments, axis, bucket),
+			"sentiment":    sentimentInBucket(sentiments, axis, bucket, unit),
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -388,12 +393,57 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 // because 'W' outranks '0', not because that week is later. Choosing by rank
 // order of the units sidesteps that entirely. Empty input yields the zero unit
 // and the caller's filter then keeps nothing — an empty chart, never a mixed
-// one. When rollups land, this is where a ?unit= parameter hangs.
+// one. Rollups have landed, so this is the live default; a ?unit= parameter
+// would hang here, and does not exist yet.
 func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
 	present := make(map[gen.BucketUnit]bool, 3)
 	for _, t := range rows {
 		present[t.BucketUnit] = true
 	}
+	return finestUnit(present)
+}
+
+// inOneUnit settles both Gold datasets on the finest unit they share, for the
+// readers that take Gold flat instead of walking a series.
+//
+// The dashboard is the one that needs it. It ranks and counts over every row it
+// is handed, so once the aggregation emits rollups (AC3.3) the same subject
+// arrives three times — hour, day and week — and a card that adds them up is
+// counting the same records three times over. One unit is settled across both
+// datasets rather than per dataset, so the ranking and the sentiment card
+// describe the same slice of Gold.
+func inOneUnit(
+	trends []gen.SubjectTrend, sentiments []gen.AxisSentiment,
+) ([]gen.SubjectTrend, []gen.AxisSentiment) {
+	present := make(map[gen.BucketUnit]bool, 3)
+	for _, t := range trends {
+		present[t.BucketUnit] = true
+	}
+	for _, s := range sentiments {
+		present[s.BucketUnit] = true
+	}
+	unit := finestUnit(present)
+
+	keptTrends := make([]gen.SubjectTrend, 0, len(trends))
+	for _, t := range trends {
+		if t.BucketUnit == unit {
+			keptTrends = append(keptTrends, t)
+		}
+	}
+	keptSentiments := make([]gen.AxisSentiment, 0, len(sentiments))
+	for _, s := range sentiments {
+		if s.BucketUnit == unit {
+			keptSentiments = append(keptSentiments, s)
+		}
+	}
+	return keptTrends, keptSentiments
+}
+
+// finestUnit ranks the units rather than the bucket keys — the one comparison
+// that is valid across units. The zero unit for empty input is deliberate: a
+// caller filtering on it keeps nothing, so an empty Gold yields an empty view
+// rather than an invented basis.
+func finestUnit(present map[gen.BucketUnit]bool) gen.BucketUnit {
 	for _, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
 		if present[unit] {
 			return unit
@@ -515,35 +565,54 @@ func countUnselected(series []trendSeries) int {
 // ("2026-06-23T14", "2026-06-23", "2026-W25"), so lexical max is chronological
 // max within a unit. Empty Gold yields the zero values, which the callers below
 // treat as "no rows match".
+// latestBucket picks the basis of the compare view: the newest bucket of the
+// finest unit present.
+//
+// Settling the unit *first* is not a refinement, it is what makes the pick
+// meaningful. Bucket keys are only comparable within a unit — "2026-W26" sorts
+// above "2026-06-23T14" because 'W' outranks '0', not because that week is
+// later — so a plain maximum over mixed rows would hand the view a week rollup
+// and label it the latest hour. With rollups in Gold (AC3.3) that is not a
+// hypothetical: every run writes a week row.
 func latestBucket(trends []gen.SubjectTrend, sentiments []gen.AxisSentiment) (string, gen.BucketUnit) {
-	var bucket string
-	var unit gen.BucketUnit
+	present := make(map[gen.BucketUnit]bool, 3)
 	for _, t := range trends {
-		if t.TimeBucket > bucket {
-			bucket, unit = t.TimeBucket, t.BucketUnit
+		present[t.BucketUnit] = true
+	}
+	for _, s := range sentiments {
+		present[s.BucketUnit] = true
+	}
+	unit := finestUnit(present)
+
+	var bucket string
+	for _, t := range trends {
+		if t.BucketUnit == unit && t.TimeBucket > bucket {
+			bucket = t.TimeBucket
 		}
 	}
 	for _, s := range sentiments {
-		if s.TimeBucket > bucket {
-			bucket, unit = s.TimeBucket, s.BucketUnit
+		if s.BucketUnit == unit && s.TimeBucket > bucket {
+			bucket = s.TimeBucket
 		}
 	}
 	return bucket, unit
 }
 
-func trendsInBucket(trends []gen.SubjectTrend, bucket string) []gen.SubjectTrend {
+func trendsInBucket(trends []gen.SubjectTrend, bucket string, unit gen.BucketUnit) []gen.SubjectTrend {
 	rows := make([]gen.SubjectTrend, 0, len(trends))
 	for _, t := range trends {
-		if t.TimeBucket == bucket {
+		if t.TimeBucket == bucket && t.BucketUnit == unit {
 			rows = append(rows, t)
 		}
 	}
 	return rows
 }
 
-func sentimentInBucket(rows []gen.AxisSentiment, axis, bucket string) gen.SentimentDistribution {
+func sentimentInBucket(
+	rows []gen.AxisSentiment, axis, bucket string, unit gen.BucketUnit,
+) gen.SentimentDistribution {
 	for _, r := range rows {
-		if string(r.Axis) == axis && r.TimeBucket == bucket {
+		if string(r.Axis) == axis && r.TimeBucket == bucket && r.BucketUnit == unit {
 			return r.Distribution
 		}
 	}
@@ -559,12 +628,7 @@ func sentimentUnit(rows []gen.AxisSentiment) gen.BucketUnit {
 	for _, s := range rows {
 		present[s.BucketUnit] = true
 	}
-	for _, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
-		if present[unit] {
-			return unit
-		}
-	}
-	return ""
+	return finestUnit(present)
 }
 
 // sentimentSeries folds one axis's rows into bucket order. Gold's key is

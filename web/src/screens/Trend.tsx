@@ -9,12 +9,12 @@ import { MapStrip } from "../shell/MapStrip";
 //
 // Two things are deliberately *not* here:
 //
-//   - A 시간/일/주 switch. The mockup draws one, but rollups (AC3.3) have not
-//     landed, so the control would have nothing to switch to. The design tracker
-//     calls a switch with nothing behind it a 허위 컨트롤 (the normalization
-//     toggle is registered as unimplemented for exactly that reason), so the
-//     bucket unit is rendered as a static reflection of the basis the API
-//     answered on instead.
+//   - A 시간/일/주 switch. Gold carries all three units now (AC3.3), but
+//     /api/trend settles on one itself and takes no ?unit= parameter, so the
+//     control would have nothing to switch with. The design tracker calls a
+//     switch with nothing behind it a 허위 컨트롤 (the normalization toggle is
+//     registered as unimplemented for exactly that reason), so the bucket unit
+//     is rendered as a static reflection of the basis the API answered on.
 //   - A 대상 추가 button. Which subjects are comparable is the API's ranking,
 //     not a free-form pick, and there is no endpoint behind "add an arbitrary
 //     subject" yet. Selecting one of the compared subjects is real, so that is
@@ -187,8 +187,8 @@ export function Trend() {
 
               <div className="note">
                 <div>
-                  이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 더 긴 구간(일·주) 롤업은 아직
-                  집계가 산출하지 않아 전환 컨트롤을 두지 않았습니다.{" "}
+                  이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
+                  서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.{" "}
                   <span className="mono trend-ac">AC3.3</span>
                 </div>
               </div>

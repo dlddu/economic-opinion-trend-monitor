@@ -88,11 +88,43 @@ export function goldSkewDir(): string {
   return exportedDir("E2E_GOLD_SKEW_DIR");
 }
 
+/**
+ * 버킷 단위 순위 — 고운 것부터. 서빙(`handlers.go: finestUnit`)이 쓰는 것과 같은 순서이고,
+ * 같아야 한다: 헬퍼가 화면과 다른 단위를 고르면 spec 이 화면과 다른 Gold 를 재게 된다.
+ */
+const UNIT_RANK = ["hour", "day", "week"] as const;
+
+/**
+ * 한 단위로 정한다(AC3.3). 집계는 같은 레코드를 시간·일·주 세 벌로 산출하므로, 단위를 가르지
+ * 않고 읽으면 같은 대상이 세 번 세어진다 — 축 합계도, 대상별 행 수도, 점유율 합도 전부 3배가
+ * 된다. **버킷 키로 고를 수 없다**: `2026-W26` 은 `2026-06-23T14` 보다 크게 정렬되지만 더
+ * 나중이라서가 아니다. 그래서 키가 아니라 **단위 순위**로 고른다.
+ */
+function inFinestUnit<T extends { bucket_unit: string }>(rows: T[]): T[] {
+  const present = new Set(rows.map((row) => row.bucket_unit));
+  const unit = UNIT_RANK.find((candidate) => present.has(candidate));
+  return unit === undefined ? [] : rows.filter((row) => row.bucket_unit === unit);
+}
+
+/** 기본 단위(= 존재하는 가장 고운 단위)의 `subject_trend` 행. 화면이 보는 것과 같은 슬라이스다. */
 export function subjectTrends(dir: string = goldDir()): SubjectTrend[] {
+  return inFinestUnit(subjectTrendsAllUnits(dir));
+}
+
+/** 기본 단위의 `axis_sentiment` 행. */
+export function axisSentiments(dir: string = goldDir()): AxisSentiment[] {
+  return inFinestUnit(axisSentimentsAllUnits(dir));
+}
+
+/**
+ * 단위를 가르지 않은 원본 Gold. 롤업 자체를 재는 쪽(테스트 문서 시나리오 3)과, 위 필터가
+ * 무언가를 조용히 가리고 있지 않은지 확인하는 쪽이 쓴다.
+ */
+export function subjectTrendsAllUnits(dir: string = goldDir()): SubjectTrend[] {
   return readJsonlFrom<SubjectTrend>(dir, "subject_trend");
 }
 
-export function axisSentiments(dir: string = goldDir()): AxisSentiment[] {
+export function axisSentimentsAllUnits(dir: string = goldDir()): AxisSentiment[] {
   return readJsonlFrom<AxisSentiment>(dir, "axis_sentiment");
 }
 
@@ -155,7 +187,7 @@ export function cellKey(axis: string, bucket: string, subject: string): string {
   return [axis, bucket, subject].join(CELL_SEP);
 }
 
-/** 한 축의 `subject_trend` 행만 고른다(버킷은 e2e 한 주기라 한 개다). */
+/** 한 축의 `subject_trend` 행만 고른다(단위는 호출자가 이미 정했고, 버킷은 e2e 한 주기라 한 개다). */
 export function trendsOfAxis(rows: SubjectTrend[], axis: string): SubjectTrend[] {
   return rows.filter((row) => row.axis === axis);
 }

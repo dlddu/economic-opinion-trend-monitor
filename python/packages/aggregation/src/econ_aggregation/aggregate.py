@@ -18,27 +18,60 @@ than synthesized: shares are computed for every bucket first, then each row
 looks back along the same (axis, subject) series. A subject's first bucket has
 nothing to compare against, so it reports ``delta = 0.0`` and a single-point
 spark — that degenerate case is the honest answer, not a placeholder.
+
+Rollups (AC3.3): the hour is the default unit, and the longer units are the
+*same* aggregation run again over a coarser cut of the same source records —
+not a second pass that sums Gold rows. That is what keeps the rollup consistent
+by construction: a day's ``raw_count`` is the count of the records that fall in
+that day, which is exactly the sum of its hours' counts. ``normalized_share``
+is deliberately *not* summed. It is a share of its own bucket, so adding hourly
+shares would produce a number that is no longer a distribution; recomputing the
+AC3.1 normalization inside the wider bucket keeps every unit's shares summing
+to 1 across subjects, which is what makes the units comparable at all.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import asdict
+from datetime import date
 
 from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
 
-BUCKET_UNIT = "hour"
+# The unit an aggregation answers in when the caller does not say (AC3.3:
+# "기본 단위는 시간"), and the full set a run emits, finest first.
+DEFAULT_BUCKET_UNIT = "hour"
+BUCKET_UNITS = ("hour", "day", "week")
 
 # How many trailing buckets the sparkline carries, the current one included.
 SPARK_WINDOW = 6
 
 
-def _bucket(collected_at: str) -> str:
-    """2026-06-23T14:00:00+00:00 -> 2026-06-23T14 (hour bucket, AC3.3)."""
-    return collected_at[:13]
+def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
+    """Cut a collection timestamp down to its bucket label in ``unit`` (AC3.3).
+
+    ``2026-06-23T14:00:00+00:00`` -> ``2026-06-23T14`` / ``2026-06-23`` /
+    ``2026-W26``. Every label is zero-padded, so lexical order is chronological
+    order *within* a unit — the assumption both the serving layer and the
+    delta/spark history below are built on. Across units it does not hold
+    (``2026-W26`` sorts above ``2026-06-23T14``), which is why consumers settle
+    on one unit before they compare buckets.
+    """
+    if unit == "hour":
+        return collected_at[:13]
+    if unit == "day":
+        return collected_at[:10]
+    if unit == "week":
+        iso = date.fromisoformat(collected_at[:10]).isocalendar()
+        # ISO week-numbering year, which is not always the calendar year in the
+        # days around New Year — the point of using it here.
+        return f"{iso[0]}-W{iso[1]:02d}"
+    raise ValueError(f"unknown bucket unit {unit!r} — expected one of {BUCKET_UNITS}")
 
 
-def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
+def build_subject_trends(
+    bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
+) -> list[dict]:
     by_id = {b["record_id"]: b for b in bronze}
     # counts[axis][bucket][source][subject] -> n
     counts: dict[str, dict[str, dict[str, dict[str, int]]]] = defaultdict(
@@ -48,7 +81,8 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
         item = by_id.get(analysis["record_id"])
         if item is None:
             continue
-        axis, bucket, source = item["axis"], _bucket(item["collected_at"]), item["source_id"]
+        axis, source = item["axis"], item["source_id"]
+        bucket = _bucket(item["collected_at"], unit)
         for subject in analysis["narrative_subjects"]:
             counts[axis][bucket][source][subject] += 1
 
@@ -94,7 +128,7 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
                         SubjectTrend(
                             subject=subject,
                             axis=axis,
-                            bucket_unit=BUCKET_UNIT,
+                            bucket_unit=unit,
                             time_bucket=bucket,
                             raw_count=raw,
                             normalized_share=normalized,
@@ -106,7 +140,9 @@ def build_subject_trends(bronze: list[dict], silver: list[dict]) -> list[dict]:
     return trends
 
 
-def build_axis_sentiment(bronze: list[dict], silver: list[dict]) -> list[dict]:
+def build_axis_sentiment(
+    bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
+) -> list[dict]:
     by_id = {b["record_id"]: b for b in bronze}
     # tally[axis][bucket][key] -> n, where key is a sentiment, "unanalyzed", or "_total"
     tally: dict[str, dict[str, dict[str, int]]] = defaultdict(
@@ -116,7 +152,7 @@ def build_axis_sentiment(bronze: list[dict], silver: list[dict]) -> list[dict]:
         item = by_id.get(analysis["record_id"])
         if item is None:
             continue
-        axis, bucket = item["axis"], _bucket(item["collected_at"])
+        axis, bucket = item["axis"], _bucket(item["collected_at"], unit)
         if analysis["analysis_status"] == "unanalyzed" or analysis["sentiment"] is None:
             tally[axis][bucket]["unanalyzed"] += 1
         else:
@@ -141,7 +177,7 @@ def build_axis_sentiment(bronze: list[dict], silver: list[dict]) -> list[dict]:
                 asdict(
                     AxisSentiment(
                         axis=axis,
-                        bucket_unit=BUCKET_UNIT,
+                        bucket_unit=unit,
                         time_bucket=bucket,
                         distribution=distribution,
                         analyzed_total=analyzed,
@@ -149,3 +185,17 @@ def build_axis_sentiment(bronze: list[dict], silver: list[dict]) -> list[dict]:
                 )
             )
     return rows
+
+
+def build_subject_trends_all_units(
+    bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
+) -> list[dict]:
+    """``build_subject_trends`` once per unit, finest first (AC3.3 rollups)."""
+    return [row for unit in units for row in build_subject_trends(bronze, silver, unit)]
+
+
+def build_axis_sentiment_all_units(
+    bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
+) -> list[dict]:
+    """``build_axis_sentiment`` once per unit, finest first (AC3.3 rollups)."""
+    return [row for unit in units for row in build_axis_sentiment(bronze, silver, unit)]

@@ -24,9 +24,9 @@ import { MapStrip } from "../shell/MapStrip";
 // Two things the mockup draws that are deliberately *not* here, following the
 // precedent slice 5 set for 허위 컨트롤 (a control with nothing behind it):
 //
-//   - A 기간/단위(시간·일·주) form. Rollups are AC3.3 and have not landed, so
-//     Gold holds hour rows only and the switch would have nothing to switch to.
-//     The unit is rendered as a static reflection of the basis instead.
+//   - A 기간/단위(시간·일·주) form. Gold holds day and week rows now (AC3.3),
+//     but /api/sentiment takes neither a unit nor a period parameter, so the
+//     form would have nothing to submit. The unit reflects the basis instead.
 //   - A 서술 대상 picker with a per-subject donut. Gold's sentiment record is
 //     keyed by (axis, bucket) — there is no per-subject distribution to show,
 //     and inventing one by reusing the axis's would be a fabricated number.
@@ -222,8 +222,8 @@ export function Sentiment() {
                 )}
                 <div className="note">
                   <div>
-                    이 막대는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 더 긴 구간(일·주) 롤업은 아직
-                    집계가 산출하지 않아 단위 전환 컨트롤을 두지 않았습니다.{" "}
+                    이 막대는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
+                    서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.{" "}
                     <span className="mono trend-ac">AC3.3</span>
                   </div>
                 </div>
