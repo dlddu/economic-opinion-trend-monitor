@@ -109,6 +109,30 @@ describe("Trend", () => {
     );
   });
 
+  it("puts the window mean beside the current share, as the mockup's table does", async () => {
+    stubTrend([response()]);
+    const { container } = render(<Trend />);
+
+    await waitFor(() => expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
+
+    const headers = Array.from(container.querySelectorAll("table.tbl thead th")).map(
+      (th) => th.textContent ?? "",
+    );
+    expect(headers[1]).toBe("현재 점유율");
+    expect(headers[2]).toBe("구간 평균");
+
+    // 기준금리 rises 0.2 -> 0.3 -> 0.5: the mean (33.3%) is a *different* number
+    // from the latest share (50.0%), so a column that copies the headline value
+    // instead of averaging the buckets fails here.
+    const lead = container.querySelectorAll("table.tbl tbody tr")[0].querySelectorAll("td");
+    expect(lead[1].textContent).toBe("50.0%");
+    expect(lead[2].textContent).toBe("33.3%");
+
+    const other = container.querySelectorAll("table.tbl tbody tr")[1].querySelectorAll("td");
+    expect(other[1].textContent).toBe("30.0%");
+    expect(other[2].textContent).toBe("40.0%");
+  });
+
   it("says an axis has nothing aggregated instead of drawing an empty chart", async () => {
     const empty: TrendResponse = {
       axis: "KR",

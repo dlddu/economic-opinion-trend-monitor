@@ -92,6 +92,12 @@ function pctText(share: number): string {
   return `${(share * 100).toFixed(1)}%`;
 }
 
+/** 비교 표의 `구간 평균` — 그려진 구간의 버킷 값 평균(화면과 같은 계산·같은 순서). */
+function windowMean(series: TrendSeries): number {
+  if (series.points.length === 0) return 0;
+  return series.points.reduce((sum, p) => sum + p.normalized_share, 0) / series.points.length;
+}
+
 function deltaText(delta: number): string {
   if (delta > 0) return `▲ ${delta.toFixed(1)}%p`;
   if (delta < 0) return `▼ ${Math.abs(delta).toFixed(1)}%p`;
@@ -189,7 +195,14 @@ test("web: the comparison table repeats the API ranking, value for value", async
     await expect(cells.nth(1), `"${series.subject}" 현재 점유율이 집계와 다름`).toHaveText(
       pctText(series.latest_share),
     );
-    await expect(cells.nth(2), `"${series.subject}" 직전 대비 변화가 집계와 다름`).toHaveText(
+    // 구간 평균은 화면이 `points[]` 에서 계산하는 값이라 응답에 그 수가 따로 없다. 같은
+    // 응답에서 같은 방식으로 다시 계산해 대조한다 — 공유 픽스처 Gold 는 버킷이 1개라
+    // 여기서는 평균과 최신값이 같은 수이고(그 구분은 `Trend.test.tsx` 가 3버킷으로 진다),
+    // 이 단언이 지키는 것은 **컬럼 자리와 값의 대응**이다.
+    await expect(cells.nth(2), `"${series.subject}" 구간 평균이 집계와 다름`).toHaveText(
+      pctText(windowMean(series)),
+    );
+    await expect(cells.nth(3), `"${series.subject}" 직전 대비 변화가 집계와 다름`).toHaveText(
       deltaText(series.delta),
     );
   }
