@@ -32,6 +32,7 @@
 | 2026-09-20 | [unrowed-files-pass](passes/2026-09-20-unrowed-files-pass.md) | `4ddbdaa` | 2350 | 33 | 2317 | 121 → 121 |
 | 2026-09-20 | [trend-surface-pass](passes/2026-09-20-trend-surface-pass.md) | `473b3cc` | 2398 | 38 | 2360 | 123 → 123 |
 | 2026-09-20 | [dashboard-surface-pass](passes/2026-09-20-dashboard-surface-pass.md) | `50dbd2d` | 2360 | 5 | 2355 | 123 → 122 |
+| 2026-09-20 | [serving-handlers-pass](passes/2026-09-20-serving-handlers-pass.md) | `c887503` | 2419 | 19 | 2400 | 123 → 123 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
@@ -101,6 +102,35 @@ doc-tracker·design-tracker 로 복원한 것과 달리 **같은 PR 본문**이 
 ⑵ 가 0 을 내지 않는다). 앞 패스들이 파일을 뺀 이유는 「판정 근거가 낡은 트리에서 세워지는 것」이었고,
 여기서는 판정 근거(복원 경로 ③)가 #84 가 더하는 줄과 무관하므로 그 위험이 성립하지 않는다.
 
+serving-handlers-pass도 표적 패스다 — `go/internal/handlers/` **한 패키지 2파일**만 판정했고,
+직전 패스가 말미 요약에서 다음 패스로 지목한 그 덩어리다(⑵ `handlers.go` +228 · `handlers_test.go`
++106 = 334줄). **기준 커밋은 준비 사이 `4772128` 에서 `c887503` 으로 옮겼다** — 자매 PR #84·#85 가
+먼저 착지해 `Dashboard.*`·`Trend.*`·`tokens.css`·`aggregation-5…spec.ts` 에 주석 64줄을 더했기
+때문이고(직전 dashboard-surface-pass 가 「#84 가 뒤에 착지하면 그 증가분은 계수 규약 ⑵ 로 다음
+패스에 도달한다」고 예고한 그 창이다), 리베이스 후 지문·잔여·행 수를 전부 재측정했다. **두 자매가
+`go/internal/handlers/` 를 건드리지 않아 이 패스가 판정하는 372줄 자체는 움직이지 않았다**(판정 전
+줄 수 252·120 이 리베이스 전후 동일). 증가분만 처분하지 않고 **두 파일 전체 372줄을 재판정**한 것은 「읽는 법」이 못박은
+불변식(**행의 `남음` 은 그 행의 비고가 열거로 해명하는 줄 수와 같아야 한다**) 때문이고,
+계획 직전 열린 PR 일곱(#85 · #84 · #78 · #76 · #75 · #73 · #72)의 파일 목록을 다시 조회해
+`go/internal/handlers/` 와의 겹침이 **0**임을 확인했다. 제거 6줄은 **한 함수에 겹쳐 붙은 낡은 doc
+주석 한 벌**(`latestBucket` 앞 5줄 — 뒤에 이어 붙은 두 번째 요약이 같은 사실을 더 정확히 적고,
+`distinctBuckets`·`finestUnit` doc 이 나머지를 복원한다. 「다른 파일 주석의 재진술 — 설명의
+주인에만 둔다」를 **한 파일 안의 두 벌**에 적용)과 `handlers_test.go` 의 `// --- trace (slice 9) ---`
+구분선 1줄(initial-pass 가 같은 패키지에서 지운 형태의 재발)이다. 문면 정정 4곳(13줄 감소)의
+특징은 **같은 트랩의 사본을 주인 지목 포인터로 줄인 것**이다 — 「Mixed bucket units」가
+`trend`·`sentiment`·`fairness` 세 핸들러 doc 에 사본으로 있었고 주인은 그들이 실제로 부르는
+`plottedUnit`·`sentimentUnit` 이며, 사본 셋 중 둘은 「AC3.3 has not landed」로 **이미 거짓**이었다
+(`32faf64` 로 롤업이 착지하며 `plottedUnit` 은 고쳐졌고 사본은 놓쳤다 — 정책의 「되풀이된 주석이
+낡아 틀려 있으면 제거 근거가 강해진다」). 나머지 정정은 과거 상태 서술(「which is what this route
+used to do」·「until now this route closed neither」·「Before slice 9 this returned a fixed
+string」)이고 복원 경로는 슬라이스 커밋(④)과 doc-tracker 변동 이력(②)이다.
+**패키지 주석 본문 6줄은 판단 분기로 남겼다** — 경로 ①(`Register` 의 라우트 열거 · `reprocess`
+본문 · `trace` doc)이 성립하지만, design-tracker 가 `handlers.go:34`·`:30-37` 을 **판정 근거로
+줄 번호 인용**하고 있어 그 위를 지우면 두 인용이 밀린다(`Sentiment.tsx:24-29` 유지와 같은 자리).
+경로 ②는 성립하지 않는다 — `README.md:223`·`:228` 이 아직 골격 시절 서술(「나머지 6화면은
+플레이스홀더」·「스텁 라우트만」)이라 **README 쪽이 낡았고 주석 쪽이 맞다**. 이 패스의 제거·정정
+지점은 전부 `:308` 이후라 트래커가 인용한 줄 범위는 움직이지 않는다.
+
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
 아래 파일별 행의 판정 칸에 그 사실과 추적처를 적는다 — 「각 행은 마지막으로 판정한 패스 기준」 규칙 때문에,
@@ -125,8 +155,8 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `deploy/overlays/prod/kustomization.yaml` | 32 | 12 | 20 | 제거 12줄 — `kubectl apply -k` 적용법·외부 노출(README「배포」재진술), 두 CronWorkflow 인계 목록(README·cronworkflow-pipeline.yaml 재진술). 유지: Recreate/RWO 근거, template-wide 볼륨, 주기 오버라이드 패치 예시(cronworkflow-ingestion.yaml이 가리키는 위치) |
 | `deploy/overlays/prod/pvc.yaml` | 1 | 0 | 1 | 유지 — storageClassName 부재 의도(프리뷰의 efs 함정과 대비되는 의도적 기본값) |
 | `go/cmd/serving/main.go` | 4 | 0 | 4 | 유지 — 패키지(command) doc 주석, 프로브를 액세스 로그에서 빼는 이유 |
-| `go/internal/handlers/handlers.go` | 27 | 3 | 24 | 제거 3줄 — `// --- … ---` 구분선. 유지: 패키지·export doc 주석(`New builds Handlers…`는 정의 표본 ①과 doc 주석 유지 규칙이 충돌 — 유지 규칙 우선), compare의 동일 기준 근거, 버킷 키 사전식=시간순 조건 |
-| `go/internal/handlers/handlers_test.go` | 14 | 0 | 14 | 유지 — 다중 버킷 픽스처 설계 근거, 단위/e2e 분담. AC3.7 태그는 판단 분기로 유지 |
+| `go/internal/handlers/handlers.go` | 252 | 5 | 235 | **serving-handlers-pass — 재판정.** 직전 판정(initial-pass, 24줄) 이후 #45·#53·#62·#66·#70 이 228줄을 들였고, 증가분만이 아니라 **파일 전체를 다시 판정**했다. 제거 5줄 — `latestBucket` 앞에 **doc 주석 블록이 두 벌 겹쳐 붙어** 있었고 앞 판을 걷었다(뒤 판이 같은 사실을 더 정확히 적는다: 「단위를 먼저 정하지 않으면 사전순 최대는 시간순 최대가 아니다」. 나머지 두 주장은 `distinctBuckets` doc(0 채움 ISO 접두사)·`finestUnit` doc(빈 입력의 zero unit 계약)이 복원 — 경로 ①. 「다른 파일 주석의 재진술 — 설명의 주인에만 둔다」를 한 파일 안의 두 벌에 적용). **문면 정정 3곳(12줄 감소)**: `trend`·`sentiment`·`fairness` doc 의 「Mixed bucket units」 항목(6·4·4줄)을 **주인 지목 포인터 1줄**로 줄였다 — 주인은 세 핸들러가 실제로 부르는 `plottedUnit`·`sentimentUnit` 이고(`compare` doc 이 이미 쓰는 형태), 그중 둘은 「AC3.3 has not landed」로 **거짓이 된 채** 남아 있었다(`32faf64` 착지 후 `plottedUnit` 만 고쳐졌다). 같은 정정에서 과거 상태 서술 둘(`sentiment` 의 「which is what this route used to do」 · `fairness` 의 「until now this route closed neither」)을 걷었다 — 복원 경로는 슬라이스 커밋 `b30a321`·`ddaef4f`(④)와 doc-tracker `2026-09.md` 변동 이력(②). 유지 235줄: 패키지·타입·함수 doc 주석 골격(`New builds Handlers…` 는 정의 표본 ①과 doc 주석 유지 규칙이 충돌 — 유지 규칙 우선) · **버킷 키의 비자명한 성질**(단위 안에서만 비교 가능 · `2026-W26` > `2026-06-23T14` 의 이유 — 모델 정의가 이름 대어 유지로 지목한 지식이고 이제 단위를 고르는 함수들에만 있다) · 응답 계약의 「왜 두 필드인가」(`BodyAvailable`/`BodyPreserved` 는 AC1.4 가 존재 이유인 경우에 갈린다 · `Sentiment` 포인터는 AC2.5 · `Present` 는 0 분포와 미집계의 차이 · `RawShare` 는 정규화 점유율이 **아니라는** 것이 AC3.1 편차의 정의) · `traceResponse` 의 「모자란 것을 뭉치지 않는다」 3분기 표 · 상한 상수의 근거(`trendSeriesLimit`·`fairnessRowLimit` 는 **왜 그 값인지**를 코드가 말하지 않는다) · 방어적 계산의 의도(`shareOf` 의 0 vs NaN · `sentimentSeries` 의 중복 버킷 = 상류 계약 위반 · `selectNewsItem` 의 폴백 명명). **판단 분기 셋**: ⑴ **패키지 주석 본문 6줄** — 경로 ①(`Register` 라우트 열거 · `reprocess` 본문 · `trace` doc)이 성립하지만 design-tracker 가 `handlers.go:34`·`:30-37` 을 판정 근거로 **줄 번호 인용**해 제거가 자매 모델 행의 처분과 묶이고(`Sentiment.tsx:24-29` 선례), 경로 ②는 **README 쪽이 낡아**(`:223`·`:228` 이 「나머지 6화면은 플레이스홀더」·「스텁 라우트만」) 성립하지 않는다. 다시 볼 시점: 그 인용이 내용 지목(`∋ func …`)으로 바뀌거나 그 행이 처분될 때 ⑵ 세 basis doc 의 「같은 기준을 명시한다」 3벌 — 셋이 서로를 지목하는 형태로 주인이 정해져 있고 뒷절이 화면별 오독 방식을 담는다 ⑶ `trend`·`fairness` 의 「Ranking on stale rows」 2벌 — 헬퍼 doc(`seriesBySubject`·`latestBucketOf`)은 정렬 규칙을, 이쪽은 **그 핸들러가 무엇을 잘못 답하게 되는가**를 적는다. 사본 셋을 하나로 줄인 「Mixed bucket units」 와 달리 두 벌뿐이고 문면이 갈린다 |
+| `go/internal/handlers/handlers_test.go` | 120 | 1 | 118 | **serving-handlers-pass — 재판정.** 직전 판정(initial-pass, 14줄) 이후 #45·#53·#62·#66·#70 이 106줄을 들였고 파일 전체를 다시 판정했다. 제거 1줄 — `// --- trace (slice 9) ---` 구분선(제거 유형 ④ + 괄호 안은 ③ 「작업 흔적」. 절 이름은 바로 아래 `writeLineage`·`TestTrace*` 이름이 복원하고, **같은 패키지에서 initial-pass 가 지운 `// --- … ---` 3줄의 재발**이다). **문면 정정 1곳(1줄 감소)**: `TestTraceJoinsBronzeBodyAndSilverAnalysis` 머리의 「Before slice 9 this returned a fixed string with no lake read behind it」를 걷었다(유형 ③ — doc-tracker 슬라이스 9 행이 「`/api/trace` 는 일곱 라우트에 남은 두 자기선언 stub 의 하나였고」로 축자 복원). 유지 118줄 — **전량이 「테스트가 왜 그 모양으로 단언하는지」·「픽스처가 왜 그 모양인지」**이고 `Sentiment.test.tsx`·`Fairness.test.tsx`·`Trend.test.tsx`·`Dashboard.test.tsx` 의 전량 유지와 같은 판정이다(앞 패스들의 유지를 뒤집지 않는다): 픽스처 판별력 표 5종(`writeMultiBucketGold` 는 **가장 큰 점유율을 낡은 버킷에** 둬 필터 누락이 즉시 드러나게 했다 · `writeTrendGold` 는 네 대상 × 세 버킷 + 주 롤업으로 「차트가 잘못 그려질 모든 방식에 증인」 · `writeRolledUpGold` 는 같은 레코드 세 벌로 3중 계상 유발 · `writeSkewedGold` 는 원시 60/100 인데 정규화 0.25 라 두 방식이 어긋난다 · `writeMixedUnitSentiment` 는 일 롤업 키가 사전순 최대) · 단언 설계(낡은 0.9 가 새지 않는다 · 축이 비면 옛 버킷을 빌리지 않는다 · 네 비율 합 1 **과** 미분석 0.2 를 함께 단언 · 원시 합이라 3중 계상이 8 대신 24 로 드러난다 · 두 세는 방식이 어긋나야 AC3.8 「구분 표기」에 내용이 있다) · **단위/e2e 층 분담**(e2e 픽스처가 의도적으로 단일 버킷이라 두 버킷을 공급하는 단위 테스트만이 「핸들러가 하나를 고른다」를 증명한다) · 롤업 전용 Gold 가 고장이 아니라는 판독. AC 태그·AC 인용은 판단 분기로 유지 |
 | `go/internal/static/static.go` | 6 | 0 | 6 | 유지 — 패키지·export doc 주석(SPA 폴백 동작 설명) |
 | `go/internal/store/store.go` | 12 | 0 | 12 | 유지 — 패키지·export doc 주석, Python LocalFsStore와의 대응, 누락 파일=빈 슬라이스 계약 |
 | `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 12 | 1 | 11 | **aggregation-harness-pass** — 제거 1줄: `# Percentage points, matching the contract's \`delta\` doc.` — 주석이 자기 복원처를 이름으로 지목하고 원본(`contracts/gold/subject_trend.avsc` `delta` 필드 `doc`)이 AC 번호까지 달아 더 정확하다(정책 doc 주석 항의 `contracts/` 스키마 재진술). 유지: 중첩 dict 형태 표기, 버킷 키 사전식=시간순 근거, "없는 버킷은 0이 아니다", AC3.4 분리 근거(태그는 판단 분기) |
@@ -231,4 +261,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **dashboard-surface-pass 기준 · 레포 전체** | **2360** | **5** | **2355** | 지문 값(`50dbd2d` → 이 패스 후). 이 표는 그중 **121개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 667줄**이다: ⑴ 아직 행이 없는 파일 **4개 101줄**(`web/src/screens/Fairness.tsx` 37 — 세 패스 연속으로 열린 PR(#70 → **#76**)이 수정 중이라 빠졌다 · `web/src/screens/Trace.tsx` 36 · `web/src/screens/Trace.test.tsx` 22 — 둘 다 열린 **#78** 이 판정 중이다 · `go/internal/store/store_test.go` 6), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **13파일 566줄**(`go/internal/handlers/handlers.go` 24→252 · `handlers_test.go` 14→120 · `tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `scripts/check-journey-mockup.py` 42→65 · `python/packages/aggregation/tests/test_aggregate.py` 1→19 · `go/internal/store/store.go` 12→29 · `web/src/tokens/tokens.css` 38→54 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` 48→53 · `econ_aggregation/aggregate.py` 11→15 · `python/packages/ingestion/tests/test_feeds.py` 21→24). 직전 요약(trend-surface-pass)이 적은 677 은 이 패스의 기준 커밋 `50dbd2d` 에서 **재측정으로 전건 재현한 값**이고, 이 패스가 닫은 10줄(`Dashboard.test.tsx` 7 은 ⑴, `Dashboard.tsx` 3 은 ⑵)을 빼 667 이 된다. **열린 PR #78 이 같은 요약 행을 고치고 있고, #84 는 판정한 두 파일에 주석 31줄을 더하고 있다** — 둘 중 무엇이 먼저 머지되든 참값은 각자의 몫을 합친 값이므로, 나중에 머지되는 쪽이 이 행을 **재측정해서** 다시 쓴다(같은 문자열을 쓰면 충돌 없이 조용히 틀린 값이 남는다). |
+| **serving-handlers-pass 기준 · 레포 전체** | **2419** | **19** | **2400** | 지문 값(`c887503` → 이 패스 후 · 파일 수 123 불변). 이 표는 그중 **121개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 397줄**이다: ⑴ 아직 행이 없는 파일 **4개 101줄**(`web/src/screens/Fairness.tsx` 37 — 네 패스 연속으로 열린 PR(#70 → **#76**)이 수정 중이라 빠졌다 · `web/src/screens/Trace.tsx` 36 · `web/src/screens/Trace.test.tsx` 22 · `go/internal/store/store_test.go` 6 — 뒤 셋은 열린 **#78** 이 판정 중이다), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **15파일 296줄**(`tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `scripts/check-journey-mockup.py` 42→65 · `web/src/tokens/tokens.css` 38→58 · `web/src/screens/Dashboard.tsx` 0→19 · `python/packages/aggregation/tests/test_aggregate.py` 1→19 · `go/internal/store/store.go` 12→29 · `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` 48→61 · `web/src/screens/Trend.tsx` 47→59 · `web/src/screens/Dashboard.test.tsx` 5→17 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `web/src/screens/Trend.test.tsx` 25→34 · `econ_aggregation/aggregate.py` 11→15 · `python/packages/ingestion/tests/test_feeds.py` 21→24). **기준 커밋 `c887503` 에서 이 패스 직전 잔여는 731 이었다**(⑴ 4파일 101 + ⑵ 17파일 630) — 직전 요약(dashboard-surface-pass)이 `4772128` 에서 적은 667 에, 준비 사이 착지한 #84·#85 의 주석 64줄이 ⑵ 로 들어온 값이고 독립 파서로 전건 재현했다. 여기서 이 패스가 닫은 334줄(`handlers.go` +228 · `handlers_test.go` +106, 둘 다 ⑵)을 빼 **397** 이 된다 — 두 파일은 판정 후 **현재 줄 수 == 남음** 이라 ⑵ 에서 빠진다. `Dashboard.tsx` 가 ⑵ 에 `0→19` 로 돌아온 것은 dashboard-surface-pass 가 「남음 0 이어도 행은 남긴다」로 만들어 둔 도달 경로가 실제로 작동한 것이다. **열린 PR #78 이 같은 요약 행과 패스 이력 표를 고치고 있다**(`lineage-surface-pass`) — 참값은 각자의 몫을 합친 값이므로, 나중에 머지되는 쪽이 이 행을 **재측정해서** 다시 쓴다(같은 문자열을 쓰면 충돌 없이 조용히 틀린 값이 남는다). 열린 #76 이 `Fairness.*`·`tokens.css` 를 수정 중이라 그 착지분도 ⑵ 로 다음 패스에 도달한다. |
