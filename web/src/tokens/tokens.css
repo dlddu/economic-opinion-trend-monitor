@@ -1399,6 +1399,126 @@ button.norm-toggle {
   word-break: break-all;
 }
 
+/* ---- STP-shortlist (trend screen) ----
+   목업 `JRN-daily-scan.html` 화면 5 의 추림 폼·배너. 값은 목업의 대응 규칙
+   (`.fld` · `.chk` · `.banner` · `.btn.pri` · `.stepact`)에서 그대로 옮겼고,
+   **선택자만** `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다.
+   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기
+   시작하는데, 세 상한이 전부 0 이라 대조면이 그 순간 움직인다. 이 슬라이스가
+   옮기는 것은 문면과 동작이지 공용 레이아웃 선언이 아니다. */
+.trend-sl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trend-sl-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.trend-sl-cand {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.trend-sl-share {
+  color: var(--ink-3);
+}
+
+.trend-sl-memo {
+  margin-top: 18px;
+}
+
+.trend-sl-memo textarea {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-height: 74px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.trend-sl-memo textarea:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.trend-sl-act {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.trend-sl-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--primary-2);
+  box-shadow: var(--sh-1);
+}
+
+.trend-sl-submit:hover {
+  background: var(--primary-2);
+}
+
+.trend-sl-count {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.trend-sl-banner {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-top: 14px;
+}
+
+.trend-sl-banner.err {
+  background: #f6e3de;
+  border: 1px solid #dbb6ac;
+  color: #6b2e1c;
+}
+
+.trend-sl-banner.good {
+  background: var(--primary-soft);
+  border: 1px solid var(--line-3);
+  color: var(--primary-2);
+}
+
+.trend-sl-banner b {
+  font-weight: 700;
+}
+
+.trend-sl-hint {
+  margin-top: 6px;
+  color: var(--ink-2);
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;
