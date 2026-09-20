@@ -17,7 +17,7 @@ kind: CronWorkflow
 metadata:
   name: econ-ingestion-hourly
 spec:
-  suspend: false
+  suspend: true
   # Default cadence per PRD-1: 매시간. Override per environment with a patch.
   schedule: "0 * * * *"
   timezone: "Etc/UTC"

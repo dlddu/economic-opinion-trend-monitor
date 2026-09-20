@@ -26,7 +26,7 @@ kind: CronWorkflow
 metadata:
   name: econ-pipeline-hourly
 spec:
-  suspend: true
+  suspend: false
   # Same cadence as the ingestion-only schedule it replaces (PRD-1: 매시간).
   schedule: "0 * * * *"
   timezone: "Etc/UTC"
