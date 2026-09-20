@@ -7,6 +7,7 @@ def test_failure_isolation_and_dedup() -> None:
     items, _, stats = run_ingestion("2026-06-23T14:00", "2026-06-23T14:00:00+00:00")
     # A broken source is isolated; the rest still produce records (AC1.6).
     assert "kr-flaky" in stats.failed_sources
+    assert "kr-flaky" in stats.failure_reasons
     assert stats.collected == len(items) > 0
     # Duplicate URLs are de-duplicated (AC1.6).
     assert stats.duplicates >= 1

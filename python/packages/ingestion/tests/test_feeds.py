@@ -187,6 +187,7 @@ def test_dedup_failure_isolation_and_retry() -> None:
     items, _, stats = run_feed_ingestion(_all_configs(), CYCLE, COLLECTED_AT, fetcher)
     # The broken source is isolated; the others still produce records (AC1.6).
     assert stats.failed_sources == ["kr-flaky"]
+    assert "boom" in stats.failure_reasons["kr-flaky"]
     # The /kr/fx URL appears in both feeds -> de-duplicated once (AC1.6).
     assert stats.duplicates == 1
     assert stats.collected == len(items) == 4
@@ -202,6 +203,7 @@ def test_malformed_feed_is_isolated() -> None:
         [FeedConfig("kr-wire", "KR", KR_URL)], CYCLE, COLLECTED_AT, fetcher
     )
     assert stats.failed_sources == ["kr-wire"]
+    assert "malformed feed" in stats.failure_reasons["kr-wire"]
 
 
 def test_invalid_axis_and_limit_rejected() -> None:
