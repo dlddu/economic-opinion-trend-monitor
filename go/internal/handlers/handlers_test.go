@@ -686,3 +686,150 @@ func TestViewsFallBackToTheCoarserUnitWhenItIsAllGoldHas(t *testing.T) {
 		t.Errorf("sentiment basis = %+v, series %d — want the day rows", s.Basis, len(s.Series))
 	}
 }
+
+// writeSkewedGold is the shape the fairness view exists to expose: one subject
+// whose raw counts lead the axis while its source-normalized share trails.
+//
+// "와이어 도배 대상" is 60 of the 100 raw items in the basis bucket but only
+// 0.25 of the normalized share — one outlet's volume, not the axis's attention.
+// Ranking the two modes therefore disagrees, which is what makes the contrast
+// testable rather than decorative.
+//
+// The file also carries the two traps: day/week rollups of the same records
+// (AC3.3), and an earlier hour whose subject led with a raw count nothing in
+// the latest bucket reaches.
+func writeSkewedGold(t *testing.T, dir string) {
+	t.Helper()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	subjects := `{"subject":"지난 시간 1위","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":500,"normalized_share":0.99,"delta":0.0,"spark":[0.99]}
+{"subject":"와이어 도배 대상","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":60,"normalized_share":0.25,"delta":1.5,"spark":[0.2,0.25]}
+{"subject":"고른 관심 대상","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":40,"normalized_share":0.75,"delta":-0.5,"spark":[0.8,0.75]}
+{"subject":"와이어 도배 대상","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":60,"normalized_share":0.25,"delta":0.0,"spark":[0.25]}
+{"subject":"고른 관심 대상","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":40,"normalized_share":0.75,"delta":0.0,"spark":[0.75]}
+{"subject":"와이어 도배 대상","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":60,"normalized_share":0.25,"delta":0.0,"spark":[0.25]}
+{"subject":"미국 축 대상","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":7,"normalized_share":1.0,"delta":0.0,"spark":[1.0]}`
+	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(subjects+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(gold, "axis_sentiment.jsonl"), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func getFairness(t *testing.T, dir, query string) fairnessResponse {
+	t.Helper()
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/fairness" + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	var f fairnessResponse
+	if err := json.NewDecoder(resp.Body).Decode(&f); err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// The two counting modes have to disagree for the view to be worth anything:
+// if the raw ranking and the normalized ranking always matched, normalization
+// would be correcting nothing and AC3.8's "구분 표기" would have no content.
+func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
+	dir := t.TempDir()
+	writeSkewedGold(t, dir)
+
+	f := getFairness(t, dir, "?axis=KR")
+
+	if f.Axis != "KR" || !f.Basis.Normalized || f.Basis.Method == "" {
+		t.Errorf("basis does not state its terms: %+v", f.Basis)
+	}
+	if len(f.Rows) != 2 {
+		t.Fatalf("want the 2 subjects of the basis bucket, got %d: %+v", len(f.Rows), f.Rows)
+	}
+
+	// Ranking follows the normalized share (AC3.1's output), not the raw count.
+	if f.Rows[0].Subject != "고른 관심 대상" || f.Rows[0].Rank != 1 {
+		t.Errorf("ranking did not follow the normalized share: %+v", f.Rows)
+	}
+
+	byName := map[string]fairnessRow{}
+	for _, r := range f.Rows {
+		byName[r.Subject] = r
+	}
+	skewed := byName["와이어 도배 대상"]
+	// Raw share and normalized share are separate fields with different values —
+	// one does not stand in for the other.
+	if math.Abs(skewed.RawShare-0.6) > 1e-9 {
+		t.Errorf("raw_share = %v, want 60/100", skewed.RawShare)
+	}
+	if skewed.NormalizedShare != 0.25 {
+		t.Errorf("normalized_share = %v, want the aggregation's value", skewed.NormalizedShare)
+	}
+	if skewed.RawShare <= skewed.NormalizedShare {
+		t.Errorf("the skewed subject should lead on raw and trail on normalized: %+v", skewed)
+	}
+	if skewed.RawCount != 60 {
+		t.Errorf("raw_count = %d, want the count itself alongside the share", skewed.RawCount)
+	}
+
+	// RawTotal is the published denominator, so the shares add up to the whole.
+	if f.Basis.RawTotal != 100 {
+		t.Errorf("raw_total = %d, want 60+40 of the basis bucket", f.Basis.RawTotal)
+	}
+	var sum float64
+	for _, r := range f.Rows {
+		sum += r.RawShare
+	}
+	if math.Abs(sum-1) > 1e-9 {
+		t.Errorf("raw shares sum to %v, want 1 over the published total", sum)
+	}
+}
+
+// Same two traps the other Gold readers close: the rollups must not multiply
+// the ranking, and an earlier bucket must not outrank the current one.
+func TestFairnessSettlesOneUnitAndOneBucket(t *testing.T) {
+	dir := t.TempDir()
+	writeSkewedGold(t, dir)
+
+	f := getFairness(t, dir, "?axis=KR")
+
+	if f.Basis.BucketUnit != "hour" || f.Basis.TimeBucket != "2026-06-23T14" {
+		t.Fatalf("basis followed a rollup or a stale bucket: %+v", f.Basis)
+	}
+	seen := map[string]bool{}
+	for _, r := range f.Rows {
+		if seen[r.Subject] {
+			t.Errorf("subject %q appears more than once — a rollup row leaked in", r.Subject)
+		}
+		seen[r.Subject] = true
+		if r.Subject == "지난 시간 1위" {
+			t.Errorf("an earlier bucket's leader outranked the current one: %+v", r)
+		}
+		if r.Subject == "미국 축 대상" {
+			t.Errorf("another axis leaked into the KR view: %+v", r)
+		}
+	}
+}
+
+// Empty Gold is a real state until the production schedule is unsuspended, so
+// the view answers "nothing aggregated yet" instead of inventing a basis.
+func TestFairnessSurvivesEmptyGold(t *testing.T) {
+	f := getFairness(t, t.TempDir(), "?axis=KR")
+
+	if len(f.Rows) != 0 {
+		t.Errorf("empty Gold produced rows: %+v", f.Rows)
+	}
+	if f.Basis.BucketUnit != "" || f.Basis.TimeBucket != "" || f.Basis.RawTotal != 0 {
+		t.Errorf("empty Gold invented a basis: %+v", f.Basis)
+	}
+}
