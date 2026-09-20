@@ -1,10 +1,11 @@
 // Package handlers exposes the serving API.
 //
-// There is one stub route per frontend screen (7 screens -> 7 routes) plus a
-// health check. Routes that have Gold data behind them (dashboard, compare,
-// sentiment, fairness, trend) derive their response from the lake so the
-// Python -> Gold -> Go path is exercised end to end; trace and reprocess return
-// shaped placeholders (their real data contracts are follow-up work).
+// There is one route per frontend screen (7 screens -> 7 routes) plus a health
+// check. Five of them (dashboard, compare, sentiment, fairness, trend) derive
+// their response from Gold, so the Python -> Gold -> Go path is exercised end to
+// end. trace reads further down instead — it joins Bronze and Silver directly to
+// walk an aggregate back to its article. Only reprocess still returns a shaped
+// placeholder (its real data contract is follow-up work).
 package handlers
 
 import (
@@ -178,6 +179,84 @@ type fairnessResponse struct {
 	Axis  string        `json:"axis"`
 	Basis fairnessBasis `json:"basis"`
 	Rows  []fairnessRow `json:"rows"`
+}
+
+// traceCrumbStep is one hop of the Bronze -> Silver -> Gold path.
+type traceCrumbStep struct {
+	Layer   string `json:"layer"`
+	Label   string `json:"label"`
+	Present bool   `json:"present"`
+}
+
+// traceBronze is the collected article: where it came from, and what of it was
+// kept.
+//
+// BodyAvailable and BodyPreserved are deliberately two fields, not one. The
+// first is what ingestion recorded about the *source* at collection time; the
+// second is whether this lake actually holds the text now. They disagree in the
+// case the whole screen exists for — the original URL has since rotted, and the
+// copy taken at collection time is the only thing left to read (AC1.4). One
+// boolean could not tell that apart from "never had a body".
+type traceBronze struct {
+	RecordID           string `json:"record_id"`
+	SourceID           string `json:"source_id"`
+	Axis               string `json:"axis"`
+	Title              string `json:"title"`
+	SourceURL          string `json:"source_url"`
+	BodyHash           string `json:"body_hash"`
+	BodyAvailable      bool   `json:"body_available"`
+	BodyPreserved      bool   `json:"body_preserved"`
+	BodyText           string `json:"body_text"`
+	BodyFirstSeenAt    string `json:"body_first_seen_at"`
+	BodyFirstSeenCycle string `json:"body_first_seen_cycle"`
+}
+
+// traceSilver is the analysis verdict for the same record.
+//
+// Sentiment is a pointer because "no sentiment" is a real outcome, not a zero
+// value: AC2.5 sets low-confidence records aside as unanalyzed rather than
+// forcing them into one of the four classes.
+type traceSilver struct {
+	AnalysisStatus    string   `json:"analysis_status"`
+	Sentiment         *string  `json:"sentiment"`
+	TargetCountries   []string `json:"target_countries"`
+	NarrativeSubjects []string `json:"narrative_subjects"`
+	Confidence        float64  `json:"confidence"`
+	AnalyzedAt        string   `json:"analyzed_at"`
+	AnalyzerVersion   string   `json:"analyzer_version"`
+}
+
+// traceIngestion is the provenance metadata AC1.5 asks ingestion to keep.
+type traceIngestion struct {
+	CollectedAt     string `json:"collected_at"`
+	CollectionCycle string `json:"collection_cycle"`
+	Rank            int64  `json:"rank"`
+	ViewCount       int64  `json:"view_count"`
+}
+
+// traceResponse is one record's lineage, with each layer reported separately.
+//
+// The three ways this can come up short are kept apart on purpose, because they
+// mean different things to a reader who is checking whether a spike is real:
+//
+//	Found=false          the record is not in Bronze — the trail never starts.
+//	Bronze.BodyPreserved the text is gone even though the observation is here.
+//	Silver=nil           the article was collected but never analyzed.
+//
+// Collapsing them into one "no data" would tell the reader their lookup failed
+// when in fact the pipeline simply has not gotten that far — and the screen
+// would have no way to say which.
+type traceResponse struct {
+	RecordID string `json:"record_id"`
+	// Selection says how RecordID was arrived at: "requested" (the caller asked
+	// for it), "auto" (none asked for, first observation used),
+	// "requested-missing", or "empty".
+	Selection string           `json:"selection"`
+	Found     bool             `json:"found"`
+	Crumb     []traceCrumbStep `json:"crumb"`
+	Bronze    *traceBronze     `json:"bronze"`
+	Silver    *traceSilver     `json:"silver"`
+	Ingestion traceIngestion   `json:"ingestion"`
 }
 
 type dashboardResponse struct {
@@ -463,17 +542,141 @@ func shareOf(count, total int64) float64 {
 	return float64(count) / float64(total)
 }
 
+// trace walks one Gold contribution back down to the article it came from.
+//
+// The join axis is RecordID: Bronze news_item carries it, Silver analysis
+// carries the same value (AC2.6), and the body hangs off the item's BodyHash in
+// a separate content-addressed dataset (AC1.7). Every hop is resolved
+// independently and *reported* independently — see traceResponse for why the
+// three ways this can come up short are not collapsed into one "missing".
 func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
-	recordID := r.URL.Query().Get("record_id")
-	writeJSON(w, http.StatusOK, map[string]any{
-		"record_id": recordID,
-		"lineage": []map[string]string{
-			{"layer": "gold", "note": "subject_trend / axis_sentiment 집계 기여"},
-			{"layer": "silver", "note": "analysis 레코드 (record_id 추적 키)"},
-			{"layer": "bronze", "note": "원문 링크 + 원문 전체 (AC1.4)"},
-		},
-		"note": "stub: 원문 역추적 자리. 실제 Bronze 조인은 후속 작업 (AC2.6)",
+	requested := r.URL.Query().Get("record_id")
+	items, _ := h.lake.NewsItems()
+
+	item, selection := selectNewsItem(items, requested)
+	if item == nil {
+		writeJSON(w, http.StatusOK, traceResponse{
+			RecordID:  requested,
+			Selection: selection,
+			Found:     false,
+			Crumb:     lineageCrumb(false, false),
+		})
+		return
+	}
+
+	bodies, _ := h.lake.NewsBodies()
+	analyses, _ := h.lake.Analyses()
+
+	bronze := bronzeSection(*item, bodies)
+	silver, hasSilver := silverSection(item.RecordID, analyses)
+
+	writeJSON(w, http.StatusOK, traceResponse{
+		RecordID:  item.RecordID,
+		Selection: selection,
+		Found:     true,
+		Crumb:     lineageCrumb(true, hasSilver),
+		Bronze:    &bronze,
+		Silver:    silver,
+		Ingestion: ingestionSection(*item),
 	})
+}
+
+// selectNewsItem resolves the requested record, or picks one when none was
+// asked for.
+//
+// The screen must be able to open before it knows a single record id, so an
+// empty query is answered with the first observation rather than an error — the
+// same courtesy /api/trend extends for subject. What it must *not* do is let
+// the caller believe it got what it asked for: the choice is named in the
+// response, so "explicit" and "fell back" never read alike.
+func selectNewsItem(items []gen.NewsItem, requested string) (*gen.NewsItem, string) {
+	if requested != "" {
+		for i := range items {
+			if items[i].RecordID == requested {
+				return &items[i], "requested"
+			}
+		}
+		return nil, "requested-missing"
+	}
+	if len(items) == 0 {
+		return nil, "empty"
+	}
+	return &items[0], "auto"
+}
+
+func bronzeSection(item gen.NewsItem, bodies []gen.NewsBody) traceBronze {
+	out := traceBronze{
+		RecordID:      item.RecordID,
+		SourceID:      item.SourceID,
+		Axis:          string(item.Axis),
+		Title:         item.Title,
+		SourceURL:     item.SourceURL,
+		BodyHash:      item.BodyHash,
+		BodyAvailable: item.BodyAvailable,
+	}
+	for _, b := range bodies {
+		if b.BodyHash == item.BodyHash {
+			out.BodyPreserved = true
+			out.BodyText = b.RawText
+			out.BodyFirstSeenAt = b.FirstSeenAt
+			out.BodyFirstSeenCycle = b.FirstSeenCycle
+			break
+		}
+	}
+	return out
+}
+
+func silverSection(recordID string, analyses []gen.Analysis) (*traceSilver, bool) {
+	for _, a := range analyses {
+		if a.RecordID != recordID {
+			continue
+		}
+		out := traceSilver{
+			AnalysisStatus:    string(a.AnalysisStatus),
+			TargetCountries:   a.TargetCountries,
+			NarrativeSubjects: a.NarrativeSubjects,
+			Confidence:        a.Confidence,
+			AnalyzedAt:        a.AnalyzedAt,
+			AnalyzerVersion:   a.AnalyzerVersion,
+		}
+		// A record can be analyzed and still carry no sentiment — that is what
+		// "unanalyzed" means in AC2.5 (low confidence, set aside on purpose).
+		// Reporting it as a fifth class would let the screen draw it as one of
+		// the four, so it stays null and the status carries the meaning.
+		if a.Sentiment != nil {
+			s := string(*a.Sentiment)
+			out.Sentiment = &s
+		}
+		if out.TargetCountries == nil {
+			out.TargetCountries = []string{}
+		}
+		if out.NarrativeSubjects == nil {
+			out.NarrativeSubjects = []string{}
+		}
+		return &out, true
+	}
+	return nil, false
+}
+
+func ingestionSection(item gen.NewsItem) traceIngestion {
+	return traceIngestion{
+		CollectedAt:     item.CollectedAt,
+		CollectionCycle: item.CollectionCycle,
+		Rank:            item.Rank,
+		ViewCount:       item.ViewCount,
+	}
+}
+
+// lineageCrumb is the Bronze -> Silver -> Gold path, with each hop marked
+// present or not. Gold is always marked present: the reader arrived here *from*
+// a Gold number, so the aggregate end of the chain is the premise of the walk,
+// not something this endpoint looks up.
+func lineageCrumb(bronze, silver bool) []traceCrumbStep {
+	return []traceCrumbStep{
+		{Layer: "bronze", Label: "원문 수집", Present: bronze},
+		{Layer: "silver", Label: "분석", Present: silver},
+		{Layer: "gold", Label: "집계 기여", Present: true},
+	}
 }
 
 func (h *Handlers) reprocess(w http.ResponseWriter, _ *http.Request) {

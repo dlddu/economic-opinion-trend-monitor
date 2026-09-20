@@ -8,6 +8,7 @@ import type {
   DashboardResponse,
   FairnessResponse,
   SentimentResponse,
+  TraceResponse,
   TrendResponse,
 } from "./types";
 
@@ -38,7 +39,14 @@ export const api = {
   // a client-side re-read of data already in hand — no round trip, and no mode
   // the server has not actually computed.
   fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
-  // Per-screen stub endpoints (one per frontend screen). Shapes are not yet
-  // finalized, so placeholders consume them as unknown JSON.
+  // record_id is optional for the same reason subject is on trend: the screen
+  // has to be able to open before it knows one. The response names which record
+  // it settled on, so a fallback never reads as a hit.
+  trace: (recordId?: string) =>
+    getJSON<TraceResponse>(
+      `/trace${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
+    ),
+  // Stub endpoint for the one screen still on Placeholder (reprocess). Its
+  // shape is not finalized, so it is consumed as unknown JSON.
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };

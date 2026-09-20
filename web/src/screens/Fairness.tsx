@@ -18,8 +18,11 @@ import { MapStrip } from "../shell/MapStrip";
 //   - `STP-inspect-sources` 소스별 기여 분해. Gold 의 키는
 //     (subject, axis, bucket_unit, time_bucket) 라 **수집원 차원 자체가 없다**.
 //     지어내면 그 순간 화면이 거짓을 말한다.
-//   - `STP-drilldown-articles` 기여 뉴스 목록. 개별 기사는 Bronze/Silver 의
-//     레코드이고 서빙에 그 조인 경로가 없다(`/api/trace` 는 아직 stub).
+//   - `STP-drilldown-articles` 기여 뉴스 목록. **이 대상에 기여한 기사들**을 추리려면
+//     대상 ↔ 기사의 대응이 있어야 하는데, 그 대응은 위와 같은 이유로 없다 —
+//     Gold 가 대상 단위로 뭉개 놓았고 어느 기사가 얼마를 보탰는지는 남지 않는다.
+//     (슬라이스 9 이후 `/api/trace` 로 **개별 레코드 하나**를 내려가는 길은 열렸지만,
+//     그것은 record_id 를 이미 아는 경우다. 목록을 뽑는 것과는 다른 문제다.)
 //
 // 둘 다 링크도 버튼도 두지 않고, 왜 없는지를 화면 안 note 로 밝힌다 — 빈 화면으로
 // 보내는 동선보다 없는 이유를 읽히는 쪽이 낫다.
