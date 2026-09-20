@@ -18,8 +18,10 @@ function renderTrend(entry = "/trend") {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  // 화면이 마지막 조회 조건을 세션에 남긴다(여정 §4 의 중도 이탈 분기). 지우지 않으면
-  // 앞 테스트가 고른 축·대상이 다음 테스트의 첫 질의로 새어 나간다.
+  // 화면이 마지막 조회 조건을 남긴다(여정 §4 의 중도 이탈 분기). 지우지 않으면 앞 테스트가
+  // 고른 축·대상이 다음 테스트의 첫 질의로 새어 나간다. 수명이 **날을 넘도록** 바뀐 뒤로는
+  // `localStorage` 가 그 자리라 둘 다 비운다(옛 자리에 남은 값이 되살아나지 않게).
+  localStorage.clear();
   sessionStorage.clear();
 });
 
@@ -314,6 +316,24 @@ describe("Trend", () => {
     expect(summary.some((row) => row.includes("상세로 내려간 대상") && row.includes("삼성전자"))).toBe(
       true,
     );
+  });
+
+  it("keeps the reader's conditions past the tab, like the dash brief card does", async () => {
+    const urls = stubTrend([response(), response("삼성전자")]);
+    const { container, unmount } = renderTrend();
+
+    await waitFor(() => expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
+    fireEvent.click(container.querySelectorAll("table.tbl tr.click")[1]);
+    await waitFor(() => expect(urls).toHaveLength(2));
+    unmount();
+
+    // 같은 복원 계약의 `dash` 표면(`오늘의 조회 조건` 카드)은 `localStorage` 를 쓰고, 그
+    // 문면이 약속하는 것은 **어제 닫을 때의** 조건이다. 여기만 `sessionStorage` 면 탭이
+    // 닫히는 순간 조건이 사라져, 한 계약의 두 화면이 서로 다른 「닫을 때」를 뜻하게 된다.
+    expect(sessionStorage.getItem("econ-monitor:trend:view")).toBeNull();
+    const stored = localStorage.getItem("econ-monitor:trend:view");
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored as string)).toMatchObject({ subject: "삼성전자" });
   });
 
   it("opens the subject the entry query names, not the axis default", async () => {
