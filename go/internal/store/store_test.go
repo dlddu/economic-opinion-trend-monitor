@@ -44,9 +44,6 @@ func TestMissingDatasetReadsEmpty(t *testing.T) {
 	}
 }
 
-// Lineage needs Bronze and Silver, not Gold — and the body lives in its own
-// dataset, keyed by hash rather than by record, because one body can back
-// several observations (AC1.7).
 func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 	dir := t.TempDir()
 	for _, layer := range []string{"bronze", "silver"} {
@@ -138,7 +135,6 @@ func TestAnalysisDecodesNullSentiment(t *testing.T) {
 	}
 }
 
-// Bronze and Silver are absent until the pipeline has run, exactly like Gold.
 func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
 	lake := New(t.TempDir())
 	items, err := lake.NewsItems()
