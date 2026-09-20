@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { AxisColumn, CompareResponse, SentimentDistribution } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -93,6 +94,41 @@ export function Compare() {
                 </div>
               </section>
             ))}
+          </div>
+
+          {/* 여정 이탈 컨트롤 — `JRN-axis-contrast` 는 축 비교를 끝낸 자리에서 두 갈래로
+              내보낸다. 목업에서는 워크스루 단계마다 한 장씩 서 있지만, 구현의 비교 화면은
+              단계가 접힌 한 페이지라 두 장을 비교 그리드 아래 나란히 둔다. 두 대상 모두
+              `BUILT` 라 빈 화면으로 보내지 않는다. */}
+          <div className="grid g-12 cmp-exits">
+            <div className="card col-6 cmp-exit">
+              <div className="card-h">
+                <h3>격차가 의심스러우면</h3>
+              </div>
+              <div className="card-b">
+                <p className="cmp-exit-lede">
+                  한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.
+                </p>
+                <Link className="btn ghost" to="/fairness">
+                  수집량 차이인지 정규화로 확인 →
+                </Link>
+              </div>
+            </div>
+
+            <div className="card col-6 cmp-exit">
+              <div className="card-h">
+                <h3>분위기까지 보고 싶다면</h3>
+              </div>
+              <div className="card-b">
+                <p className="cmp-exit-lede">
+                  축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로
+                  넘어가세요.
+                </p>
+                <Link className="btn ghost" to="/sentiment">
+                  축별 분위기 분포 보기 →
+                </Link>
+              </div>
+            </div>
           </div>
 
           <MapStrip

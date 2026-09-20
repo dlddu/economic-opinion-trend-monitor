@@ -378,6 +378,9 @@ a {
 .col-5 {
   grid-column: span 5;
 }
+.col-6 {
+  grid-column: span 6;
+}
 .col-7 {
   grid-column: span 7;
 }
@@ -924,6 +927,21 @@ a {
   margin-top: 12px;
 }
 
+/* ---- 여정 이탈 카드 (compare) ----
+   목업은 이 산문을 `.muted` 에 인라인 style 로 얹는데, `.muted` 를 tokens 에
+   들이면 규칙 5 의 공통 선택자 교집합이 넓어진다. 이탈 카드는 구현 쪽 레이아웃
+   결정이므로 목업에 없는 이름으로 선언해 대조면을 움직이지 않는다. */
+.cmp-exits {
+  margin-top: 18px;
+}
+
+.cmp-exit-lede {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+
 /* ---- status / placeholder ---- */
 .placeholder-note {
   margin-top: 14px;
@@ -1081,6 +1099,51 @@ a {
 
 .sent-warn {
   margin-top: 12px;
+}
+
+/* ---- 분리 전후 비율 전환 · 이탈 카드 (sentiment) ----
+   목업은 체크박스에 `.chk` 를, 이탈 산문에 `.muted` 를 쓰는데 둘 다 tokens 에는 없다.
+   들이면 규칙 5 의 공통 선택자 교집합이 넓어지므로(현재 세 상한이 전부 0) 화면 전용
+   이름으로 선언한다 — `fair-*` 가 슬라이스 8 에서 낸 길과 같다. */
+.sent-split-bar {
+  margin-bottom: 14px;
+}
+
+.sent-split-kv .k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sent-split-kv .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-split-chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.sent-split-note {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.sent-exit-lede {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin-bottom: 14px;
 }
 
 .sent-axisrow {
@@ -1623,6 +1686,7 @@ button.norm-toggle {
   .col-3,
   .col-4,
   .col-5,
+  .col-6,
   .col-7,
   .col-8 {
     grid-column: span 12;
