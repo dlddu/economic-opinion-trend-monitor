@@ -1,0 +1,55 @@
+# 롤업 루트의 집계 배치 — `aggregate-job.yaml` 과 **데이터 루트만** 다르다.
+#
+# 앞선 하네스 스텝(`timeshift-job.yaml`)이 심어 둔 `/data/aggregation-rollup` 위에서 실
+# `econ-aggregation` 을 한 번 더 돌린다. 코퍼스의 내용은 파이프라인이 만든 그대로이고 수집
+# 시각만 여러 버킷으로 흩어져 있으므로, 이 Job 이 쓴 Gold 는 시간·일·주 세 단위가 모두
+# 버킷을 여럿 갖는다 — `…-test-aggregation-viz.md#시나리오 3` 이 관측할 대상이다.
+#
+# 루트를 기준 상태(`/data/aggregation`)와 가르는 이유는 다른 루트들과 같다: `write_records`
+# 가 데이터셋을 교체하므로 같은 루트에서 두 번 돌리면 이미 매칭된 spec 들이 보는 Gold 가
+# 사라진다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-aggregate-rollup
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: aggregate
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-aggregation"]
+          args: []
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/aggregation-rollup
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: tmp
+          emptyDir: {}

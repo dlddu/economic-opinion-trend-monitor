@@ -1,0 +1,73 @@
+# 다중 시간 버킷 코퍼스를 심는 하네스 Job (…-test-aggregation-viz.md#시나리오 3).
+#
+# 집계 코퍼스(`/data/aggregation`)가 이미 만들어 둔 Bronze·Silver 를 읽어, 수집 시각만 고정
+# 달력으로 다시 찍어 `/data/aggregation-rollup` 에 심는다. 왜 필요한지는 스크립트 머리말에
+# 있다 — 요지는 수집 CLI 가 `collected_at` 을 실행 시각으로 찍어서 한 Job 의 레코드가 전부
+# 같은 시간 버킷에 떨어진다는 것이다.
+#
+# **배치 단계가 아니라 하네스 스텝이다.** 제품 CLI 를 부르지 않고(`command` 로 스크립트를
+# 직접 돌린다) Gold 도 만들지 않는다. 집계는 바로 다음 Job(`aggregate-job-rollup.yaml`)이
+# **실물 그대로** 돌린다. 상류 더블을 타지 않으므로 `mock-exception:` 주석이 붙지 않는다
+# (주입하는 상류가 없다 — `aggregate-job.yaml` 과 같은 이유다).
+#
+# 스크립트는 ConfigMap `rollup-timeshift` 로 들어온다(run.sh 가 `tests/e2e/tools/` 에서
+# 만든다). 이미지에 굽지 않는 이유는 배치 이미지가 **운영 이미지**이기 때문이다 — e2e 전용
+# 하네스 코드가 프로덕션 이미지에 섞이면 안 된다.
+#
+# 인터프리터를 venv 경로로 **못박는다**(`/app/.venv/bin/python`). `Dockerfile.batch` 가
+# `ENV PATH="/app/.venv/bin:$PATH"` 로 선언한 바로 그 venv 이고, `econ_core` 는 거기에만
+# 설치돼 있다. `python3` 로 부르면 베이스 이미지의 시스템 인터프리터가 먼저 잡히는 경우
+# `ModuleNotFoundError` 로 죽는데, 그 실패는 "하네스 배선이 틀렸다"가 아니라 "코퍼스가
+# 이상하다"처럼 읽힌다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-timeshift-rollup
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: timeshift
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["/app/.venv/bin/python", "/scripts/timeshift_bronze.py"]
+          args:
+            - --from
+            - /data/aggregation
+            - --to
+            - /data/aggregation-rollup
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: scripts
+          configMap:
+            name: rollup-timeshift
+        - name: tmp
+          emptyDir: {}

@@ -18,11 +18,12 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { aggBronzeDir, newsItems, type NewsItem } from "./bronze";
+import { aggBronzeDir, newsItems, rollupBronzeDir, type NewsItem } from "./bronze";
 import {
   aggAnalyses,
   analyzedByTitle,
   byRecordId,
+  rollupAnalyses,
   type Analysis,
   type Analyzed,
 } from "./silver";
@@ -81,6 +82,16 @@ function readJsonlFrom<T>(dir: string, dataset: string): T[] {
 /** 기준 상태의 Gold 반출 디렉터리. */
 export function goldDir(): string {
   return exportedDir("E2E_GOLD_DIR");
+}
+
+/**
+ * 롤업 루트의 Gold 반출 디렉터리 — 수집 시각만 고정 달력으로 다시 찍은 같은 코퍼스를 실
+ * `econ-aggregation` 이 한 번 더 집계한 결과다(`tools/timeshift_bronze.py` +
+ * `k8s/batch/aggregate-job-rollup.yaml`). 세 단위가 모두 버킷을 여럿 갖는 **유일한** 반출
+ * 지점이라, 시나리오 3의 단정은 전부 이 루트 위에서 돈다.
+ */
+export function rollupGoldDir(): string {
+  return exportedDir("E2E_GOLD_ROLLUP_DIR");
 }
 
 /** 수집량을 부풀린 상태의 Gold 반출 디렉터리. */
@@ -187,7 +198,74 @@ export function cellKey(axis: string, bucket: string, subject: string): string {
   return [axis, bucket, subject].join(CELL_SEP);
 }
 
-/** 한 축의 `subject_trend` 행만 고른다(단위는 호출자가 이미 정했고, 버킷은 e2e 한 주기라 한 개다). */
+/* ── 롤업 루트(시나리오 3) ─────────────────────────────────────────────────────────────── */
+
+/** 버킷 단위. Gold 의 `bucket_unit` 값과 같은 문자열이다. */
+export type BucketUnit = (typeof UNIT_RANK)[number];
+
+/** 롤업 루트의 Bronze 관측 — 수집 시각만 다시 찍힌 집계 코퍼스다. */
+export function rollupItems(): NewsItem[] {
+  return newsItems(rollupBronzeDir());
+}
+
+/**
+ * `2026-06-29` -> `2026-W27`. **집계의 구현을 베끼지 않는다** — ISO 주 번호를 목요일 규칙으로
+ * 직접 계산한다(그 주의 목요일이 속한 해가 주 번호의 해다). 재계수가 제품과 같은 코드를 부르면
+ * 대조가 동어반복이 되고, 같은 상수를 옮겨 적으면 제품이 규칙을 바꿔도 조용히 따라간다.
+ */
+export function isoWeekLabel(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  const at = new Date(Date.UTC(year, month - 1, day));
+  const mondayBased = (at.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  const thursday = new Date(at);
+  thursday.setUTCDate(at.getUTCDate() - mondayBased + 3);
+  const weekYear = thursday.getUTCFullYear();
+  const jan4 = new Date(Date.UTC(weekYear, 0, 4));
+  const firstMonday = new Date(jan4);
+  firstMonday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+  const week = Math.round((thursday.getTime() - firstMonday.getTime()) / 604800000) + 1;
+  return `${weekYear}-W${String(week).padStart(2, "0")}`;
+}
+
+/** 한 관측의 버킷 라벨을 단위별로 다시 계산한다. `bucketOf` 의 시간 단위를 셋으로 넓힌 것이다. */
+export function bucketOfUnit(item: NewsItem, unit: BucketUnit): string {
+  if (unit === "hour") return item.collected_at.slice(0, 13);
+  if (unit === "day") return item.collected_at.slice(0, 10);
+  return isoWeekLabel(item.collected_at.slice(0, 10));
+}
+
+/**
+ * (축, 버킷, 서술 대상) -> 건수 를 **주어진 단위로** 원천에서 다시 센다. `crossTab` 과 같은
+ * 규칙이고 버킷 자르는 자리만 단위를 받는다 — 롤업이 "Gold 행을 더한 2차 패스"가 아니라 "같은
+ * 원천을 더 굵게 자른 같은 집계"라는 것이 시나리오 3의 기대 결과이므로, 재계수도 굵게 자른
+ * 원천에서 나와야 대조가 성립한다.
+ */
+export function crossTabAt(
+  unit: BucketUnit,
+  items: NewsItem[] = rollupItems(),
+  records: Analysis[] = rollupAnalyses(),
+): Map<string, number> {
+  const byId = byRecordId(records);
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const analysis = byId.get(item.record_id);
+    if (!analysis) {
+      throw new Error(`Bronze 레코드 ${item.record_id}(${item.title}) 의 Silver 분석이 없다`);
+    }
+    for (const subject of analysis.narrative_subjects) {
+      const key = cellKey(item.axis, bucketOfUnit(item, unit), subject);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+/** 롤업 루트에서 실제로 관측되는 (단위 -> 버킷 집합). 하네스가 무엇을 심었는지의 실측이다. */
+export function bucketsAt(unit: BucketUnit, items: NewsItem[] = rollupItems()): Set<string> {
+  return new Set(items.map((item) => bucketOfUnit(item, unit)));
+}
+
+/** 한 축의 `subject_trend` 행만 고른다(단위는 호출자가 이미 정했고, 기준 루트의 버킷은 한 개다). */
 export function trendsOfAxis(rows: SubjectTrend[], axis: string): SubjectTrend[] {
   return rows.filter((row) => row.axis === axis);
 }
