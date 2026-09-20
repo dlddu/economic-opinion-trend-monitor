@@ -206,3 +206,49 @@ def test_run_reports_total_outage() -> None:
     # Every record reads "unanalyzed", so only the stats can tell an outage apart.
     assert all(r["analysis_status"] == "unanalyzed" for r in records)
     assert (stats.attempted, stats.failed) == (2, 2)
+
+
+def _capture_payload(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Stub urlopen and record each request body the completer sends."""
+    import io
+    import urllib.request
+
+    sent: list[dict] = []
+
+    def _fake_urlopen(req, timeout=None):  # noqa: ANN001
+        sent.append(json.loads(req.data))
+        envelope = {"choices": [{"message": {"content": "{}"}}]}
+        return io.BytesIO(json.dumps(envelope).encode())
+
+    monkeypatch.setenv("ECON_LLM_API_KEY", "k")
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+    return sent
+
+
+def test_temperature_defaults_to_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent = _capture_payload(monkeypatch)
+    monkeypatch.delenv("ECON_LLM_TEMPERATURE", raising=False)
+    http_completer()("s", "u")
+    assert sent[0]["temperature"] == 0
+
+
+@pytest.mark.parametrize("raw", ["", "default", " Default "])
+def test_temperature_can_be_omitted(monkeypatch: pytest.MonkeyPatch, raw: str) -> None:
+    # GPT-5.x models 400 on any non-default temperature, so the field must be droppable.
+    sent = _capture_payload(monkeypatch)
+    monkeypatch.setenv("ECON_LLM_TEMPERATURE", raw)
+    http_completer()("s", "u")
+    assert "temperature" not in sent[0]
+
+
+def test_bad_temperature_is_a_config_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ECON_LLM_API_KEY", "k")
+    monkeypatch.setenv("ECON_LLM_TEMPERATURE", "warm")
+    with pytest.raises(ConfigError):
+        http_completer()
+
+
+def test_run_keeps_the_last_failure_reason() -> None:
+    items = [_bronze(record_id="a"), _bronze(record_id="b")]
+    _, stats = run_llm_analysis(items, {"h": "본문"}, _boom)
+    assert stats.last_error

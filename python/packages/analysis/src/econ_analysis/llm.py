@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import json
 import os
+import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
 from typing import Protocol
@@ -96,6 +97,31 @@ class AnalysisStats:
 
     attempted: int = 0
     failed: int = 0
+    last_error: str | None = None
+
+
+def _temperature(raw: str | None) -> float | None:
+    """Resolve ``ECON_LLM_TEMPERATURE``: unset -> 0, empty/``default`` -> omit the field."""
+    if raw is None:
+        return 0.0
+    raw = raw.strip()
+    if raw == "" or raw.lower() == "default":
+        return None
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ConfigError(
+            f"ECON_LLM_TEMPERATURE must be a number or 'default', got {raw!r}"
+        ) from exc
+
+
+def _error_detail(exc: urllib.error.HTTPError) -> str:
+    """The API's own error message, so a rejected request says *why* (never the key)."""
+    try:
+        message = json.loads(exc.read()).get("error", {}).get("message")
+    except Exception:
+        return ""
+    return f" ({message})" if message else ""
 
 
 def http_completer(
@@ -106,15 +132,18 @@ def http_completer(
     Talks to any OpenAI-compatible ``/chat/completions`` endpoint. Endpoint, model and
     key come from the environment so no secret is checked in: ``ECON_LLM_BASE_URL``
     (default ``https://api.openai.com/v1``), ``ECON_LLM_MODEL`` (default ``gpt-4o-mini``)
-    and ``ECON_LLM_API_KEY``. The key is required *here*, not at the first call, so a
-    misconfigured run fails before it reads Bronze or writes Silver. Not exercised
-    offline — tests inject a canned completer.
+    and ``ECON_LLM_API_KEY``. ``ECON_LLM_TEMPERATURE`` defaults to ``0``; set it to an
+    empty string or ``default`` to omit the field — newer models (e.g. the GPT-5.x
+    family) reject any temperature other than their own default with a 400. The key is
+    required *here*, not at the first call, so a misconfigured run fails before it reads
+    Bronze or writes Silver. Not exercised offline — tests inject a canned completer.
     """
     root = (base_url or os.environ.get("ECON_LLM_BASE_URL") or "https://api.openai.com/v1").rstrip(
         "/"
     )
     name = model or os.environ.get("ECON_LLM_MODEL") or "gpt-4o-mini"
     key = os.environ.get("ECON_LLM_API_KEY")
+    temperature = _temperature(os.environ.get("ECON_LLM_TEMPERATURE"))
     if not key:
         raise ConfigError(
             "ECON_LLM_API_KEY is not set; required by the default --analyzer llm "
@@ -122,16 +151,16 @@ def http_completer(
         )
 
     def _complete(system: str, user: str) -> str:
-        payload = json.dumps(
-            {
-                "model": name,
-                "temperature": 0,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            }
-        ).encode("utf-8")
+        body: dict = {
+            "model": name,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if temperature is not None:
+            body["temperature"] = temperature
+        payload = json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
             f"{root}/chat/completions",
             data=payload,
@@ -144,6 +173,8 @@ def http_completer(
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 envelope = json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            raise CompletionError(f"chat completion failed: {exc}{_error_detail(exc)}") from exc
         except Exception as exc:  # transport / decode failure
             raise CompletionError(f"chat completion failed: {exc}") from exc
         try:
@@ -277,8 +308,9 @@ def run_llm_analysis(
             stats.attempted += 1
         try:
             analysis = analyze_llm(item, body, completer, analyzer_version)
-        except CompletionError:
+        except CompletionError as exc:
             stats.failed += 1
+            stats.last_error = str(exc)
             analysis = _unanalyzed(item, analyzer_version)
         analyses.append(asdict(analysis))
     return analyses, stats

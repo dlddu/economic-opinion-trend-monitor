@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"analysis[llm]: all {stats.attempted} model calls failed; Silver left unchanged",
                 file=sys.stderr,
             )
+            print(f"  last error: {stats.last_error}", file=sys.stderr)
             return EXIT_ALL_CALLS_FAILED
     else:
         analyses = [
@@ -110,4 +111,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed}")
     if stats is not None:
         print(f"  model calls: attempted={stats.attempted} failed={stats.failed}")
+        if stats.failed:
+            print(f"  last error: {stats.last_error}")
     return 0
