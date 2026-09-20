@@ -86,13 +86,26 @@ function drawnSeries(series: TrendSeries[], overlay: boolean): TrendSeries[] {
   return selected.length > 0 ? selected : series.slice(0, 1);
 }
 
+// 여정 §4 의 네 번째 분기 — 「중도 이탈 → 다음 진입 시 마지막 조회 조건 복원」. 이 화면이
+// 그 약속을 그리는 자리는 요약 카드 sub `닫을 때의 조건이 다음 진입에 복원됩니다` 다
+// (목업 `JRN-daily-scan.html` 과 바이트 동일한 문면).
+//
+// **수명은 `dash` 쪽 표면과 같다** — `Dashboard.tsx` 의 `오늘의 조회 조건` 카드가 같은 복원
+// 계약의 다른 표면이고, 그 문면(`어제 닫을 때의 조건으로 열립니다` · `어제와 같은 화면에서
+// 밤사이 변화만 보게 됩니다`)이 **날을 넘는 보존**을 약속한다. 한 계약의 두 표면이 서로 다른
+// 수명을 가지면 「닫을 때의 조건」이 어느 쪽 닫음인지가 화면마다 달라지므로, 여기도 탭을
+// 닫으면 사라지는 `sessionStorage` 가 아니라 `localStorage` 를 쓴다.
+//
+// 같은 화면의 **추림**(`Shortlist`)은 이 경계를 공유하지 않는다 — 추림 선택·메모는 저장소를
+// 쓰지 않는 화면 상태이고, recorded 배너가 스스로 `이 세션 안에서만` 이라고 말한다. 여정
+// 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 **대상 저장**(북마크·워치리스트)도 그대로다.
 const VIEW_KEY = "econ-monitor:trend:view";
 
 type StoredView = { axis: Axis; subject?: string };
 
 function readStoredView(): StoredView | null {
   try {
-    const raw = sessionStorage.getItem(VIEW_KEY);
+    const raw = localStorage.getItem(VIEW_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredView;
     return AXES.some((a) => a.id === parsed.axis) ? parsed : null;
@@ -104,7 +117,7 @@ function readStoredView(): StoredView | null {
 
 function storeView(view: StoredView): void {
   try {
-    sessionStorage.setItem(VIEW_KEY, JSON.stringify(view));
+    localStorage.setItem(VIEW_KEY, JSON.stringify(view));
   } catch {
     // 같은 이유로 조용히 넘어간다. 저장 실패는 조회를 막지 않는다.
   }
