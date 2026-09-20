@@ -33,6 +33,9 @@
   content-addressed 본문 저장소 `news_body`(동일 본문은 1회만 저장, 수정 본문은 새 버전 append)로 분리 —
   `contracts/bronze/*.schema.json` (JSON Schema)
 - **Silver** (LLM 분석): 대상 국가 · 핵심 서술 대상 · 분위기 — `contracts/silver/*.avsc` (Avro)
+  - 운영 캐시 `silver/analysis_cache.jsonl`(계약 아님): 모델 응답을 (analyzer_version, 모델, 프롬프트) 해시로 보관해,
+    매시간 다시 관측되는 미변경 기사는 모델을 다시 부르지 않는다. 본문·제목 수정, 프롬프트·모델 변경,
+    `--analyzer-version` 올림(재분석, AC2.6)은 키가 바뀌어 새로 호출된다. 비우려면 파일을 지우면 된다.
 - **Gold** (정규화·집계·서빙): 서술 대상 기준 추세/비율, 수집원 편차 보정 — `contracts/gold/*.avsc` (Avro)
 
 > 골격 단계에서는 모든 계층을 **JSONL**로 직렬화한다. Avro 스키마는 *타입 계약·코드젠 소스*로
