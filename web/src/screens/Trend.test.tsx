@@ -1,7 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
+
+/**
+ * 화면이 진입 쿼리를 읽으므로 라우터 안에서 렌더한다. `entry` 가 곧 `Dashboard` 가
+ * `navigate()` 로 밀어 넣는 주소다 — 기본값은 쿼리 없는 직접 진입(네비게이션 바).
+ */
+function renderTrend(entry = "/trend") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Trend />
+    </MemoryRouter>,
+  );
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -66,7 +79,7 @@ function polylinePoints(container: HTMLElement): string[] {
 describe("Trend", () => {
   it("plots one x position per bucket, in bucket order", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
 
@@ -87,7 +100,7 @@ describe("Trend", () => {
 
   it("shows the selected subject's headline share and delta", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelector(".metric .mv")).not.toBeNull());
     expect(container.querySelector(".metric .mv")?.textContent).toContain("50.0");
@@ -96,7 +109,7 @@ describe("Trend", () => {
 
   it("re-asks the API for the subject the reader picks", async () => {
     const urls = stubTrend([response(), response("삼성전자")]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
     // The comparison table doubles as the picker, as the mockup's
@@ -116,7 +129,7 @@ describe("Trend", () => {
 
   it("puts the window mean beside the current share, as the mockup's table does", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
 
@@ -152,7 +165,7 @@ describe("Trend", () => {
       series: [],
     };
     stubTrend([empty]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelector(".trend-empty")).not.toBeNull());
     expect(container.querySelectorAll("polyline")).toHaveLength(0);
@@ -160,7 +173,7 @@ describe("Trend", () => {
 
   it("does not offer a bucket-unit switch while rollups are unimplemented", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
     // Every button on the screen must do something: only the axis segment (3)
@@ -174,7 +187,7 @@ describe("Trend", () => {
 
   it("offers every compared subject as a shortlist candidate, with the drilled one pre-picked", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
 
@@ -190,7 +203,7 @@ describe("Trend", () => {
 
   it("names which half of the shortlist form is missing instead of one blanket message", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
     const form = container.querySelector("form") as HTMLFormElement;
@@ -216,7 +229,7 @@ describe("Trend", () => {
 
   it("records the shortlist for the session and says so, without claiming a watchlist", async () => {
     stubTrend([response()]);
-    const { container } = render(<Trend />);
+    const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
     fireEvent.click(container.querySelectorAll(".trend-sl-cand input")[1]);
@@ -240,7 +253,7 @@ describe("Trend", () => {
 
   it("reopens on the conditions the reader left, as the scan summary promises", async () => {
     const urls = stubTrend([response(), response("삼성전자")]);
-    const first = render(<Trend />);
+    const first = renderTrend();
 
     await waitFor(() =>
       expect(first.container.querySelectorAll("table.tbl tr.click")).toHaveLength(2),
@@ -251,7 +264,7 @@ describe("Trend", () => {
 
     // 다시 진입 — 「닫을 때의 조건이 다음 진입에 복원됩니다」가 사실이려면 첫 질의가
     // 기본값이 아니라 두고 간 대상이어야 한다.
-    const again = render(<Trend />);
+    const again = renderTrend();
     await waitFor(() => expect(urls).toHaveLength(3));
     expect(urls[2]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
 
@@ -264,5 +277,46 @@ describe("Trend", () => {
     expect(summary.some((row) => row.includes("상세로 내려간 대상") && row.includes("삼성전자"))).toBe(
       true,
     );
+  });
+
+  it("opens the subject the entry query names, not the axis default", async () => {
+    const urls = stubTrend([response("삼성전자")]);
+    renderTrend(`/trend?axis=KR&subject=${encodeURIComponent("삼성전자")}`);
+
+    // 승계 계약의 받는 쪽: `Dashboard` 가 순위 행으로 밀어 넣은 대상이 **첫 질의**여야
+    // 한다. 쿼리를 읽지 않으면 여기서 `subject=` 없는 축 기본 질의가 나간다.
+    await waitFor(() => expect(urls).toHaveLength(1));
+    expect(urls[0]).toContain("axis=KR");
+    expect(urls[0]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
+  });
+
+  it("carries the axis the entry query names", async () => {
+    const urls = stubTrend([response()]);
+    renderTrend("/trend?axis=US");
+
+    await waitFor(() => expect(urls).toHaveLength(1));
+    expect(urls[0]).toContain("/api/trend?axis=US");
+    // 축만 넘어온 진입은 그 축의 기본 화면이다 — 대상은 아직 고르지 않았다.
+    expect(urls[0]).not.toContain("subject=");
+  });
+
+  it("lets the entry query beat the session the reader left behind", async () => {
+    // 세션에는 지난번에 두고 간 대상이 남아 있다.
+    const first = stubTrend([response(), response("삼성전자")]);
+    const left = renderTrend();
+    await waitFor(() => expect(left.container.querySelectorAll("table.tbl tr.click")).toHaveLength(2));
+    fireEvent.click(left.container.querySelectorAll("table.tbl tr.click")[1]);
+    await waitFor(() => expect(first).toHaveLength(2));
+    left.unmount();
+
+    // 그 상태에서 대시보드가 **다른** 대상으로 보낸다. 쿼리가 이기지 않으면 누른 것은
+    // `기준금리` 인데 세션에 남은 `삼성전자` 의 상세가 열린다 — 상세로 내려간 것처럼
+    // 보이면서 다른 대상을 보고 있는 상태이고, 이것이 이 슬라이스가 닫는 역전이다.
+    const urls = stubTrend([response()]);
+    renderTrend(`/trend?axis=KR&subject=${encodeURIComponent("기준금리")}`);
+
+    await waitFor(() => expect(urls).toHaveLength(1));
+    expect(urls[0]).toContain(`subject=${encodeURIComponent("기준금리")}`);
+    expect(urls[0]).not.toContain(encodeURIComponent("삼성전자"));
   });
 });
