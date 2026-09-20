@@ -23,7 +23,7 @@
 | 2026-09-18 | [pin-guard-pass](passes/2026-09-18-pin-guard-pass.md) | `e29dddd` | 982 | 3 | 979 | 81 → 81 |
 | 2026-09-18 | [aggregation-harness-pass](passes/2026-09-18-aggregation-harness-pass.md) | `e7fbcae` | 1317 | 5 | 1312 | 94 → 94 |
 | 2026-09-19 | [product-surface-pass](passes/2026-09-19-product-surface-pass.md) | `d4a4cd2` | 1859 | 2 | 1857 | 111 → 111 |
-| 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `fc428dd` | 1857 | 12 | 1845 | 111 → 111 |
+| 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `32faf64` | 1954 | 12 | 1942 | 112 → 112 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
@@ -128,4 +128,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **batch-harness-pass 기준 · 레포 전체** | **1857** | **12** | **1845** | 지문 값(`fc428dd` → 이 패스 후). 이 표는 그중 **90개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. 지문 111파일 중 **아직 행이 없는 파일이 24개(515줄)** 남아 있다 — 전부 e2e 하네스 축이다(`tests/e2e/specs` 16파일 324줄 · `tests/e2e/lib` 6파일 167줄 · `tests/e2e/fixtures/*/server.py` 2파일 24줄). `tests/e2e/k8s/batch`는 이 패스로 19파일 전부가 행을 갖는다 |
+| **batch-harness-pass 기준 · 레포 전체** | **1954** | **12** | **1942** | 지문 값(`32faf64` → 이 패스 후). 이 표는 그중 **90개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. 지문 112파일 중 **아직 행이 없는 파일이 25개(540줄)** 남아 있다 — 대부분 e2e 하네스 축이지만 전부는 아니다(`tests/e2e/specs` 16파일 333줄 · `tests/e2e/lib` 6파일 180줄 · `tests/e2e/fixtures/*/server.py` 2파일 24줄 · `python/packages/aggregation/src/econ_aggregation/cli.py` 1파일 3줄 — 마지막 하나는 하네스가 아니라 제품 코드다). `tests/e2e/k8s/batch`는 이 패스로 19파일 전부가 행을 갖는다 |

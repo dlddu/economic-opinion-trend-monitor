@@ -1,12 +1,18 @@
 # batch-harness-pass — 2026-09-20
 
-기준 커밋 `fc428dd` (product-surface-pass가 착지한 main). 판정 범위는 **`tests/e2e/k8s/batch/` 중
+기준 커밋 `32faf64` (이 패스가 올라탄 main). 판정 범위는 **`tests/e2e/k8s/batch/` 중
 아직 원장 행이 없던 18파일 / 149줄**이다. 같은 디렉터리의 `feed-double.yaml`(8줄)은
 [aggregation-harness-pass](2026-09-18-aggregation-harness-pass.md)가 이미 판정했으므로 이 패스가
 다시 보지 않았고, 이 패스 뒤 그 디렉터리는 **19파일 전부가 행을 갖는다**.
 
-레포 전체 지문: `lines=1857 files=111` → `lines=1845 files=111` (제거 12줄, 파일 수 불변 — 이번
+레포 전체 지문: `lines=1954 files=112` → `lines=1942 files=112` (제거 12줄, 파일 수 불변 — 이번
 제거로 주석이 0이 되는 파일은 없다).
+
+> 이 패스는 계획 시점 base `fc428dd`(1857줄 / 111파일) 위에서 판정했고, 머지 직전 `32faf64`로
+> 리베이스했다. 그사이 착지한 #62가 지문 범위를 넓혀(제품 코드 `econ_aggregation/cli.py` 가
+> 주석 3줄을 얻어 지문에 **처음 들어왔고** — 파일 자체는 전부터 있었다 — specs·lib의 주석도
+> 늘었다) 레포 전체 수치만 옮겨 갔다. **판정한 18파일의 줄 수·판정 내용은
+> 그대로다** — #62는 `tests/e2e/k8s/batch/` 를 건드리지 않았다.
 
 ## 왜 이 묶음인가
 
@@ -164,13 +170,15 @@ ECON_DATA_ROOT=/data`)는 두 파일을 나란히 읽으면 복원되고(경로 
 
 ## 범위 밖 — 후속
 
-원장 행이 없는 파일이 **24개 / 515줄** 남는다. 전부 e2e 하네스 축이다.
+원장 행이 없는 파일이 **25개 / 540줄** 남는다. 대부분 e2e 하네스 축이지만 **전부는 아니다** —
+#62가 들인 `econ_aggregation/cli.py`는 제품 코드다.
 
 | 묶음 | 파일 | 줄 |
 |---|---:|---:|
-| `tests/e2e/specs` | 16 | 324 |
-| `tests/e2e/lib` | 6 | 167 |
+| `tests/e2e/specs` | 16 | 333 |
+| `tests/e2e/lib` | 6 | 180 |
 | `tests/e2e/fixtures/{feeds,llm}/server.py` | 2 | 24 |
+| `python/packages/aggregation/src/econ_aggregation/cli.py` | 1 | 3 |
 
 표본 조사 결과 `tests/e2e/specs`는 머리 주석이 대개 시나리오 본문 인용 + **그 인용에 따른 단언
 설계**의 한 덩어리라, `ac3-6`~`ac3-8`이 initial 이후 받은 판정(「AC 검증 방법 인용과 그에 따른
@@ -180,7 +188,7 @@ ECON_DATA_ROOT=/data`)는 두 파일을 나란히 읽으면 복원되고(경로 
 
 ## 검증
 
-- 지문 재실행: `lines=1857 files=111` → `lines=1845 files=111`. 제거 12줄이 정확히 반영됐고
+- 지문 재실행: `lines=1954 files=112` → `lines=1942 files=112`. 제거 12줄이 정확히 반영됐고
   파일 수는 불변이다(주석이 0이 되는 파일 없음).
 - 배치 매니페스트 19개 전부 YAML 파싱 OK(주석만 건드렸으므로 구조 무변경).
 - 로컬 게이트 3종 rc=0: `scripts/check-journey-mockup.py` · `scripts/check-mockup-render.py` ·
