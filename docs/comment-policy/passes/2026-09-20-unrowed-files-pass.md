@@ -1,7 +1,11 @@
 # unrowed-files-pass — 행 없던 파일 11개 판정 (2026-09-20)
 
-기준 커밋 `473a965` · 판정 범위 **11파일 298줄** · 제거 **33줄** · 남음 **265줄**
-(레포 전체 지문 `2159 → 2126`, 파일 수 `118 → 118`)
+기준 커밋 `4ddbdaa` · 판정 범위 **11파일 298줄** · 제거 **33줄** · 남음 **265줄**
+(레포 전체 지문 `2350 → 2317`, 파일 수 `121 → 121`)
+
+판정 작업 자체는 `473a965` 트리에서 했다. 착지 전에 자매 PR(#70)이 먼저 머지돼 레포 전체 지문이
+`2159/118 → 2350/121`로 올라갔으므로, 위 집계와 아래 잔여 수치는 **머지 기준 커밋 `4ddbdaa`에서 다시
+측정한 값**이다. 판정 범위 11파일 298줄과 제거 33줄은 자매가 그 파일을 건드리지 않아 움직이지 않았다.
 
 정책 본문은 [`../README.md`](../README.md), 파일별 결과는 [`../ledger.md`](../ledger.md)에 있다.
 
@@ -135,14 +139,18 @@ tobe-modeler 몫으로 못박았기 때문이다. 판정 표면 밖을 손으로
 
 ## 다음 패스로 넘기는 것 (범위 밖)
 
-이 패스 뒤 잔여는 **468줄**이다(「읽는 법」의 계수 규약대로 두 몫).
+이 패스 뒤 잔여는 **659줄**이다(「읽는 법」의 계수 규약대로 두 몫, 머지 기준 `4ddbdaa` 실측).
 
-- **⑴ 행 없는 1파일 34줄** — `web/src/screens/Fairness.tsx`. PR #70 머지 후 재감지가 새 task로 잇는다.
-- **⑵ 행보다 자란 10파일 434줄** — `handlers.go` +173 · `handlers_test.go` +86 · `run.sh` +84 ·
-  `check-journey-mockup.py` +23 · `types.ts` +19 · `test_aggregate.py` +18 · `tokens.css` +11 ·
-  `ac3-8-normalized-ratio.spec.ts` +9 · `client.ts` +7 · `aggregate.py` +4.
-  이 중 여섯(`handlers.go`·`handlers_test.go`·`types.ts`·`client.ts`·`tokens.css`, 그리고 ⑴의
-  `Fairness.tsx`)은 PR #70이 수정 중이므로 **그 머지 뒤에 재판정해야** 근거가 낡지 않는다.
-  겹치지 않는 다섯(`run.sh` +84 · `check-journey-mockup.py` +23 · `test_aggregate.py` +18 ·
-  `ac3-8` +9 · `aggregate.py` +4 — 도합 138줄)이 다음 슬라이스의 자연스러운 후보다.
+- **⑴ 행 없는 4파일 99줄** — `web/src/screens/Fairness.tsx` 37 · `web/src/screens/Trace.tsx` 36 ·
+  `web/src/screens/Trace.test.tsx` 20 · `go/internal/store/store_test.go` 6. 판정 시점(`473a965`)에는
+  `Fairness.tsx` 한 파일 34줄이었으나, 착지 전에 PR #70이 머지되며 신규 파일 셋을 들이고 `Fairness.tsx`를
+  37줄로 키웠다. 재감지가 새 task로 잇는다.
+- **⑵ 행보다 자란 12파일 560줄** — `handlers.go` +228 · `handlers_test.go` +106 · `run.sh` +84 ·
+  `types.ts` +43 · `check-journey-mockup.py` +23 · `test_aggregate.py` +18 · `store.go` +17 ·
+  `tokens.css` +15 · `client.ts` +10 · `ac3-8-normalized-ratio.spec.ts` +9 · `aggregate.py` +4 ·
+  `test_feeds.py` +3.
+  이 중 여섯(`handlers.go`·`handlers_test.go`·`types.ts`·`client.ts`·`tokens.css`·`store.go`)과 ⑴의
+  넷은 **PR #70이 이미 머지돼**(`4ddbdaa`) 재판정할 트리가 고정됐다 — 더 기다릴 이유가 없다.
+  #70이 건드리지 않은 여섯(`run.sh` +84 · `check-journey-mockup.py` +23 · `test_aggregate.py` +18 ·
+  `ac3-8` +9 · `aggregate.py` +4 · `test_feeds.py` +3 — 도합 141줄)도 그대로 후보다.
 - **Python docstring 표면** — 위 「범위 밖 관측」. 표면 확장은 tobe-modeler 몫이다.

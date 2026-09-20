@@ -29,7 +29,7 @@
 | 2026-09-19 | [product-surface-pass](passes/2026-09-19-product-surface-pass.md) | `d4a4cd2` | 1859 | 2 | 1857 | 111 → 111 |
 | 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `32faf64` | 1954 | 12 | 1942 | 112 → 112 |
 | 2026-09-20 | [scenario-spec-pass](passes/2026-09-20-scenario-spec-pass.md) | `ddaef4f` | 2201 | 42 | 2159 | 118 → 118 |
-| 2026-09-20 | [unrowed-files-pass](passes/2026-09-20-unrowed-files-pass.md) | `473a965` | 2159 | 33 | 2126 | 118 → 118 |
+| 2026-09-20 | [unrowed-files-pass](passes/2026-09-20-unrowed-files-pass.md) | `4ddbdaa` | 2350 | 33 | 2317 | 121 → 121 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
@@ -46,7 +46,8 @@ scenario-spec-pass도 표적 패스다 — 시나리오 spec 16파일과 `tests/
 unrowed-files-pass도 표적 패스다 — 판정 시점(`473a965`)에 **행이 없던 12파일 중 11파일**(298줄)만 판정했다.
 남은 하나(`web/src/screens/Fairness.tsx` 34줄)를 뺀 것은 열린 PR #70이 그 파일을 수정 중이기 때문이다
 (겹치는 트리 위에서 판정하면 머지 순간 판정 근거가 낡는다 — scenario-spec-pass가 `tests/e2e/lib/` 를 미룬 것과
-같은 이유이고, 그 PR이 머지되면 재감지가 새 task로 잇는다). 그래서 이 패스 뒤 잔여 ⑴은 그 한 파일만 남고,
+같은 이유다). 머지 기준 커밋이 `4ddbdaa`로 올라오는 사이 그 PR #70이 실제로 머지돼 **행 없는 파일 셋을 더
+들이고** `Fairness.tsx`를 37줄로 키웠으므로, 착지 시점 ⑴은 4파일 99줄이다 — 말미 요약이 그 값이다.
 `tests/e2e/lib/` 는 6파일 전부가 행을 갖는다. 제거 33줄 중 20줄은 그 디렉터리의 **다섯 파일에 바이트째 되풀이된
 같은 블록**이다 — 「이 디렉터리는 `specs/` 밖이다 … `check_scenario_mapping.py` 가 선언 없는 매칭 단위로
 읽는다」. 복원 경로가 둘이라 제거했다: ① `check_scenario_mapping.py:104` 의 `SPEC_DIR.glob("*.spec.ts")` 가
@@ -184,4 +185,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **unrowed-files-pass 기준 · 레포 전체** | **2159** | **33** | **2126** | 지문 값(`473a965` → 이 패스 후). 이 표는 그중 **120개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 468줄**이다: ⑴ 아직 행이 없는 파일 **1개 34줄**(`web/src/screens/Fairness.tsx` — 열린 PR #70이 수정 중이라 이 패스가 뺐다), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **10파일 434줄**(`go/internal/handlers/handlers.go` 24→197 · `handlers_test.go` 14→100 · `tests/e2e/run.sh` 12→96 · `scripts/check-journey-mockup.py` 42→65 · `web/src/api/types.ts` 5→24 · `test_aggregate.py` 1→19 · `web/src/tokens/tokens.css` 38→49 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `web/src/api/client.ts` 5→12 · `econ_aggregation/aggregate.py` 11→15). ⑵ 열 파일 중 여섯(`handlers.go`·`handlers_test.go`·`types.ts`·`client.ts`·`tokens.css` 와 ⑴의 `Fairness.tsx`)은 PR #70이 수정 중이라 그 머지 뒤 재감지가 잇는다 |
+| **unrowed-files-pass 기준 · 레포 전체** | **2350** | **33** | **2317** | 지문 값(`4ddbdaa` → 이 패스 후). 이 표는 그중 **120개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 659줄**이다: ⑴ 아직 행이 없는 파일 **4개 99줄**(`web/src/screens/Fairness.tsx` 37 — 판정 시점에 열린 PR #70이 수정 중이라 이 패스가 뺐다 · `web/src/screens/Trace.tsx` 36 · `web/src/screens/Trace.test.tsx` 20 · `go/internal/store/store_test.go` 6 — 셋 다 #70이 들인 신규 파일), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **12파일 560줄**(`go/internal/handlers/handlers.go` 24→252 · `handlers_test.go` 14→120 · `tests/e2e/run.sh` 12→96 · `web/src/api/types.ts` 5→48 · `scripts/check-journey-mockup.py` 42→65 · `test_aggregate.py` 1→19 · `go/internal/store/store.go` 12→29 · `web/src/tokens/tokens.css` 38→53 · `web/src/api/client.ts` 5→15 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `econ_aggregation/aggregate.py` 11→15 · `python/packages/ingestion/tests/test_feeds.py` 21→24). ⑴의 넷과 ⑵ 열두 파일 중 여섯(`handlers.go`·`handlers_test.go`·`types.ts`·`client.ts`·`tokens.css`·`store.go`)은 PR #70이 이미 머지돼(`4ddbdaa`) 재판정 트리가 고정됐다 — 재감지가 새 task로 잇는다 |
