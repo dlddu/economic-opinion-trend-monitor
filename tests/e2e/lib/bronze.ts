@@ -72,6 +72,14 @@ export function aggBronzeDir(): string {
   return exportedDir("E2E_BRONZE_AGG_DIR");
 }
 
+/**
+ * 롤업 루트의 Bronze — 집계 코퍼스와 같은 레코드인데 `collected_at` 만 고정 달력으로 다시
+ * 찍혀 있다(`tools/timeshift_bronze.py`). 시나리오 3의 기대값은 전부 여기서 다시 센다.
+ */
+export function rollupBronzeDir(): string {
+  return exportedDir("E2E_BRONZE_ROLLUP_DIR");
+}
+
 function readJsonlFrom<T>(dir: string, dataset: string): T[] {
   const target = path.join(dir, `${dataset}.jsonl`);
   const raw = readFileSync(target, "utf-8");

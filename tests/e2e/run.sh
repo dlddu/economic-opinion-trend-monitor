@@ -22,6 +22,10 @@
 #     whole thing runs a second time against an upstream whose volume is skewed on
 #     one source only, so the two Golds differ in collection volume and nothing
 #     else — that pair is what scenario 1 of the aggregation-viz doc compares.
+#     A third root re-stamps the baseline corpus' collection times onto a fixed
+#     calendar and aggregates it again, which is the only way e2e gets more than
+#     one time bucket (collection stamps `collected_at` with the run clock) —
+#     scenario 3 reads the rollups out of that Gold.
 #
 # Local `make e2e` and the CI e2e job both run exactly this script.
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
@@ -46,6 +50,9 @@ AGG_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-agg"
 AGG_SILVER_DIR="$E2E_DIR/.artifacts/silver-agg"
 GOLD_DIR="$E2E_DIR/.artifacts/gold"
 GOLD_SKEW_DIR="$E2E_DIR/.artifacts/gold-skew"
+ROLLUP_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-rollup"
+ROLLUP_SILVER_DIR="$E2E_DIR/.artifacts/silver-rollup"
+ROLLUP_GOLD_DIR="$E2E_DIR/.artifacts/gold-rollup"
 LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 PF=""
 
@@ -277,6 +284,30 @@ run_aggregation_stack "-skew" /data/aggregation-skew skewed
 export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
 echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
 
+# 4f) Rollup root (…-test-aggregation-viz.md#시나리오 3). The baseline corpus again, with
+# only `collected_at` re-stamped onto a fixed calendar, then the *real* aggregation CLI over
+# it. Collection stamps `collected_at` with the run clock (econ_ingestion/cli.py, regardless
+# of --cycle), so every record of one Job lands in the same hour bucket — "a day is the sum
+# of its hours" would be the sum of a single bucket and the scenario would have nothing to
+# observe. The re-stamp is the one dimension e2e cannot vary by running the pipeline; the
+# aggregation being measured still runs for real, on the pipeline's own Bronze and Silver.
+# Its own root again, for the same reason the skewed run has one: `write_records` replaces a
+# dataset, so aggregating in place would erase the Gold specs 1·2·4 assert on.
+kubectl --context "$CTX" create configmap rollup-timeshift \
+  --from-file="$E2E_DIR/tools/timeshift_bronze.py"
+run_batch_job econ-e2e-timeshift-rollup "$E2E_DIR/k8s/batch/timeshift-job.yaml"
+ROLLUP_LOG="$(run_batch_job econ-e2e-aggregate-rollup "$E2E_DIR/k8s/batch/aggregate-job-rollup.yaml")"
+case "$ROLLUP_LOG" in
+  *"wrote 0 subject_trend"* | *"+ 0 axis_sentiment"*)
+    echo "[e2e] FAIL: the rollup aggregation wrote an empty Gold — the re-stamped corpus did" \
+         "not join back on record_id, so scenario 3 has nothing to observe" >&2
+    exit 1 ;;
+esac
+export_lake /data/aggregation-rollup bronze "$ROLLUP_BRONZE_DIR" news_item
+export_lake /data/aggregation-rollup silver "$ROLLUP_SILVER_DIR" analysis
+export_lake /data/aggregation-rollup gold "$ROLLUP_GOLD_DIR" subject_trend axis_sentiment
+echo "[e2e] gold (multi-bucket rollup) exported -> $ROLLUP_GOLD_DIR"
+
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 cd "$E2E_DIR"
 npm ci
@@ -294,6 +325,9 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_SILVER_AGG_DIR="$AGG_SILVER_DIR" \
   E2E_GOLD_DIR="$GOLD_DIR" \
   E2E_GOLD_SKEW_DIR="$GOLD_SKEW_DIR" \
+  E2E_BRONZE_ROLLUP_DIR="$ROLLUP_BRONZE_DIR" \
+  E2E_SILVER_ROLLUP_DIR="$ROLLUP_SILVER_DIR" \
+  E2E_GOLD_ROLLUP_DIR="$ROLLUP_GOLD_DIR" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
   npx playwright test
 
@@ -302,3 +336,4 @@ echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
 echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
 echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"
 echo "[e2e] OK: aggregation batch -> pipeline-produced Gold (baseline + skewed volume)"
+echo "[e2e] OK: re-stamped collection times -> aggregation -> multi-bucket Gold (hour/day/week)"

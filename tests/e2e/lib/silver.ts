@@ -92,6 +92,15 @@ export function aggAnalyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_AGG_DIR"));
 }
 
+/**
+ * 롤업 루트로 이식된 Silver. 타임시프트는 이 데이터셋을 **바이트 그대로** 옮기므로 집계
+ * 묶음의 Silver 와 같아야 한다 — 시나리오 3의 spec 이 그 동일성부터 확인한다(다르면 재계수의
+ * 기준이 무너진 것이고, 롤업이 아니라 하네스를 재고 있는 것이다).
+ */
+export function rollupAnalyses(): Analysis[] {
+  return readAnalyses(exportedDir("E2E_SILVER_ROLLUP_DIR"));
+}
+
 /** `record_id` 로 찾기 쉽게 묶는다. 역추적 단정의 공통 출발점이다. */
 export function byRecordId(records: Analysis[]): Map<string, Analysis> {
   return new Map(records.map((record) => [record.record_id, record]));
