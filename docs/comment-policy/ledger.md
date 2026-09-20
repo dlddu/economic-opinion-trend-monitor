@@ -13,7 +13,7 @@
 - 그래서 **행이 있는 파일도 미판정 주석을 가질 수 있다**. 행의 「남음」은 판정 시점 값이고, 그 뒤 자란
   줄은 어느 행에도 잡히지 않는다. 말미 요약의 잔여는 그 둘을 **함께** 센다 — ⑴ 행이 없는 파일의 전량과
   ⑵ 행이 있으나 현재 줄 수가 「남음」을 넘는 파일의 **증가분**. ⑴만 세면 남은 일이 과소 진술되고, 원장만
-  읽는 다음 패스는 ⑵에 영영 도달하지 못한다(2026-09-20 실측: ⑴만 세면 540줄, 둘을 합치면 867줄).
+  읽는 다음 패스는 ⑵에 영영 도달하지 못한다(2026-09-20 `7386301` 실측: ⑴만 세면 540줄, 둘을 합치면 867줄).
 - 각 행은 그 파일을 **마지막으로 판정한 패스** 기준이며, initial-pass가 아니면 판정 칸 머리에 패스 이름을 적는다.
 - 「패스 이력」의 줄 수는 **레포 전체 지문** 값이다. 표적 패스(일부 파일만 재판정)가 실제로 어떤 파일을
   판정했는지는 그 패스 문서에 있다 — 판정하지 않은 파일은 이 원장에 행을 만들지 않는다.
@@ -28,17 +28,19 @@
 | 2026-09-18 | [aggregation-harness-pass](passes/2026-09-18-aggregation-harness-pass.md) | `e7fbcae` | 1317 | 5 | 1312 | 94 → 94 |
 | 2026-09-19 | [product-surface-pass](passes/2026-09-19-product-surface-pass.md) | `d4a4cd2` | 1859 | 2 | 1857 | 111 → 111 |
 | 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `32faf64` | 1954 | 12 | 1942 | 112 → 112 |
-| 2026-09-20 | [scenario-spec-pass](passes/2026-09-20-scenario-spec-pass.md) | `7386301` | 1942 | 42 | 1900 | 112 → 112 |
+| 2026-09-20 | [scenario-spec-pass](passes/2026-09-20-scenario-spec-pass.md) | `ddaef4f` | 2201 | 42 | 2159 | 118 → 118 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
 이 패스 뒤 그 디렉터리는 19파일 전부가 행을 갖는다.
 
 scenario-spec-pass도 표적 패스다 — 시나리오 spec 16파일과 `tests/e2e/fixtures/*/server.py` 2파일,
-`econ_aggregation/cli.py` 1파일(도합 19파일 360줄)만 판정했다. 남은 미판정 파일은 `tests/e2e/lib/` 6파일이며,
-그 디렉터리는 판정 시점에 열린 PR이 3파일을 수정 중이라 같은 패스로 묶지 않았다(겹치는 트리 위에서 판정하면
-머지 순간 판정 근거가 낡는다). 이 패스는 「읽는 법」에 **잔여 계수 규약**을 더해, 행이 있으나 판정 이후 자란
-파일의 증가분도 말미 요약이 세도록 고쳤다.
+`econ_aggregation/cli.py` 1파일(도합 19파일 360줄)만 판정했다. 판정 시점(`7386301`)에 행이 없던 나머지는
+`tests/e2e/lib/` 6파일이었고, 그 디렉터리는 열린 PR이 3파일을 수정 중이라 같은 패스로 묶지 않았다(겹치는
+트리 위에서 판정하면 머지 순간 판정 근거가 낡는다). 머지 기준 커밋이 `ddaef4f`로 올라오는 사이 자매 PR
+(#65·#66)이 **행 없는 파일 6개를 더 들여** 착지 시점 ⑴은 12파일 332줄이다 — 말미 요약이 그 값이다.
+이 패스는 「읽는 법」에 **잔여 계수 규약**을 더해, 행이 있으나 판정 이후 자란 파일의 증가분도 말미 요약이
+세도록 고쳤다.
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -158,4 +160,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **scenario-spec-pass 기준 · 레포 전체** | **1942** | **42** | **1900** | 지문 값(`7386301` → 이 패스 후). 이 표는 그중 **109개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 507줄**이다: ⑴ 아직 행이 없는 파일 **6개 180줄**(`tests/e2e/lib/` 전부 — gold 58 · silver 43 · llmdouble 24 · ingestlog 20 · bronze 19 · feeds 16), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **9파일 327줄**(`go/internal/handlers/handlers.go` 24→151 · `tests/e2e/run.sh` 12→83 · `handlers_test.go` 14→78 · `scripts/check-journey-mockup.py` 42→65 · `test_aggregate.py` 1→19 · `web/src/api/types.ts` 5→15 · `tokens.css` 38→44 · `web/src/api/client.ts` 5→9 · `econ_aggregation/aggregate.py` 11→15). ⑵는 직전 판까지 이 요약이 세지 못하던 몫이다 |
+| **scenario-spec-pass 기준 · 레포 전체** | **2201** | **42** | **2159** | 지문 값(`ddaef4f` → 이 패스 후). 이 표는 그중 **109개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 766줄**이다: ⑴ 아직 행이 없는 파일 **12개 332줄**(`tests/e2e/lib/` 6파일 206 — gold 77 · silver 47 · llmdouble 24 · bronze 22 · ingestlog 20 · feeds 16 — 과 자매 PR이 들인 6파일 126 — `tests/e2e/specs/aggregation-3-bucket-rollup.spec.ts` 36 · `web/src/screens/Fairness.tsx` 34 · `tests/e2e/k8s/batch/timeshift-job.yaml` 20 · `Fairness.test.tsx` 16 · `aggregate-job-rollup.yaml` 10 · `tests/e2e/tools/timeshift_bronze.py` 10), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **10파일 434줄**(`go/internal/handlers/handlers.go` 24→197 · `handlers_test.go` 14→100 · `tests/e2e/run.sh` 12→96 · `scripts/check-journey-mockup.py` 42→65 · `web/src/api/types.ts` 5→24 · `test_aggregate.py` 1→19 · `web/src/tokens/tokens.css` 38→49 · `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` 22→31 · `web/src/api/client.ts` 5→12 · `econ_aggregation/aggregate.py` 11→15). ⑵는 직전 판까지 이 요약이 세지 못하던 몫이다 |
