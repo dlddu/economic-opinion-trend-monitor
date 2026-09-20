@@ -10,6 +10,10 @@
 - 남음이 0이면 그 파일은 이후 지문에서 빠진다.
 - 비고의 "판단 분기"는 애매해서 남긴 것 — 근거는 해당 패스 문서의 「판단이 갈려 남긴 것」.
 - 새 주석이 생기면 이 원장의 행은 바뀌지 않는다. 다음 패스가 그 파일을 다시 판정하며 행을 갱신한다.
+- 그래서 **행이 있는 파일도 미판정 주석을 가질 수 있다**. 행의 「남음」은 판정 시점 값이고, 그 뒤 자란
+  줄은 어느 행에도 잡히지 않는다. 말미 요약의 잔여는 그 둘을 **함께** 센다 — ⑴ 행이 없는 파일의 전량과
+  ⑵ 행이 있으나 현재 줄 수가 「남음」을 넘는 파일의 **증가분**. ⑴만 세면 남은 일이 과소 진술되고, 원장만
+  읽는 다음 패스는 ⑵에 영영 도달하지 못한다(2026-09-20 실측: ⑴만 세면 540줄, 둘을 합치면 867줄).
 - 각 행은 그 파일을 **마지막으로 판정한 패스** 기준이며, initial-pass가 아니면 판정 칸 머리에 패스 이름을 적는다.
 - 「패스 이력」의 줄 수는 **레포 전체 지문** 값이다. 표적 패스(일부 파일만 재판정)가 실제로 어떤 파일을
   판정했는지는 그 패스 문서에 있다 — 판정하지 않은 파일은 이 원장에 행을 만들지 않는다.
@@ -24,10 +28,17 @@
 | 2026-09-18 | [aggregation-harness-pass](passes/2026-09-18-aggregation-harness-pass.md) | `e7fbcae` | 1317 | 5 | 1312 | 94 → 94 |
 | 2026-09-19 | [product-surface-pass](passes/2026-09-19-product-surface-pass.md) | `d4a4cd2` | 1859 | 2 | 1857 | 111 → 111 |
 | 2026-09-20 | [batch-harness-pass](passes/2026-09-20-batch-harness-pass.md) | `32faf64` | 1954 | 12 | 1942 | 112 → 112 |
+| 2026-09-20 | [scenario-spec-pass](passes/2026-09-20-scenario-spec-pass.md) | `7386301` | 1942 | 42 | 1900 | 112 → 112 |
 
 batch-harness-pass도 표적 패스다 — `tests/e2e/k8s/batch/` 의 **아직 행이 없던 18파일**(149줄)만 판정했다.
 그 디렉터리의 나머지 한 파일(`feed-double.yaml`)은 aggregation-harness-pass가 이미 판정했으므로,
 이 패스 뒤 그 디렉터리는 19파일 전부가 행을 갖는다.
+
+scenario-spec-pass도 표적 패스다 — 시나리오 spec 16파일과 `tests/e2e/fixtures/*/server.py` 2파일,
+`econ_aggregation/cli.py` 1파일(도합 19파일 360줄)만 판정했다. 남은 미판정 파일은 `tests/e2e/lib/` 6파일이며,
+그 디렉터리는 판정 시점에 열린 PR이 3파일을 수정 중이라 같은 패스로 묶지 않았다(겹치는 트리 위에서 판정하면
+머지 순간 판정 근거가 낡는다). 이 패스는 「읽는 법」에 **잔여 계수 규약**을 더해, 행이 있으나 판정 이후 자란
+파일의 증가분도 말미 요약이 세도록 고쳤다.
 
 pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메커니즘을 되풀이한 자리). 줄 수는 그 시점의
 풀 전체 값이고, 판정한 것은 세 파일뿐이다. 그 세 파일 안에도 **이 패스가 판정하지 않은 주석**이 있으면
@@ -58,6 +69,7 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `go/internal/static/static.go` | 6 | 0 | 6 | 유지 — 패키지·export doc 주석(SPA 폴백 동작 설명) |
 | `go/internal/store/store.go` | 12 | 0 | 12 | 유지 — 패키지·export doc 주석, Python LocalFsStore와의 대응, 누락 파일=빈 슬라이스 계약 |
 | `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 12 | 1 | 11 | **aggregation-harness-pass** — 제거 1줄: `# Percentage points, matching the contract's \`delta\` doc.` — 주석이 자기 복원처를 이름으로 지목하고 원본(`contracts/gold/subject_trend.avsc` `delta` 필드 `doc`)이 AC 번호까지 달아 더 정확하다(정책 doc 주석 항의 `contracts/` 스키마 재진술). 유지: 중첩 dict 형태 표기, 버킷 키 사전식=시간순 근거, "없는 버킷은 0이 아니다", AC3.4 분리 근거(태그는 판단 분기) |
+| `python/packages/aggregation/src/econ_aggregation/cli.py` | 3 | 0 | 3 | **scenario-spec-pass** — 전량 유지. 세 버킷 단위를 한 데이터셋에 싣는 이유와 "한 차트를 그리는 소비자는 단위 하나를 먼저 고른다"는 소비 규약 — 평평하게 읽는 소비자가 중복 계상하는 자리라 코드·계약 어느 쪽으로도 복원되지 않는다 |
 | `python/packages/aggregation/tests/test_aggregate.py` | 1 | 0 | 1 | 유지 — 테스트 의도(AC 태그 판단 분기) |
 | `python/packages/analysis/src/econ_analysis/cli.py` | 7 | 0 | 7 | 유지 — 종료 코드 의미(`#:` 속성 doc), 운영자 오류를 레이크 접근 전에 실패시키는 근거, 전량 실패 시 Silver 보존 근거 |
 | `python/packages/analysis/src/econ_analysis/fake_llm.py` | 4 | 0 | 4 | 유지 — 페이크 모델의 판정 규칙 근거(AC 태그 판단 분기) |
@@ -83,6 +95,8 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `scripts/journey-scenarios/JRN-sentiment-shift.js` | 27 | 7 | 20 | 제거 7줄 — 역할 분담 재진술(러너 머리 주석; '두 가지'라 쓰고 넷을 나열한 낡은 서술 포함). 유지: 시나리오 훅 목록(inputs/states/unlock/renders) |
 | `scripts/journey-scenarios/JRN-spike-verification.js` | 29 | 4 | 25 | regression-pass — 제거 4줄: 머리의 러너/시나리오 역할 분담 산문 3줄(`check-journey-flow.js` 「── 구조 ──」 절의 재진술) + 매달린 ` *` 1줄. `JRN-axis-contrast.js`와 같은 식별 1줄 형태로 줄였다. 유지: 훅별 `(c)(d)(e)(h)` 주석 4줄, 조작별 의도, jsdom `.value` 함정 |
 | `tests/e2e/check_scenario_mapping.py` | 22 | 4 | 18 | 제거 4줄 — `# --- … ---` 구분선. 유지: 판정 규칙 근거(첫 열만 읽는 이유, 등재 공백을 쓰는 이유 등) |
+| `tests/e2e/fixtures/feeds/server.py` | 11 | 0 | 11 | **scenario-spec-pass** — 전량 유지. HTTP 상태 줄이 latin-1 이라 한글 message 를 넣으면 503 이 아니라 전송 실패로 관측되는 함정, `__flaky__` 카운터가 유일한 상태라는 사실, `__slow__` 하나가 수집을 직렬로 세우지 않게 스레딩 서버를 쓰는 근거 — 전부 런타임 제약이라 복원 불가 |
+| `tests/e2e/fixtures/llm/server.py` | 13 | 0 | 13 | **scenario-spec-pass** — 전량 유지. 봉투 안 `content` 가 **문자열**이어야 `parse_response` 의 파싱 계약이 e2e 에서 실행된다는 근거(더블이 대신하면 그 층이 영영 검증되지 않는다), readinessProbe 가 진행 중 요청 뒤에 줄 서지 않게 하는 근거, latin-1 함정(피드 더블을 출처로 지목하는 형태라 재진술이 아니다). **판단 분기**: `do_<METHOD>` 디스패치 규약 1줄이 두 더블 양쪽에 있으나 어느 쪽이 설명의 주인인지 정해지지 않아 양쪽 모두 유지 |
 | `tests/e2e/k8s/batch/aggregate-job-skew.yaml` | 5 | 0 | 5 | **batch-harness-pass** — 전량 유지. 기준 상태와 루트만 다르게 두는 이유(같은 코드가 같은 설정으로 돌아야 두 Gold의 차이가 집계 로직의 변덕이 아니라 입력량 차이로 읽힌다)와, 한 루트에서 두 번 돌리면 `write_records`가 데이터셋을 교체해 기준 상태가 사라진다는 함정. 둘 다 매니페스트·테스트 문서 어느 쪽으로도 복원되지 않는다 |
 | `tests/e2e/k8s/batch/aggregate-job.yaml` | 11 | 2 | 9 | **batch-harness-pass** — 제거 2줄: 머리의 과거형 프레이밍(「이 Job이 서면서 `python/packages/aggregation`이 e2e에서 처음으로 실제 실행된다. 그 전까지 서빙은 손으로 쓴 픽스처 Gold를 입력으로 썼으므로 … 한 번도 돌지 않았다」). aggregation-harness-pass가 `deploy/batch/workflow-template.yaml`에서 지운 「Until this template existed … no scheduled path ever produced Gold」와 **같은 유형·같은 복원 경로**(④ 커밋 이력)다. 유지 9줄: 배치 이미지 ENTRYPOINT가 `econ-ingestion`이라 집계는 `command`로 덮어써야 한다는 근거, 상류 더블이 필요 없는 이유와 그래서 이 Job에는 mock-exception이 붙지 않는다는 사실(부재의 근거는 코드가 복원하지 못한다) |
 | `tests/e2e/k8s/batch/analyze-job-agg-skew.yaml` | 8 | 4 | 4 | **batch-harness-pass** — 제거 4줄: `ECON_LLM_MODEL`·`ECON_LLM_API_KEY`의 env 주석이 `analyze-job.yaml`의 것과 **바이트 동일**이다(제거 유형 「다른 파일 주석의 재진술 — 설명의 주인에만 둔다」). 주인 지목은 주석 자신이 한다: 이 파일 머리가 `analyze-job-agg.yaml`을, 그 파일이 다시 `analyze-job.yaml`을 계약의 주인으로 적는다. 같은 두 env를 같은 값으로 쓰면서 이 주석이 없는 `analyze-job-v2.yaml`이 레포 안의 대조군이다. 유지 4줄: 기준 상태와 모든 설정이 같고 루트만 다른 이유, 부풀린 쪽에만 있는 여섯 건의 응답도 같은 묶음에 들어 있어 404(→ `failed>0`)가 나지 않는다는 픽스처 지식 |
@@ -110,6 +124,22 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `tests/e2e/specs/ac3-6-sentiment-ratio-viz.spec.ts` | 28 | 4 | 24 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드가 복원). 유지: AC 검증 방법 인용과 그에 따른 단언 설계, 스케일 무관 비교 근거 |
 | `tests/e2e/specs/ac3-7-three-axis-compare.spec.ts` | 36 | 4 | 32 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드). 유지: 세 낱말 분해 단언 설계, 공통 스케일 근거 |
 | `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` | 26 | 4 | 22 | 제거 4줄 — 시나리오→AC 연결 설명(테스트 문서 `검증 AC` 필드). 유지: 단언 설계·픽스처 대응 |
+| `tests/e2e/specs/aggregation-1-volume-normalization.spec.ts` | 24 | 5 | 19 | **scenario-spec-pass** — 제거 5줄: 사전 조건·실행 단계·기대 결과를 따옴표로 옮겨 적은 머리 문단(바로 윗줄 `// 검증 시나리오:` 가 문서·앵커를 가리키므로 경로 ②로 복원). 유지: 두 상태(기준/부풀림)를 같은 corpus 로 만드는 하네스 설계와 KR 축에 소스를 둘 둔 이유(정규화가 소스 2개 이상에서만 실행된다) |
+| `tests/e2e/specs/aggregation-2-subject-cross-dimension.spec.ts` | 35 | 4 | 31 | **scenario-spec-pass** — 제거 4줄: 머리의 시나리오 재진술. 유지: Gold 를 Gold 와 비교하면 자기 증명이 된다는 관측 설계, 수집 CLI 가 `collected_at` 을 실행 시각으로 찍어 e2e 한 주기에서 시간대 차원이 값 하나가 된다는 한계, 롤업 세 벌 중 기본 단위 한 벌로 좁히는 이유 |
+| `tests/e2e/specs/aggregation-4-sentiment-ratio-integrity.spec.ts` | 23 | 4 | 19 | **scenario-spec-pass** — 제거 4줄: 머리의 시나리오 재진술. 유지: 분모 선택이 비율 정합성을 가르는 이유(미분석을 섞으면 합이 1 미만, 버리면 미판단량이 사라진다), 오늘 Gold 계약에 저신뢰 축이 없어 "분리"가 미분석에만 성립한다는 경계 |
+| `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` | 51 | 3 | 48 | **scenario-spec-pass** — 제거 3줄: 문서 경로·기대 결과·`검증 AC` 를 옮겨 적은 머리 문단(셋 다 `// 검증 시나리오:` 선언과 테스트 문서가 복원). 유지: 뷰박스 좌표를 모르고도 성립하도록 "0선 높이 ÷ 점유율이 상수인가"로 비교하는 설계, 공유 픽스처가 단일 `time_bucket` 이라 다중 버킷 x축이 관측 불가라는 경계 |
+| `tests/e2e/specs/analysis-1-target-countries.spec.ts` | 17 | 4 | 13 | **scenario-spec-pass** — 제거 4줄: 머리의 시나리오 재진술. 유지: 이 층이 의미적 품질이 아니라 전파 계약을 본다는 경계, 아홉 건이 모두 `axis=KR` 한 소스인데 대상 국가가 갈린다는 것이 곧 축-베끼기 부재의 증거라는 묶음 설계 |
+| `tests/e2e/specs/analysis-2-subject-normalization.spec.ts` | 19 | 3 | 16 | **scenario-spec-pass** — 제거 3줄: 머리의 시나리오 재진술. 유지: 더블이 변형을 그대로 돌려줘야 통합 경로가 e2e 에서 실행된다는 근거(더블이 미리 합치면 검증 대상이 사라진다), 정규 표기의 철자를 단정하지 않는 경계 |
+| `tests/e2e/specs/analysis-3-sentiment-classes.spec.ts` | 10 | 4 | 6 | **scenario-spec-pass** — 제거 4줄: 머리의 시나리오 재진술. 유지: 라벨 정확도는 오프라인 골든 평가의 몫이라는 층 분담(doc-tracker 「예외 후보 중 미등재」가 추적처) |
+| `tests/e2e/specs/analysis-4-multi-value-retention.spec.ts` | 24 | 4 | 20 | **scenario-spec-pass** — 제거 4줄: 머리의 시나리오 재진술(뒤따르는 문단이 "기대 결과의 뒤 절"을 인용해 홀로 서므로 접속사만 다듬었다). 유지: 다중 값이 줄어들 수 있는 두 자리(모델→Silver, Silver→Gold)를 모두 봐야 하는 이유 |
+| `tests/e2e/specs/analysis-5-low-confidence-separation.spec.ts` | 39 | 2 | 37 | **scenario-spec-pass** — 제거 2줄: 머리의 시나리오 재진술(집계 묶음에서 닫히는 이유 한 줄은 판단이라 유지·정정). 유지: 두 사전 조건이 서로 다른 경로로 같은 상태에 닿아 픽스처에서 갈라 둔 근거, 저신뢰가 Gold 계약에 없다는 경계, 축 경계를 `CELL_SEP` 으로 끊는 이유(손으로 조립했다 `cellKey` 구분자와 어긋나 단정이 한 번 깨진 실측) |
+| `tests/e2e/specs/analysis-6-traceability-reanalysis.spec.ts` | 20 | 5 | 15 | **scenario-spec-pass** — 제거 5줄: 실행 단계·기대 결과를 옮겨 적은 머리 문단. 유지: "분석 로직 변경"을 더블 응답 묶음 교체 + `--analyzer-version` 상향 두 가지로 세운다는 하네스 설계, 1차 Silver 를 스냅샷에서 읽는 이유(재분석 뒤 PVC 에 남지 않는다) |
+| `tests/e2e/specs/ingestion-2-top-n-cap.spec.ts` | 9 | 1 | 8 | **scenario-spec-pass** — 제거 1줄: 사전 조건의 숫자(N=100·60건)를 옮겨 적은 절. 그 숫자를 상수로 쓰지 않는다는 서술이 바로 뒤에 있어 재진술이 스스로와 어긋나는 자리였다. 유지: 상한·제공분을 픽스처에서 유도하는 근거와 단언하지 않는 것 |
+| `tests/e2e/specs/ingestion-3-axis-tagging.spec.ts` | 8 | 1 | 7 | **scenario-spec-pass** — 제거 1줄: 사전 조건 인용. 유지: 매핑이 코드가 아니라 설정에 있어 기대 축을 설정에서 읽는 근거, 어느 매체가 어느 축인지는 운영 판단이라는 경계 |
+| `tests/e2e/specs/ingestion-4-link-and-body.spec.ts` | 9 | 0 | 9 | **scenario-spec-pass** — 줄 수 불변, 문면 정정 1곳: 시나리오가 두 유형을 요구한다는 재진술을 걷고 픽스처가 그 혼합을 만든다는 하네스 사실만 남겼다. 유지: 내용 주소화를 저장소 안에서만 확인하면 자기 값끼리 맞는지만 보게 된다는 양방향 검사 근거 |
+| `tests/e2e/specs/ingestion-5-metadata-completeness.spec.ts` | 8 | 1 | 7 | **scenario-spec-pass** — 제거 1줄: 다섯 필드 열거(테스트 문서가 복원). 유지: "비어 있지 않다"로 보면 0·빈 문자열이 통과하므로 값의 일치를 본다는 단언 설계, 시간 버킷 식별을 `collection_cycle` 형태로 보는 근거 |
+| `tests/e2e/specs/ingestion-6-failure-isolation.spec.ts` | 22 | 1 | 21 | **scenario-spec-pass** — 제거 1줄: 한 주기에 넣을 네 가지를 옮겨 적은 절. 유지: 기대 결과 네 절이 각각 어디에 남는지의 대응표(관측처 지정이라 문서가 복원하지 않는다), 걸러진 중복·격리된 소스가 Bronze 에 흔적이 없어 로그와 레코드를 함께 봐야 하는 근거 |
+| `tests/e2e/specs/ingestion-7-body-dedup-versioning.spec.ts` | 15 | 0 | 15 | **scenario-spec-pass** — 전량 유지. 머리 문단이 재진술로 보이나 사전 조건 셋을 **어느 픽스처·어느 주기로** 세우는지의 대응이라 하네스 사실이다. 유지: `news_item` 이 주기마다 덮어쓰기라 최종 파일만으로는 주기별 관측을 확인할 수 없어 run.sh 가 스냅샷을 뜬다는 근거 |
 | `tests/e2e/specs/smoke-serving.spec.ts` | 6 | 0 | 6 | 유지 — 비-시나리오 spec이 고아가 아닌 이유(doc-tracker 등재 위치 안내) |
 | `tests/smoke.sh` | 11 | 0 | 11 | 유지 — 페이크 소스·분석기 고정 근거(오프라인·결정성, exit 2 회피) |
 | `web/src/App.tsx` | 1 | 0 | 1 | 유지 — 실화면/플레이스홀더 목록의 역할 |
@@ -128,4 +158,4 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/shell/Topbar.tsx` | 1 | 0 | 1 | 유지 — 컴포넌트 식별자 |
 | `web/src/shell/nav.ts` | 4 | 2 | 2 | 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | `web/src/tokens/tokens.css` | 38 | 0 | 38 | regression-pass — 전량 유지. `#37`이 들인 7줄 중 4줄은 `CMP-*`/`PAT-*` 앵커 분할·신설(원장이 유지로 못박은 추적 앵커 규약을 더 정확히 따른 것), 3줄은 목업 규약 근거(버튼 리셋을 한 번만 두는 이유·열 수가 `.grid`의 일부가 아닌 이유·note 여백의 소유자)로 목업이 보여주지 않는 **왜 그렇게 쪼갰는가**라 복원 불가. 2줄(`* {`, `#root {`)은 여전히 셀렉터 오탐 |
-| **batch-harness-pass 기준 · 레포 전체** | **1954** | **12** | **1942** | 지문 값(`32faf64` → 이 패스 후). 이 표는 그중 **90개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. 지문 112파일 중 **아직 행이 없는 파일이 25개(540줄)** 남아 있다 — 대부분 e2e 하네스 축이지만 전부는 아니다(`tests/e2e/specs` 16파일 333줄 · `tests/e2e/lib` 6파일 180줄 · `tests/e2e/fixtures/*/server.py` 2파일 24줄 · `python/packages/aggregation/src/econ_aggregation/cli.py` 1파일 3줄 — 마지막 하나는 하네스가 아니라 제품 코드다). `tests/e2e/k8s/batch`는 이 패스로 19파일 전부가 행을 갖는다 |
+| **scenario-spec-pass 기준 · 레포 전체** | **1942** | **42** | **1900** | 지문 값(`7386301` → 이 패스 후). 이 표는 그중 **109개 파일**을 덮는다 — 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다. **미판정 잔여는 「읽는 법」의 계수 규약대로 두 몫을 합쳐 507줄**이다: ⑴ 아직 행이 없는 파일 **6개 180줄**(`tests/e2e/lib/` 전부 — gold 58 · silver 43 · llmdouble 24 · ingestlog 20 · bronze 19 · feeds 16), ⑵ 행이 있으나 판정 이후 자란 파일의 증가분 **9파일 327줄**(`go/internal/handlers/handlers.go` 24→151 · `tests/e2e/run.sh` 12→83 · `handlers_test.go` 14→78 · `scripts/check-journey-mockup.py` 42→65 · `test_aggregate.py` 1→19 · `web/src/api/types.ts` 5→15 · `tokens.css` 38→44 · `web/src/api/client.ts` 5→9 · `econ_aggregation/aggregate.py` 11→15). ⑵는 직전 판까지 이 요약이 세지 못하던 몫이다 |
