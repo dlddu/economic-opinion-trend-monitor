@@ -11,7 +11,15 @@ import hashlib
 from pathlib import Path
 
 import pytest
-from econ_ingestion.feeds import FeedConfig, collect_feed, parse_feed, run_feed_ingestion
+from econ_ingestion.feeds import (
+    FeedConfig,
+    FetchError,
+    collect_feed,
+    load_feed_configs,
+    parse_feed,
+    parse_worldbank_news,
+    run_feed_ingestion,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 KR_URL = "https://feeds.example/kr-wire.xml"
@@ -221,3 +229,54 @@ def test_parse_feed_drops_entries_without_link() -> None:
 </channel></rss>"""
     parsed = parse_feed(raw)
     assert [a.url for a in parsed] == ["https://news.example/x"]
+
+
+WB_URL = "https://search.worldbank.example/api/v2/news?format=json"
+
+
+def test_worldbank_json_parses_documents_in_api_order() -> None:
+    articles = parse_worldbank_news((FIXTURES / "worldbank_news.json").read_bytes())
+    # Non-record keys (facets) and records without a URL are skipped.
+    assert [a.title for a in articles] == [
+        "World Bank Group Appoints a New Country Manager",
+        "World Bank Kicks Off Fiscal Year USD Funding",
+        "Release Without Body Text",
+    ]
+    # Full content is preferred, descr is the fallback, neither -> body unavailable (AC1.4).
+    assert articles[0].body.startswith("The World Bank Group today announced")
+    assert articles[1].body == "Only a description is available for this release."
+    assert articles[2].body_available is False
+    assert all(a.view_count == 0 for a in articles)
+
+
+def test_worldbank_json_source_runs_through_the_feed_path() -> None:
+    fetcher = FakeFetcher({WB_URL: (FIXTURES / "worldbank_news.json").read_bytes()})
+    config = FeedConfig("wb", "GLOBAL", WB_URL, limit=2, format="worldbank-json")
+    items, bodies, stats = run_feed_ingestion([config], CYCLE, COLLECTED_AT, fetcher)
+    assert stats.failed_sources == []
+    # No view counts -> API order is kept and the top-N cap applies (AC1.2).
+    assert [i["rank"] for i in items] == [1, 2]
+    assert all(i["axis"] == "GLOBAL" for i in items)
+    assert len(bodies) == 2
+
+
+def test_worldbank_json_malformed_response_is_isolated() -> None:
+    with pytest.raises(FetchError):
+        parse_worldbank_news(b"<html>not json</html>")
+    fetcher = FakeFetcher({WB_URL: b'{"rows": 0}'})
+    config = FeedConfig("wb", "GLOBAL", WB_URL, format="worldbank-json")
+    _, _, stats = run_feed_ingestion([config], CYCLE, COLLECTED_AT, fetcher)
+    assert stats.failed_sources == ["wb"]
+    assert "worldbank-json" in stats.failure_reasons["wb"]
+
+
+def test_feed_format_defaults_to_rss_and_is_validated(tmp_path: Path) -> None:
+    cfg = tmp_path / "feeds.json"
+    cfg.write_text(
+        '[{"source_id": "a", "axis": "KR", "feed_url": "https://x/a.xml"},'
+        ' {"source_id": "b", "axis": "GLOBAL", "feed_url": "https://x/b",'
+        ' "format": "worldbank-json"}]'
+    )
+    assert [c.format for c in load_feed_configs(cfg)] == ["rss", "worldbank-json"]
+    with pytest.raises(ValueError):
+        FeedConfig("bad", "KR", KR_URL, format="csv")

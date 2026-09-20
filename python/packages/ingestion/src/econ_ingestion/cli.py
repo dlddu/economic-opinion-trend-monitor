@@ -61,7 +61,7 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Feed source config JSON for --source feed "
-        "(default: packaged default_feeds.json): [{source_id, axis, feed_url, limit}].",
+        "(default: packaged default_feeds.json): [{source_id, axis, feed_url, limit, format}].",
     )
     parser.add_argument(
         "--fetch-timeout",
