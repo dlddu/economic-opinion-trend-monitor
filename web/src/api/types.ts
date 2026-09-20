@@ -105,6 +105,38 @@ export interface SentimentResponse {
   by_axis: SentimentAxisRow[];
 }
 
+/**
+ * One subject counted two ways at the same bucket (AC3.1, AC3.8).
+ *
+ * `raw_share` is the naive count share, not the normalized one — the gap
+ * between the two fields is the source-volume deviation the aggregation
+ * corrects, so neither stands in for the other.
+ */
+export interface FairnessRow {
+  rank: number;
+  subject: string;
+  raw_count: number;
+  raw_share: number;
+  normalized_share: number;
+  delta: number;
+  spark: number[];
+}
+
+export interface FairnessResponse {
+  axis: Axis;
+  /** The terms both counting modes were read on — one bucket, one unit. */
+  basis: {
+    bucket_unit: string;
+    time_bucket: string;
+    /** The denominator `raw_share` was taken over, published so counts add up. */
+    raw_total: number;
+    normalized: boolean;
+    /** How the normalization was done, stated rather than merely asserted. */
+    method: string;
+  };
+  rows: FairnessRow[];
+}
+
 export interface CompareResponse {
   /** The terms every column was compared on — same bucket, same normalization. */
   basis: {

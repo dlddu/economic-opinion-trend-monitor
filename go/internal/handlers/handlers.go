@@ -139,6 +139,47 @@ type sentimentResponse struct {
 	ByAxis []sentimentAxisRow `json:"by_axis"`
 }
 
+// fairnessRowLimit caps the ranking the fairness view carries. The question is
+// "is the top of this axis real", so the long tail adds rows without adding
+// evidence — and every row is a two-mode comparison, which is dense to read.
+const fairnessRowLimit = 20
+
+// fairnessBasis states the terms the two counting modes were read on.
+//
+// Method names the normalization the aggregation applied, so the screen can
+// print it verbatim rather than asserting "normalized" with no way to say how
+// (AC3.1: "정규화 방식은 명시되고 일관 적용된다"). RawTotal is the denominator
+// RawShare was taken over — published so the raw counts beside it add up.
+type fairnessBasis struct {
+	BucketUnit string `json:"bucket_unit"`
+	TimeBucket string `json:"time_bucket"`
+	RawTotal   int64  `json:"raw_total"`
+	Normalized bool   `json:"normalized"`
+	Method     string `json:"method"`
+}
+
+// fairnessRow is one subject counted two ways at the same bucket.
+//
+// RawShare is deliberately *not* the normalized share: it is the naive count
+// share, what dividing raw counts would have told the reader. Keeping both is
+// the whole point — the gap between them is the source-volume deviation AC3.1
+// corrects, and AC3.8 asks for exactly that distinction to be visible.
+type fairnessRow struct {
+	Rank            int       `json:"rank"`
+	Subject         string    `json:"subject"`
+	RawCount        int64     `json:"raw_count"`
+	RawShare        float64   `json:"raw_share"`
+	NormalizedShare float64   `json:"normalized_share"`
+	Delta           float64   `json:"delta"`
+	Spark           []float64 `json:"spark"`
+}
+
+type fairnessResponse struct {
+	Axis  string        `json:"axis"`
+	Basis fairnessBasis `json:"basis"`
+	Rows  []fairnessRow `json:"rows"`
+}
+
 type dashboardResponse struct {
 	Axis        string                    `json:"axis"`
 	Normalized  bool                      `json:"normalized"`
@@ -327,16 +368,99 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// fairness answers AC3.8's half of 급등 검증: is this spike still a spike once
+// the source-volume difference is normalized away (AC3.1)?
+//
+// A ranking on its own cannot answer that — it is the *contrast* that answers
+// it. So the response carries both counting modes for the same subject: the
+// normalized share the aggregation computed (share inside a source first, then
+// combined across the axis) and the naive count share the reader would have
+// gotten by dividing raw counts. A subject that leads on raw and falls on
+// normalized was one outlet's volume, not the axis's attention.
+//
+// The two traps the other Gold readers document apply here too, and until now
+// this route closed neither:
+//
+//   - Mixed bucket units. Gold carries hour, day and week rows for the same
+//     subject since AC3.3 landed, so ranking the rows flat returned one subject
+//     three times over and ranked it against its own rollups. The unit is
+//     settled first, the same way trend does it.
+//   - Ranking on stale rows. Within a unit, a subject that dominated an earlier
+//     bucket would outrank the current leaders on its own best row, so one
+//     basis bucket is picked (the latest of that unit) and every row is read
+//     from it — compare's rule, applied to one axis.
+//
+// RawTotal is the denominator of RawShare, published rather than left implicit:
+// a share whose denominator is invisible cannot be checked against the counts
+// printed beside it.
 func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	trends, _ := h.lake.SubjectTrends()
-	rows := topSubjects(trends, axis, 20)
-	writeJSON(w, http.StatusOK, map[string]any{
-		"axis":       axis,
-		"normalized": true,
-		"rows":       rows,
-		"note":       "정규화 비율과 원시 카운트를 함께 제공 (AC3.8)",
+
+	inAxis := make([]gen.SubjectTrend, 0, len(trends))
+	for _, t := range trends {
+		if string(t.Axis) == axis {
+			inAxis = append(inAxis, t)
+		}
+	}
+
+	unit := plottedUnit(inAxis)
+	bucket := latestBucketOf(inAxis, unit)
+	inBucket := trendsInBucket(inAxis, bucket, unit)
+
+	var rawTotal int64
+	for _, t := range inBucket {
+		rawTotal += t.RawCount
+	}
+
+	ranked := topSubjects(inBucket, axis, fairnessRowLimit)
+	rows := make([]fairnessRow, 0, len(ranked))
+	for _, t := range ranked {
+		rows = append(rows, fairnessRow{
+			Rank:            t.Rank,
+			Subject:         t.Subject,
+			RawCount:        t.RawCount,
+			RawShare:        shareOf(t.RawCount, rawTotal),
+			NormalizedShare: t.NormalizedShare,
+			Delta:           t.Delta,
+			Spark:           t.Spark,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, fairnessResponse{
+		Axis: axis,
+		Basis: fairnessBasis{
+			BucketUnit: string(unit),
+			TimeBucket: bucket,
+			RawTotal:   rawTotal,
+			Normalized: true,
+			Method:     "소스 내 점유율",
+		},
+		Rows: rows,
 	})
+}
+
+// latestBucketOf picks the newest bucket of one already-chosen unit. It is the
+// single-dataset counterpart of latestBucket, which settles the unit across two
+// datasets before doing the same thing — the unit has to come first either way,
+// because bucket keys only sort chronologically within a unit.
+func latestBucketOf(rows []gen.SubjectTrend, unit gen.BucketUnit) string {
+	var bucket string
+	for _, t := range rows {
+		if t.BucketUnit == unit && t.TimeBucket > bucket {
+			bucket = t.TimeBucket
+		}
+	}
+	return bucket
+}
+
+// shareOf divides defensively: an empty basis bucket yields 0, not NaN, so the
+// screen renders an empty view instead of a broken one.
+func shareOf(count, total int64) float64 {
+	if total <= 0 {
+		return 0
+	}
+	return float64(count) / float64(total)
 }
 
 func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {

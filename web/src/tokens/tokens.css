@@ -1179,6 +1179,124 @@ table.tbl tr.click.on td {
   margin-bottom: 20px;
 }
 
+/* ---- CMP-norm-toggle / PAT-raw-vs-norm (fairness screen) ----
+   The toggle's look is the mockup's `STP-check-normalized` switch verbatim —
+   every declaration below is copied from the inline <style> of
+   docs/mockups/JRN-spike-verification.html, because the render gate compares
+   the two sides declaration by declaration and all three caps are zero.
+   Fairness-only layout stays under .fair-* , which the mockup never declares. */
+.norm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--accent-soft);
+  border: 1px solid #e4cf9f;
+  border-radius: var(--r-sm);
+  padding: 5px 11px 5px 12px;
+  font-size: 11.5px;
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.norm-toggle .sw {
+  width: 30px;
+  height: 16px;
+  border-radius: 9px;
+  background: var(--accent);
+  position: relative;
+  flex: none;
+  transition: 0.15s;
+}
+
+.norm-toggle .sw::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.16s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.norm-toggle.raw {
+  background: var(--panel);
+  border-color: var(--line-2);
+  color: var(--ink-3);
+}
+
+.norm-toggle.raw .sw {
+  background: var(--ink-4);
+}
+
+.norm-toggle.raw .sw::after {
+  left: 16px;
+}
+
+/* The raw-mode counterpart of .norm-flag, also the mockup's declarations. */
+.raw-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  padding: 1px 7px;
+  border-radius: var(--r-xs);
+}
+
+/* The toggle is a <button>, so the shell's button reset has to be undone here
+   rather than inside the mockup's rule — keeping that rule byte-identical is
+   what holds the render gate at zero. */
+button.norm-toggle {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.fair-cmp {
+  padding: 0;
+}
+
+/* PAT-raw-vs-norm — the two bars sit in one row and the active counting mode is
+   the emphasized one. Dimming the other is the whole visual argument: the
+   reader sees which number they are reading *and* what the other one says. */
+.fair-cmp .share {
+  min-width: 120px;
+}
+
+/* The count itself, set apart from the shares beside it — same treatment the
+   ranklist gives it, which is what makes "구분 표기" visible and not just true. */
+.fair-cmp .meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.share.fair-off {
+  opacity: 0.45;
+}
+
+.share.fair-on .bar i {
+  background: var(--primary);
+}
+
+.share.fair-off .bar i {
+  background: var(--ink-4);
+}
+
+.fair-side {
+  align-content: start;
+  gap: 12px;
+}
+
+.fair-verdict {
+  font-size: 24px;
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;

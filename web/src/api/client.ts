@@ -6,6 +6,7 @@ import type {
   Axis,
   CompareResponse,
   DashboardResponse,
+  FairnessResponse,
   SentimentResponse,
   TrendResponse,
 } from "./types";
@@ -33,6 +34,10 @@ export const api = {
   // The axis is a query parameter, not a client-side filter: the comparison
   // bucket is chosen over all axes, so the server has to see them all.
   sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
+  // Both counting modes come back in one response, so switching between them is
+  // a client-side re-read of data already in hand — no round trip, and no mode
+  // the server has not actually computed.
+  fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
   // Per-screen stub endpoints (one per frontend screen). Shapes are not yet
   // finalized, so placeholders consume them as unknown JSON.
   screen: (name: string) => getJSON<unknown>(`/${name}`),
