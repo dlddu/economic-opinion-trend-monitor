@@ -290,6 +290,92 @@ describe("Trend", () => {
     expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
   });
 
+  it("offers the 온도차 판별 form with the mockup's three verdicts and memo prompt", async () => {
+    stubTrend([response()]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
+
+    const card = container.querySelector(".trend-vd-form")?.closest(".card") as HTMLElement;
+    expect(card.querySelector("h3")?.textContent).toBe("온도차 판별");
+    expect(card.querySelector(".sub")?.textContent).toBe("한 문장으로 설명할 수 있는 상태로 마칩니다");
+
+    // 결론은 목업 `#verdict-form` 의 라디오 3종 그대로다 — 값도 라벨도 옮겨 온 것이라
+    // 하나라도 바뀌면 여정 문서가 그린 판별과 다른 것을 기록하게 된다.
+    const radios = Array.from(card.querySelectorAll<HTMLInputElement>(".trend-vd-radio input"));
+    expect(radios.map((r) => r.value)).toEqual(["persistent", "transient", "none"]);
+    expect(radios.map((r) => r.checked)).toEqual([false, false, false]);
+    expect(
+      Array.from(card.querySelectorAll(".trend-vd-radio")).map((el) => el.textContent?.trim()),
+    ).toEqual([
+      "지속적인 온도차다 — 기간 내내 격차가 유지된다",
+      "이번 구간만의 격차다 — 최근 며칠에만 벌어졌다",
+      "차이 없음 — 축 간 관심사가 사실상 같다",
+    ]);
+    const memo = card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement;
+    expect(memo.placeholder).toBe("어느 축이 언제부터 얼마나 벌어졌는지 적어 두세요.");
+    expect(card.querySelector(".trend-sl-submit")?.textContent?.trim()).toBe("온도차 기록");
+    // 기록은 아직 없다 — 두 배너 다 접혀 있어야 한다.
+    expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
+    expect((card.querySelector(".trend-sl-banner.good") as HTMLElement).hidden).toBe(true);
+  });
+
+  it("names which half of the 온도차 판별 form is missing, as the mockup's submitVerdict does", async () => {
+    stubTrend([response()]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
+    const form = container.querySelector(".trend-vd-form") as HTMLFormElement;
+    const card = form.closest(".card") as HTMLElement;
+    const err = card.querySelector(".trend-sl-banner.err") as HTMLElement;
+    const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
+
+    // 아무것도 고르지 않고 제출 — 결론 쪽을 지목한다.
+    fireEvent.submit(form);
+    expect(err.hidden).toBe(false);
+    expect(err.textContent).toBe("결론을 하나 고르세요.");
+    expect(good.hidden).toBe(true);
+
+    // 결론만 고르고 메모는 공백 — 메모 쪽을 지목한다(공백만 있는 메모는 비어 있는 것이다).
+    fireEvent.click(card.querySelectorAll(".trend-vd-radio input")[0]);
+    fireEvent.change(card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement, {
+      target: { value: "   " },
+    });
+    fireEvent.submit(form);
+    expect(err.hidden).toBe(false);
+    expect(err.textContent).toBe(
+      "근거 메모를 적어야 기록됩니다 — 어느 축이 언제부터 벌어졌는지가 결론의 실체입니다.",
+    );
+    expect(good.hidden).toBe(true);
+    // 추림 폼의 배너는 이 폼의 제출에 반응하지 않는다 — 두 기록은 별개다.
+    expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
+  });
+
+  it("records the 온도차 verdict for the session with the mockup's banner wording", async () => {
+    stubTrend([response()]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
+    const form = container.querySelector(".trend-vd-form") as HTMLFormElement;
+    const card = form.closest(".card") as HTMLElement;
+
+    fireEvent.click(card.querySelectorAll(".trend-vd-radio input")[1]);
+    fireEvent.change(card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement, {
+      target: { value: "US 축만 이번 주 화요일부터 8%p 벌어졌다" },
+    });
+    fireEvent.submit(form);
+
+    const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
+    expect(good.hidden).toBe(false);
+    // 배너 문장은 목업 `submitVerdict()` 가 조립하는 그대로다 — 조사까지 목업의 것이다.
+    expect(good.textContent).toContain("온도차를 기록했습니다.");
+    expect(good.textContent).toContain("이번 구간만의 격차으로 판별했습니다.");
+    expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
+    // 기록은 저장소에 남지 않는다 — 화면 상태일 뿐이라는 것이 트래커 행의 약속이다.
+    expect(Object.keys(localStorage)).toEqual(["econ-monitor:trend:view"]);
+    expect(sessionStorage.length).toBe(0);
+  });
+
   it("reopens on the conditions the reader left, as the scan summary promises", async () => {
     const urls = stubTrend([response(), response("삼성전자")]);
     const first = renderTrend();
