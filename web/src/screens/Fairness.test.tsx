@@ -118,8 +118,6 @@ it("states why the source breakdown is missing and offers no control for it", as
   expect(note?.querySelectorAll("a, button").length).toBe(0);
 });
 
-// 표기 원칙은 데이터가 아니라 읽는 법에 대한 문면이라, 응답이 아직 없어도 서 있어야
-// 한다 — 비율과 건수를 섞어 읽는 사고는 표가 그려지기 전에 예방되어야 의미가 있다.
 it("states the notation principle, and states it before any data arrives", () => {
   vi.stubGlobal(
     "fetch",
