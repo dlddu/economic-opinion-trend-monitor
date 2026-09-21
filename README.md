@@ -153,10 +153,14 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   엔드포인트로 매시간 실제 HTTP 요청)와 `econ-pipeline-hourly`(`ingest -> analyze ->
   aggregate`, 가동 중 — 수집에 더해 본문이 있는 매 항목이 LLM 엔드포인트로 나간다). 한쪽을
   켤 때는 다른 쪽을 먼저 suspend한다.
-- 수집이 쓰는 Bronze는 서빙 클레임과 분리된 `econ-batch-data`에 쌓인다. 서빙은 Gold만
-  읽으므로 아직 볼륨을 공유할 이유가 없고, 분리해 두면 RWO 클레임의 멀티어태치
-  위험도 없다. Bronze→Silver→Gold 체인이 이어질 때 그 슬라이스가 배치 산출물을
-  서빙까지 어떻게 넘길지(공유 RWX 클레임 또는 복사 단계) 정한다.
+- 배치와 서빙은 **한 클레임(`econ-batch-data`, RWX)을 공유**한다. 파이프라인이 매시간
+  Bronze→Silver→Gold를 그 볼륨에 쓰고, 서빙은 같은 볼륨의 Gold를 읽기 전용으로 읽는다 —
+  Gold 리더가 요청마다 파일을 여니 재시작 없이 다음 집계부터 화면에 반영된다. 서빙 전용
+  클레임을 따로 두던 시절(파이프라인이 수집 전용이라 Gold를 쓰는 단계가 없던 때)의 분리는
+  2026-09-21에 걷었다: 복사 단계 대신 공유를 택한 것은 두 클레임이 이미 같은 `efs`
+  StorageClass의 RWX access point였고, 복사는 파일·실패 지점·시차만 더하기 때문이다.
+  집계가 Gold를 다시 쓰는 수 초 동안 동시 요청이 잘린 줄을 읽을 수 있는 창은 남아 있다
+  (`LocalFsStore.write_records`가 truncate+write — 원자적 교체는 후속).
 - 분석 스케줄은 `econ-pipeline-hourly`로 배선돼 가동 중이고, 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.

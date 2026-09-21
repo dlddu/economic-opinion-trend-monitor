@@ -1,6 +1,7 @@
 # Adds the app namespace, pulls in the scheduled batch (deploy/batch), and
-# gives each emptyDir seam a real claim: Gold survives Pod restarts, and the
-# scheduled ingestion writes Bronze into its own batch claim.
+# points both emptyDir seams at the one claim: the scheduled batch writes
+# Bronze -> Silver -> Gold into it and serving reads Gold from it, so what the
+# hourly aggregate writes is what the dashboard shows.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -10,12 +11,13 @@ resources:
   - namespace.yaml
   - ../../base
   - ../../batch
-  - pvc.yaml
   - batch-pvc.yaml
 
 patches:
-  # Swap the data emptyDir for the PVC, and use Recreate so a rolling update
-  # never tries to attach the RWO volume from two Pods at once.
+  # Swap the data emptyDir for the shared claim. The base mount stays
+  # readOnly, so serving can never touch what the batch is writing. The volume
+  # is ReadWriteMany and a batch Pod already mounts it alongside serving, so a
+  # rolling update needs no Recreate guard.
   - target:
       kind: Deployment
       name: econ-serving
@@ -25,13 +27,9 @@ patches:
         value:
           name: data
           persistentVolumeClaim:
-            claimName: econ-serving-data
-      - op: add
-        path: /spec/strategy
-        value:
-          type: Recreate
+            claimName: econ-batch-data
 
-  # Give the batch workflow its own claim in place of the emptyDir seam.
+  # Give the batch workflow the same claim in place of the emptyDir seam.
   # /spec/volumes is template-wide, so every stage (ingest, analyze) mounts the
   # same claim and analysis reads the Bronze ingestion just wrote — no per-stage
   # patch needed as stages are added.
