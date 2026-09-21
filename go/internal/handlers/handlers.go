@@ -5,8 +5,10 @@
 // their response from Gold, so the Python -> Gold -> Go path is exercised end to
 // end. trace reads further down instead — it joins Bronze and Silver directly to
 // walk an aggregate back to its article, and reprocess reads the same two layers
-// to size a re-analysis range and compare analyzer versions (reprocess.go). What
-// reprocess does not do yet is *start* a run — the response says so.
+// to size a re-analysis range and compare analyzer versions (reprocess.go).
+// reprocess also owns the only routes that cause work: its three POSTs submit
+// the batch as Argo Workflows (reprocess_trigger.go) — the serving Pod itself
+// never writes the lake.
 package handlers
 
 import (
@@ -17,19 +19,32 @@ import (
 	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/argo"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 // Handlers holds the dependencies shared by the route handlers.
 type Handlers struct {
 	lake *store.Lake
+	// argo is how a reprocess is started; nil outside a cluster, in which case
+	// the reprocess response reports the trigger as unavailable.
+	argo *argo.Client
 	// now is the clock the time-windowed reads (reprocess) open their range
 	// against; tests pin it so a fixture's timestamps stay inside the window.
 	now func() time.Time
+	// trigger caches the Argo reachability probe (see reprocessTrigger).
+	trigger triggerProbe
 }
 
-// New builds Handlers backed by the given lake.
+// New builds Handlers backed by the given lake, with no workflow trigger.
 func New(lake *store.Lake) *Handlers { return &Handlers{lake: lake, now: time.Now} }
+
+// WithArgo attaches the workflow client that makes the reprocess POST routes
+// able to submit runs.
+func (h *Handlers) WithArgo(c *argo.Client) *Handlers {
+	h.argo = c
+	return h
+}
 
 // Register wires every API route onto mux (Go 1.22 method+path patterns).
 func (h *Handlers) Register(mux *http.ServeMux) {
@@ -41,6 +56,10 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/fairness", h.fairness)   // screen: fairness
 	mux.HandleFunc("GET /api/trace", h.trace)         // screen: trace
 	mux.HandleFunc("GET /api/reprocess", h.reprocess) // screen: reprocess
+	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
+	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)   // STP-dry-run
+	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)         // STP-run-reprocess
+	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish) // STP-publish
 }
 
 type metric struct {

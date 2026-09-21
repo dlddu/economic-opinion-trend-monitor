@@ -509,6 +509,21 @@ mockup 인덱스에서 쓴다고 선언한 디자인 시스템 항목 **27종**�
   새로 쓰는 선택자는 전부 `.rp-` 접두라 목업 인라인 `<style>` 과 교집합을 만들지 않고, 공통 선택자
   117 종의 선언값은 착지 전에도 후에도 충돌 0 이다.
 
+`rct_20260921-0006`(2026-09-21, 같은 자매 모델의 슬라이스 10 **후반부**)가 위 세 번째 항목의 조건을 풀었다 —
+서빙이 배치 Workflow 를 제출할 수 있게 되어(`POST /api/reprocess/{sample,run,publish}`, 서빙 ServiceAccount 의
+Argo RBAC) `STP-dry-run`·`STP-run-reprocess`·`STP-publish` 의 컨트롤이 `web/src/screens/ReprocessTrigger.tsx` 에
+실제로 섰다. 단 응답의 `trigger.available` 이 참일 때만 그려지며, 그 값은 서빙이 자기 신원으로 WorkflowTemplate
+을 읽을 수 있는지의 **프로브**라 클러스터 밖·RBAC 미부여에선 여전히 CMP-note 만 남는다(허위 컨트롤 금지 유지).
+**이 절의 수치는 움직이지 않았다**: 새 조각은 이미 마킹된 `CMP-kv`·`CMP-table`·`CMP-badge`·`CMP-note` 로 그렸고
+(in-scope 27종 · 성립 26 · 등재 예외 1 · 구현 전용 1 그대로), 새 선택자는 전부 `.rp-` 아래이며 목업이 쓰는
+`.fld`·`.chk`·`.formrow`·`.radios` 를 빌리지 않았다. 유일한 공유 추가는 `.btn.pri` 로, 목업 인라인 `<style>` 과
+같은 선언값이라 R5 충돌 0 이 유지된다. 목업과의 편차 셋(「덮어쓰기」 토글 없음 · 표본 추출 「새 로직이 건드리는
+대상 우선」 없음 · 결정 기록이 세션이 아니라 레이크에 남음)은 제품 결정이며 doc-tracker 의 착지 항목이 사유를 든다 —
+그 카피·구조 편차의 등재는 이 모델의 몫이고, `web/src/screens` 지문이 움직였으므로 재감지가 판정을 새 task 로 연다 —
+특히 `rct_20260921-0003`(#96)이 「등재된 편차」에 세운 `STP-dry-run`·`STP-run-reprocess`·`STP-publish` 「표면 전면
+부재」 3행과 「구현 전용 — 트리거 불가 배너 2종」 행은 이 착지로 전제가 바뀌었다(표면이 섰고, 배너는 프로브 실패
+시에만 남는다). 그 행들은 여기서 고치지 않는다 — 재판정은 그 행의 소유자인 다음 `mockup-render` task 의 몫이다.
+
 `rct_20260920-0002`(2026-09-20, 자매 모델 `tbm_econ-opinion-monitor-docs-impl` 의 슬라이스 9)가
 `trace` 를 `BUILT` 에 들였는데 **항목 수는 25종 그대로다** — `trace` 는 `fairness` 와
 `JRN-spike-verification.html` 을 공유해 인덱스의 같은 절을 쓰므로 새로 들여오는 항목이 0종이다

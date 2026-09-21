@@ -13,6 +13,7 @@ generated dataclasses with ``dataclasses.asdict`` before writing; consumers read
 from __future__ import annotations
 
 import json
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
@@ -55,14 +56,19 @@ class LocalFsStore(LakeStore):
         return self.root / layer / f"{dataset}.jsonl"
 
     def write_records(self, layer: str, dataset: str, records: Iterable[dict]) -> int:
+        # Written beside the target and renamed into place: a reader that opens
+        # the dataset mid-write (the serving Pod reads Gold from this volume)
+        # sees the previous complete file, never a truncated one.
         target = self.path(layer, dataset)
         target.parent.mkdir(parents=True, exist_ok=True)
+        staging = target.with_name(f".{target.name}.tmp")
         count = 0
-        with target.open("w", encoding="utf-8") as fh:
+        with staging.open("w", encoding="utf-8") as fh:
             for record in records:
                 fh.write(json.dumps(record, ensure_ascii=False))
                 fh.write("\n")
                 count += 1
+        os.replace(staging, target)
         return count
 
     def merge_records(

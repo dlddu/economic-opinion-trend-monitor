@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { Reprocess } from "./Reprocess";
-import type { ReprocessResponse } from "../api/types";
+import type { ReprocessResponse, ReprocessRun } from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -39,7 +39,7 @@ function single(): ReprocessResponse {
       rows: [],
       unanalyzed_share: { before: 0, after: 0 },
     },
-    trigger: { available: false, note: "후속 슬라이스" },
+    trigger: { available: false, note: "클러스터 밖", serving_version: "", decisions: [], runs: [] },
   };
 }
 
@@ -66,6 +66,42 @@ function stub(body: ReprocessResponse) {
   const fetchMock = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => body }));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+/** A fetch that answers GET with `body` and POST with `post(url, parsed body)`. */
+function stubWrites(
+  body: ReprocessResponse,
+  post: (url: string, sent: Record<string, unknown>) => { status: number; json: unknown },
+) {
+  const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+    if (init?.method === "POST") {
+      const r = post(url, JSON.parse(init.body ?? "{}") as Record<string, unknown>);
+      return { ok: r.status < 300, status: r.status, statusText: "", json: async () => r.json };
+    }
+    return { ok: true, status: 200, statusText: "OK", json: async () => body };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+function run(kind: ReprocessRun["kind"], phase: string, version = "v3", extra: Partial<ReprocessRun> = {}): ReprocessRun {
+  return {
+    name: `econ-reprocess-${kind}-${phase.toLowerCase()}`,
+    kind,
+    phase,
+    message: "",
+    started_at: "",
+    finished_at: "",
+    parameters: { version, sample: kind === "sample" ? "50" : "0" },
+    annotations: { "econ-monitor/range": "7d" },
+    ...extra,
+  };
+}
+
+function wired(runs: ReprocessRun[] = []): ReprocessResponse {
+  const d = dual();
+  d.trigger = { available: true, note: "", serving_version: "v2", decisions: [], runs };
+  return d;
 }
 
 /** The URL the n-th fetch was made with. */
@@ -185,4 +221,110 @@ it("shows the empty scope state and no estimate when there is nothing to size", 
   expect(container.querySelector(".rp-eta")?.textContent).toContain("—");
   // The trigger note is always present: the screen says what it cannot do.
   expect(container.querySelector(".rp-trigger")?.textContent).toContain("일으킬 수 없습니다");
+});
+
+// The write half is drawn only on a positive probe: without it the note says why
+// and there is no control to press.
+it("draws no run controls while the trigger is unavailable", async () => {
+  stub(single());
+  const { container } = render(<Reprocess />);
+  await waitFor(() => expect(container.querySelector(".rp-trigger")).not.toBeNull());
+  expect(container.querySelector(".rp-trigger")?.textContent).toContain("클러스터 밖");
+  expect(container.querySelector(".rp-run-controls")).toBeNull();
+});
+
+// STP-dry-run: the sample is submitted with the selection the read half is
+// showing, and the full run stays locked until a sample has finished.
+it("submits a sample for the selected scope and keeps the full run locked", async () => {
+  const posted: { url: string; body: Record<string, unknown> }[] = [];
+  stubWrites(wired(), (url, body) => {
+    posted.push({ url, body });
+    return { status: 202, json: { run: run("sample", "Pending") } };
+  });
+  const { container } = render(<Reprocess />);
+  await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
+
+  expect((container.querySelector(".rp-full") as HTMLButtonElement).disabled).toBe(true);
+  expect(container.querySelector(".rp-gate")?.textContent).toBe("잠김");
+
+  const size = container.querySelector(".rp-form input[type=number]") as HTMLInputElement;
+  fireEvent.change(size, { target: { value: "80" } });
+  fireEvent.click(container.querySelector(".rp-sample") as HTMLButtonElement);
+  await waitFor(() => expect(posted.length).toBe(1));
+  expect(posted[0].url).toBe("/api/reprocess/sample");
+  expect(posted[0].body).toMatchObject({ range: "7d", axis: "KR", source: "", analyzer_version: "v3", sample_size: 80, sample_mode: "random" });
+  await waitFor(() => expect(container.querySelector(".rp-runs")).not.toBeNull());
+  expect(container.querySelector(".rp-runs")?.textContent).toContain("대기");
+});
+
+// STP-run-reprocess: a finished sample opens the full run; a failed full run is
+// resumed, not restarted — the same request goes again and the batch skips
+// what its checkpoint already covers.
+it("opens the full run after a sample and offers to resume a failed one", async () => {
+  const posted: { url: string; body: Record<string, unknown> }[] = [];
+  stubWrites(wired([run("run", "Failed", "v3", { message: "deadline" }), run("sample", "Succeeded")]), (url, body) => {
+    posted.push({ url, body });
+    return { status: 202, json: { run: run("run", "Pending") } };
+  });
+  const { container } = render(<Reprocess />);
+  await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
+
+  expect(container.querySelector(".rp-gate")?.textContent).toBe("열림");
+  const full = container.querySelector(".rp-full") as HTMLButtonElement;
+  expect(full.disabled).toBe(false);
+  expect(full.textContent).toContain("체크포인트부터 이어서 재개");
+  expect(container.querySelector(".rp-interrupted")?.textContent).toContain("deadline");
+
+  fireEvent.click(full);
+  await waitFor(() => expect(posted.length).toBe(1));
+  expect(posted[0].url).toBe("/api/reprocess/run");
+  expect(posted[0].body).toMatchObject({ range: "7d", axis: "KR", analyzer_version: "v3", batch_size: 100 });
+  expect(posted[0].body).not.toHaveProperty("sample_size");
+});
+
+// STP-publish: the decision needs a choice and a reason before anything is
+// sent; a rollback targets the version the comparison calls "before", and the
+// server's refusal is shown in its own words.
+it("records a decision with its reason, or says what is missing", async () => {
+  const posted: { url: string; body: Record<string, unknown> }[] = [];
+  const data = wired([run("run", "Succeeded"), run("sample", "Succeeded")]);
+  data.trigger.decisions = [
+    { decided_at: "2026-09-21T09:00:00+00:00", decision: "publish", analyzer_version: "v2", memo: "이전 반영", notify_consumer: true },
+  ];
+  stubWrites(data, (url, body) => {
+    posted.push({ url, body });
+    if (body.memo === "거부") return { status: 403, json: { error: "workflows.argoproj.io is forbidden" } };
+    return { status: 202, json: { run: run("publish", "Pending") } };
+  });
+  const { container } = render(<Reprocess />);
+  await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
+
+  expect(container.querySelector(".rp-serving")?.textContent).toBe("v2");
+  expect(container.querySelector(".rp-decisions")?.textContent).toContain("이전 반영");
+  const checks = container.querySelector(".rp-checks") as HTMLElement;
+  expect(checks.textContent).toContain("가능 (버전 병존)");
+
+  const decide = container.querySelector(".rp-decide") as HTMLButtonElement;
+  fireEvent.click(decide);
+  await waitFor(() => expect(container.querySelector(".rp-error")).not.toBeNull());
+  expect(container.querySelector(".rp-error")?.textContent).toContain("반영할지 되돌릴지");
+  expect(posted.length).toBe(0);
+
+  fireEvent.click(container.querySelector('input[name="decision"][value="rollback"]') as HTMLInputElement);
+  fireEvent.click(decide);
+  await waitFor(() => expect(container.querySelector(".rp-error")?.textContent).toContain("결정 근거"));
+  expect(posted.length).toBe(0);
+
+  const memo = container.querySelector(".rp-memo textarea") as HTMLTextAreaElement;
+  fireEvent.change(memo, { target: { value: "거부" } });
+  fireEvent.click(decide);
+  await waitFor(() => expect(posted.length).toBe(1));
+  expect(posted[0].url).toBe("/api/reprocess/publish");
+  expect(posted[0].body).toEqual({ decision: "rollback", analyzer_version: "v2", memo: "거부", notify_consumer: true });
+  await waitFor(() => expect(container.querySelector(".rp-error")?.textContent).toContain("forbidden"));
+
+  fireEvent.change(memo, { target: { value: "설명되지 않는 변화가 남았다" } });
+  fireEvent.click(decide);
+  await waitFor(() => expect(container.querySelector(".rp-recorded")).not.toBeNull());
+  expect(container.querySelector(".rp-recorded")?.textContent).toContain("이전 버전(v2)으로 롤백");
 });

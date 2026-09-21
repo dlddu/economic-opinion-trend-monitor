@@ -236,11 +236,60 @@ export interface ReprocessCompare {
   unanalyzed_share: { before: number; after: number };
 }
 
+/** One batch Workflow the console submitted: a sample, a full run, or a publish. */
+export interface ReprocessRun {
+  name: string;
+  kind: "sample" | "run" | "publish";
+  phase: "Pending" | "Running" | "Succeeded" | "Failed" | "Error" | string;
+  message: string;
+  started_at: string;
+  finished_at: string;
+  parameters: Record<string, string>;
+  annotations: Record<string, string>;
+}
+
+/** One publish/rollback the batch recorded; the last one names the version Gold serves. */
+export interface ReprocessDecision {
+  decided_at: string;
+  decision: "publish" | "rollback";
+  analyzer_version: string;
+  memo: string;
+  notify_consumer: boolean;
+}
+
+export interface ReprocessTrigger {
+  /** True only when the batch WorkflowTemplate is reachable with the Pod's identity. */
+  available: boolean;
+  /** Why the trigger is unavailable, in the operator's words; empty when available. */
+  note: string;
+  /** Empty when no decision was ever recorded (aggregation serves each record's newest row). */
+  serving_version: string;
+  decisions: ReprocessDecision[];
+  /** Newest first. Empty when unavailable. */
+  runs: ReprocessRun[];
+}
+
 export interface ReprocessResponse {
   scope: ReprocessScope;
   target_version: string;
   versions: ReprocessVersion[];
   compare: ReprocessCompare;
-  /** The serving API cannot start a run yet; `note` says why, in the operator's words. */
-  trigger: { available: boolean; note: string };
+  trigger: ReprocessTrigger;
+}
+
+export interface ReprocessSubmit {
+  range: ReprocessScope["range"];
+  axis: Axis;
+  source: string;
+  analyzer_version: string;
+  sample_size?: number;
+  sample_mode?: "random" | "recent";
+  batch_size?: number;
+}
+
+export interface ReprocessPublish {
+  decision: ReprocessDecision["decision"];
+  analyzer_version: string;
+  memo: string;
+  notify_consumer: boolean;
 }

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/argo"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/handlers"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/static"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
@@ -26,6 +27,14 @@ func main() {
 
 	lake := store.New(*dataRoot)
 	api := handlers.New(lake)
+	// In a Pod the reprocess console can submit batch Workflows; elsewhere it
+	// reports the trigger as unavailable and draws no controls.
+	if wf, err := argo.FromEnv(); err != nil {
+		log.Printf("argo trigger disabled: %v", err)
+	} else if wf != nil {
+		api.WithArgo(wf)
+		log.Printf("argo trigger: namespace=%s template=%s", wf.Namespace, wf.Template)
+	}
 
 	mux := http.NewServeMux()
 	api.Register(mux)

@@ -167,3 +167,109 @@ def test_second_run_reuses_stored_replies(
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
     assert "attempted=0 failed=0 reused=2" in capsys.readouterr().out
     assert len((tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()) == 2
+
+
+def _bronze_rows(root: Path) -> list[dict]:
+    return [
+        json.loads(line) for line in (root / "bronze" / "news_item.jsonl").read_text().splitlines()
+    ]
+
+
+def _silver_rows(root: Path) -> list[dict]:
+    return [json.loads(line) for line in _silver(root).read_text().splitlines()]
+
+
+def test_bumped_version_coexists_with_the_previous_one(tmp_path: Path) -> None:
+    """STP-run-reprocess: a new version lands beside the old rows, never over them."""
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    assert (
+        cli.main(["--data", str(tmp_path), "--analyzer", "fake", "--analyzer-version", "fake-v2"])
+        == 0
+    )
+    rows = _silver_rows(tmp_path)
+    assert sorted((r["record_id"], r["analyzer_version"]) for r in rows) == [
+        ("r1", "fake-v1"),
+        ("r1", "fake-v2"),
+        ("r2", "fake-v1"),
+        ("r2", "fake-v2"),
+    ]
+
+
+def test_scoped_run_skips_records_already_at_the_target_version(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A resumed scoped run starts from its checkpoint instead of re-analyzing everything."""
+    _seed_lake(tmp_path)
+    args = [
+        "--data",
+        str(tmp_path),
+        "--analyzer",
+        "fake",
+        "--analyzer-version",
+        "fake-v2",
+        "--axis",
+        "KR",
+    ]
+    assert cli.main([*args, "--sample", "1", "--sample-mode", "recent"]) == 0
+    assert len([r for r in _silver_rows(tmp_path) if r["analyzer_version"] == "fake-v2"]) == 1
+    assert cli.main(args) == 0
+    out = capsys.readouterr().out
+    assert "skipped_already_at_version=1" in out
+    assert len([r for r in _silver_rows(tmp_path) if r["analyzer_version"] == "fake-v2"]) == 2
+
+
+def test_scope_filters_by_axis_source_and_since(tmp_path: Path) -> None:
+    _seed_lake(tmp_path)
+    base = ["--data", str(tmp_path), "--analyzer", "fake", "--analyzer-version", "fake-v2"]
+    assert cli.main([*base, "--axis", "US"]) == 0
+    assert _silver_rows(tmp_path) == [] or all(
+        r["analyzer_version"] != "fake-v2" for r in _silver_rows(tmp_path)
+    )
+    assert cli.main([*base, "--source", "s", "--since", "2026-06-23T15:00:00+00:00"]) == 0
+    assert all(r["analyzer_version"] != "fake-v2" for r in _silver_rows(tmp_path))
+    assert cli.main([*base, "--source", "s", "--since", "2026-06-23T14:00:00+00:00"]) == 0
+    assert len([r for r in _silver_rows(tmp_path) if r["analyzer_version"] == "fake-v2"]) == 2
+
+
+def test_failed_batch_keeps_the_checkpoint_of_earlier_batches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """JRN-logic-backfill §4: 재분석 도중 실패 → 체크포인트 유지, 전량 재실행 금지."""
+    _seed_lake(tmp_path)
+    reply = json.dumps(
+        {
+            "target_countries": ["KR"],
+            "narrative_subjects": ["한국은행 기준금리"],
+            "sentiment": "neutral",
+            "confidence": 0.9,
+        }
+    )
+    calls = {"n": 0}
+
+    def _flaky(*_args, **_kwargs):
+        def _complete(_system: str, _user: str) -> str:
+            calls["n"] += 1
+            if calls["n"] > 1:
+                raise llm.CompletionError("endpoint down")
+            return reply
+
+        return _complete
+
+    monkeypatch.setenv("ECON_LLM_API_KEY", "k")
+    monkeypatch.setattr(llm, "http_completer", _flaky)
+    code = cli.main(
+        ["--data", str(tmp_path), "--analyzer", "llm", "--axis", "KR", "--batch-size", "1"]
+    )
+    assert code == cli.EXIT_ALL_CALLS_FAILED
+    # The first batch's row survived the second batch's outage.
+    assert [r["record_id"] for r in _silver_rows(tmp_path)] == ["r1"]
+
+
+def test_silver_rows_bronze_no_longer_holds_are_pruned(tmp_path: Path) -> None:
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    bronze = [b for b in _bronze_rows(tmp_path) if b["record_id"] == "r1"]
+    _write_jsonl(tmp_path / "bronze" / "news_item.jsonl", bronze)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    assert [r["record_id"] for r in _silver_rows(tmp_path)] == ["r1"]

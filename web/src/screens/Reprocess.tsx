@@ -2,20 +2,16 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { Axis, ReprocessCompareRow, ReprocessResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
+import { ReprocessTrigger } from "./ReprocessTrigger";
 
-// 재처리 콘솔 — 로드맵 슬라이스 10 의 **읽기 절반**.
+// 재처리 콘솔 — 로드맵 슬라이스 10.
 //
 // 재처리는 이 제품의 운영 흐름 중 유일하게 무언가를 *일으키는* 쪽이다: 분석 로직의
 // 버전을 올리고, 범위를 골라 다시 돌리고, 전후를 견주고, 내보내거나 되돌린다
-// (`JRN-logic-backfill`). 그 어느 것도 돌리기 전에 운영자는 「이 범위에 무엇이
-// 얼마나 있고, 그중 몇 건이 이미 새 로직으로 돼 있나」를 봐야 하고, 그 부분은
-// Bronze·Silver 를 읽기만 하면 된다 — 그래서 먼저, 따로 착지한다.
-//
-// **여기서 그리지 않는 것**: 표본 실행(`STP-dry-run`)·전량 실행(`STP-run-reprocess`)·
-// 반영/롤백 기록(`STP-publish`). 서빙은 아직 재처리 런을 일으킬 수 없고(응답의
-// `trigger.available=false` 가 그 사실이다), 누르면 아무 일도 없는 버튼은 그리지
-// 않는다 — 설계 트래커의 허위 컨트롤 금지 교리. 그 세 단계는 Silver 버전 병존
-// 저장·범위 선택 CLI·Argo 제출 배선과 함께 후속 슬라이스로 온다.
+// (`JRN-logic-backfill`). 이 파일은 그중 *읽는* 둘(`STP-scope-range`·
+// `STP-compare-before-after`)이고, *일으키는* 셋은 `ReprocessTrigger` 가 그린다 —
+// 단, 응답의 `trigger.available` 이 참일 때만. 그 값은 서빙이 배치 WorkflowTemplate 에
+// 실제로 닿는지의 프로브라, 거짓이면 사유를 말하고 버튼은 그리지 않는다(허위 컨트롤 금지).
 
 const RANGES: { id: ReprocessResponse["scope"]["range"]; label: string }[] = [
   { id: "24h", label: "지난 24시간" },
@@ -58,10 +54,11 @@ export function Reprocess() {
   const [threshold, setThreshold] = useState(2);
   const [data, setData] = useState<ReprocessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumped when a run finishes: the same selection is fetched again.
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
-    setData(null);
     setError(null);
     api
       .reprocess(range, axis, source)
@@ -70,7 +67,7 @@ export function Reprocess() {
     return () => {
       active = false;
     };
-  }, [range, axis, source]);
+  }, [range, axis, source, reload]);
 
   const axisDef = AXES.find((a) => a.id === axis) ?? AXES[0];
   const rangeDef = RANGES.find((r) => r.id === range) ?? RANGES[1];
@@ -255,23 +252,22 @@ export function Reprocess() {
             </div>
           </div>
 
-          {/* ---- 실행 — 이 서빙이 아직 못 하는 것을 그대로 말한다 ---- */}
-          {/* CMP-note — 표본·전량·반영은 여기서 버튼으로 그리지 않는다. 응답이
-              `trigger.available=false` 인 한 그 버튼은 아무 일도 하지 않을 것이고,
-              그런 컨트롤은 그리지 않는다. */}
-          <div className="note rp-block rp-trigger">
-            <div>
-              <b>표본 실행 · 전량 실행 · 반영/되돌리기는 아직 이 화면에서 일으킬 수 없습니다.</b>{" "}
-              {data.trigger.note}
-              {data.target_version && (
-                <>
-                  {" "}
-                  지금 재분석은 파이프라인의 분석 단계에 <span className="mono">--analyzer-version</span>
-                  을 올려 주는 방식으로만 일어나며, 그 결과가 이 범위의 「이미 새 로직」 열로 돌아옵니다.
-                </>
-              )}
+          {!data.trigger.available && (
+            /* CMP-note — 일으킬 수 없는 동안은 그 사유만 말한다. */
+            <div className="note rp-block rp-trigger">
+              <div>
+                <b>표본 실행 · 전량 실행 · 반영/되돌리기는 지금 이 화면에서 일으킬 수 없습니다.</b>{" "}
+                {data.trigger.note}
+                {data.target_version && (
+                  <>
+                    {" "}
+                    지금 재분석은 파이프라인의 분석 단계에 <span className="mono">--analyzer-version</span>
+                    을 올려 주는 방식으로만 일어나며, 그 결과가 이 범위의 「이미 새 로직」 열로 돌아옵니다.
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ---- STP-compare-before-after — 재처리 전후 비교 ---- */}
           <div className="grid g-12 rp-block">
@@ -437,12 +433,26 @@ export function Reprocess() {
         </>
       )}
 
+      {data && data.trigger.available && (
+        <ReprocessTrigger
+          data={data}
+          scope={{ range, axis, source }}
+          overThreshold={over.length}
+          onChanged={() => setReload((n) => n + 1)}
+        />
+      )}
+
       {/* CMP-mapstrip */}
       <MapStrip
         chips={[
-          { value: "JRN-logic-backfill", text: "STP-scope-range · STP-compare-before-after" },
+          {
+            value: "JRN-logic-backfill",
+            text: data?.trigger.available
+              ? "STP-scope-range · STP-dry-run · STP-run-reprocess · STP-compare-before-after · STP-publish"
+              : "STP-scope-range · STP-compare-before-after",
+          },
           { value: "V5", text: "원문 추적성 · 재처리 가능성", kind: "v" },
-          { text: "실행·반영은 후속 슬라이스" },
+          { text: data?.trigger.available ? "실행·반영은 배치 Workflow 로" : "실행·반영은 이 배선에서 닫힘" },
         ]}
       />
     </>

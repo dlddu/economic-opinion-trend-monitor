@@ -13,9 +13,10 @@ import (
 //
 // Reprocessing is the one operator flow that *causes* work instead of reading
 // it: bump the analyzer version, re-analyze a range of Bronze, compare the two
-// results, publish or roll back (JRN-logic-backfill). Before any of that can be
-// triggered from here the operator has to see what the range contains, and that
-// part is a pure read over Bronze and Silver — so it lands first, on its own.
+// results, publish or roll back (JRN-logic-backfill). Before any of that is
+// triggered the operator has to see what the range contains, and that part is
+// a pure read over Bronze and Silver; the triggering itself is the POST side
+// in reprocess_trigger.go.
 //
 // What this endpoint answers, from the lake as it is:
 //
@@ -26,16 +27,8 @@ import (
 //   - compare  when two versions coexist, the subject mention share under each
 //     and the delta between them (STP-compare-before-after). When only
 //     one version exists it says so — it does not draw an empty table.
-//   - trigger  whether this server can start a reprocess run. It cannot yet, and
-//     the response says that in so many words rather than offering a
-//     button that does nothing.
-//
-// The trigger is the follow-up slice: Silver is replaced wholesale by every
-// hourly run today (see econ_analysis.cli — write_records *replaces*), the CLI
-// takes no range or sample selection, and the serving Pod holds no Argo submit
-// permission. Version coexistence, scoped runs and a POST here arrive together.
-const reprocessTriggerNote = "재처리 실행(표본·전량·반영)은 서빙이 아직 일으키지 못한다 — " +
-	"Silver 버전 병존 저장 · 범위 선택 CLI · Argo 제출 배선이 후속 슬라이스다"
+//   - trigger  whether this server can start a reprocess run, and the runs and
+//     publish/rollback decisions so far (reprocess_trigger.go).
 
 // reprocessRanges maps the range query value to how far back the window opens.
 var reprocessRanges = map[string]time.Duration{
@@ -125,11 +118,6 @@ type compareRow struct {
 	Delta       float64 `json:"delta"`
 }
 
-type reprocessTrigger struct {
-	Available bool   `json:"available"`
-	Note      string `json:"note"`
-}
-
 func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	rangeKey := q.Get("range")
@@ -192,7 +180,7 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 		TargetVersion: target,
 		Versions:      versions,
 		Compare:       compareVersions(silver, versions, target),
-		Trigger:       reprocessTrigger{Available: false, Note: reprocessTriggerNote},
+		Trigger:       h.reprocessTrigger(r),
 	})
 }
 

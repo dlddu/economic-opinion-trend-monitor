@@ -1768,6 +1768,121 @@ button.norm-toggle {
   border-left-color: var(--neg, var(--accent));
 }
 
+/* 쓰기 절반(표본·전량·결정) — 목업의 `.fld`·`.chk`·`.formrow`·`.radios` 를 빌리지
+   않고 같은 모양을 `.rp-` 아래 다시 선언한다(규칙 5 교집합 불변). `.btn.pri` 만은
+   목업과 같은 선언값으로 공유한다 — 기본 버튼의 강조형이라 이름을 달리 둘 이유가 없다. */
+.btn.pri {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-2);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rp-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.rp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 168px;
+}
+
+.rp-field > span {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+
+.rp-field input,
+.rp-field select,
+.rp-field textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-family: var(--sans);
+}
+
+.rp-field input.mono {
+  font-family: var(--mono);
+}
+
+.rp-memo {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.rp-memo textarea {
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.rp-keep {
+  margin: 0 0 14px;
+}
+
+.rp-hint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.rp-runs,
+.rp-decisions,
+.rp-checks {
+  margin-top: 16px;
+}
+
+.rp-run-name {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.rp-publish {
+  margin-top: 18px;
+}
+
+.rp-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.rp-radios label,
+.rp-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.rp-check {
+  margin: 14px 0 16px;
+  font-size: 12.5px;
+}
+
+.rp-error {
+  border-left-color: var(--neg, var(--accent));
+}
+
+.rp-interrupted {
+  border-left-color: var(--mix, var(--accent));
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;
