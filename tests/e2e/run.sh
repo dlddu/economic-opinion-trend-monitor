@@ -1,31 +1,6 @@
 #!/usr/bin/env bash
-# kind-based e2e for two paths in one throwaway cluster:
-#
-#   * serving — build the serving image, mount fixture Gold from a ConfigMap and
-#     run the Playwright specs (API + browser) against a port-forward.
-#   * ingestion batch — build the batch image, point the real collection CLI at
-#     an in-cluster feed double and run one cycle as a Job, then pull the Bronze
-#     it wrote back out to the host for the specs to assert on. Two more Bronze
-#     roots are produced next to it, each by the same CLI against the same double:
-#     a fault-injection cycle (scenario 6) and three sequential cycles whose
-#     upstream changes between them (scenario 7). Their Job logs are exported too
-#     — the failure/duplicate/dedup counts the specs assert on are printed there.
-#   * analysis batch — one more collection cycle produces the analysis corpus in
-#     its own lake root, then the real analysis CLI runs against an in-cluster
-#     chat-completions double and writes Silver. A second pass re-runs it with a
-#     revised response set and a bumped analyzer version (scenario 6 of the
-#     analysis doc), so the first Silver is exported *between* the two — the
-#     re-analysis replaces the dataset rather than appending to it.
-#   * aggregation batch — the medallion's third stage. A dedicated corpus (two KR
-#     sources + one US source) runs collection -> analysis -> aggregation in its
-#     own lake root, and the Gold it produces is pulled back to the host. The
-#     whole thing runs a second time against an upstream whose volume is skewed on
-#     one source only, so the two Golds differ in collection volume and nothing
-#     else — that pair is what scenario 1 of the aggregation-viz doc compares.
-#     A third root re-stamps the baseline corpus' collection times onto a fixed
-#     calendar and aggregates it again, which is the only way e2e gets more than
-#     one time bucket (collection stamps `collected_at` with the run clock) —
-#     scenario 3 reads the rollups out of that Gold.
+# kind-based e2e: the serving stack plus the ingestion, analysis and aggregation
+# batches, all in one throwaway kind cluster, with the Playwright specs at the end.
 #
 # Local `make e2e` and the CI e2e job both run exactly this script.
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
@@ -73,10 +48,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Run one batch Job (ingestion or analysis) to completion and keep its log — the
-# specs assert on the counts it prints (failed_sources, duplicates_skipped, bodies
-# new/deduplicated; low_confidence, unanalyzed, model calls), so a lost log is a
-# lost observation, not just missing debug output.
 run_batch_job() {
   job="$1"; manifest="$2"
   kubectl --context "$CTX" apply -f "$manifest"
@@ -91,9 +62,6 @@ run_batch_job() {
   cat "$LOG_DIR/$job.log"
 }
 
-# Copy a dataset off the PVC through the shell Pod. The Job's own container is gone
-# by now, so the claim is the only place the records still exist. The layer is a
-# parameter because analysis writes Silver next to the Bronze the collection wrote.
 export_lake() {
   src_root="$1"; layer="$2"; dest="$3"; shift 3
   mkdir -p "$dest"
@@ -131,10 +99,6 @@ curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
   "http://127.0.0.1:$PORT/api/health" >/dev/null
 
 # 4) Ingestion batch: the real collection CLI, one cycle, against a feed double.
-# The double has to answer before the Job starts — `econ-ingestion` isolates a
-# source it cannot fetch instead of failing, so a Job that runs too early would
-# "succeed" with an empty Bronze and the specs would report a data problem
-# rather than a startup ordering one.
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
 # 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
@@ -146,16 +110,12 @@ kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=12
 kubectl --context "$CTX" rollout status deployment/econ-llm-double --timeout=120s
 kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
 
-# Bronze lives on the Job's PVC; a Job's container is gone once it finishes, so
-# every export below reads the claim through this shell Pod.
 SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
   -o jsonpath='{.items[0].metadata.name}')"
 
 INGEST_LOG="$(run_batch_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
 # A source the CLI cannot reach is isolated, not fatal — correct for production,
 # but here it would quietly shrink Bronze and surface as a puzzling spec failure.
-# This guard is for the *healthy* cycle only; the fault-injection cycle below
-# expects a non-empty failed_sources and must not be held to it.
 case "$INGEST_LOG" in
   *"failed_sources=[]"*) ;;
   *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
@@ -164,9 +124,7 @@ esac
 export_lake /data bronze "$BRONZE_DIR" news_item news_body
 echo "[e2e] bronze exported -> $BRONZE_DIR"
 
-# 4b) Fault injection (…-test-ingestion.md#시나리오 6): one more cycle against the
-# same double, this time through its failure/flaky/slow paths. Writes to its own
-# data root so the healthy cycle's Bronze — what specs 2..5 assert on — is untouched.
+# 4b) Fault-injection cycle (…-test-ingestion.md#시나리오 6).
 FAULTS_LOG="$(run_batch_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
 case "$FAULTS_LOG" in
   *"failed_sources=[]"*)
@@ -177,10 +135,7 @@ esac
 export_lake /data/faults bronze "$FAULTS_DIR" news_item news_body
 echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 
-# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7). news_item is
-# rewritten every cycle by the store, so the per-cycle snapshot has to be taken between
-# runs — the final file only holds cycle 3. news_body accumulates, which is the
-# point: unchanged bodies must not be re-stored and an edited one must append.
+# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
 for cycle in 1 2 3; do
   run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
     >/dev/null
@@ -188,9 +143,7 @@ for cycle in 1 2 3; do
 done
 echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
 
-# 4d) Analysis batch (…-test-analysis.md#시나리오 1·2·3·6): one more collection cycle
-# builds the analysis corpus in its own lake root, then the real analysis CLI runs
-# against the in-cluster chat-completions double and writes Silver beside it.
+# 4d) Analysis batch (…-test-analysis.md#시나리오 1·2·3·6).
 ANALYSIS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-analysis \
   "$E2E_DIR/k8s/batch/ingest-job-analysis.yaml")"
 case "$ANALYSIS_INGEST_LOG" in
@@ -202,10 +155,6 @@ esac
 export_lake /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_item news_body
 echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
 
-# A canned reply the double does not have is a 404, which the CLI degrades to one
-# unanalyzed record and *counts*. Without this guard a stale fixture would quietly
-# turn into "the model declined to judge" — a data story, not the missing-fixture
-# story it actually is.
 ANALYZE_LOG="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"
 case "$ANALYZE_LOG" in
   *"failed=0"*) ;;
@@ -213,8 +162,6 @@ case "$ANALYZE_LOG" in
           "article (see fixtures/llm/responses.json) or is unreachable" >&2
      exit 1 ;;
 esac
-# Re-analysis replaces this dataset, so the first pass has to be taken off the PVC
-# *now* — scenario 6 compares the two.
 export_lake /data/analysis silver "$SILVER_DIR" analysis
 echo "[e2e] silver exported -> $SILVER_DIR"
 
@@ -229,17 +176,7 @@ export_lake /data/analysis silver "$SILVER_V2_DIR" analysis
 echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
-# …-test-aggregation-viz.md#시나리오 1·2·4). The third medallion stage: this is where
-# `python/packages/aggregation` runs for the first time in e2e — until now serving was
-# fed hand-written fixture Gold, so normalization, cross-dimension counting and the
-# sentiment ratios never executed.
-#
-# The corpus is its own (two KR sources so the *within-source-then-average*
-# normalization has something to average, one US source so the axis dimension actually
-# crosses), and it runs twice: once as the baseline, once against an upstream whose
-# volume is inflated on one KR source only. Two completed lake roots, not two passes
-# over one — `write_records` replaces a dataset, so a second pass in the same root
-# would erase the baseline the comparison needs.
+# …-test-aggregation-viz.md#시나리오 1·2·4).
 run_aggregation_stack() {
   suffix="$1"; root="$2"; label="$3"
   ingest_log="$(run_batch_job "econ-e2e-ingest-agg$suffix" \
@@ -284,15 +221,7 @@ run_aggregation_stack "-skew" /data/aggregation-skew skewed
 export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
 echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
 
-# 4f) Rollup root (…-test-aggregation-viz.md#시나리오 3). The baseline corpus again, with
-# only `collected_at` re-stamped onto a fixed calendar, then the *real* aggregation CLI over
-# it. Collection stamps `collected_at` with the run clock (econ_ingestion/cli.py, regardless
-# of --cycle), so every record of one Job lands in the same hour bucket — "a day is the sum
-# of its hours" would be the sum of a single bucket and the scenario would have nothing to
-# observe. The re-stamp is the one dimension e2e cannot vary by running the pipeline; the
-# aggregation being measured still runs for real, on the pipeline's own Bronze and Silver.
-# Its own root again, for the same reason the skewed run has one: `write_records` replaces a
-# dataset, so aggregating in place would erase the Gold specs 1·2·4 assert on.
+# 4f) Rollup root (…-test-aggregation-viz.md#시나리오 3).
 kubectl --context "$CTX" create configmap rollup-timeshift \
   --from-file="$E2E_DIR/tools/timeshift_bronze.py"
 run_batch_job econ-e2e-timeshift-rollup "$E2E_DIR/k8s/batch/timeshift-job.yaml"
