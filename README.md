@@ -213,6 +213,16 @@ kubectl -n econ-monitor-pr-$PR get workflows
 - 로컬 빌드는 `kubectl kustomize deploy/overlays/preview`. CI가 이 오버레이를 빌드해
   CronWorkflow가 섞이지 않았는지, 이미지 retag가 배치 템플릿까지 닿는지 검사한다.
 
+### 리뷰 게이트 (데이터 저장 형식)
+
+PR이 데이터 저장 형식(스키마 계약·생성 타입·직렬화·레이크 경로·볼륨, 생산자가 계약
+필드에 채우는 값)을 건드리지 않으면 `.github/workflows/review-gate.yml`이 PR head 커밋에
+commit status `review/manual-approval` = `success`를 붙인다. 건드리면 status를 붙이지
+않는다 — **status가 없으면 사람 리뷰가 필요하다**는 뜻이다. 판정 규칙은
+`scripts/check-data-format-change.py`에 있고(로컬: `python3 scripts/check-data-format-change.py <base> <head>`),
+근거는 워크플로 Job Summary에 남는다. `pull_request_target`으로 base 브랜치의 판정기를
+돌리므로 PR이 게이트를 고쳐 스스로 통과할 수 없다. `checks.yml`의 `required`와는 독립이다.
+
 ## 범위
 
 **골격에 포함:**
