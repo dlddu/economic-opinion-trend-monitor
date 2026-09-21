@@ -436,8 +436,6 @@ if not broken and not md_from_html:
     ok("R8", f"docs/ 상대 링크 {total}건 전부 해석 · HTML→.md 직접 링크 0건")
 
 # ── R11 ── 설계 트래커 「문서 목록」의 mockup 파일 경로 ↔ 실파일 양방향 정합.
-# R7 이 보는 것은 인덱스의 *여정 등재*와 허브 링크뿐이라, 트래커가 삭제된 화면 파일을
-# 실파일로 계속 등재해도 아무도 잡지 못했다(rct_20260918-0004). 여기서 닫는다.
 def _expand_braces(tok):
     m = re.search(r"\{([^}]*)\}", tok)
     if not m:
@@ -468,12 +466,6 @@ else:
         ok("R11", f"트래커 문서 목록의 mockup 파일 {len(listed)}건 == 실파일 {len(actual)}건")
 
 # ── R10 ── 서술 절이 재진술하는 숫자 ↔ 실측 대조.
-# 규칙 7("한쪽만 갱신된 상태는 drift")의 기계화. 표·래칫은 R1/R5/R7 이 이미 보지만,
-# 같은 사실을 **산문으로 다시 적은 문장**은 아무도 보지 않아 이관 슬라이스마다 낡았다
-# (rct_20260918-0004: 인덱스는 3/6·미시각화 4단계, 트래커는 4/6·3단계 — 두 SSOT 불일치).
-# 숫자를 산문에서 추방하는 대신 **실측과 대조**한다 — 사람이 읽는 문장은 그대로 두고
-# 낡으면 CI 가 잡는다.
-#   면제: 인용 블록(`> `)과 코드 펜스. 이력·규약 서술이 과거 수치를 인용할 자리다.
 _unvis_steps = []
 _cov = next((s for s in re.split(r"^## ", idx, flags=re.M) if s.startswith("여정 단계 커버리지")), "")
 for line in _cov.splitlines():
@@ -483,7 +475,6 @@ for line in _cov.splitlines():
 
 M_PAGES, M_JRN = len(declared), len(journeys)
 M_SCREENS, M_UNVIS = len(screen_pages), len(_unvis_steps)
-# (이름, 정규식, 기대값 튜플, 그 줄에 함께 있어야 하는 문맥)
 CLAIMS = [
     ("이관 진척",   r"(?:이관|재편)[^\n]{0,40}?(\d+)\s*/\s*(\d+)", (M_PAGES, M_JRN), None),
     ("미시각화 단계", r"미시각화\s*(\d+)\s*단계",                    (M_UNVIS,),      None),
@@ -495,8 +486,6 @@ CLAIMS = [
     ("미이관 수",    r"나머지\s*(\d+)\s*개",                          (M_JRN - M_PAGES,), r"이관|화면 단위|여정 페이지"),
 ]
 stale = []
-# README(여정 side 의 매핑 인덱스)도 같은 대조를 받는다 — 스캔 밖이라 낡은 채 살아남았다
-# (rct_20260919-0003: 「재편 4/6」·「커버리지 25/30·2·3」이 실측 6/6·30/30·0·0 과 어긋난 채 통과).
 _jreadme = read(JREADME) if os.path.exists(JREADME) else ""
 for path, body in ((IDX, idx), (TRACKER, tracker), (JREADME, _jreadme)):
     rel, fenced = os.path.relpath(path, ROOT), False
@@ -523,15 +512,6 @@ else:
               f"미시각화 {M_UNVIS}단계)")
 
 # ── R12 ── 현재형 서술이 가리키는 mockup 파일이 실재하는가.
-# 규칙 7 의 기계화이자 R10 의 **파일 참조판**. R8 은 링크 문법(`](…)` · `href|src="…"`)만
-# 추출하므로 인라인 코드 `` `reprocess.html` `` 은 세지 않는다 — 그래서 화면 단위 파일이
-# 흡수·삭제될 때마다 여정 문서의 터치포인트가 유령 파일을 현재형으로 가리킨 채 초록으로 통과했다
-# (#52 가 남긴 것을 #57 이 걷지 않았고 #57 이 다시 같은 것을 남겼다 — 2연속 재발).
-#
-# **면제는 구성적이다.** 「변경 이력」 행·산문·인용 블록은 과거 사실을 적는 자리이므로
-# 애초에 수집하지 않는다. 현재형 주장만 사는 **구조화된 세 행**에서만 토큰을 뽑는다:
-#   여정 문서의 `| 연결 문서` 행 · `- **터치포인트**` 불릿, 인덱스 등재의 `- **파일**` 행.
-# (인라인 코드 전수 대조는 사료 36건을 위반으로 만들어 문서를 거짓으로 고치게 강제한다.)
 _real_mockups = set(os.listdir(MDIR)) if os.path.isdir(MDIR) else set()
 _CURRENT_FORM = (
     (JDIR, lambda ln: ln.startswith("| 연결 문서") or ln.startswith("- **터치포인트**")),
