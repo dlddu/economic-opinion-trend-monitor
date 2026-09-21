@@ -257,14 +257,10 @@ export interface ReprocessDecision {
 }
 
 export interface ReprocessTrigger {
-  /** True only when the batch WorkflowTemplate is reachable with the Pod's identity. */
   available: boolean;
-  /** Why the trigger is unavailable, in the operator's words; empty when available. */
   note: string;
-  /** Empty when no decision was ever recorded (aggregation serves each record's newest row). */
   serving_version: string;
   decisions: ReprocessDecision[];
-  /** Newest first. Empty when unavailable. */
   runs: ReprocessRun[];
 }
 

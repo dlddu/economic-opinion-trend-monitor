@@ -4,14 +4,8 @@ import type { Axis, ReprocessCompareRow, ReprocessResponse } from "../api/types"
 import { MapStrip } from "../shell/MapStrip";
 import { ReprocessTrigger } from "./ReprocessTrigger";
 
-// 재처리 콘솔 — 로드맵 슬라이스 10.
-//
-// 재처리는 이 제품의 운영 흐름 중 유일하게 무언가를 *일으키는* 쪽이다: 분석 로직의
-// 버전을 올리고, 범위를 골라 다시 돌리고, 전후를 견주고, 내보내거나 되돌린다
-// (`JRN-logic-backfill`). 이 파일은 그중 *읽는* 둘(`STP-scope-range`·
-// `STP-compare-before-after`)이고, *일으키는* 셋은 `ReprocessTrigger` 가 그린다 —
-// 단, 응답의 `trigger.available` 이 참일 때만. 그 값은 서빙이 배치 WorkflowTemplate 에
-// 실제로 닿는지의 프로브라, 거짓이면 사유를 말하고 버튼은 그리지 않는다(허위 컨트롤 금지).
+// 재처리 콘솔(`JRN-logic-backfill`)의 읽는 둘 — `STP-scope-range`·`STP-compare-before-after`. 일으키는 셋은
+// `ReprocessTrigger` 가 그린다; 왜 갈랐고 언제 그리는지는 go/internal/handlers/reprocess_trigger.go 머리가 주인이다.
 
 const RANGES: { id: ReprocessResponse["scope"]["range"]; label: string }[] = [
   { id: "24h", label: "지난 24시간" },
@@ -54,7 +48,6 @@ export function Reprocess() {
   const [threshold, setThreshold] = useState(2);
   const [data, setData] = useState<ReprocessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Bumped when a run finishes: the same selection is fetched again.
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -80,7 +73,7 @@ export function Reprocess() {
   return (
     <>
       <div className="dash-controls">
-        {/* CMP-seg — 기간·축은 서버가 범위를 다시 세므로 전환이 실동작한다. */}
+        {/* CMP-seg */}
         <div className="seg" aria-label="기간">
           {RANGES.map((r) => (
             <button key={r.id} className={range === r.id ? "on" : ""} onClick={() => setRange(r.id)}>
@@ -108,8 +101,6 @@ export function Reprocess() {
           <span className="fl" />
           {axis}
         </span>
-        {/* 소스 목록은 응답이 준다(그 축이 그 기간에 실제로 가진 소스). 필터를 걸어도
-            목록은 줄지 않으므로 다른 소스로 옮겨 갈 수 있다. */}
         <label className="rp-source">
           <span>소스</span>
           <select value={source} onChange={(e) => setSource(e.target.value)}>
@@ -161,10 +152,7 @@ export function Reprocess() {
                     보세요.
                   </div>
                 ) : (
-                  /* CMP-table — 수집 주기 하나가 한 구간이다. 「이미 새 로직」은 목표
-                     버전(`target_version`)이 찍힌 레코드 수라, 버전을 올리기 전엔 전부가
-                     이미 새 로직이고 올리는 순간 전부가 대상이 된다 — 그것이 현재 Silver
-                     의 실제 모양이다. */
+                  /* CMP-table */
                   <table className="tbl rp-scope">
                     <thead>
                       <tr>
@@ -253,7 +241,7 @@ export function Reprocess() {
           </div>
 
           {!data.trigger.available && (
-            /* CMP-note — 일으킬 수 없는 동안은 그 사유만 말한다. */
+            /* CMP-note */
             <div className="note rp-block rp-trigger">
               <div>
                 <b>표본 실행 · 전량 실행 · 반영/되돌리기는 지금 이 화면에서 일으킬 수 없습니다.</b>{" "}
@@ -308,10 +296,7 @@ export function Reprocess() {
                         />
                       </label>
                     </div>
-                    {/* PAT-before-after — 같은 대상을 두 버전으로 나란히. 점유율은 그 버전이
-                        이 범위에서 낸 언급 전체 중 몫(원시)이고, Gold 의 AC3.1 정규화
-                        점유율이 아니다 — 새 로직이 *무엇을 말했나* 를 집계가 다시 재기
-                        전에 보는 표다. */}
+                    {/* PAT-before-after */}
                     <table className="tbl rp-cmp">
                       <thead>
                         <tr>
@@ -356,7 +341,6 @@ export function Reprocess() {
                         </div>
                       </div>
                     )}
-                    {/* 판단 보류 몫은 비율에 섞지 않고 따로 보고한다(AC2.5 의 잣대). */}
                     <div className="note info rp-note rp-unanalyzed">
                       <div>
                         미분석 · 저신뢰를 따로 떼면 이전{" "}
@@ -372,8 +356,6 @@ export function Reprocess() {
                       {REASON_TEXT[compare?.reason ?? ""] ?? "비교할 수 없습니다."}
                     </div>
                     {data.versions.length > 0 && (
-                      /* 견줄 상대는 없어도 무엇이 있는지는 보여 준다 — 「비교 불가」와
-                         「데이터 없음」은 다른 뜻이다. */
                       <table className="tbl rp-versions">
                         <thead>
                           <tr>

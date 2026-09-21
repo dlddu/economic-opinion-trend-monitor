@@ -26,8 +26,7 @@ export async function getJSON<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-// The write routes answer a refusal with `{error}` in the operator's words
-// (a missing memo, an RBAC gap); that text is what the screen shows.
+// The write routes answer a refusal with `{error}` in the operator's words; that text is what the screen shows.
 export async function postJSON<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -74,8 +73,6 @@ export const api = {
     getJSON<ReprocessResponse>(
       `/reprocess?range=${range}&axis=${axis}${source ? `&source=${encodeURIComponent(source)}` : ""}`,
     ),
-  // The three steps that cause work (STP-dry-run · STP-run-reprocess ·
-  // STP-publish) each submit one batch Workflow; `reprocessRuns` is the poll.
   reprocessSample: (body: ReprocessSubmit) =>
     postJSON<{ run: ReprocessRun }>("/reprocess/sample", body),
   reprocessRun: (body: ReprocessSubmit) => postJSON<{ run: ReprocessRun }>("/reprocess/run", body),
