@@ -13,7 +13,7 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// The write side of the reprocess console (roadmap slice 10, second half).
+// The write side of the reprocess console.
 //
 // The three steps that *cause* work in JRN-logic-backfill — 표본 실행
 // (STP-dry-run), 전량 실행 (STP-run-reprocess), 반영/되돌리기 (STP-publish) —
@@ -23,10 +23,9 @@ import (
 // shows the result the next time it is asked.
 //
 // A control is offered only when it can do something. `trigger.available`
-// is a probe, not a flag: the WorkflowTemplate must be readable with this
-// Pod's ServiceAccount, which proves the wiring (Argo installed, template
-// applied, RBAC granted) end to end. Outside a cluster, or where the probe
-// fails, the reason is reported and the screen draws no buttons.
+// is a probe, not a flag (argo.TemplateReachable, with this Pod's identity).
+// Outside a cluster, or where the probe fails, the reason is reported and the
+// screen draws no buttons.
 
 const (
 	entrypointReprocess = "reprocess"
@@ -41,9 +40,7 @@ type reprocessTrigger struct {
 	Available bool `json:"available"`
 	// Note explains an unavailable trigger; empty when Available.
 	Note string `json:"note"`
-	// ServingVersion is the analyzer version the last decision published (or
-	// rolled back to); empty when no decision was ever recorded, in which case
-	// aggregation serves each record's newest row.
+	// ServingVersion is what the last store.ReprocessDecision named; empty when none.
 	ServingVersion string                    `json:"serving_version"`
 	Decisions      []store.ReprocessDecision `json:"decisions"`
 	Runs           []argo.Run                `json:"runs"`
