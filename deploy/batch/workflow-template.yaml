@@ -4,6 +4,13 @@
 # CronWorkflow that ships suspended (see cronworkflow-pipeline.yaml). Adding
 # templates changes nothing on its own — a template nobody invokes never runs.
 #
+# Two more are invoked by the serving Pod, not by a schedule (deploy/base
+# rbac.yaml): `reprocess` re-analyzes a scoped range of Bronze at a chosen
+# analyzer version beside the existing Silver rows, and `publish` records the
+# publish/rollback decision that names which version Gold serves, then
+# rebuilds Gold. Both take their operator input as workflow parameters
+# (`arguments.parameters` below are the defaults a bare submit gets).
+#
 # `imagePullSecrets` is declared here rather than left to the cluster: the
 # batch image is a private GHCR package, and the cluster's imagePullSecret
 # patch is scoped to the serving Deployment, so a batch Pod would otherwise
@@ -19,6 +26,30 @@ metadata:
 spec:
   entrypoint: ingest
   serviceAccountName: econ-batch
+  arguments:
+    parameters:
+      # reprocess: scope + how to run it (JRN-logic-backfill STP-dry-run / STP-run-reprocess)
+      - name: version
+        value: ""
+      - name: since
+        value: ""
+      - name: axis
+        value: ""
+      - name: source
+        value: ""
+      - name: sample
+        value: "0"
+      - name: sample_mode
+        value: random
+      - name: batch
+        value: "100"
+      # publish: the decision and its reason (STP-publish)
+      - name: decision
+        value: publish
+      - name: memo
+        value: ""
+      - name: notify
+        value: "true"
   imagePullSecrets:
     - name: ghcr
   podMetadata:
@@ -119,6 +150,110 @@ spec:
               secretKeyRef:
                 name: econ-llm
                 key: api-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp
+
+    # JRN-logic-backfill STP-dry-run / STP-run-reprocess — re-analyze only the
+    # Bronze the operator scoped, stamped with the version they named, beside
+    # the rows Silver already holds (econ_core.silver). `sample` > 0 is the
+    # dry run; 0 is the full run. The CLI writes a checkpoint every `batch`
+    # records and skips what the target version already covers, so a retry of
+    # this step resumes instead of starting over — which is why the retry is
+    # safe here even though every call is billable.
+    - name: reprocess
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+        expression: "lastRetry.exitCode != '2'"
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        command: ["econ-analysis"]
+        args:
+          - --analyzer-version
+          - "{{workflow.parameters.version}}"
+          - --since
+          - "{{workflow.parameters.since}}"
+          - --axis
+          - "{{workflow.parameters.axis}}"
+          - --source
+          - "{{workflow.parameters.source}}"
+          - --sample
+          - "{{workflow.parameters.sample}}"
+          - --sample-mode
+          - "{{workflow.parameters.sample_mode}}"
+          - --batch-size
+          - "{{workflow.parameters.batch}}"
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
+          - name: ECON_LLM_BASE_URL
+            value: https://api.openai.com/v1
+          - name: ECON_LLM_MODEL
+            value: gpt-5.6-luna
+          - name: ECON_LLM_TEMPERATURE
+            value: default
+          - name: ECON_LLM_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: econ-llm
+                key: api-key
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp
+
+    # JRN-logic-backfill STP-publish — record the decision (which analyzer
+    # version Gold serves, and why) and rebuild Gold from it. Publishing is a
+    # pointer move over rows that already coexist in Silver; a rollback is the
+    # same move back. Nothing is re-analyzed here, so a retry is safe.
+    - name: publish
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+        # Exit 2 is a refused decision (no memo, no version) — retrying it
+        # cannot succeed.
+        expression: "lastRetry.exitCode != '2'"
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        command: ["econ-aggregation"]
+        args:
+          - --decision
+          - "{{workflow.parameters.decision}}"
+          - --version
+          - "{{workflow.parameters.version}}"
+          - --memo
+          - "{{workflow.parameters.memo}}"
+          - --notify-consumer
+          - "{{workflow.parameters.notify}}"
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
         resources:
           requests:
             cpu: 100m

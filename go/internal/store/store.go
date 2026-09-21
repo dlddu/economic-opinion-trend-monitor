@@ -65,8 +65,27 @@ func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
 }
 
 // Analyses reads the Silver analysis dataset (empty if absent).
+//
+// Silver holds one row per (record_id, analyzer_version): a reprocessed record
+// keeps its earlier version's row beside the new one (JRN-logic-backfill).
 func (l *Lake) Analyses() ([]gen.Analysis, error) {
 	return readJSONL[gen.Analysis](l.path("silver", "analysis"))
+}
+
+// ReprocessDecision is one publish/rollback the batch recorded (the Python
+// aggregation's --decision). The last one names the version Gold serves.
+type ReprocessDecision struct {
+	DecidedAt       string `json:"decided_at"`
+	Decision        string `json:"decision"`
+	AnalyzerVersion string `json:"analyzer_version"`
+	Memo            string `json:"memo"`
+	NotifyConsumer  bool   `json:"notify_consumer"`
+}
+
+// ReprocessDecisions reads the Silver reprocess_decision log, oldest first
+// (empty if absent — no decision ever recorded).
+func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
+	return readJSONL[ReprocessDecision](l.path("silver", "reprocess_decision"))
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an

@@ -11,6 +11,9 @@ spec:
   replicas: 1
   template:
     spec:
+      # The reprocess console submits batch Workflows with this identity
+      # (rbac.yaml); the token the kubelet mounts for it is all the Pod needs.
+      serviceAccountName: econ-serving
       containers:
         - name: serving
           # CI owns this tag — do not edit it by hand. Which commit production

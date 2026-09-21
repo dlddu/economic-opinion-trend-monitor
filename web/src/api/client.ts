@@ -7,7 +7,10 @@ import type {
   CompareResponse,
   DashboardResponse,
   FairnessResponse,
+  ReprocessPublish,
   ReprocessResponse,
+  ReprocessRun,
+  ReprocessSubmit,
   SentimentResponse,
   TraceResponse,
   TrendResponse,
@@ -19,6 +22,27 @@ export async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
   if (!res.ok) {
     throw new Error(`GET ${BASE}${path} -> ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as T;
+}
+
+// The write routes answer a refusal with `{error}` in the operator's words
+// (a missing memo, an RBAC gap); that text is what the screen shows.
+export async function postJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try {
+      const err = (await res.json()) as { error?: string };
+      if (err.error) detail = err.error;
+    } catch {
+      // A non-JSON refusal keeps the status line.
+    }
+    throw new Error(detail);
   }
   return (await res.json()) as T;
 }
@@ -50,5 +74,13 @@ export const api = {
     getJSON<ReprocessResponse>(
       `/reprocess?range=${range}&axis=${axis}${source ? `&source=${encodeURIComponent(source)}` : ""}`,
     ),
+  // The three steps that cause work (STP-dry-run · STP-run-reprocess ·
+  // STP-publish) each submit one batch Workflow; `reprocessRuns` is the poll.
+  reprocessSample: (body: ReprocessSubmit) =>
+    postJSON<{ run: ReprocessRun }>("/reprocess/sample", body),
+  reprocessRun: (body: ReprocessSubmit) => postJSON<{ run: ReprocessRun }>("/reprocess/run", body),
+  reprocessPublish: (body: ReprocessPublish) =>
+    postJSON<{ run: ReprocessRun }>("/reprocess/publish", body),
+  reprocessRuns: () => getJSON<{ runs: ReprocessRun[] }>("/reprocess/runs"),
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };
