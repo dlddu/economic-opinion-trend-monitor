@@ -124,9 +124,7 @@ test("web: every drawn point sits at its aggregated share on one shared scale", 
   await expect(chart).toBeVisible();
 
   const polylines = chart.locator("polyline");
-  // 겹쳐 보기는 목업 `STP-drill-trend` 대로 opt-in 이다 — 진입 직후에는 고른 대상
-  // 하나만 그려져 있어야 한다. 이 줄이 빠지면 "언제나 겹쳐 그린다"로 되돌아가도
-  // 아래 단언들이 그대로 통과한다.
+  // 이 단정이 빠지면 "언제나 겹쳐 그린다"로 되돌아가도 아래 단언들이 그대로 통과한다.
   await expect(polylines, "진입 직후에 고른 대상 말고 다른 선이 그려졌다").toHaveCount(1);
 
   const overlay = page.locator("input[name='tr-compare']");
@@ -204,10 +202,7 @@ test("web: the comparison table repeats the API ranking, value for value", async
     await expect(cells.nth(1), `"${series.subject}" 현재 점유율이 집계와 다름`).toHaveText(
       pctText(series.latest_share),
     );
-    // 구간 평균은 화면이 `points[]` 에서 계산하는 값이라 응답에 그 수가 따로 없다. 같은
-    // 응답에서 같은 방식으로 다시 계산해 대조한다 — 공유 픽스처 Gold 는 버킷이 1개라
-    // 여기서는 평균과 최신값이 같은 수이고(그 구분은 `Trend.test.tsx` 가 3버킷으로 진다),
-    // 이 단언이 지키는 것은 **컬럼 자리와 값의 대응**이다.
+    // 공유 픽스처는 버킷 1개라 평균과 최신값이 같은 수다 — 이 단언이 지키는 것은 컬럼 자리와 값의 대응뿐이다.
     await expect(cells.nth(2), `"${series.subject}" 구간 평균이 집계와 다름`).toHaveText(
       pctText(windowMean(series)),
     );
@@ -223,9 +218,7 @@ test("web: the comparison table repeats the API ranking, value for value", async
   await expect(selectedRow).toHaveCount(1);
   await expect(selectedRow).toContainText(selected!.subject);
 
-  // 표는 겹쳐 보기와 무관하게 전건이다(이 화면에서 표가 곧 대상 선택기다). 그래서
-  // 겹쳐 보기가 꺼진 상태의 범례는 그려진 선 하나만 말하고, 켜야 표와 같은 묶음이 된다 —
-  // 그 상태에서 둘이 갈리면 표와 차트가 서로 다른 집합을 가리키는 것이다.
+  // 범례는 그려진 선만 말한다 — 켜고 끈 두 상태 어느 쪽에서든 표와 차트가 서로 다른 집합을 가리키면 여기서 깨진다.
   const legend = page.locator(".trend-legend > span");
   await expect(legend, "겹쳐 보기가 꺼졌는데 범례가 그리지 않은 대상을 말한다").toHaveCount(1);
   await expect(legend).toContainText(selected!.subject);
@@ -270,9 +263,7 @@ test("web: picking another subject moves the highlight through the API", async (
   await expect(selectedRow).toHaveCount(1);
   await expect(selectedRow, "선택이 클릭한 행으로 옮겨가지 않았다").toContainText(other.subject);
 
-  // 헤드라인 지표와 범례가 새 대상을 말한다. 겹쳐 보기가 꺼진 상태이므로 범례는
-  // 그려진 그 대상 하나만 이름 붙인다 — 차트와 범례가 서로 다른 집합을 가리키면
-  // 여기서 깨진다.
+  // 헤드라인 지표와 범례가 새 대상을 말한다.
   await expect(page.locator(".trend-side .metric .mv")).toHaveText(
     new RegExp(`^\\s*${(pickedSeries!.latest_share * 100).toFixed(1)}\\s*%\\s*$`),
   );
@@ -281,8 +272,7 @@ test("web: picking another subject moves the highlight through the API", async (
   await expect(legendNames).toContainText(other.subject);
 
   // 차트의 강조(끝점 마커)도 그 대상의 선 위로 옮겨간다 — 표만 바뀌고 차트가 남의
-  // 대상을 강조하고 있으면 여기서 깨진다. 겹쳐 보기가 꺼져 있으니 그려진 선은
-  // 고른 대상의 것 하나뿐이다.
+  // 대상을 강조하고 있으면 여기서 깨진다.
   const marker = page.locator(".trend-chart circle");
   await expect(marker).toHaveCount(1);
   const lines = page.locator(".trend-chart polyline");
