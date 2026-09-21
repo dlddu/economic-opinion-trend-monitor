@@ -150,7 +150,6 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
-    # Bodies live once in the content-addressed store; observations resolve by hash (AC1.4, AC1.7).
     body_records = store.read_records(domain.BRONZE, domain.DS_NEWS_BODY)
     bodies = {b["body_hash"]: b["raw_text"] for b in body_records}
     bronze_ids = [item["record_id"] for item in bronze]
@@ -159,7 +158,6 @@ def main(argv: list[str] | None = None) -> int:
     todo = _select_scope(bronze, args) if scoped else list(bronze)
     skipped = 0
     if scoped:
-        # Resume semantics: what the target version already covers is the checkpoint.
         done = {
             row["record_id"]
             for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
@@ -173,16 +171,11 @@ def main(argv: list[str] | None = None) -> int:
     stats = llm.AnalysisStats() if completer is not None else None
     reply_cache: dict[str, str] = {}
     if completer is not None:
-        # Replies from earlier cycles, keyed by exact prompt + model + version: the
-        # hourly cycle re-observes mostly unchanged articles, so only new or edited
-        # ones reach the model.
         reply_cache = {
             r["cache_key"]: r["reply"]
             for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
         }
 
-    # A whole-lake run retires the versions it supersedes; the version a decision
-    # currently serves is kept so Gold does not lose it under the next hourly run.
     keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
     analyses: list[dict] = []
     written = pruned = 0
@@ -219,7 +212,6 @@ def main(argv: list[str] | None = None) -> int:
         pruned += dropped
         analyses.extend(rows)
     if not todo:
-        # Nothing to analyze still settles the dataset (prunes rows Bronze dropped).
         written, pruned = silver.store_analyses(store, bronze_ids, [])
 
     unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")

@@ -56,9 +56,6 @@ class LocalFsStore(LakeStore):
         return self.root / layer / f"{dataset}.jsonl"
 
     def write_records(self, layer: str, dataset: str, records: Iterable[dict]) -> int:
-        # Written beside the target and renamed into place: a reader that opens
-        # the dataset mid-write (the serving Pod reads Gold from this volume)
-        # sees the previous complete file, never a truncated one.
         target = self.path(layer, dataset)
         target.parent.mkdir(parents=True, exist_ok=True)
         staging = target.with_name(f".{target.name}.tmp")
