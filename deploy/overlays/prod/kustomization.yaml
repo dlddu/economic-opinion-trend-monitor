@@ -1,7 +1,5 @@
 # Adds the app namespace, pulls in the scheduled batch (deploy/batch), and
-# points both emptyDir seams at the one claim: the scheduled batch writes
-# Bronze -> Silver -> Gold into it and serving reads Gold from it, so what the
-# hourly aggregate writes is what the dashboard shows.
+# points both emptyDir seams at the one claim in batch-pvc.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -14,10 +12,9 @@ resources:
   - batch-pvc.yaml
 
 patches:
-  # Swap the data emptyDir for the shared claim. The base mount stays
-  # readOnly, so serving can never touch what the batch is writing. The volume
-  # is ReadWriteMany and a batch Pod already mounts it alongside serving, so a
-  # rolling update needs no Recreate guard.
+  # Swap the data emptyDir for the shared claim. The volume is ReadWriteMany
+  # and a batch Pod already mounts it alongside serving, so a rolling update
+  # needs no Recreate guard.
   - target:
       kind: Deployment
       name: econ-serving
