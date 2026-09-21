@@ -7,6 +7,7 @@ import type {
   CompareResponse,
   DashboardResponse,
   FairnessResponse,
+  ReprocessResponse,
   SentimentResponse,
   TraceResponse,
   TrendResponse,
@@ -41,6 +42,13 @@ export const api = {
   trace: (recordId?: string) =>
     getJSON<TraceResponse>(
       `/trace${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
+    ),
+  // The selection is server-side: the range window, the axis and the source
+  // filter all change which Bronze records are counted, so every control
+  // round-trips rather than filtering a fetched list.
+  reprocess: (range: ReprocessResponse["scope"]["range"] = "7d", axis: Axis = "KR", source = "") =>
+    getJSON<ReprocessResponse>(
+      `/reprocess?range=${range}&axis=${axis}${source ? `&source=${encodeURIComponent(source)}` : ""}`,
     ),
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };

@@ -182,3 +182,65 @@ export interface TraceResponse {
   silver: TraceSilver | null;
   ingestion: TraceIngestion;
 }
+
+/** One collection cycle of a reprocess selection (STP-scope-range). */
+export interface ReprocessBucket {
+  cycle: string;
+  kept: number;
+  done: number;
+  todo: number;
+}
+
+export interface ReprocessSource {
+  source_id: string;
+  kept: number;
+}
+
+/** What the (range, axis, source) selection holds, sized against the target analyzer version. */
+export interface ReprocessScope {
+  range: "24h" | "7d" | "30d";
+  since: string;
+  axis: Axis;
+  source: string;
+  sources: ReprocessSource[];
+  total: number;
+  already: number;
+  todo: number;
+  buckets: ReprocessBucket[];
+  /** Null unless Silver holds enough dated records at the target version to read a rate off. */
+  throughput_per_minute: number | null;
+  eta_minutes: number | null;
+}
+
+export interface ReprocessVersion {
+  analyzer_version: string;
+  records: number;
+  first_analyzed_at: string;
+  last_analyzed_at: string;
+}
+
+/** One subject's raw mention share under each of two analyzer versions (PAT-before-after). */
+export interface ReprocessCompareRow {
+  subject: string;
+  before_share: number;
+  after_share: number;
+  delta: number;
+}
+
+export interface ReprocessCompare {
+  available: boolean;
+  reason: "" | "no-silver" | "single-version";
+  before_version: string;
+  after_version: string;
+  rows: ReprocessCompareRow[];
+  unanalyzed_share: { before: number; after: number };
+}
+
+export interface ReprocessResponse {
+  scope: ReprocessScope;
+  target_version: string;
+  versions: ReprocessVersion[];
+  compare: ReprocessCompare;
+  /** The serving API cannot start a run yet; `note` says why, in the operator's words. */
+  trigger: { available: boolean; note: string };
+}
