@@ -1,7 +1,7 @@
 # 사람 리뷰 필요 여부 게이트 — 데이터 저장 형식(DB 스키마 등) 변경 감지.
 #
 #   PR 변경분(merge-base...head)이 저장 형식을 건드리지 않으면 PR head 커밋에
-#   commit status `review-gate/data-format` = success 를 붙인다.
+#   commit status `review/manual-approval` = success 를 붙인다.
 #   건드리면(또는 판정에 실패하면) 아무 status 도 붙이지 않는다.
 #
 #     status success 있음 → 사람 리뷰 불필요
@@ -42,7 +42,7 @@ jobs:
       contents: read
       statuses: write
     env:
-      CONTEXT: review-gate/data-format
+      CONTEXT: review/manual-approval
       PR_NUMBER: ${{ github.event.pull_request.number }}
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
