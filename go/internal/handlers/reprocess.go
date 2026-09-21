@@ -61,17 +61,13 @@ type reprocessScope struct {
 	Source string `json:"source"`
 	// Sources lists every source the axis holds inside the window, whatever the
 	// source filter says — the screen needs the full list to offer a choice.
-	Sources []sourceRow   `json:"sources"`
-	Total   int           `json:"total"`
-	Already int           `json:"already"`
-	Todo    int           `json:"todo"`
-	Buckets []scopeBucket `json:"buckets"`
-	// ThroughputPerMinute and EtaMinutes come from the analyzed_at spread of the
-	// records Silver already holds at the target version. Fewer than two such
-	// records, or all stamped in the same instant, leave both null: an estimate
-	// with no observation behind it is a guess wearing a number.
-	ThroughputPerMinute *float64 `json:"throughput_per_minute"`
-	EtaMinutes          *float64 `json:"eta_minutes"`
+	Sources             []sourceRow   `json:"sources"`
+	Total               int           `json:"total"`
+	Already             int           `json:"already"`
+	Todo                int           `json:"todo"`
+	Buckets             []scopeBucket `json:"buckets"`
+	ThroughputPerMinute *float64      `json:"throughput_per_minute"`
+	EtaMinutes          *float64      `json:"eta_minutes"`
 }
 
 type sourceRow struct {
@@ -79,8 +75,7 @@ type sourceRow struct {
 	Kept     int    `json:"kept"`
 }
 
-// scopeBucket is one collection cycle of the selection. The screen draws these
-// as the 「구간 · 원문 · 이미 새 로직 · 재분석 대상」 rows of the mockup.
+// scopeBucket is one collection cycle of the selection.
 type scopeBucket struct {
 	Cycle string `json:"cycle"`
 	Kept  int    `json:"kept"`
@@ -96,16 +91,12 @@ type versionRow struct {
 }
 
 type reprocessCompare struct {
-	Available bool `json:"available"`
-	// Reason names why there is nothing to compare: "no-silver" or
-	// "single-version". Empty when Available.
+	Available     bool         `json:"available"`
 	Reason        string       `json:"reason"`
 	BeforeVersion string       `json:"before_version"`
 	AfterVersion  string       `json:"after_version"`
 	Rows          []compareRow `json:"rows"`
-	// UnanalyzedShare is the fraction of records each version left outside the
-	// four classes (low_confidence + unanalyzed), reported apart from the subject
-	// shares the way AC2.5/AC3.4 keep it apart everywhere else.
+	// UnanalyzedShare stays apart from the subject shares, as AC2.5 keeps it everywhere else.
 	UnanalyzedShare compareShare `json:"unanalyzed_share"`
 }
 
@@ -326,10 +317,8 @@ func throughput(silver []gen.Analysis, target string, todo int) (*float64, *floa
 	return &perMinute, &eta
 }
 
-// compareVersions puts the newest two versions side by side. "After" is the
-// target version and "before" the newest other one — with a single version
-// there is no other side, and the response names that instead of inventing a
-// baseline.
+// compareVersions puts the newest two versions side by side: "after" is the
+// target version and "before" the newest other one.
 func compareVersions(silver []gen.Analysis, versions []versionRow, target string) reprocessCompare {
 	if len(versions) == 0 {
 		return reprocessCompare{Available: false, Reason: "no-silver", Rows: []compareRow{}}
@@ -367,8 +356,6 @@ func compareVersions(silver []gen.Analysis, versions []versionRow, target string
 		b, a := beforeShares[s], afterShares[s]
 		rows = append(rows, compareRow{Subject: s, BeforeShare: b, AfterShare: a, Delta: a - b})
 	}
-	// Biggest movement first: the screen's default order and the journey's
-	// "변화량 상위 항목을 우선 정렬" in one place.
 	sort.Slice(rows, func(i, j int) bool {
 		di, dj := math.Abs(rows[i].Delta), math.Abs(rows[j].Delta)
 		if di != dj {

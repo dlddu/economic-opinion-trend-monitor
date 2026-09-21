@@ -107,8 +107,6 @@ it("sizes the range per cycle against the target version", async () => {
   expect(container.textContent).toContain("v3");
 });
 
-// The selection is server-side: changing the range or the axis re-fetches with
-// the new query, and the source list offered is the one the response carried.
 it("round-trips range, axis and source through the query", async () => {
   const fetchMock = stub(single());
   const { container } = render(<Reprocess />);
