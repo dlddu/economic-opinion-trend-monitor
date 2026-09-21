@@ -7,13 +7,16 @@ with endpoint/model/key read from the ``ECON_LLM_*`` environment, and the determ
 offline tests network-free. The default was cut over to the real model once the
 analyzer had landed and been exercised, mirroring the ingestion feed cutover.
 
-Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`), so
-a run at a bumped ``--analyzer-version`` lands beside the previous rows instead of
-replacing them — that coexistence is what the reprocess console compares and what a
-rollback returns to. A *scoped* run (``--since``/``--axis``/``--source``/``--sample``)
-is the reprocess path of JRN-logic-backfill: it analyzes only the selected Bronze,
-skips records already at the target version, and writes after every ``--batch-size``
-records, so an interrupted run resumes from its checkpoint instead of starting over.
+Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`).
+A whole-lake run — no scope arguments, the hourly pipeline — re-analyzes every Bronze
+record and *updates* Silver in place (AC2.6: the re-analysed batch carries the new
+version, tracking keys intact), retiring the versions it supersedes except the one a
+recorded publish decision serves. A *scoped* run (``--since``/``--axis``/``--source``/
+``--sample``) is the reprocess path of JRN-logic-backfill: it analyzes only the
+selected Bronze, lands its rows *beside* the existing versions (that coexistence is
+what the console compares and what a rollback returns to), skips records already at
+the target version, and writes after every ``--batch-size`` records, so an
+interrupted run resumes from its checkpoint instead of starting over.
 
 The real analyzer never lets an operator error masquerade as analysis output, because
 ``unanalyzed`` is a data-quality signal downstream aggregation separates on (AC2.5,
@@ -178,6 +181,9 @@ def main(argv: list[str] | None = None) -> int:
             for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
         }
 
+    # A whole-lake run retires the versions it supersedes; the version a decision
+    # currently serves is kept so Gold does not lose it under the next hourly run.
+    keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
     analyses: list[dict] = []
     written = pruned = 0
     for batch in _batches(todo, args.batch_size):
@@ -207,7 +213,9 @@ def main(argv: list[str] | None = None) -> int:
                 asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
                 for item in batch
             ]
-        written, dropped = silver.store_analyses(store, bronze_ids, rows)
+        written, dropped = silver.store_analyses(
+            store, bronze_ids, rows, coexist=scoped, keep_versions=keep_versions
+        )
         pruned += dropped
         analyses.extend(rows)
     if not todo:
@@ -219,9 +227,12 @@ def main(argv: list[str] | None = None) -> int:
     target = store.path(domain.SILVER, domain.DS_ANALYSIS)
     print(
         f"analysis[{args.analyzer}]: read {len(bronze)} bronze, "
-        f"analyzed {len(analyses)}, silver now {written} records -> {target}"
+        f"wrote {len(analyses)} silver records -> {target}"
     )
-    print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed} pruned={pruned}")
+    print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed}")
+    print(
+        f"  silver now {written} rows ({'coexisting' if scoped else 'in place'}, pruned={pruned})"
+    )
     if scoped:
         print(
             f"  scope: since={args.since or '-'} axis={args.axis or '-'} "

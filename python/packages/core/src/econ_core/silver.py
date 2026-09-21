@@ -1,15 +1,21 @@
 """Silver version coexistence and the serving-version choice (JRN-logic-backfill).
 
-Silver holds one ``Analysis`` row per ``(record_id, analyzer_version)``. A run at a
-new version adds rows beside the old ones instead of replacing the dataset, which is
-what makes 「재처리 전후 비교」 and 「이전 버전으로 되돌리기」 possible at all
-(``STP-run-reprocess``: 로직 버전을 붙여 병존시키고 Gold 에서 어느 버전을 서빙할지
-선택). Two rules keep the dataset bounded and traceable:
+Silver holds one ``Analysis`` row per ``(record_id, analyzer_version)``. Two kinds of
+run write it, and they differ in what happens to a record's *other* versions:
 
-- a row is replaced, not duplicated, when the same record is analyzed again at the
-  same version — so a resumed run never double-counts (체크포인트 재개);
-- rows whose ``record_id`` Bronze no longer holds are dropped on every write — every
-  Silver row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
+- a **scoped reprocess** (JRN-logic-backfill: a range, a sample) adds its rows beside
+  the ones already there — 「로직 버전을 붙여 병존시키고 Gold 에서 어느 버전을 서빙할지
+  선택」 (``STP-run-reprocess``). Coexistence is what the before/after comparison and
+  a rollback read.
+- a **whole-lake run** (the hourly pipeline) is AC2.6's 「재분석 = Silver 갱신」: the
+  records it analyzes end up with that run's row and the versions it supersedes are
+  retired — except the version a recorded decision currently serves, which stays so
+  Gold keeps serving what was published until someone rolls it back.
+
+Two rules hold for both: a row is replaced, not duplicated, when the same record is
+analyzed again at the same version (a resumed run never double-counts), and rows
+whose ``record_id`` Bronze no longer holds are dropped on every write — every Silver
+row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
 
 Which version reaches Gold is a recorded decision (``reprocess_decision``): the last
 ``publish``/``rollback`` names the serving version, and aggregation takes that
@@ -33,14 +39,24 @@ def analysis_key(row: dict) -> tuple[str, str]:
 
 
 def store_analyses(
-    store: LakeStore, bronze_ids: Iterable[str], rows: Iterable[dict]
+    store: LakeStore,
+    bronze_ids: Iterable[str],
+    rows: Iterable[dict],
+    *,
+    coexist: bool = True,
+    keep_versions: Iterable[str] = (),
 ) -> tuple[int, int]:
     """Upsert ``rows`` into Silver by ``(record_id, analyzer_version)``.
 
-    Returns ``(rows now in Silver, rows pruned)`` — the pruned count is how many
-    existing rows pointed at a Bronze record that is gone.
+    With ``coexist`` (a scoped reprocess) every other version of a record survives.
+    Without it (a whole-lake run) the records in ``rows`` keep only the version just
+    written — plus any version in ``keep_versions`` (the serving version).
+
+    Returns ``(rows now in Silver, rows pruned)``; pruned counts rows dropped because
+    their Bronze record is gone or their version was retired.
     """
     keep = set(bronze_ids)
+    protected = set(keep_versions)
     merged: dict[tuple[str, str], dict] = {}
     pruned = 0
     for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS):
@@ -48,7 +64,13 @@ def store_analyses(
             pruned += 1
             continue
         merged[analysis_key(row)] = row
-    for row in rows:
+    written = list(rows)
+    if not coexist:
+        touched = {r["record_id"] for r in written}
+        for key in [k for k in merged if k[0] in touched and k[1] not in protected]:
+            del merged[key]
+            pruned += 1
+    for row in written:
         merged[analysis_key(row)] = row
     ordered = sorted(merged.values(), key=lambda r: (r["record_id"], r["analyzer_version"]))
     return store.write_records(domain.SILVER, domain.DS_ANALYSIS, ordered), pruned

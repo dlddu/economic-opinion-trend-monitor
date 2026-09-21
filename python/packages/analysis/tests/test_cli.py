@@ -179,8 +179,8 @@ def _silver_rows(root: Path) -> list[dict]:
     return [json.loads(line) for line in _silver(root).read_text().splitlines()]
 
 
-def test_bumped_version_coexists_with_the_previous_one(tmp_path: Path) -> None:
-    """STP-run-reprocess: a new version lands beside the old rows, never over them."""
+def test_whole_lake_rerun_updates_silver_in_place(tmp_path: Path) -> None:
+    """AC2.6: a whole-lake re-analysis at a bumped version replaces the rows, keys intact."""
     _seed_lake(tmp_path)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     assert (
@@ -189,11 +189,39 @@ def test_bumped_version_coexists_with_the_previous_one(tmp_path: Path) -> None:
     )
     rows = _silver_rows(tmp_path)
     assert sorted((r["record_id"], r["analyzer_version"]) for r in rows) == [
+        ("r1", "fake-v2"),
+        ("r2", "fake-v2"),
+    ]
+
+
+def test_scoped_rerun_coexists_with_the_previous_version(tmp_path: Path) -> None:
+    """STP-run-reprocess: a scoped reprocess lands beside the old rows, never over them."""
+    _seed_lake(tmp_path)
+    base = ["--data", str(tmp_path), "--analyzer", "fake"]
+    assert cli.main(base) == 0
+    assert cli.main([*base, "--analyzer-version", "fake-v2", "--axis", "KR"]) == 0
+    rows = _silver_rows(tmp_path)
+    assert sorted((r["record_id"], r["analyzer_version"]) for r in rows) == [
         ("r1", "fake-v1"),
         ("r1", "fake-v2"),
         ("r2", "fake-v1"),
         ("r2", "fake-v2"),
     ]
+
+
+def test_whole_lake_run_keeps_the_published_version(tmp_path: Path) -> None:
+    """The hourly run must not retire the version a decision serves — Gold would lose it."""
+    from econ_core import open_store, silver
+
+    _seed_lake(tmp_path)
+    base = ["--data", str(tmp_path), "--analyzer", "fake"]
+    assert cli.main(base) == 0
+    assert cli.main([*base, "--analyzer-version", "fake-v2", "--axis", "KR"]) == 0
+    silver.record_decision(open_store(tmp_path), "publish", "fake-v2", "의도한 개선", True)
+    # The next whole-lake run is still at fake-v1 (code not bumped yet).
+    assert cli.main(base) == 0
+    versions = {r["analyzer_version"] for r in _silver_rows(tmp_path)}
+    assert versions == {"fake-v1", "fake-v2"}
 
 
 def test_scoped_run_skips_records_already_at_the_target_version(

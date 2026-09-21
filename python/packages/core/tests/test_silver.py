@@ -36,6 +36,27 @@ def test_versions_coexist_and_same_key_is_replaced(tmp_path: Path) -> None:
     assert [r["narrative_subjects"] for r in rows if r["record_id"] == "r1"] == [["a"], ["c"]]
 
 
+def test_whole_lake_write_retires_superseded_versions_except_the_kept_one(tmp_path: Path) -> None:
+    store = open_store(tmp_path)
+    ids = ["r1", "r2"]
+    silver.store_analyses(
+        store, ids, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
+    )
+    silver.store_analyses(store, ids, [_row("r1", "v2", "t2", ["b"])])
+    # A whole-lake run at v3 that touches only r1: r1's v1 goes, its v2 stays because it
+    # is the served version; r2 is untouched.
+    written, pruned = silver.store_analyses(
+        store, ids, [_row("r1", "v3", "t3", ["c"])], coexist=False, keep_versions=["v2"]
+    )
+    rows = store.read_records(domain.SILVER, domain.DS_ANALYSIS)
+    assert (written, pruned) == (3, 1)
+    assert sorted((r["record_id"], r["analyzer_version"]) for r in rows) == [
+        ("r1", "v2"),
+        ("r1", "v3"),
+        ("r2", "v1"),
+    ]
+
+
 def test_rows_without_a_bronze_record_are_pruned(tmp_path: Path) -> None:
     store = open_store(tmp_path)
     silver.store_analyses(
