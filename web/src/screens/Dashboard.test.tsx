@@ -9,9 +9,7 @@ afterEach(() => {
   // 이 레포는 vitest globals 를 켜지 않아 자동 cleanup 이 없다 — 지우지 않으면 앞
   // 테스트가 남긴 도착 주소가 다음 테스트의 조회에 함께 잡힌다.
   cleanup();
-  // 브리프 카드의 복원은 **날을 넘겨 사는** 저장소를 쓴다(`localStorage`). 탭 수명이
-  // 아니라 그보다 길기 때문에, 지우지 않으면 앞 테스트가 남긴 조건이 다음 테스트의 진입
-  // 조건이 된다 — 복원 자체를 단정하는 테스트가 그 수명을 이용하므로 더 그렇다.
+  // 저장소도 테스트 사이에 살아남는다 — 지우지 않으면 앞 테스트가 남긴 조건이 다음 테스트의 진입 조건이 된다.
   localStorage.clear();
 });
 
@@ -112,8 +110,7 @@ describe("Dashboard — 오늘의 조회 조건", () => {
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(2));
 
-    // 제목과 sub 를 함께 단정한다 — sub 가 「어제」라고 적기 때문에 이 카드는 탭 수명보다
-    // 긴 저장소를 요구한다. 문면이 바뀌면 아래 복원 단정도 함께 다시 판단해야 한다.
+    // 문면이 바뀌면 아래 복원 단정도 함께 다시 판단해야 한다.
     const heads = [...container.querySelectorAll(".card-h")].map((h) => h.textContent);
     expect(heads).toContain("오늘의 조회 조건어제 닫을 때의 조건으로 열립니다");
     expect(container.querySelector(".dash-brief-check")?.textContent).toContain(
@@ -134,8 +131,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(1));
     expect(container.querySelector(".rankrow .nm")?.textContent).toContain("삼성전자");
-    // 서빙은 검색어를 받지 않는다(`api.dashboard(axis)`). 조회가 한 번 더 나갔다면 받아 둔
-    // 목록을 거른 것이 아니라 **없는 파라미터로 다시 물은** 구현이라는 뜻이다.
     expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(calls);
   });
 
@@ -152,8 +147,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     expect(container.querySelector(".dash-brief-empty")?.textContent).toBe(
       "검색어에 걸리는 대상이 없습니다.",
     );
-    // 수집이 없는 것과 검색어가 좁힌 것은 다른 사건이다 — 후자에 전자의 문면을 쓰면
-    // 파이프라인을 다시 돌리라고 시킨다.
     expect(container.querySelector(".placeholder-note")).toBeNull();
   });
 
@@ -169,8 +162,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     await waitFor(() => expect(first.container.querySelectorAll(".rankrow")).toHaveLength(1));
     cleanup();
 
-    // `sessionStorage` 였다면 탭이 닫히는 순간 사라진다. 카드 sub 가 약속하는 것은 「어제
-    // 닫을 때의 조건」이므로, 탭을 넘겨 살아남아야 그 문장이 참이 된다.
     expect(sessionStorage.getItem("econ-monitor:dash:brief")).toBeNull();
     expect(localStorage.getItem("econ-monitor:dash:brief")).not.toBeNull();
 
@@ -202,7 +193,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     await waitFor(() => expect(again.container.querySelectorAll(".rankrow")).toHaveLength(2));
     expect(again.container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
     expect(again.container.querySelector(".seg button.on")?.textContent).toBe("한국");
-    // 끈 선택까지 잊으면 매번 다시 꺼야 한다 — 체크박스가 조건이 아니라 잔소리가 된다.
     expect(
       again.container.querySelector<HTMLInputElement>(".dash-brief-check input")?.checked,
     ).toBe(false);
