@@ -39,8 +39,7 @@ def test_subject_trend_shares_sum_to_one_per_axis() -> None:
 
 
 def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
-    # One source, two hour buckets. A goes 1/2 -> 3/4 of the bucket, B the
-    # mirror image, so the deltas are exact and opposite.
+    # 1/2 -> 3/4 (and the mirror image for B) keeps the deltas exact — nothing below rounds.
     bronze = [
         _bronze("1", "KR", "src", hour=14),
         _bronze("2", "KR", "src", hour=14),
@@ -66,7 +65,6 @@ def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
     assert rows[("A", "2026-06-23T14")]["normalized_share"] == 0.5
     assert rows[("A", "2026-06-23T15")]["normalized_share"] == 0.75
 
-    # The first bucket a subject appears in has nothing to look back at.
     assert rows[("A", "2026-06-23T14")]["delta"] == 0.0
     assert rows[("A", "2026-06-23T14")]["spark"] == [0.5]
 
@@ -100,13 +98,8 @@ def test_axis_sentiment_separates_unanalyzed() -> None:
     assert kr["distribution"]["positive"] == 1.0
 
 
-# ── AC3.3 rollups ────────────────────────────────────────────────────────────
-# The corpus below deliberately spans two hours of one day, a second day in the
-# same ISO week, and a third day in the next one, so "day" and "week" each have
-# something to actually roll up and a boundary to get wrong.
-#
-# 2026-06-23 (Tue) and 2026-06-28 (Sun) are both ISO week 2026-W26;
-# 2026-06-29 (Mon) opens 2026-W27.
+# Two hours of one day, a second day in the same ISO week and a third in the next —
+# so "day" and "week" each have something to actually roll up and a boundary to get wrong.
 _SPAN = [
     ("1", "2026-06-23T14:00:00+00:00", ["A"]),
     ("2", "2026-06-23T14:30:00+00:00", ["B"]),
@@ -132,7 +125,6 @@ def test_bucket_labels_are_zero_padded_per_unit() -> None:
     assert _bucket(stamp) == "2026-06-23T14"
     assert _bucket(stamp, "hour") == "2026-06-23T14"
     assert _bucket(stamp, "day") == "2026-06-23"
-    # ISO week-numbering, so the label is not derivable from the month alone.
     assert _bucket(stamp, "week") == "2026-W26"
     assert _bucket("2026-06-29T09:00:00+00:00", "week") == "2026-W27"
 
@@ -146,8 +138,7 @@ def test_every_unit_is_emitted_finest_first() -> None:
     rows = build_subject_trends_all_units(_span_bronze(), _span_silver())
     units = [row["bucket_unit"] for row in rows]
     assert set(units) == set(BUCKET_UNITS)
-    # Finest first, and each unit's rows stay contiguous — readers that stop at
-    # the first unit they recognize get the default one (AC3.3: 기본 단위는 시간).
+    # Readers that stop at the first unit they recognize get the default (AC3.3: 기본 단위는 시간).
     assert units == sorted(units, key=lambda u: BUCKET_UNITS.index(u))
 
 
@@ -161,15 +152,12 @@ def test_rollup_raw_counts_equal_the_sum_of_the_finer_buckets() -> None:
 
     hours, days, weeks = counts("hour"), counts("day"), counts("week")
 
-    # A day is the sum of the hours whose label it prefixes.
     for (day, subject), n in days.items():
         rolled = sum(c for (bucket, s), c in hours.items() if s == subject and bucket[:10] == day)
         assert n == rolled, f"{day}/{subject}: day {n} != hours {rolled}"
-    # And a week is the sum of its days.
     assert weeks[("2026-W26", "A")] == days[("2026-06-23", "A")] + days[("2026-06-28", "A")]
     assert weeks[("2026-W27", "B")] == days[("2026-06-29", "B")]
 
-    # No unit invented or dropped a record: every unit accounts for all five.
     for unit in BUCKET_UNITS:
         assert sum(row["raw_count"] for row in by_unit[unit]) == len(_SPAN)
 
