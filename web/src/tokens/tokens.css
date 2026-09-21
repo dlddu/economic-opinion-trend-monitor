@@ -1775,6 +1775,10 @@ button.norm-toggle {
   border-color: var(--primary-2);
 }
 
+.btn.pri:hover {
+  background: var(--primary-2);
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;

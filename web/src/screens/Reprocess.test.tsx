@@ -229,6 +229,13 @@ it("draws no run controls while the trigger is unavailable", async () => {
   expect(container.querySelector(".rp-run-controls")).toBeNull();
 });
 
+// The card sub next to a heading — the mockup names the running state there
+// (`#s-sample-running` / `#s-running`), not in the run table.
+const subOf = (container: HTMLElement, heading: string) =>
+  Array.from(container.querySelectorAll(".card-h"))
+    .find((h) => h.querySelector("h3")?.textContent === heading)
+    ?.querySelector(".sub")?.textContent;
+
 // STP-dry-run: the sample is submitted with the selection the read half is
 // showing, and the full run stays locked until a sample has finished.
 it("submits a sample for the selected scope and keeps the full run locked", async () => {
@@ -251,6 +258,7 @@ it("submits a sample for the selected scope and keeps the full run locked", asyn
   expect(posted[0].body).toMatchObject({ range: "7d", axis: "KR", source: "", analyzer_version: "v3", sample_size: 80, sample_mode: "random" });
   await waitFor(() => expect(container.querySelector(".rp-runs")).not.toBeNull());
   expect(container.querySelector(".rp-runs")?.textContent).toContain("대기");
+  expect(subOf(container, "표본 재분석")).toBe("표본을 새 로직으로 돌리는 중…");
 });
 
 // STP-run-reprocess: a finished sample opens the full run; a failed full run is
@@ -270,12 +278,14 @@ it("opens the full run after a sample and offers to resume a failed one", async 
   expect(full.disabled).toBe(false);
   expect(full.textContent).toContain("체크포인트부터 이어서 재개");
   expect(container.querySelector(".rp-interrupted")?.textContent).toContain("deadline");
+  expect(subOf(container, "전량 재분석")).toMatch(/^실패 · /);
 
   fireEvent.click(full);
   await waitFor(() => expect(posted.length).toBe(1));
   expect(posted[0].url).toBe("/api/reprocess/run");
   expect(posted[0].body).toMatchObject({ range: "7d", axis: "KR", analyzer_version: "v3", batch_size: 100 });
   expect(posted[0].body).not.toHaveProperty("sample_size");
+  await waitFor(() => expect(subOf(container, "전량 재분석")).toBe("범위 전체를 다시 분석하는 중…"));
 });
 
 // STP-publish: the decision needs a choice and a reason before anything is
