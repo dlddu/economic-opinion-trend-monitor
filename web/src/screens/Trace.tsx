@@ -15,9 +15,6 @@ import { MapStrip } from "../shell/MapStrip";
 //   - `found=false` — 수집된 적이 없다. 추적이 시작조차 못 한다.
 //   - `bronze.body_preserved=false` — 관측은 있는데 본문이 없다.
 //   - `silver=null` — 수집됐지만 아직 분석되지 않았다(파이프라인이 거기까지 안 갔다).
-//
-// 셋을 한 덩어리 「데이터 없음」으로 그리면 독자는 자기 조회가 실패했다고 읽는다.
-// 그래서 계보 브레드크럼이 **끊긴 자리를 드러내며** 그려진다.
 
 const STATUS_LABEL: Record<string, string> = {
   analyzed: "분석됨",

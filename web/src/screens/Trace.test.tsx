@@ -100,8 +100,6 @@ it("keeps going on a dead link by showing the preserved copy", async () => {
   expect(text).toContain("링크 끊김");
   // The trail does not end here — the body is still on screen.
   expect(text).toContain(BRONZE.body_text);
-  // 목업 `JRN-spike-verification.html#s-link-expired` 의 세 문장. 「사본을 보여준다」만이
-  // 아니라 **왜** 보여주는지와 배지가 항상 있다는 안내까지가 그 배너의 문면이다.
   expect(text).toContain("원문 주소가 열리지 않습니다.");
   expect(text).toContain("추적이 여기서 끊기지 않도록, 수집 시점에 보존해 둔 원문 전체를 대신 보여 줍니다.");
   expect(text).toContain("링크 상태는 위에 배지로 항상 표시됩니다.");
