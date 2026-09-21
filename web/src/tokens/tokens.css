@@ -1612,6 +1612,29 @@ button.norm-toggle {
   color: var(--ink-2);
 }
 
+/* ---- STP-verify-in-trend (trend screen) ----
+   목업 `JRN-axis-contrast.html` 화면 5 의 온도차 판별 폼. 필드·라벨·메모·액션·버튼·배너는
+   위 `.trend-sl-*` 가 이미 옮겨 둔 같은 목업 규칙(`.fld` · `.banner` · `.btn.pri` · `.stepact`)
+   이라 그대로 쓰고, 이 폼에만 있는 라디오 열만 새로 둔다 — 값은 목업의 `.radios`(인라인
+   style 로 세운 세로 배치 · 10px 간격)와 `.radios label` 에서 그대로 옮겼고 **선택자만**
+   `.trend-vd-` 로 접두한다. 이유는 `.trend-sl-` 과 같다. */
+.trend-vd-radios {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trend-vd-radio {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
 /* ---- STP-open-brief (dash screen) ----
    목업 `JRN-daily-scan.html` 의 `오늘의 조회 조건` 카드. 값은 목업의 대응 규칙
    (`.fld` · `.fld .fl` · `.chk` · `.emptybox`)에서 그대로 옮겼고, **선택자만**
