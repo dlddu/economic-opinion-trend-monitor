@@ -1,12 +1,7 @@
 // Package argo submits and lists Argo Workflows through the Kubernetes API.
 //
-// The serving Pod never writes the lake — its data mount is read-only on
-// purpose. What it can do is ask the cluster to run the batch that does: a
-// reprocess is a Workflow created from the batch WorkflowTemplate with the
-// operator's range and version as parameters, and a publish/rollback is the
-// same with the decision as parameters. This package is that one capability,
-// spoken directly to the API server (no client-go: two verbs on one resource
-// do not justify a dependency tree).
+// It speaks to the API server directly — no client-go: two verbs on one
+// resource do not justify a dependency tree.
 package argo
 
 import (
@@ -44,8 +39,7 @@ type Client struct {
 }
 
 // FromEnv builds the in-cluster client, or returns nil when this process is
-// not running in a Pod: no API server to speak to means no trigger, and the
-// reprocess response says so instead of pretending.
+// not running in a Pod.
 //
 //	KUBERNETES_SERVICE_HOST/PORT   the API server (set by the kubelet)
 //	ECON_ARGO_NAMESPACE            overrides the ServiceAccount namespace
@@ -79,8 +73,7 @@ func FromEnv() (*Client, error) {
 	return c, nil
 }
 
-// New builds a client against baseURL with a bearer token; tests point it at a
-// fake API server.
+// New builds a client against baseURL with a bearer token.
 func New(baseURL, namespace, token string) *Client {
 	return &Client{
 		BaseURL:   strings.TrimRight(baseURL, "/"),
@@ -93,7 +86,7 @@ func New(baseURL, namespace, token string) *Client {
 
 // Submission is one Workflow to create from the template.
 type Submission struct {
-	// Kind labels the run for listing: "sample", "run" or "publish".
+	// Kind labels the run for listing.
 	Kind       string
 	Entrypoint string
 	Parameters map[string]string

@@ -27,8 +27,6 @@ func main() {
 
 	lake := store.New(*dataRoot)
 	api := handlers.New(lake)
-	// In a Pod the reprocess console can submit batch Workflows; elsewhere it
-	// reports the trigger as unavailable and draws no controls.
 	if wf, err := argo.FromEnv(); err != nil {
 		log.Printf("argo trigger disabled: %v", err)
 	} else if wf != nil {

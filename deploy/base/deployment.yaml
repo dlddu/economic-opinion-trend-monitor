@@ -11,8 +11,7 @@ spec:
   replicas: 1
   template:
     spec:
-      # The reprocess console submits batch Workflows with this identity
-      # (rbac.yaml); the token the kubelet mounts for it is all the Pod needs.
+      # Why a dedicated identity: rbac.yaml.
       serviceAccountName: econ-serving
       containers:
         - name: serving

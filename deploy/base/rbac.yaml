@@ -1,14 +1,6 @@
 # Identity of the serving Pod, and the one thing it may do to the cluster:
-# start the batch. The reprocess console (JRN-logic-backfill) submits Workflows
-# from the batch WorkflowTemplate — a sample run, a full run, a publish or
-# rollback decision — and reads them back to show progress. Its data mount is
-# read-only; every write to the lake is the batch's, through these Workflows.
-#
-# Namespaced Role, verbs cut to that: it can create and read Workflows and
-# read the template it submits from, and nothing else. Whether this grant is
-# in place is what `trigger.available` in /api/reprocess reports (the Pod
-# probes the template with this identity); without it the screen offers no
-# run controls rather than buttons that 403.
+# submit the batch as Workflows and read them back (go/internal/handlers/
+# reprocess_trigger.go). Namespaced Role, verbs cut to exactly that.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

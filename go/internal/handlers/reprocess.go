@@ -9,26 +9,11 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// /api/reprocess — the read side of the reprocess console (roadmap slice 10).
+// /api/reprocess — the read side of the reprocess console.
 //
-// Reprocessing is the one operator flow that *causes* work instead of reading
-// it: bump the analyzer version, re-analyze a range of Bronze, compare the two
-// results, publish or roll back (JRN-logic-backfill). Before any of that is
-// triggered the operator has to see what the range contains, and that part is
-// a pure read over Bronze and Silver; the triggering itself is the POST side
-// in reprocess_trigger.go.
-//
-// What this endpoint answers, from the lake as it is:
-//
-//   - scope    how many Bronze observations the (range, axis, source) selection
-//     holds, per collection cycle, and how many of them Silver already
-//     carries at the target analyzer version (STP-scope-range).
-//   - versions which analyzer versions Silver actually holds for that range.
-//   - compare  when two versions coexist, the subject mention share under each
-//     and the delta between them (STP-compare-before-after). When only
-//     one version exists it says so — it does not draw an empty table.
-//   - trigger  whether this server can start a reprocess run, and the runs and
-//     publish/rollback decisions so far (reprocess_trigger.go).
+// Before anything is triggered the operator has to see what the range
+// contains, and that part is a pure read over Bronze and Silver; the
+// triggering itself is the POST side in reprocess_trigger.go.
 
 // reprocessRanges maps the range query value to how far back the window opens.
 var reprocessRanges = map[string]time.Duration{

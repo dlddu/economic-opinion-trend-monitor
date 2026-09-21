@@ -6,9 +6,7 @@
 // end. trace reads further down instead — it joins Bronze and Silver directly to
 // walk an aggregate back to its article, and reprocess reads the same two layers
 // to size a re-analysis range and compare analyzer versions (reprocess.go).
-// reprocess also owns the only routes that cause work: its three POSTs submit
-// the batch as Argo Workflows (reprocess_trigger.go) — the serving Pod itself
-// never writes the lake.
+// reprocess's three POSTs are the only routes that cause work (reprocess_trigger.go).
 package handlers
 
 import (
@@ -26,11 +24,9 @@ import (
 // Handlers holds the dependencies shared by the route handlers.
 type Handlers struct {
 	lake *store.Lake
-	// argo is how a reprocess is started; nil outside a cluster, in which case
-	// the reprocess response reports the trigger as unavailable.
+	// argo submits reprocess runs; nil outside a cluster.
 	argo *argo.Client
-	// now is the clock the time-windowed reads (reprocess) open their range
-	// against; tests pin it so a fixture's timestamps stay inside the window.
+	// now is the clock the time-windowed reads (reprocess) open their range against.
 	now func() time.Time
 	// trigger caches the Argo reachability probe (see reprocessTrigger).
 	trigger triggerProbe
@@ -39,8 +35,7 @@ type Handlers struct {
 // New builds Handlers backed by the given lake, with no workflow trigger.
 func New(lake *store.Lake) *Handlers { return &Handlers{lake: lake, now: time.Now} }
 
-// WithArgo attaches the workflow client that makes the reprocess POST routes
-// able to submit runs.
+// WithArgo attaches the workflow client the reprocess POST routes submit through.
 func (h *Handlers) WithArgo(c *argo.Client) *Handlers {
 	h.argo = c
 	return h

@@ -4,12 +4,10 @@
 # CronWorkflow that ships suspended (see cronworkflow-pipeline.yaml). Adding
 # templates changes nothing on its own — a template nobody invokes never runs.
 #
-# Two more are invoked by the serving Pod, not by a schedule (deploy/base
-# rbac.yaml): `reprocess` re-analyzes a scoped range of Bronze at a chosen
-# analyzer version beside the existing Silver rows, and `publish` records the
-# publish/rollback decision that names which version Gold serves, then
-# rebuilds Gold. Both take their operator input as workflow parameters
-# (`arguments.parameters` below are the defaults a bare submit gets).
+# Two more, `reprocess` and `publish`, are invoked by the serving Pod rather
+# than by a schedule (deploy/base/rbac.yaml); their operator input arrives as
+# workflow parameters — `arguments.parameters` below are the defaults a bare
+# submit gets.
 #
 # `imagePullSecrets` is declared here rather than left to the cluster: the
 # batch image is a private GHCR package, and the cluster's imagePullSecret
@@ -167,13 +165,11 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # JRN-logic-backfill STP-dry-run / STP-run-reprocess — re-analyze only the
-    # Bronze the operator scoped, stamped with the version they named, beside
-    # the rows Silver already holds (econ_core.silver). `sample` > 0 is the
-    # dry run; 0 is the full run. The CLI writes a checkpoint every `batch`
-    # records and skips what the target version already covers, so a retry of
-    # this step resumes instead of starting over — which is why the retry is
-    # safe here even though every call is billable.
+    # JRN-logic-backfill STP-dry-run / STP-run-reprocess. `sample` > 0 is the
+    # dry run; 0 is the full run. The CLI checkpoints every `batch` records and
+    # skips what the target version already covers, so a retry of this step
+    # resumes instead of starting over — which is why the retry is safe here
+    # even though every call is billable.
     - name: reprocess
       retryStrategy:
         limit: "3"
@@ -228,10 +224,8 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # JRN-logic-backfill STP-publish — record the decision (which analyzer
-    # version Gold serves, and why) and rebuild Gold from it. Publishing is a
-    # pointer move over rows that already coexist in Silver; a rollback is the
-    # same move back. Nothing is re-analyzed here, so a retry is safe.
+    # JRN-logic-backfill STP-publish — record the decision and rebuild Gold
+    # from it. Nothing is re-analyzed here, so a retry is safe.
     - name: publish
       retryStrategy:
         limit: "3"
