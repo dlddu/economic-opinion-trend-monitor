@@ -44,7 +44,6 @@ function renderScreen() {
   );
 }
 
-/** 여정 이탈 카드 한 장의 제목 → 링크 라벨·목적지. */
 function exitCard(container: HTMLElement, heading: string): HTMLElement {
   const card = [...container.querySelectorAll(".cmp-exit")].find((el) =>
     el.querySelector("h3")?.textContent?.includes(heading),
@@ -53,9 +52,6 @@ function exitCard(container: HTMLElement, heading: string): HTMLElement {
   return card as HTMLElement;
 }
 
-// `JRN-axis-contrast` 는 축 비교를 끝낸 독자를 두 갈래로 내보낸다. 목업은 워크스루
-// 단계마다 카드를 한 장씩 세우지만 구현은 한 페이지이므로, 확인할 것은 배치가 아니라
-// **두 이탈이 다 있고 각자 제 목적지를 가리키는가**다.
 it("offers both journey exits, each to its own destination", async () => {
   stubCompare();
   const { container } = renderScreen();
@@ -77,8 +73,6 @@ it("offers both journey exits, each to its own destination", async () => {
   expect(sentimentLink.getAttribute("href")).toBe("/sentiment");
 });
 
-// 이탈 카드는 비교 컬럼이 아니다 — 같은 그리드에 섞여 `.cmpcol` 로 세어지면 「세 축을
-// 나란히」라는 이 화면의 단정이 조용히 넷이 된다(서빙 e2e 도 같은 수를 센다).
 it("keeps the exits out of the three compared columns", async () => {
   stubCompare();
   const { container } = renderScreen();

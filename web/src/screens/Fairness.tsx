@@ -127,9 +127,7 @@ export function Fairness() {
         먼저 갈라야 합니다 — 같은 대상을 두 방식으로 각각 세어 나란히 놓습니다.
       </p>
 
-      {/* CMP-note — 표기 원칙. 화면은 이미 원칙을 지키고 있었지만(정규화/원시 플래그와
-          행마다의 `원시 N건`) 왜 그렇게 적는지는 말하지 않았다. 데이터가 없어도 성립하는
-          문면이라 응답 분기 밖에 둔다. */}
+      {/* CMP-note — 표기 원칙. */}
       <div className="note fair-notation">
         <div>
           <b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b>{" "}
@@ -171,10 +169,7 @@ export function Fairness() {
                 </div>
               </div>
               <div className="card-b fair-cmp">
-                {/* PAT-raw-vs-norm — 같은 대상의 원시 카운트 막대 ↔ 정규화 비율
-                    막대를 한 행에 병치한다. 두 막대가 갈리는 폭이 곧 수집원 편차
-                    보정량이고(V4, AC3.1/3.8), 지금 고른 세는 방식 쪽을 강조한다.
-                    CMP-table 로 그린다 — 목업 `STP-check-normalized` 와 같다. */}
+                {/* PAT-raw-vs-norm — 원시 · 정규화 대비. */}
                 <table className="tbl">
                   <thead>
                     <tr>
@@ -189,7 +184,6 @@ export function Fairness() {
                     {rows.map((r) => (
                       <tr key={r.subject}>
                         <td>{r.subject}</td>
-                        {/* 비율이 아니라 건수다 — 같은 행에서 구분 표기(AC3.8). */}
                         <td className="num">
                           <span className="meta">원시 {r.raw_count}건</span>
                         </td>
@@ -239,8 +233,7 @@ export function Fairness() {
                 </div>
               </div>
 
-              {/* CMP-kv — 무엇을 근거로 센 값인지. 분모를 감추면 옆의 건수와
-                  대조할 수 없다. */}
+              {/* CMP-kv — 세는 기준. */}
               <div className="card">
                 <div className="card-h">
                   <h3>세는 기준</h3>

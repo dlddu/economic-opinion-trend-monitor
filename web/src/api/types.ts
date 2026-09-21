@@ -1,6 +1,6 @@
 // Mirrors the JSON shapes returned by the Go serving handlers.
 // The data-lake field types ultimately come from contracts/ via codegen; these
-// are the hand-kept serving-API view (stub contracts, see README scope).
+// are the hand-kept serving-API view.
 
 export type Axis = "KR" | "US" | "GLOBAL";
 
@@ -60,9 +60,7 @@ export interface TrendSeries {
 
 export interface TrendResponse {
   axis: Axis;
-  /** The highlighted subject; the API resolves it, so it is never guessed here. */
   subject: string;
-  /** The terms the lines were drawn on — one bucket unit, one x-axis. */
   basis: {
     bucket_unit: string;
     first_bucket: string;
@@ -76,9 +74,7 @@ export interface TrendResponse {
 /** One bucket of one axis's sentiment composition (AC3.4, AC3.6). */
 export interface SentimentPoint {
   time_bucket: string;
-  /** Four class ratios over the analyzed items; `unanalyzed` is its own share. */
   distribution: SentimentDistribution;
-  /** What those ratios were taken over — 60% of five is not 60% of five hundred. */
   analyzed_total: number;
 }
 
@@ -87,7 +83,6 @@ export interface SentimentAxisRow {
   axis: Axis;
   distribution: SentimentDistribution;
   analyzed_total: number;
-  /** False when Gold holds no row for this axis in that bucket — not "all zero". */
   present: boolean;
 }
 
@@ -96,7 +91,6 @@ export interface SentimentResponse {
   basis: {
     bucket_unit: string;
     first_bucket: string;
-    /** The bucket every axis is compared at; the series may end before it. */
     latest_bucket: string;
     buckets: string[];
     normalized: boolean;
@@ -105,13 +99,7 @@ export interface SentimentResponse {
   by_axis: SentimentAxisRow[];
 }
 
-/**
- * One subject counted two ways at the same bucket (AC3.1, AC3.8).
- *
- * `raw_share` is the naive count share, not the normalized one — the gap
- * between the two fields is the source-volume deviation the aggregation
- * corrects, so neither stands in for the other.
- */
+/** One subject counted two ways at the same bucket (AC3.1, AC3.8). */
 export interface FairnessRow {
   rank: number;
   subject: string;
@@ -124,21 +112,17 @@ export interface FairnessRow {
 
 export interface FairnessResponse {
   axis: Axis;
-  /** The terms both counting modes were read on — one bucket, one unit. */
   basis: {
     bucket_unit: string;
     time_bucket: string;
-    /** The denominator `raw_share` was taken over, published so counts add up. */
     raw_total: number;
     normalized: boolean;
-    /** How the normalization was done, stated rather than merely asserted. */
     method: string;
   };
   rows: FairnessRow[];
 }
 
 export interface CompareResponse {
-  /** The terms every column was compared on — same bucket, same normalization. */
   basis: {
     time_bucket: string;
     bucket_unit: string;
@@ -151,19 +135,10 @@ export interface CompareResponse {
 export interface TraceCrumbStep {
   layer: "bronze" | "silver" | "gold";
   label: string;
-  /** False when that hop has no record — the chain is drawn broken, not hidden. */
   present: boolean;
 }
 
-/**
- * The collected article (AC1.4, AC1.5, AC1.7).
- *
- * `body_available` and `body_preserved` are two different facts and neither
- * substitutes for the other: the first is what the source looked like at
- * collection time, the second is whether this lake still holds the text. When
- * they disagree — a link that has since rotted — the preserved copy is the only
- * thing left to read, which is the whole reason the screen keeps both.
- */
+/** The collected article (AC1.4, AC1.5, AC1.7). */
 export interface TraceBronze {
   record_id: string;
   source_id: string;
@@ -178,13 +153,7 @@ export interface TraceBronze {
   body_first_seen_cycle: string;
 }
 
-/**
- * The analysis verdict for the same record (AC2.1–AC2.5).
- *
- * `sentiment` is nullable because "set aside" is an outcome, not a missing
- * value — AC2.5 keeps low-confidence records out of the four classes instead of
- * guessing one.
- */
+/** The analysis verdict for the same record (AC2.1–AC2.5). */
 export interface TraceSilver {
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
@@ -203,16 +172,9 @@ export interface TraceIngestion {
   view_count: number;
 }
 
-/**
- * One record's lineage, with each layer reported separately.
- *
- * `found=false`, a null `silver` and `bronze.body_preserved=false` mean three
- * different things — never collected, never analyzed, text not kept — and the
- * screen says which rather than printing one "no data".
- */
+/** One record's lineage, with each layer reported separately. */
 export interface TraceResponse {
   record_id: string;
-  /** How `record_id` was arrived at, so a fallback never reads as a hit. */
   selection: "requested" | "auto" | "requested-missing" | "empty";
   found: boolean;
   crumb: TraceCrumbStep[];
