@@ -401,11 +401,34 @@
 `scripts/check-mockup-render.py` 가 **이 절을 SSOT 로 읽고** PR 마다 단일 required 체크로 재실행된다.
 이 절의 상한은 **래칫**이다: 실측이 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
 
-**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`·`sentiment`·`fairness`·`trace`)에 든 화면이
-mockup 인덱스에서 쓴다고 선언한 디자인 시스템 항목 **25종**과, 그 화면의 목업 인라인 `<style>`
+**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`·`sentiment`·`fairness`·`trace`·`reprocess`)에 든 화면이
+mockup 인덱스에서 쓴다고 선언한 디자인 시스템 항목 **27종**과, 그 화면의 목업 인라인 `<style>`
 ↔ `web/src/tokens/tokens.css` 가 **공통으로 선언한 선택자**의 선언값. 화면이 `BUILT` 에 하나 들어오는
 순간 그 화면의 항목이 자동으로 범위에 들어온다. **여기에 규칙 4 의 한 조각으로 좌측 네비가 더해진다**
 (아래 「규칙 4(네비)」) — 네비는 `BUILT` 화면들이 공유하는 셸이라 화면 단위 범위와 별개로 항상 in-scope 다.
+
+`rct_20260921-0004`(2026-09-21, 자매 모델 `tbm_econ-opinion-monitor-docs-impl` 의 슬라이스 10 **전반부**)가
+`reprocess` 를 `BUILT` 에 들여 항목이 **25종 → 27종**이 됐다. 새로 들어온 둘은 `reprocess` 화면을
+흡수한 두 운영 여정 페이지(`JRN-logic-backfill.html`·`JRN-ingestion-recovery.html`)가 함께 선언하는
+`PAT-before-after` 와 `PAT-integrity-panel` 이고, 허용목록은 **한 줄 늘었다**(등재 예외 0 → 1 ·
+이름 대조 성립 25 → 26 · 구현 전용 1 · R4·R5 상한 전건 0 은 그대로):
+
+- `PAT-before-after` 는 이 슬라이스가 **실제로 구현·마킹**했다 — `/api/reprocess` 가 자기선언 stub 을
+  버리고 Bronze·Silver 를 읽어 두 analyzer 버전의 서술 대상 언급 점유율을 나란히 내려주고,
+  `Reprocess.tsx` 가 그것을 전후 표(이전·이후·차이·판정 배지 + 주목 임계)로 그린다. 버전이 하나뿐이면
+  표를 그리지 않고 사유를 말한다(빈 표를 꾸며내지 않는다).
+- `PAT-integrity-panel` 은 **「미구현」으로 새로 등재했다**(아래 표). 이 패턴은 `JRN-ingestion-recovery` 의
+  `STP-spot-anomaly` 가 요구하는 「시도·성공·실패·중복 네 칸 분리」인데, Bronze `news_item` 에는 성공한
+  관측만 있고 시도·실패 메타가 없다 — 수집 CLI 는 `failed_source` 를 stdout 에만 찍는다. 재료가 없는
+  패널은 지어낸 0 이 되므로 그리지 않는다.
+- 이 슬라이스는 **읽기 절반만** 세웠다: 목업 `JRN-logic-backfill.html` 다섯 화면 중 `STP-scope-range`(범위
+  표·고른 범위 KV)와 `STP-compare-before-after`(전후 표)만 구현이고, `STP-dry-run`·`STP-run-reprocess`·
+  `STP-publish` 의 실행·반영 컨트롤은 서빙이 재처리 런을 일으킬 수 없는 동안(응답의
+  `trigger.available=false`) **그리지 않는다** — 허위 컨트롤 금지 교리. 그 카피·구조 편차의 등재는 이
+  모델의 몫이고, 슬라이스 10 이 `web/src/screens` 지문을 움직였으므로 재감지가 그 판정을 새 task 로 연다.
+- R5 의 비교 대상 파일에 `JRN-logic-backfill.html` 이 새로 든다(화면 id `reprocess` 의 파일). 이 화면이
+  새로 쓰는 선택자는 전부 `.rp-` 접두라 목업 인라인 `<style>` 과 교집합을 만들지 않고, 공통 선택자
+  117 종의 선언값은 착지 전에도 후에도 충돌 0 이다.
 
 `rct_20260920-0002`(2026-09-20, 자매 모델 `tbm_econ-opinion-monitor-docs-impl` 의 슬라이스 9)가
 `trace` 를 `BUILT` 에 들였는데 **항목 수는 25종 그대로다** — `trace` 는 `fairness` 와
@@ -476,6 +499,7 @@ clean main 의 게이트 출력이 동일함(`in-scope 21종 · 성립 18 · 예
 
 | 식별자 | 종류 | 사유 | 재검토 시점 |
 |---|---|---|---|
+| `PAT-integrity-panel` | 미구현 | **rct_20260921-0004(슬라이스 10 전반부)에서 `reprocess` 가 `BUILT` 에 들어오며 등재했다.** `JRN-ingestion-recovery.html` 이 `reprocess` 귀속 단계 `STP-spot-anomaly`·`STP-verify-integrity` 에 두는 무결성 패널로, 여정 문서가 이 단계의 페인포인트로 못박은 「수집 0건과 시도 실패가 같은 모습이면 이상을 놓친다 → 시도·성공·실패·중복을 분리해 표기」가 정의다. **재료가 없다** — Bronze `news_item`(`contracts/bronze/news_item.schema.json`)은 성공한 관측만 담고 시도·실패 메타가 없으며, 수집 CLI(`python/packages/ingestion/src/econ_ingestion/cli.py`)는 `failed_source`·`duplicates_skipped` 를 stdout 에만 찍고 레이크에 남기지 않는다. 성공 건수만으로 네 칸을 그리면 시도·실패 칸이 지어낸 0 이 된다 — `fairness` 의 `STP-inspect-sources` 부재와 같은 갈래(레이크에 없는 차원). | 수집 시도·실패 메타가 레이크(Bronze 수집 메타 데이터셋)에 적재될 때 |
 | `CMP-btn` | 구현 전용 | 목업과 구현이 모두 `.btn` 을 쓰는데 디자인 시스템 컴포넌트 표에만 이름이 없다 — 구현이 만든 이탈이 아니라 **정의 문서의 누락**이다. 정의에 넣는 것이 옳지만 디자인 시스템은 목업 side 의 SSOT 라 그 수정은 to-be 지문을 움직인다(= 이 모델의 재감지를 새로 연다). 구현을 고쳐 없앨 성질이 아니므로 구현 전용으로 등재해 두고, to-be 편집 권한을 가진 슬라이스에서 정의에 추가한다. | 디자인 시스템 문서를 여는 다음 슬라이스 |
 
 #### 규칙 4(네비) — 불일치 상한 (래칫)

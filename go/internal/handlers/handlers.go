@@ -4,8 +4,9 @@
 // check. Five of them (dashboard, compare, sentiment, fairness, trend) derive
 // their response from Gold, so the Python -> Gold -> Go path is exercised end to
 // end. trace reads further down instead — it joins Bronze and Silver directly to
-// walk an aggregate back to its article. Only reprocess still returns a shaped
-// placeholder (its real data contract is follow-up work).
+// walk an aggregate back to its article, and reprocess reads the same two layers
+// to size a re-analysis range and compare analyzer versions (reprocess.go). What
+// reprocess does not do yet is *start* a run — the response says so.
 package handlers
 
 import (
@@ -13,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
@@ -21,10 +23,13 @@ import (
 // Handlers holds the dependencies shared by the route handlers.
 type Handlers struct {
 	lake *store.Lake
+	// now is the clock the time-windowed reads (reprocess) open their range
+	// against; tests pin it so a fixture's timestamps stay inside the window.
+	now func() time.Time
 }
 
 // New builds Handlers backed by the given lake.
-func New(lake *store.Lake) *Handlers { return &Handlers{lake: lake} }
+func New(lake *store.Lake) *Handlers { return &Handlers{lake: lake, now: time.Now} }
 
 // Register wires every API route onto mux (Go 1.22 method+path patterns).
 func (h *Handlers) Register(mux *http.ServeMux) {
@@ -665,13 +670,6 @@ func lineageCrumb(bronze, silver bool) []traceCrumbStep {
 		{Layer: "silver", Label: "분석", Present: silver},
 		{Layer: "gold", Label: "집계 기여", Present: true},
 	}
-}
-
-func (h *Handlers) reprocess(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status": "idle",
-		"note":   "stub: 재처리 콘솔 자리. analyzer 버전 bump + 재분석 트리거는 후속 작업 (AC2.6)",
-	})
 }
 
 func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {

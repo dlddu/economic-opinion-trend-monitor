@@ -1694,6 +1694,102 @@ button.norm-toggle {
   line-height: 1.7;
 }
 
+/* ---- PAT-before-after (reprocess screen) ----
+   재처리 전후 비교 — 같은 서술 대상을 두 로직 버전으로 나란히 놓는 표. 표 자체는
+   목업과 같은 table.tbl 이라 위 CMP-table 선언을 그대로 쓰고, 이 화면만의 것은
+   전부 `.rp-` 아래 둔다 — 목업 인라인 <style> 이 선언하는 이름(`.tag`·`.muted`·
+   `.emptybox`·`.fld`)을 빌리면 규칙 5 의 공통 선택자 교집합이 넓어진다. */
+.rp-block {
+  margin-bottom: 20px;
+}
+
+.rp-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.rp-source select,
+.rp-threshold input {
+  padding: 6px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 12px;
+  font-family: var(--sans);
+}
+
+.rp-threshold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.rp-threshold input {
+  width: 72px;
+  font-family: var(--mono);
+}
+
+.rp-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  padding: 2px 7px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-xs);
+}
+
+.rp-empty {
+  padding: 26px 18px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  line-height: 1.7;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-sm);
+}
+
+.rp-single {
+  margin-bottom: 14px;
+}
+
+.rp-note {
+  margin-top: 14px;
+}
+
+.rp-cmp-controls {
+  margin-bottom: 12px;
+}
+
+.rp-cmp .rp-delta {
+  font-weight: 600;
+}
+
+.rp-cmp tr.rp-flagged td {
+  background: var(--mix-soft, var(--panel-2));
+}
+
+.rp-dim,
+.rp-muted {
+  color: var(--ink-3);
+}
+
+.rp-muted {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.rp-trigger {
+  border-left-color: var(--neg, var(--accent));
+}
+
 @media (max-width: 1180px) {
   .app {
     grid-template-columns: 64px 1fr;
