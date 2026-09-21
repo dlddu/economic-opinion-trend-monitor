@@ -96,10 +96,6 @@ export function Compare() {
             ))}
           </div>
 
-          {/* 여정 이탈 컨트롤 — `JRN-axis-contrast` 는 축 비교를 끝낸 자리에서 두 갈래로
-              내보낸다. 목업에서는 워크스루 단계마다 한 장씩 서 있지만, 구현의 비교 화면은
-              단계가 접힌 한 페이지라 두 장을 비교 그리드 아래 나란히 둔다. 두 대상 모두
-              `BUILT` 라 빈 화면으로 보내지 않는다. */}
           <div className="grid g-12 cmp-exits">
             <div className="card col-6 cmp-exit">
               <div className="card-h">

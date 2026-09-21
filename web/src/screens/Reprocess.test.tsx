@@ -229,8 +229,6 @@ it("draws no run controls while the trigger is unavailable", async () => {
   expect(container.querySelector(".rp-run-controls")).toBeNull();
 });
 
-// The card sub next to a heading — the mockup names the running state there
-// (`#s-sample-running` / `#s-running`), not in the run table.
 const subOf = (container: HTMLElement, heading: string) =>
   Array.from(container.querySelectorAll(".card-h"))
     .find((h) => h.querySelector("h3")?.textContent === heading)
