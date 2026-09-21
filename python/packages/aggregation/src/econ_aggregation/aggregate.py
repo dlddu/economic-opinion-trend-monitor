@@ -38,8 +38,6 @@ from datetime import date
 
 from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
 
-# The unit an aggregation answers in when the caller does not say (AC3.3:
-# "기본 단위는 시간"), and the full set a run emits, finest first.
 DEFAULT_BUCKET_UNIT = "hour"
 BUCKET_UNITS = ("hour", "day", "week")
 

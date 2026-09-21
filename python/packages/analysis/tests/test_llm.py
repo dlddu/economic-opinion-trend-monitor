@@ -237,7 +237,6 @@ def test_temperature_defaults_to_zero(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize("raw", ["", "default", " Default "])
 def test_temperature_can_be_omitted(monkeypatch: pytest.MonkeyPatch, raw: str) -> None:
-    # GPT-5.x models 400 on any non-default temperature, so the field must be droppable.
     sent = _capture_payload(monkeypatch)
     monkeypatch.setenv("ECON_LLM_TEMPERATURE", raw)
     http_completer()("s", "u")
@@ -277,7 +276,6 @@ def test_second_cycle_reuses_unchanged_replies() -> None:
 
     cache = {e["cache_key"]: e["reply"] for e in entries}
     second, stats2, entries2 = run_llm_analysis(items, bodies, completer, reply_cache=cache)
-    # Same prompts -> no new model calls, identical judgements, nothing new to store.
     assert len(calls) == 2
     assert (stats2.attempted, stats2.reused, entries2) == (0, 2, [])
     strip = lambda rs: [{k: v for k, v in r.items() if k != "analyzed_at"} for r in rs]  # noqa: E731
@@ -290,11 +288,9 @@ def test_edited_body_or_version_bump_calls_again() -> None:
     _, _, entries = run_llm_analysis([item], {"h1": "본문"}, completer)
     cache = {e["cache_key"]: e["reply"] for e in entries}
 
-    # Edited body (new content address) -> new prompt -> fresh call (AC1.7).
     run_llm_analysis(
         [dict(item, body_hash="h2")], {"h2": "수정된 본문"}, completer, reply_cache=cache
     )
-    # Analyzer version bump -> reprocess even the unchanged body (AC2.6).
     run_llm_analysis([item], {"h1": "본문"}, completer, "llm-v2", reply_cache=cache)
     assert len(calls) == 3
 
