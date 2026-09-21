@@ -156,7 +156,6 @@ describe("Sentiment", () => {
   });
 });
 
-/** 분리 전후 비율 카드의 네 분류 비율, 클래스별로. */
 function splitShares(container: HTMLElement): Record<string, string> {
   const out: Record<string, string> = {};
   container.querySelectorAll(".sent-split-kv .v[data-cls]").forEach((el) => {
@@ -166,9 +165,6 @@ function splitShares(container: HTMLElement): Record<string, string> {
 }
 
 describe("분리 전후 비율 전환", () => {
-  // 체크박스가 실제로 분모를 갈아 끼우는지 — 목업이 이 컨트롤을 둔 이유가 「분모가
-  // 바뀌면 어느 비율이 눌리는지 보인다」이므로, 문면만 있고 수치가 안 바뀌면 허위
-  // 컨트롤이다. 기대값은 응답 stub 에서 직접 유도한다.
   it("swaps the denominator, so every class ratio moves by the unanalyzed share", async () => {
     stubSentiment([response()]);
     const { container } = renderScreen();
@@ -178,7 +174,6 @@ describe("분리 전후 비율 전환", () => {
 
     await waitFor(() => expect(container.querySelector(".sent-split-kv")).not.toBeNull());
 
-    // 기본값은 「분리」 — 네 비율이 분석 완료분만을 분모로 쓴다.
     const chk = container.querySelector(".sent-split-chk input") as HTMLInputElement;
     expect(chk.checked).toBe(true);
     expect(splitShares(container)["s-neg"]).toBe(
@@ -187,7 +182,6 @@ describe("분리 전후 비율 전환", () => {
 
     fireEvent.click(chk);
 
-    // 해제하면 같은 비율이 미분석 몫만큼 눌린다.
     expect(splitShares(container)["s-neg"]).toBe(
       `${(kr.distribution.negative * analyzed * 100).toFixed(1)}%`,
     );
@@ -217,8 +211,6 @@ describe("분리 전후 비율 전환", () => {
     );
   });
 
-  // `STP-confirm-cause` 의 이탈 카드. 대상은 `BUILT` 인 `fairness` 하나뿐이라
-  // 플레이스홀더로 보내지 않는다.
   it("offers the one exit whose destination is a real screen", async () => {
     stubSentiment([response()]);
     const { container } = renderScreen();
