@@ -35,18 +35,12 @@ export const api = {
   // The axis is a query parameter, not a client-side filter: the comparison
   // bucket is chosen over all axes, so the server has to see them all.
   sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
-  // Both counting modes come back in one response, so switching between them is
-  // a client-side re-read of data already in hand — no round trip, and no mode
-  // the server has not actually computed.
   fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
   // record_id is optional for the same reason subject is on trend: the screen
-  // has to be able to open before it knows one. The response names which record
-  // it settled on, so a fallback never reads as a hit.
+  // has to be able to open before it knows one.
   trace: (recordId?: string) =>
     getJSON<TraceResponse>(
       `/trace${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
     ),
-  // Stub endpoint for the one screen still on Placeholder (reprocess). Its
-  // shape is not finalized, so it is consumed as unknown JSON.
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };

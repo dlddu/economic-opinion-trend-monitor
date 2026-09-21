@@ -147,6 +147,10 @@ export function Trend() {
   const [picked, setPicked] = useState<string[]>([]);
   const [memo, setMemo] = useState("");
   const [shortlist, setShortlist] = useState<ShortlistVerdict>({ kind: "idle" });
+  // 온도차 판별도 같은 이유로 화면이 든다 — 축을 오가며 보다가 결론을 적는 폼이라,
+  // 응답이 바뀔 때마다 고른 결론과 메모가 날아가면 판별 자체가 성립하지 않는다.
+  const [contrast, setContrast] = useState<ContrastPick>({ verdict: undefined, memo: "" });
+  const [contrastVerdict, setContrastVerdict] = useState<ContrastVerdict>({ kind: "idle" });
   // 겹쳐 보기는 화면 상태다. 목업이 기본값을 unchecked 로 두므로 진입 시점의 차트는
   // 고른 대상 하나이고, 겹침은 읽는 사람이 켜는 것이다.
   const [overlay, setOverlay] = useState(false);
@@ -356,6 +360,13 @@ export function Trend() {
               verdict={shortlist}
               setVerdict={setShortlist}
             />
+
+            <Contrast
+              pick={contrast}
+              setPick={setContrast}
+              verdict={contrastVerdict}
+              setVerdict={setContrastVerdict}
+            />
           </div>
 
           <MapStrip
@@ -526,6 +537,133 @@ function Shortlist({
         </div>
       </div>
     </>
+  );
+}
+
+// 목업 `JRN-axis-contrast.html` 의 `STP-verify-in-trend` — 「온도차 판별」. `JRN-axis-contrast`
+// 가 `compare` 에서 넘어온 맥락으로 `trend` 에 그린 여정 종결 기록이고, 추림과 같은 성격이다:
+// 문면은 목업의 `#verdict-form` 과 그 `submitVerdict()` 가 조립하는 배너 문장을 그대로 옮기고,
+// 기록은 저장소를 쓰지 않는 화면 상태다(트래커 행이 「영속화 없이 세션 안에서 성립한다」고 적는다).
+//
+// **진입 맥락으로 가리지 않고 추림처럼 항상 그린다.** 구현의 `trend` 는 두 여정(`STP-drill-trend`
+// 와 이 단계)을 화면 하나로 받는다 — 진입 쿼리 `?axis=&subject=` 는 dash 드릴도 같은 모양이라
+// 어느 여정에서 왔는지 말해 주지 않고, `Compare.tsx` 는 아직 `/trend` 로 보내는 배선이 없다
+// (그 배선은 설계 트래커의 `compare` 「축 간 격차 패널」 행이 든다). 목업의 짝 카드 `승계된 설정`
+// (`col-5`)은 되비출 기간 값이 없어 아직 세우지 않는다 — 트래커의 승계 문면 행이 그 자리다.
+//
+// 선택자는 `.trend-sl-*` 를 그대로 쓴다 — 목업의 `.fld`·`.banner`·`.btn.pri`·`.stepact` 를 이미
+// 그 이름으로 옮겨 두었고, 이 폼이 쓰는 그릇도 같은 규칙이다. 라디오 열만 `.trend-vd-` 로 새로 둔다.
+const CONTRAST_INVALID_DEFAULT = "결론과 근거 메모를 모두 채워야 기록됩니다.";
+
+type ContrastKind = "persistent" | "transient" | "none";
+
+const CONTRAST_OPTIONS: { value: ContrastKind; label: string; recorded: string }[] = [
+  {
+    value: "persistent",
+    label: "지속적인 온도차다 — 기간 내내 격차가 유지된다",
+    recorded: "지속적인 온도차",
+  },
+  {
+    value: "transient",
+    label: "이번 구간만의 격차다 — 최근 며칠에만 벌어졌다",
+    recorded: "이번 구간만의 격차",
+  },
+  { value: "none", label: "차이 없음 — 축 간 관심사가 사실상 같다", recorded: "차이 없음" },
+];
+
+type ContrastPick = { verdict?: ContrastKind; memo: string };
+
+type ContrastVerdict =
+  | { kind: "idle" }
+  | { kind: "invalid"; message: string }
+  | { kind: "recorded"; verdict: ContrastKind };
+
+function Contrast({
+  pick,
+  setPick,
+  verdict,
+  setVerdict,
+}: {
+  pick: ContrastPick;
+  setPick: React.Dispatch<React.SetStateAction<ContrastPick>>;
+  verdict: ContrastVerdict;
+  setVerdict: (verdict: ContrastVerdict) => void;
+}) {
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    // 목업 `submitVerdict()` 와 같은 분기 — 무엇이 비었는지를 말한다.
+    if (pick.verdict === undefined) {
+      setVerdict({ kind: "invalid", message: "결론을 하나 고르세요." });
+      return;
+    }
+    if (!pick.memo.trim()) {
+      setVerdict({
+        kind: "invalid",
+        message: "근거 메모를 적어야 기록됩니다 — 어느 축이 언제부터 벌어졌는지가 결론의 실체입니다.",
+      });
+      return;
+    }
+    setVerdict({ kind: "recorded", verdict: pick.verdict });
+  }
+
+  const recorded =
+    verdict.kind === "recorded"
+      ? CONTRAST_OPTIONS.find((o) => o.value === verdict.verdict)?.recorded
+      : undefined;
+
+  return (
+    <div className="card col-7">
+      <div className="card-h">
+        <h3>온도차 판별</h3>
+        <span className="sub">한 문장으로 설명할 수 있는 상태로 마칩니다</span>
+      </div>
+      <div className="card-b">
+        <form className="trend-vd-form" onSubmit={submit}>
+          <div className="trend-sl-field">
+            <span className="trend-sl-label">결론</span>
+            <div className="trend-vd-radios">
+              {CONTRAST_OPTIONS.map((o) => (
+                <label className="trend-vd-radio" key={o.value}>
+                  <input
+                    type="radio"
+                    name="verdict"
+                    value={o.value}
+                    checked={pick.verdict === o.value}
+                    onChange={() => setPick((prev) => ({ ...prev, verdict: o.value }))}
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <label className="trend-sl-field trend-sl-memo">
+            <span className="trend-sl-label">근거 메모</span>
+            <textarea
+              name="verdict-memo"
+              value={pick.memo}
+              onChange={(e) => setPick((prev) => ({ ...prev, memo: e.target.value }))}
+              placeholder="어느 축이 언제부터 얼마나 벌어졌는지 적어 두세요."
+            />
+          </label>
+
+          <div className="trend-sl-act">
+            <button type="submit" className="trend-sl-submit">
+              온도차 기록
+            </button>
+          </div>
+        </form>
+
+        <div className="trend-sl-banner err" hidden={verdict.kind !== "invalid"}>
+          {verdict.kind === "invalid" ? verdict.message : CONTRAST_INVALID_DEFAULT}
+        </div>
+
+        {/* `으로 판별했습니다.` 는 목업 `submitVerdict()` 의 문면 그대로다 — 조사는 목업이 정한다. */}
+        <div className="trend-sl-banner good" hidden={verdict.kind !== "recorded"}>
+          <b>온도차를 기록했습니다.</b> {recorded !== undefined && `${recorded}으로 판별했습니다.`}
+        </div>
+      </div>
+    </div>
   );
 }
 
