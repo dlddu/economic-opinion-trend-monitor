@@ -7,16 +7,8 @@ import type {
   ReprocessSubmit,
 } from "../api/types";
 
-// 재처리 콘솔의 **쓰기 절반** — `JRN-logic-backfill` 의 일으키는 세 단계.
-//
-// 표본 실행(`STP-dry-run`)·전량 실행(`STP-run-reprocess`)·반영/되돌리기(`STP-publish`)
-// 는 각각 배치 Workflow 하나를 제출한다. 서빙은 레이크를 쓰지 못하고(읽기 전용 마운트),
-// 쓰는 것은 배치다 — 이 화면은 무엇을 어떻게 돌릴지 정해 넘기고, 돌아간 결과는
-// 위쪽 읽기 절반(범위 표·전후 표)이 다음 조회에서 보여 준다.
-//
-// 이 컴포넌트는 `trigger.available` 일 때만 그려진다. 응답의 그 값은 플래그가 아니라
-// 프로브다(서빙이 자기 신원으로 WorkflowTemplate 을 읽을 수 있는가) — 그래서 여기
-// 있는 버튼은 눌렀을 때 실제로 무언가를 일으키는 버튼이다.
+// 재처리 콘솔의 쓰기 절반 — `JRN-logic-backfill` 의 일으키는 세 단계(`STP-dry-run`·`STP-run-reprocess`·`STP-publish`).
+// 무엇을 일으키고 왜 서빙이 쓰지 않는지, 언제 그려지는지는 이 POST 들을 받는 go/internal/handlers/reprocess_trigger.go 머리가 주인이다.
 
 const POLL_MS = 5000;
 const ACTIVE = new Set(["Pending", "Running"]);
@@ -76,8 +68,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
     if (data.target_version && !version) setVersion(data.target_version);
   }, [data.target_version, version]);
 
-  // 진행 중인 런이 있는 동안만 묻는다. 어느 하나가 끝나면 읽기 절반을 다시 세게 한다 —
-  // 「이미 새 로직」 열과 전후 표가 그 결과다.
   useEffect(() => {
     if (!runs.some(isActive)) return;
     const timer = setInterval(() => {
@@ -206,8 +196,7 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
               <p className="rp-muted">이 범위에는 목표 버전으로 다시 분석할 원문이 없습니다 — 범위나 버전을 바꿔 보세요.</p>
             )}
             {samples.length > 0 && (
-              /* CMP-table — 이 버전으로 제출한 표본 런. 표본은 Silver 에 병존으로 쌓이므로
-                 완료되면 위 전후 표가 그 표본의 재분류를 그대로 보여 준다. */
+              /* CMP-table */
               <table className="tbl rp-runs">
                 <thead>
                   <tr>
@@ -280,9 +269,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
                 <input type="number" min={50} max={500} step={50} value={batchSize} onChange={(e) => setBatchSize(Number(e.target.value) || 0)} />
               </label>
             </div>
-            {/* 병존은 선택이 아니다: Silver 는 (record_id, analyzer_version) 별로 쌓이고
-                덮어쓰기 경로가 없다. 목업의 「덮어쓰기」 토글은 그래서 없다 — 되돌릴 자리가
-                없는 실행은 이 제품에 존재하지 않는다. */}
             <p className="rp-muted rp-keep">
               이전 결과는 그대로 두고 새 버전을 나란히 쌓습니다 — 전후 비교와 되돌리기가 모두 가능합니다. 배치마다 체크포인트를 남기므로 도중에 끊겨도 그 지점부터 이어서 재개합니다.
             </p>
@@ -349,7 +335,7 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
             <span className="sub">{overThreshold > 0 ? "설명되지 않는 변화가 남아 있습니다" : "이 결정으로 재처리를 닫습니다"}</span>
           </div>
           <div className="card-b">
-            {/* CMP-table — 결정 전 확인 항목. 「되돌리기 가능」은 병존이 구조라 항상 참이다. */}
+            {/* CMP-table */}
             <table className="tbl rp-checks">
               <thead>
                 <tr>
@@ -417,7 +403,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
               </div>
             )}
             {data.trigger.decisions.length > 0 && (
-              /* 제품 안에 남는 재처리 이력 — 마지막 행이 지금 서빙하는 버전이다. */
               <table className="tbl rp-decisions">
                 <thead>
                   <tr>

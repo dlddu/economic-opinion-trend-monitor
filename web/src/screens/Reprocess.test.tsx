@@ -221,8 +221,6 @@ it("shows the empty scope state and no estimate when there is nothing to size", 
   expect(container.querySelector(".rp-trigger")?.textContent).toContain("일으킬 수 없습니다");
 });
 
-// The write half is drawn only on a positive probe: without it the note says why
-// and there is no control to press.
 it("draws no run controls while the trigger is unavailable", async () => {
   stub(single());
   const { container } = render(<Reprocess />);
