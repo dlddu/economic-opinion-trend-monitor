@@ -207,7 +207,6 @@ export interface ReprocessScope {
   already: number;
   todo: number;
   buckets: ReprocessBucket[];
-  /** Null unless Silver holds enough dated records at the target version to read a rate off. */
   throughput_per_minute: number | null;
   eta_minutes: number | null;
 }
