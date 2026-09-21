@@ -928,9 +928,8 @@ a {
 }
 
 /* ---- 여정 이탈 카드 (compare) ----
-   목업은 이 산문을 `.muted` 에 인라인 style 로 얹는데, `.muted` 를 tokens 에
-   들이면 규칙 5 의 공통 선택자 교집합이 넓어진다. 이탈 카드는 구현 쪽 레이아웃
-   결정이므로 목업에 없는 이름으로 선언해 대조면을 움직이지 않는다. */
+   목업은 이 산문을 `.muted` 에 인라인 style 로 얹는다. 구현 쪽 레이아웃 결정이라
+   목업에 없는 이름으로 선언한다(규칙 5 대조 규약). */
 .cmp-exits {
   margin-top: 18px;
 }
@@ -962,10 +961,8 @@ a {
 }
 
 /* ---- PAT-line-chart ---- */
-/* .gridline / .axlab carry the mockup's declarations verbatim: they are now
-   selectors both sides declare, so the render gate compares them and its caps
-   are zero. Anything trend-only lives under .trend-* below, which the gate
-   treats as implementation detail. */
+/* .gridline / .axlab carry the mockup's declarations verbatim — selectors both
+   sides declare (규칙 5 대조 규약); trend-only rules live under .trend-* . */
 .gridline {
   stroke: var(--line);
   stroke-width: 1;
@@ -1001,9 +998,7 @@ a {
 
 /* ---- STP-drill-trend 겹쳐 보기 (trend screen) ----
    목업 `JRN-daily-scan.html` 의 `#trend-form` 이 쓰는 `.formrow`·`.chk` 의 선언을
-   그대로 옮기고 **선택자만** `.trend-ov-` 로 접두한다 — `.trend-sl-*` 와 같은 이유다.
-   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기 시작하는데,
-   세 상한이 전부 0 이라 대조면이 그 순간 움직인다. */
+   그대로 옮기고 **선택자만** `.trend-ov-` 로 접두한다 — `.trend-sl-*` 와 같은 이유다. */
 .trend-ov-row {
   display: flex;
   gap: 18px;
@@ -1028,12 +1023,8 @@ a {
 
 /* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ----
    Every selector here is .sent-* , which `JRN-sentiment-shift.html` never
-   declares. That keeps the render gate's shared-selector set unchanged: R5
-   compares only selectors both sides declare, and all three caps are zero, so
-   adding a declaration to a shared selector (.sentbar, .kv, .legend, .seg …)
-   would turn this screen red on arrival. Shared selectors stay untouched and
-   this screen's own layout lives under its own prefix — the same arrangement
-   slice 5 used for .trend-* . */
+   declares — shared selectors (.sentbar, .kv, .legend, .seg …) stay untouched
+   (규칙 5 대조 규약). */
 .sent-donut-row {
   display: flex;
   gap: 20px;
@@ -1102,9 +1093,8 @@ a {
 }
 
 /* ---- 분리 전후 비율 전환 · 이탈 카드 (sentiment) ----
-   목업은 체크박스에 `.chk` 를, 이탈 산문에 `.muted` 를 쓰는데 둘 다 tokens 에는 없다.
-   들이면 규칙 5 의 공통 선택자 교집합이 넓어지므로(현재 세 상한이 전부 0) 화면 전용
-   이름으로 선언한다 — `fair-*` 가 슬라이스 8 에서 낸 길과 같다. */
+   목업은 체크박스에 `.chk` 를, 이탈 산문에 `.muted` 를 쓰는데 둘 다 tokens 에는 없다 —
+   화면 전용 이름으로 선언한다(규칙 5 대조 규약, `.fair-*` 와 같다). */
 .sent-split-bar {
   margin-bottom: 14px;
 }
@@ -1207,10 +1197,8 @@ a {
 
 /* ---- CMP-table ---- */
 /* The mockup's `STP-drill-trend` draws 「상위 대상 비교」 as table.tbl, so the
-   implementation does too and these selectors become ones both sides declare.
-   Every declaration below is the mockup's inline <style> verbatim — the render
-   gate compares them declaration by declaration and all three caps are zero.
-   Trend-only styling stays under .trend-* , which the mockup never declares. */
+   implementation does too — every declaration below is the mockup's inline
+   <style> verbatim (규칙 5 대조 규약); trend-only styling stays under .trend-* . */
 table.tbl {
   width: 100%;
   border-collapse: collapse;
@@ -1253,8 +1241,7 @@ table.tbl tr.click:hover td {
   background: var(--panel-2);
 }
 
-/* Selected-subject emphasis. The mockup has no selected-row rule, so this stays
-   implementation-only and is not part of the declaration comparison. */
+/* Selected-subject emphasis — the mockup has no selected-row rule. */
 table.tbl tr.click.on td {
   color: var(--ink);
   font-weight: 600;
@@ -1275,9 +1262,8 @@ table.tbl tr.click.on td {
 /* ---- CMP-norm-toggle / PAT-raw-vs-norm (fairness screen) ----
    The toggle's look is the mockup's `STP-check-normalized` switch verbatim —
    every declaration below is copied from the inline <style> of
-   docs/mockups/JRN-spike-verification.html, because the render gate compares
-   the two sides declaration by declaration and all three caps are zero.
-   Fairness-only layout stays under .fair-* , which the mockup never declares. */
+   docs/mockups/JRN-spike-verification.html (규칙 5 대조 규약).
+   Fairness-only layout stays under .fair-* . */
 .norm-toggle {
   display: inline-flex;
   align-items: center;
@@ -1328,7 +1314,6 @@ table.tbl tr.click.on td {
   left: 16px;
 }
 
-/* The raw-mode counterpart of .norm-flag, also the mockup's declarations. */
 .raw-flag {
   display: inline-flex;
   align-items: center;
@@ -1343,8 +1328,7 @@ table.tbl tr.click.on td {
 }
 
 /* The toggle is a <button>, so the shell's button reset has to be undone here
-   rather than inside the mockup's rule — keeping that rule byte-identical is
-   what holds the render gate at zero. */
+   rather than inside the mockup's rule (which stays byte-identical). */
 button.norm-toggle {
   cursor: pointer;
   font-family: inherit;
@@ -1495,10 +1479,8 @@ button.norm-toggle {
 /* ---- STP-shortlist (trend screen) ----
    목업 `JRN-daily-scan.html` 화면 5 의 추림 폼·배너. 값은 목업의 대응 규칙
    (`.fld` · `.chk` · `.banner` · `.btn.pri` · `.stepact`)에서 그대로 옮겼고,
-   **선택자만** `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다.
-   목업이 쓰는 이름을 여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기
-   시작하는데, 세 상한이 전부 0 이라 대조면이 그 순간 움직인다. 이 슬라이스가
-   옮기는 것은 문면과 동작이지 공용 레이아웃 선언이 아니다. */
+   **선택자만** `.trend-sl-` 로 접두한다 — `.trace-*`·`.sent-*` 와 같은 이유다
+   (규칙 5 대조 규약). */
 .trend-sl-field {
   display: flex;
   flex-direction: column;
@@ -1613,11 +1595,9 @@ button.norm-toggle {
 }
 
 /* ---- STP-verify-in-trend (trend screen) ----
-   목업 `JRN-axis-contrast.html` 화면 5 의 온도차 판별 폼. 필드·라벨·메모·액션·버튼·배너는
-   위 `.trend-sl-*` 가 이미 옮겨 둔 같은 목업 규칙(`.fld` · `.banner` · `.btn.pri` · `.stepact`)
-   이라 그대로 쓰고, 이 폼에만 있는 라디오 열만 새로 둔다 — 값은 목업의 `.radios`(인라인
-   style 로 세운 세로 배치 · 10px 간격)와 `.radios label` 에서 그대로 옮겼고 **선택자만**
-   `.trend-vd-` 로 접두한다. 이유는 `.trend-sl-` 과 같다. */
+   목업 `JRN-axis-contrast.html` 화면 5 의 온도차 판별 폼 — 그릇은 위 `.trend-sl-*`,
+   라디오 열만 새로: 값은 목업 `.radios`(인라인 style) · `.radios label` 그대로,
+   **선택자만** `.trend-vd-` 로 접두한다(`.trend-sl-` 과 같은 이유). */
 .trend-vd-radios {
   display: flex;
   flex-direction: column;
@@ -1638,11 +1618,9 @@ button.norm-toggle {
 /* ---- STP-open-brief (dash screen) ----
    목업 `JRN-daily-scan.html` 의 `오늘의 조회 조건` 카드. 값은 목업의 대응 규칙
    (`.fld` · `.fld .fl` · `.chk` · `.emptybox`)에서 그대로 옮겼고, **선택자만**
-   `.dash-brief-` 로 접두한다 — `.trend-sl-` 과 같은 이유다. 목업이 쓰는 이름을
-   여기 들이면 규칙 5 가 그 선택자를 선언 단위로 대조하기 시작하는데 세 상한이
-   전부 0 이라 대조면이 그 순간 움직인다. `.col-8` 만은 예외로 같은 이름을 쓴다:
-   격자 폭은 카드마다 고르는 **수치 자체**여서 접두하면 목업과 나란히 놓고 볼 수
-   없고, 선언이 바이트 동일이라 공통 선택자가 돼도 값 충돌이 0 으로 남는다. */
+   `.dash-brief-` 로 접두한다 — `.trend-sl-` 과 같은 이유다(규칙 5 대조 규약).
+   `.col-8` 만은 예외로 같은 이름을 쓴다: 격자 폭은 카드마다 고르는 **수치 자체**여서
+   접두하면 목업과 나란히 놓고 볼 수 없고, 선언이 바이트 동일이라 값 충돌이 없다. */
 .dash-brief-field {
   display: flex;
   flex-direction: column;

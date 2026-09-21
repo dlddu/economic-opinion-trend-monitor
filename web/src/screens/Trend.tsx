@@ -4,11 +4,6 @@ import { api } from "../api/client";
 import type { Axis, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// The chart draws the selected subject alone, and overlays the axis's other
-// leaders only when the reader asks for it — the mockup's `STP-drill-trend`
-// makes 겹쳐 보기 an opt-in checkbox (unchecked on arrival), so comparison is
-// something the reader turns on rather than the shape every visit starts in.
-//
 // Two things are deliberately *not* here:
 //
 //   - A 시간/일/주 switch. Gold carries all three units now (AC3.3), but
@@ -77,28 +72,14 @@ function strokeFor(series: TrendSeries, compareIndex: number): string {
 }
 
 // 그려질 계열 — 목업 `JRN-daily-scan.html` 의 `trendSeries()` 와 같은 규칙이다.
-// 겹쳐 보기가 꺼져 있으면 고른 대상 하나만(고른 것이 없으면 선두 하나), 켜져 있으면
-// 응답이 준 비교 대상 전부. 서빙이 이미 3개로 잘라 내려주므로(`trendSeriesLimit`)
-// 「상위 대상 3개」는 화면이 다시 자를 것 없이 그 집합 그대로다.
 function drawnSeries(series: TrendSeries[], overlay: boolean): TrendSeries[] {
   if (overlay) return series;
   const selected = series.filter((s) => s.selected);
   return selected.length > 0 ? selected : series.slice(0, 1);
 }
 
-// 여정 §4 의 네 번째 분기 — 「중도 이탈 → 다음 진입 시 마지막 조회 조건 복원」. 이 화면이
-// 그 약속을 그리는 자리는 요약 카드 sub `닫을 때의 조건이 다음 진입에 복원됩니다` 다
-// (목업 `JRN-daily-scan.html` 과 바이트 동일한 문면).
-//
-// **수명은 `dash` 쪽 표면과 같다** — `Dashboard.tsx` 의 `오늘의 조회 조건` 카드가 같은 복원
-// 계약의 다른 표면이고, 그 문면(`어제 닫을 때의 조건으로 열립니다` · `어제와 같은 화면에서
-// 밤사이 변화만 보게 됩니다`)이 **날을 넘는 보존**을 약속한다. 한 계약의 두 표면이 서로 다른
-// 수명을 가지면 「닫을 때의 조건」이 어느 쪽 닫음인지가 화면마다 달라지므로, 여기도 탭을
-// 닫으면 사라지는 `sessionStorage` 가 아니라 `localStorage` 를 쓴다.
-//
-// 같은 화면의 **추림**(`Shortlist`)은 이 경계를 공유하지 않는다 — 추림 선택·메모는 저장소를
-// 쓰지 않는 화면 상태이고, recorded 배너가 스스로 `이 세션 안에서만` 이라고 말한다. 여정
-// 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 **대상 저장**(북마크·워치리스트)도 그대로다.
+// 수명은 같은 복원 계약의 `dash` 표면(`Dashboard.tsx` 의 `BRIEF_KEY` 앞 주석이 근거의 주인)과 같다 —
+// 한 계약의 두 표면이 다른 수명을 가지면 「닫을 때의 조건」이 화면마다 다른 닫음을 뜻하므로 `localStorage`.
 const VIEW_KEY = "econ-monitor:trend:view";
 
 type StoredView = { axis: Axis; subject?: string };
@@ -151,8 +132,6 @@ export function Trend() {
   // 응답이 바뀔 때마다 고른 결론과 메모가 날아가면 판별 자체가 성립하지 않는다.
   const [contrast, setContrast] = useState<ContrastPick>({ verdict: undefined, memo: "" });
   const [contrastVerdict, setContrastVerdict] = useState<ContrastVerdict>({ kind: "idle" });
-  // 겹쳐 보기는 화면 상태다. 목업이 기본값을 unchecked 로 두므로 진입 시점의 차트는
-  // 고른 대상 하나이고, 겹침은 읽는 사람이 켜는 것이다.
   const [overlay, setOverlay] = useState(false);
 
   useEffect(() => {
@@ -242,8 +221,7 @@ export function Trend() {
                 </div>
               </div>
               <div className="card-b">
-                {/* 목업 `STP-drill-trend` 의 `#trend-form` — 겹쳐 보기 opt-in.
-                    선택자는 `.trend-sl-*` 와 같은 이유로 `.trend-ov-` 로 접두한다. */}
+                {/* 목업 `STP-drill-trend` 의 `#trend-form` — 겹쳐 보기 opt-in. */}
                 <form className="trend-ov-form" onSubmit={(e) => e.preventDefault()}>
                   <div className="trend-ov-row">
                     <label className="trend-ov-chk">
@@ -540,19 +518,7 @@ function Shortlist({
   );
 }
 
-// 목업 `JRN-axis-contrast.html` 의 `STP-verify-in-trend` — 「온도차 판별」. `JRN-axis-contrast`
-// 가 `compare` 에서 넘어온 맥락으로 `trend` 에 그린 여정 종결 기록이고, 추림과 같은 성격이다:
-// 문면은 목업의 `#verdict-form` 과 그 `submitVerdict()` 가 조립하는 배너 문장을 그대로 옮기고,
-// 기록은 저장소를 쓰지 않는 화면 상태다(트래커 행이 「영속화 없이 세션 안에서 성립한다」고 적는다).
-//
-// **진입 맥락으로 가리지 않고 추림처럼 항상 그린다.** 구현의 `trend` 는 두 여정(`STP-drill-trend`
-// 와 이 단계)을 화면 하나로 받는다 — 진입 쿼리 `?axis=&subject=` 는 dash 드릴도 같은 모양이라
-// 어느 여정에서 왔는지 말해 주지 않고, `Compare.tsx` 는 아직 `/trend` 로 보내는 배선이 없다
-// (그 배선은 설계 트래커의 `compare` 「축 간 격차 패널」 행이 든다). 목업의 짝 카드 `승계된 설정`
-// (`col-5`)은 되비출 기간 값이 없어 아직 세우지 않는다 — 트래커의 승계 문면 행이 그 자리다.
-//
-// 선택자는 `.trend-sl-*` 를 그대로 쓴다 — 목업의 `.fld`·`.banner`·`.btn.pri`·`.stepact` 를 이미
-// 그 이름으로 옮겨 두었고, 이 폼이 쓰는 그릇도 같은 규칙이다. 라디오 열만 `.trend-vd-` 로 새로 둔다.
+// 목업 `JRN-axis-contrast.html` 의 `STP-verify-in-trend` — 「온도차 판별」(`#verdict-form` · `submitVerdict()`).
 const CONTRAST_INVALID_DEFAULT = "결론과 근거 메모를 모두 채워야 기록됩니다.";
 
 type ContrastKind = "persistent" | "transient" | "none";
@@ -591,7 +557,6 @@ function Contrast({
 }) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    // 목업 `submitVerdict()` 와 같은 분기 — 무엇이 비었는지를 말한다.
     if (pick.verdict === undefined) {
       setVerdict({ kind: "invalid", message: "결론을 하나 고르세요." });
       return;

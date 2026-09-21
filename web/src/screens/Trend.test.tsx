@@ -78,7 +78,6 @@ function polylinePoints(container: HTMLElement): string[] {
   );
 }
 
-/** 범례가 이름 붙인 대상들 — 차트에 실제로 그려진 집합과 같아야 한다. */
 function legendNames(container: HTMLElement): string[] {
   return Array.from(container.querySelectorAll(".trend-legend > span")).map((el) =>
     (el.textContent ?? "").trim(),
@@ -90,7 +89,6 @@ describe("Trend", () => {
     stubTrend([response()]);
     const { container } = renderTrend();
 
-    // 겹쳐 보기는 기본이 꺼짐이므로 진입 직후의 선은 고른 대상 하나다.
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
 
     const [lead] = polylinePoints(container);
@@ -114,14 +112,9 @@ describe("Trend", () => {
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
     const box = container.querySelector("input[name='tr-compare']") as HTMLInputElement;
-    // 목업 `STP-drill-trend` 의 체크박스가 unchecked 로 서 있는 상태가 진입 상태다.
     expect(box.checked).toBe(false);
     expect(box.closest("label")?.textContent).toContain("상위 대상 3개를 겹쳐 보기");
-    // 범례는 그려진 선만 말한다 — 그리지 않은 대상이 범례에 남으면 차트와 범례가
-    // 서로 다른 집합을 가리킨다.
     expect(legendNames(container)).toEqual(["기준금리"]);
-    // 표는 겹쳐 보기와 무관하게 전건이다. 이 화면에서 표가 곧 대상 선택기라, 겹침을
-    // 껐다고 행을 감추면 다른 대상으로 옮겨갈 길이 함께 사라진다(등재된 편차).
     expect(container.querySelectorAll("table.tbl tr.click")).toHaveLength(2);
     const [soloPoints] = polylinePoints(container);
     const soloStroke = container.querySelector("polyline")?.getAttribute("stroke");
@@ -130,8 +123,6 @@ describe("Trend", () => {
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(2));
     expect(legendNames(container)).toEqual(["기준금리", "삼성전자"]);
-    // 켜고 끄는 것은 **선의 수**뿐이다. 같은 대상의 선이 자리나 색을 바꾸면 토글이
-    // 값이나 대상을 바꾼 것처럼 읽히므로, 세로 스케일은 응답 전체로 잡혀 있어야 한다.
     expect(polylinePoints(container)[0]).toBe(soloPoints);
     expect(container.querySelector("polyline")?.getAttribute("stroke")).toBe(soloStroke);
 
@@ -300,8 +291,6 @@ describe("Trend", () => {
     expect(card.querySelector("h3")?.textContent).toBe("온도차 판별");
     expect(card.querySelector(".sub")?.textContent).toBe("한 문장으로 설명할 수 있는 상태로 마칩니다");
 
-    // 결론은 목업 `#verdict-form` 의 라디오 3종 그대로다 — 값도 라벨도 옮겨 온 것이라
-    // 하나라도 바뀌면 여정 문서가 그린 판별과 다른 것을 기록하게 된다.
     const radios = Array.from(card.querySelectorAll<HTMLInputElement>(".trend-vd-radio input"));
     expect(radios.map((r) => r.value)).toEqual(["persistent", "transient", "none"]);
     expect(radios.map((r) => r.checked)).toEqual([false, false, false]);
@@ -315,7 +304,6 @@ describe("Trend", () => {
     const memo = card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement;
     expect(memo.placeholder).toBe("어느 축이 언제부터 얼마나 벌어졌는지 적어 두세요.");
     expect(card.querySelector(".trend-sl-submit")?.textContent?.trim()).toBe("온도차 기록");
-    // 기록은 아직 없다 — 두 배너 다 접혀 있어야 한다.
     expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
     expect((card.querySelector(".trend-sl-banner.good") as HTMLElement).hidden).toBe(true);
   });
@@ -371,7 +359,6 @@ describe("Trend", () => {
     expect(good.textContent).toContain("온도차를 기록했습니다.");
     expect(good.textContent).toContain("이번 구간만의 격차으로 판별했습니다.");
     expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
-    // 기록은 저장소에 남지 않는다 — 화면 상태일 뿐이라는 것이 트래커 행의 약속이다.
     expect(Object.keys(localStorage)).toEqual(["econ-monitor:trend:view"]);
     expect(sessionStorage.length).toBe(0);
   });
@@ -413,9 +400,6 @@ describe("Trend", () => {
     await waitFor(() => expect(urls).toHaveLength(2));
     unmount();
 
-    // 같은 복원 계약의 `dash` 표면(`오늘의 조회 조건` 카드)은 `localStorage` 를 쓰고, 그
-    // 문면이 약속하는 것은 **어제 닫을 때의** 조건이다. 여기만 `sessionStorage` 면 탭이
-    // 닫히는 순간 조건이 사라져, 한 계약의 두 화면이 서로 다른 「닫을 때」를 뜻하게 된다.
     expect(sessionStorage.getItem("econ-monitor:trend:view")).toBeNull();
     const stored = localStorage.getItem("econ-monitor:trend:view");
     expect(stored).not.toBeNull();
