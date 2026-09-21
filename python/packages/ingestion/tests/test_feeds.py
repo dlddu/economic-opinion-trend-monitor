@@ -236,13 +236,11 @@ WB_URL = "https://search.worldbank.example/api/v2/news?format=json"
 
 def test_worldbank_json_parses_documents_in_api_order() -> None:
     articles = parse_worldbank_news((FIXTURES / "worldbank_news.json").read_bytes())
-    # Non-record keys (facets) and records without a URL are skipped.
     assert [a.title for a in articles] == [
         "World Bank Group Appoints a New Country Manager",
         "World Bank Kicks Off Fiscal Year USD Funding",
         "Release Without Body Text",
     ]
-    # Full content is preferred, descr is the fallback, neither -> body unavailable (AC1.4).
     assert articles[0].body.startswith("The World Bank Group today announced")
     assert articles[1].body == "Only a description is available for this release."
     assert articles[2].body_available is False
@@ -254,7 +252,6 @@ def test_worldbank_json_source_runs_through_the_feed_path() -> None:
     config = FeedConfig("wb", "GLOBAL", WB_URL, limit=2, format="worldbank-json")
     items, bodies, stats = run_feed_ingestion([config], CYCLE, COLLECTED_AT, fetcher)
     assert stats.failed_sources == []
-    # No view counts -> API order is kept and the top-N cap applies (AC1.2).
     assert [i["rank"] for i in items] == [1, 2]
     assert all(i["axis"] == "GLOBAL" for i in items)
     assert len(bodies) == 2
