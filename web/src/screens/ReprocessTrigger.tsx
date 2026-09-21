@@ -165,7 +165,11 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
           <div className="card-h">
             <h3>표본 재분석</h3>
             <span className="sub">
-              {lastSample ? `최근 표본 ${lastSample.parameters.sample}건 · ${PHASE_LABEL[lastSample.phase]?.text ?? lastSample.phase}` : "고른 범위에서 일부만 새 로직으로 돌립니다"}
+              {lastSample && isActive(lastSample)
+                ? "표본을 새 로직으로 돌리는 중…"
+                : lastSample
+                  ? `최근 표본 ${lastSample.parameters.sample}건 · ${PHASE_LABEL[lastSample.phase]?.text ?? lastSample.phase}`
+                  : "고른 범위에서 일부만 새 로직으로 돌립니다"}
             </span>
             <div className="r">
               <span className="rp-tag">{sampleDone ? "전량 실행이 열렸습니다" : "전량은 아직 잠겨 있습니다"}</span>
@@ -252,7 +256,11 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
           <div className="card-h">
             <h3>전량 재분석</h3>
             <span className="sub">
-              {lastFull ? `${PHASE_LABEL[lastFull.phase]?.text ?? lastFull.phase} · ${lastFull.name}` : "고른 범위 전체에 새 로직을 적용합니다"}
+              {lastFull && isActive(lastFull)
+                ? "범위 전체를 다시 분석하는 중…"
+                : lastFull
+                  ? `${PHASE_LABEL[lastFull.phase]?.text ?? lastFull.phase} · ${lastFull.name}`
+                  : "고른 범위 전체에 새 로직을 적용합니다"}
             </span>
             <div className="r">
               <span className="rp-tag">원문 되짚기 키 유지</span>
