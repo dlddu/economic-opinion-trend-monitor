@@ -1919,10 +1919,6 @@ button.norm-toggle {
   }
 }
 
-/* Phone (<=720px) — 1180px rule only folds the sidebar into a 64px icon rail,
-   so at phone width the canvas drops to ~300px and the 12-column grid and the
-   ranking row's fixed tracks squeeze the subject name to one character.
-   Source: docs/mockups/JRN-*.html `@media (max-width:720px)` (6 pages, byte-identical). */
 @media (max-width: 720px) {
   .app {
     grid-template-columns: 1fr;
