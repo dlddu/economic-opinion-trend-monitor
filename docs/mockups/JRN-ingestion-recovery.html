@@ -300,6 +300,51 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
   .col-3,.col-4,.col-5{grid-column:span 6}
   .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
 }
+
+/* —— Phone (≤720px) ——————————————————————————————
+   1180px 규칙은 사이드바를 64px 아이콘 레일로 접을 뿐이라, 폰 폭에서는
+   본문이 ~300px 로 줄어 12컬럼 그리드·랭킹 행의 고정 트랙이 이름 칸을 한 글자 폭으로 짓눌렀다.
+   폰에서는 사이드바를 상단 가로 아이콘 줄로 바꾸고, 카드는 한 줄에 하나(지표 타일만 2열),
+   랭킹 행은 2줄(순위·이름·변화 / 점유율 막대·스파크라인)로 재배치한다. */
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;flex-direction:row;align-items:center}
+  .brand{display:none}
+  .nav{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px 10px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-group{display:flex;align-items:center;gap:2px;margin:0}
+  .nav-group + .nav-group{padding-left:6px;margin-left:4px;border-left:1px solid rgba(255,255,255,.14)}
+  .nav-group > .gl{display:none}
+  .nav-item{width:42px;height:40px;flex:none;padding:0}
+  .nav-item.active::before{left:9px;right:9px;top:auto;bottom:-6px;width:auto;height:3px;
+    border-radius:3px 3px 0 0}
+
+  .topbar{padding:10px 16px;flex-wrap:wrap;row-gap:8px}
+  .topbar .spacer{display:none}
+  .ctl{flex-wrap:wrap}
+  .canvas{padding:16px 14px 48px}
+  .grid{gap:12px}
+  .col-4,.col-5{grid-column:span 12}
+  .card-h{flex-wrap:wrap}
+  .card-h .r{margin-left:0}
+  .metric .mv{font-size:26px}
+
+  .rankrow:not([style]){grid-template-columns:20px minmax(0,1fr) 88px;
+    grid-template-areas:"rk nm dlt" ". share spark";row-gap:7px;column-gap:10px}
+  .rankrow:not([style]) .rk{grid-area:rk}
+  .rankrow:not([style]) .nm{grid-area:nm}
+  .rankrow:not([style]) .share{grid-area:share}
+  .rankrow:not([style]) .spark{grid-area:spark}
+  .rankrow:not([style]) .dlt{grid-area:dlt}
+  .rankrow:not([style]) > .rk ~ .rk{grid-area:spark;font-size:11px}
+  .rankrow .nm{flex-wrap:wrap;gap:2px 6px;min-width:0}
+
+  .card,.card-b{min-width:0}
+  .card-b:has(> table.tbl),.card-b:has(> div > table.tbl),.scrolly{overflow-x:auto}
+  table.tbl th,table.tbl td{padding:8px 8px}
+  .formrow > *{flex:1 1 100%}
+}
 </style>
 <style>
 /* ---- 여정 페이지 전용(JRN-ingestion-recovery) ---- */
