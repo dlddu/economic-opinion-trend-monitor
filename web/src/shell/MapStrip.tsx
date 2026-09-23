@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 // CMP-mapstrip: footer that maps the screen to its journey/value/AC coverage.
 export interface Chip {
   value?: string;
@@ -5,9 +7,9 @@ export interface Chip {
   kind?: "v";
 }
 
-export function MapStrip({ chips }: { chips: Chip[] }) {
+export function MapStrip({ chips, style }: { chips: Chip[]; style?: CSSProperties }) {
   return (
-    <div className="mapstrip">
+    <div className="mapstrip" style={style}>
       <span className="lab">visualizes</span>
       {chips.map((c, i) => (
         <span key={i} className={`chip${c.kind === "v" ? " v" : ""}`}>

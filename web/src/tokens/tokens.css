@@ -229,6 +229,18 @@ a {
   margin-left: auto;
 }
 
+/* 목업 네비 아이콘(`<svg class="ic">`) — 1180px 이하에서는 라벨이 숨고 이것만 남는다. */
+.nav-item .ic {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  opacity: 0.85;
+}
+
+.nav-item.op {
+  color: #a9bacb;
+}
+
 .sidebar-foot {
   padding: 12px 18px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -295,6 +307,27 @@ a {
 
 .topbar .spacer {
   flex: 1;
+}
+
+/* 토프바 조건 슬롯 — 화면이 `useTopbar` 로 올린 pill 을 그린다(목업 `.ctl` · `.pill-ctl`). */
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pill-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  padding: 5px 11px;
+  font-size: 12px;
+  color: var(--ink-2);
+  box-shadow: var(--sh-1);
+  font-weight: 500;
 }
 
 .canvas {
@@ -552,6 +585,23 @@ a {
   font-weight: 400;
 }
 
+/* 순위 행의 변화량은 배경 없는 색 글자다 — `.delta` 칩(배경 pill)을 쓰지 않는다. */
+.rankrow .dlt {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+.rankrow .dlt.up {
+  color: var(--pos);
+}
+.rankrow .dlt.dn {
+  color: var(--neg);
+}
+.rankrow .dlt.fl {
+  color: var(--neu);
+}
+
 .share {
   display: flex;
   align-items: center;
@@ -666,6 +716,19 @@ a {
 .note b {
   color: var(--ink);
   font-weight: 600;
+}
+
+/* note 머리의 안내 아이콘 — 목업 `.note .ic` 그대로. */
+.note .ic {
+  width: 15px;
+  height: 15px;
+  color: var(--accent-2);
+  flex: none;
+  margin-top: 1px;
+}
+
+.note.info .ic {
+  color: var(--primary);
 }
 
 /* ---- CMP-axpill ---- */
@@ -1676,6 +1739,71 @@ button.norm-toggle {
   line-height: 1.7;
 }
 
+/* 빈 창 배너(`STP-open-brief` 의 `#s-empty-window`). 값은 목업 `.banner`·`.banner.warn`·
+   `.banner b` 그대로이고 선택자만 `.dash-` 로 접두한다(규칙 5 대조 규약). */
+.dash-banner {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin-top: 14px;
+}
+
+.dash-banner.warn {
+  background: var(--accent-soft);
+  border: 1px solid var(--line-3);
+  color: var(--ink);
+}
+
+.dash-banner b {
+  font-weight: 700;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-feature-settings: "tnum" 1;
+}
+
+/* 여정 문서 정보 — 목업의 접힌 메타 레이어(`details.meta`) 그대로. */
+details.meta {
+  margin-top: 34px;
+  border-top: 1px solid var(--line-2);
+  padding-top: 12px;
+}
+
+details.meta > summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+  text-transform: uppercase;
+  list-style: none;
+}
+
+details.meta > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.meta > summary::before {
+  content: "▸ ";
+  color: var(--ink-4);
+}
+
+details.meta[open] > summary::before {
+  content: "▾ ";
+}
+
+details.meta .metabody {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
 /* ---- PAT-before-after (reprocess screen) ----
    이 화면만의 선택자는 전부 `.rp-` 아래 둔다 — 목업 인라인 <style> 의 `.tag`·`.muted`·
    `.emptybox`·`.fld` 를 빌리지 않는다(규칙 5 대조 규약). */
@@ -1981,6 +2109,9 @@ button.norm-toggle {
   }
   .topbar .spacer {
     display: none;
+  }
+  .ctl {
+    flex-wrap: wrap;
   }
   .canvas {
     padding: 16px 14px 48px;

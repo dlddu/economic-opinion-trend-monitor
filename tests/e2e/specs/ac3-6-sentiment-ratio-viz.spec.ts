@@ -14,6 +14,10 @@
 // 같은지, 그리고 전체 바가 100%를 이루는지를 본다 — 스케일 상수를 몰라도 성립하는
 // 성질이다.
 //
+// 그리는 화면은 `sentiment`(JRN-sentiment-shift)다. 대시보드는 목업 `JRN-daily-scan` 화면 1 에
+// 맞추며 분위기 막대를 걷어냈고(그 화면이 그리는 것은 지표·조회 조건·순위뿐이다), AC3.6 의
+// 분위기 시각화는 축별 막대와 도넛 수치로 이 화면이 맡는다.
+//
 // 단언하지 않는 것: 분위기 분포를 만들어내는 집계 로직 자체(AC3.4)와 미분석 분리
 // 규칙의 정합성(AC3.4). 여기서 미분석 값은 스케일과 무관한 대조군으로만 쓴다.
 
@@ -35,12 +39,21 @@ async function renderedWidth(
   return Number.parseFloat(raw);
 }
 
-test("web: sentiment bar mirrors the aggregated distribution", async ({ page, request }) => {
-  const api = await (await request.get("/api/dashboard?axis=KR")).json();
-  const agg: Record<string, number> = api.sentiment;
+/** 서빙이 KR 축에 내려준 분위기 집계값. */
+async function krDistribution(
+  request: import("@playwright/test").APIRequestContext,
+): Promise<Record<string, number>> {
+  const api = await (await request.get("/api/sentiment?axis=KR")).json();
+  const row = api.by_axis.find((r: { axis: string }) => r.axis === "KR");
+  expect(row?.present, "KR 축 분위기 집계가 응답에 없음").toBe(true);
+  return row.distribution;
+}
 
-  await page.goto("/");
-  const bar = page.locator(".sentbar");
+test("web: sentiment bar mirrors the aggregated distribution", async ({ page, request }) => {
+  const agg = await krDistribution(request);
+
+  await page.goto("/sentiment");
+  const bar = page.locator('.sent-axisrow[data-axis="KR"] .sentbar');
   await expect(bar).toBeVisible();
 
   const widths: Record<string, number> = {};
@@ -69,24 +82,23 @@ test("web: sentiment bar mirrors the aggregated distribution", async ({ page, re
   expect(renderedAnalyzed + unanalyzedWidth).toBeCloseTo(100, 1);
 });
 
-test("web: sentiment legend labels every class with its rendered share", async ({ page }) => {
-  await page.goto("/");
-  const bar = page.locator(".sentbar");
-  const legend = page.locator(".legend").first();
-  await expect(legend).toBeVisible();
+test("web: sentiment figures label every class with its aggregated share", async ({
+  page,
+  request,
+}) => {
+  const agg = await krDistribution(request);
 
-  const legendText = (await legend.textContent()) ?? "";
+  await page.goto("/sentiment");
+  const kv = page.locator(".sent-donut-kv");
+  await expect(kv).toBeVisible();
 
-  // 범례가 말하는 수치와 실제로 그려진 폭이 어긋나지 않는다. 범례는 정수로
-  // 반올림해 표기하므로 폭과 1%p 이내면 같은 값을 말하는 것으로 본다 —
-  // 문자열을 그대로 맞추면 두 번 반올림한 경계값에서 헛되이 깨진다.
-  for (const seg of [...SEGMENTS, { cls: "s-na", key: "unanalyzed", label: "미분석" }]) {
-    const width = await renderedWidth(bar, seg.cls);
-    const shown = new RegExp(`${seg.label}\\s+(\\d+)%`).exec(legendText);
-    expect(shown, `범례에 "${seg.label} N%" 항목이 없음 (범례: ${legendText})`).not.toBeNull();
-    expect(
-      Math.abs(Number(shown![1]) - width),
-      `${seg.label} 범례 수치(${shown![1]}%)가 그려진 폭(${width}%)과 어긋남`,
-    ).toBeLessThanOrEqual(1);
+  // 도넛 옆 수치는 분석 완료분 기준 비율이고, 미분석은 전체 대비로 따로 적힌다 —
+  // 두 기준이 섞이지 않았는지까지 집계값과 대조한다.
+  for (const seg of SEGMENTS) {
+    const shown = kv.locator(`.v[data-cls="${seg.cls}"]`);
+    await expect(shown, `${seg.label} 수치가 집계값과 어긋남`).toHaveText(
+      `${(agg[seg.key] * 100).toFixed(1)}%`,
+    );
   }
+  await expect(page.locator(".sent-na b")).toHaveText(`${(agg.unanalyzed * 100).toFixed(1)}%`);
 });
