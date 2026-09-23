@@ -100,5 +100,8 @@ test("web: sentiment figures label every class with its aggregated share", async
       `${(agg[seg.key] * 100).toFixed(1)}%`,
     );
   }
-  await expect(page.locator(".sent-na b")).toHaveText(`${(agg.unanalyzed * 100).toFixed(1)}%`);
+  // `.sent-na` 의 첫 <b> 가 미분석 비율이다(둘째 <b> 는 해설 문구 「분석 완료분」).
+  await expect(page.locator(".sent-na b").first()).toHaveText(
+    `${(agg.unanalyzed * 100).toFixed(1)}%`,
+  );
 });
