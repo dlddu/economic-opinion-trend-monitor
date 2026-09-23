@@ -3,3 +3,8 @@
 {"subject":"E2E 미국 축 서브젝트","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":9,"normalized_share":0.2,"delta":0.0,"spark":[0.18,0.19,0.2]}
 {"subject":"E2E 전세계 축 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":25,"normalized_share":0.27,"delta":1.1,"spark":[0.21,0.24,0.27]}
 {"subject":"E2E 전세계 보조 서브젝트","axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":6,"normalized_share":0.08,"delta":-0.3,"spark":[0.1,0.09,0.08]}
+{"subject":"E2E 검증 서브젝트","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":42,"normalized_share":0.31,"delta":0.0,"spark":[0.31]}
+{"subject":"E2E 보조 서브젝트","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":17,"normalized_share":0.12,"delta":0.0,"spark":[0.12]}
+{"subject":"E2E 미국 축 서브젝트","axis":"US","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":9,"normalized_share":0.2,"delta":0.0,"spark":[0.2]}
+{"subject":"E2E 전세계 축 서브젝트","axis":"GLOBAL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":25,"normalized_share":0.27,"delta":0.0,"spark":[0.27]}
+{"subject":"E2E 전세계 보조 서브젝트","axis":"GLOBAL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":6,"normalized_share":0.08,"delta":0.0,"spark":[0.08]}

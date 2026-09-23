@@ -11,7 +11,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
 	"time"
@@ -55,12 +54,6 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)   // STP-dry-run
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)         // STP-run-reprocess
 	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish) // STP-publish
-}
-
-type metric struct {
-	Label string `json:"label"`
-	Value string `json:"value"`
-	Note  string `json:"note"`
 }
 
 type rankRow struct {
@@ -278,45 +271,8 @@ type traceResponse struct {
 	Ingestion traceIngestion   `json:"ingestion"`
 }
 
-type dashboardResponse struct {
-	Axis        string                    `json:"axis"`
-	Normalized  bool                      `json:"normalized"`
-	Metrics     []metric                  `json:"metrics"`
-	TopSubjects []rankRow                 `json:"top_subjects"`
-	Sentiment   gen.SentimentDistribution `json:"sentiment"`
-}
-
 func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
-	axis := axisParam(r, "KR")
-	trends, _ := h.lake.SubjectTrends()
-	sentiments, _ := h.lake.AxisSentiments()
-	trends, sentiments = inOneUnit(trends, sentiments)
-
-	top := topSubjects(trends, axis, 8)
-	dist := sentimentFor(sentiments, axis)
-
-	var rawTotal int64
-	for _, row := range top {
-		rawTotal += row.RawCount
-	}
-	completion := (1 - dist.Unanalyzed) * 100
-
-	writeJSON(w, http.StatusOK, dashboardResponse{
-		Axis:       axis,
-		Normalized: true,
-		Metrics: []metric{
-			{Label: "수집 뉴스 (현재 버킷)", Value: fmt.Sprintf("%d", rawTotal), Note: "원시 카운트 합"},
-			{Label: "추적 서술 대상", Value: fmt.Sprintf("%d", len(top)), Note: "표기변형 통합 키"},
-			{Label: "분석 완료율", Value: fmt.Sprintf("%.1f %%", completion), Note: "저신뢰·미분석 분리"},
-			{Label: "정규화 기준", Value: "소스 내 점유율", Note: "share-normalized"},
-		},
-		TopSubjects: top,
-		Sentiment:   dist,
-	})
 }
 
 // trend answers AC3.5: one subject's interest over time, with the axis's
@@ -728,42 +684,6 @@ func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
 		present[t.BucketUnit] = true
 	}
 	return finestUnit(present)
-}
-
-// inOneUnit settles both Gold datasets on the finest unit they share, for the
-// readers that take Gold flat instead of walking a series.
-//
-// The dashboard is the one that needs it. It ranks and counts over every row it
-// is handed, so once the aggregation emits rollups (AC3.3) the same subject
-// arrives three times — hour, day and week — and a card that adds them up is
-// counting the same records three times over. One unit is settled across both
-// datasets rather than per dataset, so the ranking and the sentiment card
-// describe the same slice of Gold.
-func inOneUnit(
-	trends []gen.SubjectTrend, sentiments []gen.AxisSentiment,
-) ([]gen.SubjectTrend, []gen.AxisSentiment) {
-	present := make(map[gen.BucketUnit]bool, 3)
-	for _, t := range trends {
-		present[t.BucketUnit] = true
-	}
-	for _, s := range sentiments {
-		present[s.BucketUnit] = true
-	}
-	unit := finestUnit(present)
-
-	keptTrends := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if t.BucketUnit == unit {
-			keptTrends = append(keptTrends, t)
-		}
-	}
-	keptSentiments := make([]gen.AxisSentiment, 0, len(sentiments))
-	for _, s := range sentiments {
-		if s.BucketUnit == unit {
-			keptSentiments = append(keptSentiments, s)
-		}
-	}
-	return keptTrends, keptSentiments
 }
 
 // finestUnit ranks the units rather than the bucket keys — the one comparison

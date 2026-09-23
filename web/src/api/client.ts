@@ -4,8 +4,10 @@
 
 import type {
   Axis,
+  BucketUnit,
   CompareResponse,
   DashboardResponse,
+  DashRange,
   FairnessResponse,
   ReprocessPublish,
   ReprocessResponse,
@@ -48,7 +50,8 @@ export async function postJSON<T>(path: string, body: unknown): Promise<T> {
 
 export const api = {
   health: () => getJSON<{ status: string }>("/health"),
-  dashboard: (axis: Axis = "KR") => getJSON<DashboardResponse>(`/dashboard?axis=${axis}`),
+  dashboard: (axis: Axis = "KR", range: DashRange = "7d", unit: BucketUnit = "day") =>
+    getJSON<DashboardResponse>(`/dashboard?axis=${axis}&range=${range}&unit=${unit}`),
   compare: () => getJSON<CompareResponse>("/compare"),
   // subject is optional: without it the API selects the leading subject, so the
   // screen never has to guess a name before it has seen the data.
