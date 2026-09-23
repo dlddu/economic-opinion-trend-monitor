@@ -51,7 +51,7 @@ from typing import Protocol
 
 from econ_core.models import SENTIMENT_VALUES, Analysis
 
-from econ_analysis.fake_llm import normalize_subject
+from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
 
 ANALYZER_VERSION = "llm-v1"
 
@@ -64,13 +64,64 @@ _SYSTEM_PROMPT = (
     "target_countries (array of country names the article is economically about; "
     'use ["GLOBAL"] for issues not tied to a specific country; may hold several), '
     "narrative_subjects (array of the core subjects — people, firms, institutions, "
-    "policies, goods, issues — as normalized canonical names so surface variants unify), "
+    "policies, goods, issues — as normalized canonical names so surface variants unify; "
+    "write every subject in Korean as Korean financial press names it, whatever the "
+    "article's language, e.g. 연준 not Federal Reserve, 엔비디아 not Nvidia, 삼성전자 not "
+    "Samsung Electronics; keep Latin letters only where Korean press does, e.g. S&P 500, AI), "
     "sentiment (exactly one of positive/neutral/negative/mixed; use mixed when opposing "
     "tones coexist and neutral when no tone shows), analyzable (false when the body is too "
     "thin or the judgement is genuinely uncertain), and confidence (0.0-1.0). "
     'Reply shape: {"target_countries":[],"narrative_subjects":[],'
     '"sentiment":"neutral","analyzable":true,"confidence":0.0}'
 )
+
+
+#: Korean names for the known catalog's non-Korean keys; the fake catalog stays as-is.
+_KOREAN_NAMES = {
+    "Federal Reserve": "연준",
+    "Nvidia": "엔비디아",
+    "US CPI": "미국 소비자물가지수",
+    "AI 반도체 capex": "AI 반도체 설비투자",
+}
+
+_EXTRA_ALIASES = {
+    "the fed": "연준",
+    "미 연준": "연준",
+    "미국 연준": "연준",
+    "연방준비제도": "연준",
+    "미국 연방준비제도": "연준",
+    "미국 cpi": "미국 소비자물가지수",
+    "미국 소비자물가": "미국 소비자물가지수",
+}
+
+
+def _fold(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def _build_canonical() -> dict[str, str]:
+    table: dict[str, str] = {}
+    for subject in KNOWN_SUBJECTS:
+        korean = _KOREAN_NAMES.get(subject, subject)
+        table[_fold(subject)] = korean
+        table[_fold(korean)] = korean
+    for alias, subject in ALIASES.items():
+        table[_fold(alias)] = _KOREAN_NAMES.get(subject, subject)
+    for alias, korean in _EXTRA_ALIASES.items():
+        table[_fold(alias)] = korean
+    return table
+
+
+_CANONICAL = _build_canonical()
+
+
+def canonical_subject(text: str) -> str:
+    """Fold a model-supplied subject onto its catalog key when it *is* a known variant.
+
+    Whole-name match only: a substring match would fold 미국 기준금리 into 한국은행
+    기준금리 or 삼성SDI into 삼성전자. Unknown subjects are returned unchanged (AC2.2).
+    """
+    return _CANONICAL.get(_fold(text), text)
 
 
 class Completer(Protocol):
@@ -278,8 +329,7 @@ def analyze_llm(
         confidence = 0.0
     confidence = min(1.0, max(0.0, confidence))
 
-    # Unify surface variants against the known catalog, keep novel subjects as-is (AC2.2).
-    subjects = [normalize_subject(s) or s for s in _clean_list(parsed.get("narrative_subjects"))]
+    subjects = [canonical_subject(s) for s in _clean_list(parsed.get("narrative_subjects"))]
     status = "analyzed" if confidence >= _LOW_CONFIDENCE else "low_confidence"
     return Analysis(
         target_countries=_clean_list(parsed.get("target_countries")),  # AC2.1, multi (AC2.4)

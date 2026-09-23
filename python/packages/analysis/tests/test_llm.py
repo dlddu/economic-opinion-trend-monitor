@@ -320,3 +320,35 @@ def test_unparseable_cached_reply_falls_back_to_the_model() -> None:
     )
     assert (stats.attempted, stats.reused, len(calls)) == (1, 0, 1)
     assert records[0]["sentiment"] == "negative"
+
+
+def test_prompt_asks_for_korean_subjects() -> None:
+    assert "Korean" in _SYSTEM_PROMPT
+    assert "연준 not Federal Reserve" in _SYSTEM_PROMPT
+
+
+@pytest.mark.parametrize(
+    ("surface", "canonical"),
+    [
+        ("Fed", "연준"),
+        ("Federal Reserve", "연준"),
+        ("미 연준", "연준"),
+        ("NVIDIA", "엔비디아"),
+        ("US CPI", "미국 소비자물가지수"),
+        ("AI 반도체 capex", "AI 반도체 설비투자"),
+        ("samsung", "삼성전자"),
+        ("기준금리", "한국은행 기준금리"),
+    ],
+)
+def test_catalog_variants_fold_to_korean_key(surface: str, canonical: str) -> None:
+    c = _completer(_reply(narrative_subjects=[surface]))
+    assert analyze_llm(_bronze(), "body", c).narrative_subjects == [canonical]
+
+
+@pytest.mark.parametrize(
+    "subject", ["미국 기준금리", "엔/달러 환율", "삼성SDI", "삼성바이오로직스"]
+)
+def test_subject_containing_an_alias_is_not_folded(subject: str) -> None:
+    # Substring folding would merge these into 한국은행 기준금리 / 원/달러 환율 / 삼성전자.
+    c = _completer(_reply(narrative_subjects=[subject]))
+    assert analyze_llm(_bronze(), "body", c).narrative_subjects == [subject]
