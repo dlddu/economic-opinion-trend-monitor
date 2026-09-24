@@ -33,6 +33,14 @@ from econ_ingestion.feeds import (
 from econ_ingestion.sources import run_ingestion
 
 
+def _cycle(value: str) -> str:
+    try:
+        domain.parse_cycle(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    return value
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="econ-ingestion",
@@ -46,6 +54,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--cycle",
+        type=_cycle,
         default=None,
         help="Collection cycle id, e.g. 2026-06-23T14:00 (default: current UTC hour).",
     )
@@ -90,15 +99,24 @@ def main(argv: list[str] | None = None) -> int:
         items, bodies, stats = run_ingestion(cycle, collected_at)
 
     store = open_store(args.data)
-    written = store.write_records(domain.BRONZE, domain.DS_NEWS_ITEM, items)
+    migrated_items = store.migrate_records_to_partitions(
+        domain.BRONZE,
+        domain.DS_NEWS_ITEM,
+        lambda item: domain.news_item_partition(item["collection_cycle"]),
+    )
+    if migrated_items:
+        print(f"ingestion: migrated {migrated_items} legacy observations into cycle partitions")
     migrated = store.migrate_records_to_objects(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash")
     if migrated:
         print(f"ingestion: migrated {migrated} legacy bodies into the object layout")
+
+    partition, part = domain.news_item_partition(cycle)
+    written = store.write_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition, part, items)
     new_bodies = sum(
         store.put_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", body) for body in bodies
     )
 
-    target = store.path(domain.BRONZE, domain.DS_NEWS_ITEM)
+    target = store.partition_path(domain.BRONZE, domain.DS_NEWS_ITEM, partition, part)
     body_target = store.object_dir(domain.BRONZE, domain.DS_NEWS_BODY)
     print(f"ingestion[{args.source}]: wrote {written} bronze records -> {target}")
     print(f"  bodies: {new_bodies} new / {len(bodies) - new_bodies} deduplicated -> {body_target}")

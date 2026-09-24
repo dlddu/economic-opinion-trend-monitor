@@ -8,15 +8,22 @@ offline tests network-free. The default was cut over to the real model once the
 analyzer had landed and been exercised, mirroring the ingestion feed cutover.
 
 Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`).
-A whole-lake run — no scope arguments, the hourly pipeline — re-analyzes every Bronze
-record and *updates* Silver in place (AC2.6: the re-analysed batch carries the new
-version, tracking keys intact), retiring the versions it supersedes except the one a
-recorded publish decision serves. A *scoped* run (``--since``/``--axis``/``--source``/
-``--sample``) is the reprocess path of JRN-logic-backfill: it analyzes only the
-selected Bronze, lands its rows *beside* the existing versions (that coexistence is
-what the console compares and what a rollback returns to), skips records already at
-the target version, and writes after every ``--batch-size`` records, so an
-interrupted run resumes from its checkpoint instead of starting over.
+A whole-lake run — no scope arguments, the hourly pipeline — analyzes every Bronze
+record not yet settled at the target version and *updates* Silver in place (AC2.6: the
+re-analysed batch carries the new version, tracking keys intact), retiring the versions
+it supersedes except the one a recorded publish decision serves. Bronze keeps every
+cycle, so "settled" is what keeps the hourly run proportional to the new cycle rather
+than to the whole history: a row at the target version counts as settled unless it is
+``unanalyzed`` with a body to analyze (a failed call is retried next hour; a bodyless
+record never gains one). Re-analysing history is therefore a version bump, never a
+prompt or model change alone.
+
+A *scoped* run (``--since``/``--axis``/``--source``/``--sample``) is the reprocess
+path of JRN-logic-backfill: it analyzes only the selected Bronze, lands its rows
+*beside* the existing versions (that coexistence is what the console compares and
+what a rollback returns to), skips records already at the target version, and writes
+after every ``--batch-size`` records, so an interrupted run resumes from its
+checkpoint instead of starting over.
 
 The real analyzer never lets an operator error masquerade as analysis output, because
 ``unanalyzed`` is a data-quality signal downstream aggregation separates on (AC2.5,
@@ -149,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         version = args.analyzer_version or fake_llm.ANALYZER_VERSION
 
     store = open_store(args.data)
-    bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
+    bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
     bodies: dict[str, str] = {}
     for item in bronze:
         key = item["body_hash"]
@@ -160,17 +167,26 @@ def main(argv: list[str] | None = None) -> int:
     bronze_ids = [item["record_id"] for item in bronze]
 
     scoped = _scoped(args)
-    todo = _select_scope(bronze, args) if scoped else list(bronze)
-    skipped = 0
+    at_version = [
+        row
+        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
+        if row["analyzer_version"] == version
+    ]
     if scoped:
+        todo = _select_scope(bronze, args)
+        done = {row["record_id"] for row in at_version}
+    else:
+        todo = list(bronze)
+        bodyless = {item["record_id"] for item in bronze if not item["body_hash"]}
         done = {
             row["record_id"]
-            for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
-            if row["analyzer_version"] == version
+            for row in at_version
+            if row["analysis_status"] != "unanalyzed" or row["record_id"] in bodyless
         }
-        selected = len(todo)
-        todo = [item for item in todo if item["record_id"] not in done]
-        skipped = selected - len(todo)
+    selected = len(todo)
+    todo = [item for item in todo if item["record_id"] not in done]
+    skipped = selected - len(todo)
+    if scoped:
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
 
     stats = llm.AnalysisStats() if completer is not None else None
@@ -230,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"  silver now {written} rows ({'coexisting' if scoped else 'in place'}, pruned={pruned})"
     )
+    if not scoped:
+        print(f"  settled_already_at_version={skipped}")
     if scoped:
         print(
             f"  scope: since={args.since or '-'} axis={args.axis or '-'} "

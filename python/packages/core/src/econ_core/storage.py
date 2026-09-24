@@ -1,9 +1,12 @@
 """Storage abstraction over the medallion data lake.
 
-The skeleton ships a local-filesystem implementation with two dataset shapes:
+The skeleton ships a local-filesystem implementation with three dataset shapes:
 
 - **record datasets** — one JSONL file per dataset (one JSON object per line),
   read and replaced/merged as a whole;
+- **partitioned datasets** — JSONL part files under Hive-style ``key=value``
+  directories, each part replaced on its own, so writing one slice (a collection
+  cycle) leaves every other slice untouched;
 - **object datasets** — one file per record, addressed by a key field and laid
   out in Hive-style partitions on the key's first characters, so a record is
   written, checked and read without touching the rest of the dataset.
@@ -22,7 +25,7 @@ from __future__ import annotations
 import json
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
 #: Characters of the key that name an object's partition. Changing it is a pure
@@ -47,6 +50,37 @@ class LakeStore(ABC):
 
         Idempotent by key: re-merging a stored key is a no-op, a new key appends
         without touching existing records. Returns the count actually appended.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_partition(
+        self,
+        layer: str,
+        dataset: str,
+        partition: Mapping[str, str],
+        part: str,
+        records: Iterable[dict],
+    ) -> int:
+        """Replace one part of a partitioned dataset with ``records``; return count written."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_partitions(self, layer: str, dataset: str) -> list[dict]:
+        """Return every record of a partitioned dataset, parts in path order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def migrate_records_to_partitions(
+        self,
+        layer: str,
+        dataset: str,
+        locate: Callable[[dict], tuple[Mapping[str, str], str]],
+    ) -> int:
+        """Move a legacy record dataset of the same name into partitions.
+
+        ``locate`` maps a record to its ``(partition, part)``. A no-op once
+        migrated. Returns the count of records moved.
         """
         raise NotImplementedError
 
@@ -85,7 +119,7 @@ class LakeStore(ABC):
 
 
 def _check_key(key: str) -> None:
-    if not key or key.startswith(".") or "/" in key or "\\" in key:
+    if not key or key.startswith(".") or any(c in key for c in "/\\="):
         raise ValueError(f"object key {key!r} is not usable as a file name")
 
 
@@ -133,6 +167,69 @@ class LocalFsStore(LakeStore):
                 fh.write("\n")
                 added += 1
         return added
+
+    def partition_path(
+        self, layer: str, dataset: str, partition: Mapping[str, str], part: str
+    ) -> Path:
+        target = self.root / layer / dataset
+        for column, value in partition.items():
+            _check_key(value)
+            target /= f"{column}={value}"
+        _check_key(part)
+        return target / f"{part}.jsonl"
+
+    def write_partition(
+        self,
+        layer: str,
+        dataset: str,
+        partition: Mapping[str, str],
+        part: str,
+        records: Iterable[dict],
+    ) -> int:
+        target = self.partition_path(layer, dataset, partition, part)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+        count = 0
+        with staging.open("w", encoding="utf-8") as fh:
+            for record in records:
+                fh.write(json.dumps(record, ensure_ascii=False))
+                fh.write("\n")
+                count += 1
+        os.replace(staging, target)
+        return count
+
+    def read_partitions(self, layer: str, dataset: str) -> list[dict]:
+        root = self.root / layer / dataset
+        if not root.is_dir():
+            return []
+        records: list[dict] = []
+        for part in sorted(root.rglob("*.jsonl")):
+            if part.name.startswith("."):
+                continue
+            with part.open(encoding="utf-8") as fh:
+                records.extend(json.loads(line) for line in fh if line.strip())
+        return records
+
+    def migrate_records_to_partitions(
+        self,
+        layer: str,
+        dataset: str,
+        locate: Callable[[dict], tuple[Mapping[str, str], str]],
+    ) -> int:
+        legacy = self.path(layer, dataset)
+        if not legacy.exists():
+            return 0
+        groups: dict[Path, tuple[Mapping[str, str], str, list[dict]]] = {}
+        for record in self.read_records(layer, dataset):
+            partition, part = locate(record)
+            key = self.partition_path(layer, dataset, partition, part)
+            groups.setdefault(key, (partition, part, []))[2].append(record)
+        moved = sum(
+            self.write_partition(layer, dataset, partition, part, records)
+            for partition, part, records in groups.values()
+        )
+        legacy.replace(legacy.with_name(f"{legacy.name}.migrated"))
+        return moved
 
     def object_dir(self, layer: str, dataset: str) -> Path:
         return self.root / layer / dataset

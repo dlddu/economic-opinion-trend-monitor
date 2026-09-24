@@ -66,7 +66,7 @@ func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 // Silver analysis carries, which is what makes the lineage join possible at all
 // (AC2.6).
 func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
-	return readJSONL[gen.NewsItem](l.path("bronze", "news_item"))
+	return readPartitions[gen.NewsItem](filepath.Join(l.Root, "bronze", "news_item"))
 }
 
 // NewsBody reads one version from the Bronze news_body object dataset by its
@@ -112,6 +112,27 @@ type ReprocessDecision struct {
 // (empty if absent — no decision ever recorded).
 func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
 	return readJSONL[ReprocessDecision](l.path("silver", "reprocess_decision"))
+}
+
+// readPartitions decodes every part file of a Hive-partitioned dataset, in
+// path order (econ_core.storage.LocalFsStore.read_partitions).
+func readPartitions[T any](root string) ([]T, error) {
+	parts, err := filepath.Glob(filepath.Join(root, "*=*", "*.jsonl"))
+	if err != nil {
+		return nil, err
+	}
+	var out []T
+	for _, part := range parts {
+		if strings.HasPrefix(filepath.Base(part), ".") {
+			continue
+		}
+		recs, err := readJSONL[T](part)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, recs...)
+	}
+	return out, nil
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an

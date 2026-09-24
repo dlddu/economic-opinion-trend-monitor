@@ -3,6 +3,7 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -60,9 +61,12 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		`"narrative_subjects":["한국은행 기준금리"],"sentiment":"neutral","analysis_status":"analyzed",` +
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 	for _, f := range []struct{ layer, name, content string }{
-		{"bronze", "news_item", item},
+		{"bronze/news_item/collection_date=2026-06-23", "2026-06-23T1400", item},
 		{"silver", "analysis", analysis},
 	} {
+		if err := os.MkdirAll(filepath.Join(dir, f.layer), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		p := filepath.Join(dir, f.layer, f.name+".jsonl")
 		if err := os.WriteFile(p, []byte(f.content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
@@ -159,5 +163,33 @@ func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
 	analyses, err := lake.Analyses()
 	if err != nil || len(analyses) != 0 {
 		t.Errorf("Analyses on an empty lake: %v / %d", err, len(analyses))
+	}
+}
+
+func TestNewsItemsReadEveryCyclePartitionInOrder(t *testing.T) {
+	dir := t.TempDir()
+	write := func(rel, content string) {
+		p := filepath.Join(dir, "bronze", "news_item", rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("collection_date=2026-06-24/2026-06-24T0000.jsonl", `{"record_id":"c"}`)
+	write("collection_date=2026-06-23/2026-06-23T2300.jsonl", `{"record_id":"a"}`+"\n"+`{"record_id":"b"}`)
+	write("collection_date=2026-06-24/.2026-06-24T0100.jsonl.1.tmp", `{"record_id":"half-written"}`)
+
+	items, err := New(dir).NewsItems()
+	if err != nil {
+		t.Fatalf("NewsItems: %v", err)
+	}
+	var got []string
+	for _, it := range items {
+		got = append(got, it.RecordID)
+	}
+	if strings.Join(got, ",") != "a,b,c" {
+		t.Fatalf("records = %v, want a,b,c in partition order", got)
 	}
 }

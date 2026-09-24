@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
             f"at {decision['decided_at']} -> {log_path}"
         )
 
-    bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
+    bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
     all_silver = store.read_records(domain.SILVER, domain.DS_ANALYSIS)
     serving = silver.serving_version(store)
     chosen = silver.select_serving(all_silver, serving)

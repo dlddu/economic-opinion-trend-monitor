@@ -104,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     source = open_store(args.source)
-    bronze = source.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
+    bronze = source.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
     silver = source.read_records(domain.SILVER, domain.DS_ANALYSIS)
     if not bronze or not silver:
         print(
@@ -135,7 +135,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     target = open_store(args.target)
-    n_bronze = target.write_records(domain.BRONZE, domain.DS_NEWS_ITEM, shifted)
+    by_cycle: dict[str, list[dict]] = defaultdict(list)
+    for item in shifted:
+        by_cycle[item["collection_cycle"]].append(item)
+    n_bronze = sum(
+        target.write_partition(
+            domain.BRONZE, domain.DS_NEWS_ITEM, *domain.news_item_partition(cycle), items
+        )
+        for cycle, items in by_cycle.items()
+    )
     # Silver 는 그대로 — 조인 키(`record_id`)도 라벨도 파이프라인이 쓴 값이다.
     n_silver = target.write_records(domain.SILVER, domain.DS_ANALYSIS, silver)
 

@@ -11,15 +11,14 @@ from pathlib import Path
 
 import pytest
 from econ_analysis import cli, llm
-from econ_core import LocalFsStore
+from econ_core import LocalFsStore, domain
 
 CYCLE = "2026-06-23T14:00"
+NEXT_CYCLE = "2026-06-23T15:00"
 
 
 def _seed_lake(root: Path, bodies_available: bool = True) -> None:
     """Write a two-item Bronze layer (plus its content-addressed bodies)."""
-    bronze = root / "bronze"
-    bronze.mkdir(parents=True, exist_ok=True)
     items = [
         {
             "record_id": f"r{n}",
@@ -36,7 +35,7 @@ def _seed_lake(root: Path, bodies_available: bool = True) -> None:
         }
         for n in (1, 2)
     ]
-    _write_jsonl(bronze / "news_item.jsonl", items)
+    _write_items(root, items)
     store = LocalFsStore(root)
     for n in (1, 2):
         store.put_object(
@@ -49,6 +48,16 @@ def _seed_lake(root: Path, bodies_available: bool = True) -> None:
                 "first_seen_at": "2026-06-23T14:00:00+00:00",
                 "first_seen_cycle": CYCLE,
             },
+        )
+
+
+def _write_items(root: Path, items: list[dict]) -> None:
+    by_cycle: dict[str, list[dict]] = {}
+    for item in items:
+        by_cycle.setdefault(item["collection_cycle"], []).append(item)
+    for cycle, cycle_items in by_cycle.items():
+        LocalFsStore(root).write_partition(
+            "bronze", "news_item", *domain.news_item_partition(cycle), cycle_items
         )
 
 
@@ -157,7 +166,7 @@ def test_llm_bodyless_batch_writes_without_calling_the_model(
 def test_second_run_reuses_stored_replies(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # The hourly cycle re-observes the same articles: the second run must not re-ask.
+    # The next cycle re-observes the same articles: its new records must not re-ask.
     _seed_lake(tmp_path)
     reply = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
     monkeypatch.setattr(llm, "http_completer", _canned(reply))
@@ -166,15 +175,22 @@ def test_second_run_reuses_stored_replies(
     cache = (tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()
     assert len(cache) == 2
 
+    _write_items(
+        tmp_path,
+        [
+            {**item, "record_id": f"{item['record_id']}-next", "collection_cycle": NEXT_CYCLE}
+            for item in _bronze_rows(tmp_path)
+        ],
+    )
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
-    assert "attempted=0 failed=0 reused=2" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "attempted=0 failed=0 reused=2" in out
+    assert "settled_already_at_version=2" in out
     assert len((tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()) == 2
 
 
 def _bronze_rows(root: Path) -> list[dict]:
-    return [
-        json.loads(line) for line in (root / "bronze" / "news_item.jsonl").read_text().splitlines()
-    ]
+    return LocalFsStore(root).read_partitions("bronze", "news_item")
 
 
 def _silver_rows(root: Path) -> list[dict]:
@@ -299,7 +315,42 @@ def test_failed_batch_keeps_the_checkpoint_of_earlier_batches(
 def test_silver_rows_bronze_no_longer_holds_are_pruned(tmp_path: Path) -> None:
     _seed_lake(tmp_path)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
-    bronze = [b for b in _bronze_rows(tmp_path) if b["record_id"] == "r1"]
-    _write_jsonl(tmp_path / "bronze" / "news_item.jsonl", bronze)
+    _write_items(tmp_path, [b for b in _bronze_rows(tmp_path) if b["record_id"] == "r1"])
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     assert [r["record_id"] for r in _silver_rows(tmp_path)] == ["r1"]
+
+
+def test_whole_lake_run_skips_settled_records_and_retries_unanalyzed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Bronze keeps every cycle, so an unchanged version must not re-walk the history —
+    # but a record left unanalyzed by a failed call is picked up again.
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    replies = iter([good, "not json"])
+    monkeypatch.setattr(
+        llm, "http_completer", lambda *_a, **_k: lambda _system, _user: next(replies)
+    )
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    status = {r["record_id"]: r["analysis_status"] for r in _silver_rows(tmp_path)}
+    assert sorted(status.values()) == ["analyzed", "unanalyzed"]
+    capsys.readouterr()
+
+    monkeypatch.setattr(llm, "http_completer", _canned(good))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 1 silver records" in out
+    assert "settled_already_at_version=1" in out
+    assert {r["analysis_status"] for r in _silver_rows(tmp_path)} == {"analyzed"}
+
+
+def test_whole_lake_run_does_not_revisit_bodyless_records(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _seed_lake(tmp_path, bodies_available=False)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    capsys.readouterr()
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 0 silver records" in out
+    assert "settled_already_at_version=2" in out

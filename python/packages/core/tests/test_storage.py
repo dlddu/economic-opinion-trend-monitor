@@ -3,7 +3,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from econ_core import LocalFsStore
+from econ_core import LocalFsStore, domain
 from econ_core.models import NewsBody, NewsItem, SubjectTrend
 
 
@@ -112,3 +112,33 @@ def test_generated_model_roundtrip() -> None:
         spark=[0.1, 0.2],
     )
     assert SubjectTrend.from_dict(asdict(trend)) == trend
+
+
+def test_partition_part_is_replaced_alone_and_read_in_path_order(tmp_path: Path) -> None:
+    store = LocalFsStore(tmp_path)
+    day1, day2 = {"collection_date": "2026-06-23"}, {"collection_date": "2026-06-24"}
+    store.write_partition("bronze", "news_item", day2, "0100", [{"id": "c"}])
+    store.write_partition("bronze", "news_item", day1, "2300", [{"id": "a"}, {"id": "b"}])
+    store.write_partition("bronze", "news_item", day1, "2300", [{"id": "b2"}])
+
+    assert (tmp_path / "bronze/news_item/collection_date=2026-06-23/2300.jsonl").is_file()
+    assert store.read_partitions("bronze", "news_item") == [{"id": "b2"}, {"id": "c"}]
+    assert store.read_partitions("bronze", "missing") == []
+    assert not list((tmp_path / "bronze/news_item").rglob(".*"))
+
+
+def test_partition_values_must_be_plain_path_segments(tmp_path: Path) -> None:
+    store = LocalFsStore(tmp_path)
+    for partition, part in (({"d": "a/b"}, "p"), ({"d": "x=y"}, "p"), ({"d": "ok"}, "../p")):
+        with pytest.raises(ValueError):
+            store.write_partition("bronze", "news_item", partition, part, [])
+
+
+def test_domain_cycle_partition_is_exact() -> None:
+    assert domain.news_item_partition("2026-06-23T14:00") == (
+        {"collection_date": "2026-06-23"},
+        "2026-06-23T1400",
+    )
+    for bad in ("2026-06-23T14", "2026-6-23T14:00", "2026-06-23T14:00:00"):
+        with pytest.raises(ValueError):
+            domain.news_item_partition(bad)

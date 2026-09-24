@@ -5,10 +5,10 @@
 //   (b) 세 번째 주기에 본문 수정 — 주기 3 만 `cycle3_main.rss.xml` 을 받는다(링크·조회수는 동일)
 //   (c) 다른 링크로 같은 본문 전재 — 세 주기 모두에 reprint-a / reprint-b 쌍이 있다
 //
-// 관측 창이 주기마다 하나씩 필요하다. Bronze 의 `news_item` 은 주기마다 **덮어쓰기**이고
-// (`LakeStore.write_records`) `news_body` 만 누적되므로, 최종 파일만 보면 "각 주기의 관측
-// 레코드가 관측 당시의 본문 해시를 가리킨다"를 확인할 수 없다 — 주기 3 것만 남는다. run.sh 가
-// 주기 사이마다 스냅샷을 떠 `cycle1/2/3` 으로 반출하는 이유다.
+// run.sh 는 주기 사이마다 스냅샷을 떠 `cycle1/2/3` 으로 반출한다. `news_body` 단정은 "그 주기가
+// 끝난 시점의 저장소"를 봐야 하기 때문이다(주기 2 시점엔 수정본이 아직 없어야 한다). `news_item` 은
+// 주기별 파티션으로 누적되므로 스냅샷 N 에는 주기 1..N 의 관측이 함께 있다 — 관측 단정은
+// `collection_cycle` 로 그 주기 것만 고른다.
 
 import { createHash } from "node:crypto";
 
@@ -38,7 +38,10 @@ function providedBody(file: string, url: string): string {
 
 /** 그 주기의 관측 레코드를 링크로 찾는다. */
 function itemAt(cycle: number, url: string) {
-  const found = newsItems(cycleDir(cycle)).find((item) => item.source_url === url);
+  const id = ingestSummary(`econ-e2e-ingest-cycle${cycle}`).cycle;
+  const found = newsItems(cycleDir(cycle)).find(
+    (item) => item.collection_cycle === id && item.source_url === url,
+  );
   if (!found) throw new Error(`주기 ${cycle} 의 Bronze 에 ${url} 관측 레코드가 없다`);
   return found;
 }

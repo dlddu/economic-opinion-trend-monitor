@@ -754,8 +754,16 @@ func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 			t.Fatal(err)
 		}
 	}
-	write("bronze", "news_item", items)
 	write("silver", "analysis", analyses)
+	if items != "" {
+		part := filepath.Join(dir, "bronze", "news_item", "collection_date=2026-06-23")
+		if err := os.MkdirAll(part, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(part, "2026-06-23T1400.jsonl"), []byte(items+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for _, line := range strings.Split(bodies, "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
