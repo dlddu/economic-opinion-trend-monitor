@@ -48,7 +48,7 @@
 | `JRN-sentiment-shift` | ✅ `JRN-sentiment-shift.html` (여정 페이지 — 구 `sentiment` 흡수·삭제) | (없음) |
 | `JRN-ingestion-recovery` | ✅ `JRN-ingestion-recovery.html` (여정 페이지 — 운영 축 화면을 이 여정 맥락의 원본으로 새로 그림) | (없음) |
 | `JRN-logic-backfill` | ✅ `JRN-logic-backfill.html` (여정 페이지 — 구 `reprocess` 흡수·삭제) | (없음) |
-| `JRN-judgment-debug` | ✅ `JRN-judgment-debug.html` (여정 페이지 — 새로 그린 운영 화면, 좌측 네비 항목 없음) | (없음) |
+| `JRN-judgment-debug` | ✅ `JRN-judgment-debug.html` (여정 페이지 — 새로 그린 운영 화면, 좌측 네비 항목 `debug`) | (없음) |
 
 단계 커버리지 35/35(완전) · 0(부분) · 0(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
 

@@ -21,6 +21,10 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
       표와 래칫만 갱신하고 산문을 남겨 두 SSOT 가 서로 다른 사실을 말하는 것을 잡는다)
   R11 설계 트래커 「문서 목록」의 mockup 파일 등재 ↔ 실파일 양방향 일치
   R12 **현재형 서술이 가리키는 mockup 파일이 실재한다** (규칙 7 의 기계화 — R10 의 파일 참조판)
+  R13 **좌측 네비에 관한 산문 주장이 실측과 같다** (규칙 7 의 기계화 — R10 의 정성 서술판).
+      네비 항목 자체(id·라벨·순서)가 구현 `nav.ts` 와 맞는지는 이 검사기의 몫이 아니다 —
+      `scripts/check-mockup-render.py` R4 가 그 축(목업 ↔ 구현)을 갖는다. 여기서 대조하는
+      쌍은 **문서 산문 ↔ 목업 네비 실측**이다.
 """
 import os, re, sys, html
 
@@ -465,6 +469,77 @@ else:
     if not ghost and not unlisted:
         ok("R11", f"트래커 문서 목록의 mockup 파일 {len(listed)}건 == 실파일 {len(actual)}건")
 
+# ── R13 ── 좌측 네비에 관한 산문 주장 ↔ 실측 대조.
+#   R10 은 이미 같은 세 문서(인덱스·트래커·여정 README)를 스캔하지만 검사 대상이 **숫자**라,
+#   「좌측 네비 항목 없음」 같은 **정성 주장**은 파일 축이 아니라 술어 축에서 빠져나간다.
+#   rct_20260924-0001 의 잔여가 정확히 그 형태였다: #126 이 일곱 페이지에 `debug` 네비를
+#   넣으면서 docs/user-journeys/README.md 만 빠뜨려, 그 행이 「좌측 네비 항목 없음」이라고
+#   적은 채 `required` 가 초록으로 통과했다.
+_nav_dest = {}                      # data-id -> {목적지 파일}
+for _fn, _raw in pages.items():
+    _nb = re.search(r'<nav class="nav">(.*?)</nav>', strip_comments(_raw), re.S)
+    if not _nb:
+        continue                     # index.html(리다이렉트)처럼 셸이 없는 파일
+    for _i, _href in re.findall(
+            r'<a class="nav-item[^"]*" data-id="([^"]+)"[^>]*href="([^"]+)"', _nb.group(1)):
+        _nav_dest.setdefault(_i, set()).add(html.unescape(_href).split("#")[0])
+# 같은 네비 항목이 페이지마다 다른 파일로 가면 「흡수한 페이지로 보낸다」는 규약이 깨진다.
+# (id·라벨·순서는 R4 의 몫이고, 이 href 축은 이 검사기만 본다.)
+_split = sorted(i for i, d in _nav_dest.items() if len(d) > 1)
+if _split:
+    fail("R13", "좌측 네비 항목의 목적지가 페이지마다 갈린다: "
+                + ", ".join(f"`{i}` -> {sorted(_nav_dest[i])}" for i in _split))
+M_NAV = len(_nav_dest)
+M_NAVDEST = len({next(iter(d)) for d in _nav_dest.values() if len(d) == 1})
+_dest_of = {i: next(iter(d)) for i, d in _nav_dest.items() if len(d) == 1}
+_navpages = set(_dest_of.values())
+
+# 산문 주장 3형태. 어느 것도 걸리지 않으면 이 규칙은 공전(空轉)하므로 그것도 위반으로 본다.
+_navclaims, _bad = 0, []
+for _path, _body in ((IDX, idx), (TRACKER, tracker), (JREADME, (read(JREADME) if os.path.exists(JREADME) else ''))):
+    _rel, _fenced = os.path.relpath(_path, ROOT), False
+    for _i2, _ln in enumerate(_body.splitlines(), 1):
+        if _ln.lstrip().startswith("```"):
+            _fenced = not _fenced
+            continue
+        if _fenced or _ln.lstrip().startswith(">"):
+            continue
+        _jids = re.findall(r"`(JRN-[a-z0-9-]+)`", _ln)
+        _only = _jids[0] if len(_jids) == 1 else None
+        # (가) 「좌측 네비 항목 없음」 — 그 여정 페이지가 정말 네비 목적지가 아니어야 한다.
+        if "좌측 네비 항목 없음" in _ln and _only:
+            _navclaims += 1
+            _pg = declared.get(_only)
+            if _pg and _pg in _navpages:
+                _via = sorted(i for i, d in _dest_of.items() if d == _pg)
+                _bad.append(f"{_rel}:{_i2} 「좌측 네비 항목 없음」 — 실측은 `{_only}` 페이지"
+                            f"({_pg})가 네비 항목 {_via} 의 목적지다")
+        # (나) 「좌측 네비 항목 `<id>`」 — 그 항목이 실재하고, 그 여정 페이지로 가야 한다.
+        for _m in re.finditer(r"좌측 네비 항목 `([A-Za-z0-9_-]+)`", _ln):
+            _navclaims += 1
+            _nid = _m.group(1)
+            if _nid not in _dest_of:
+                _bad.append(f"{_rel}:{_i2} 좌측 네비 항목 `{_nid}` 가 실측 네비에 없다 "
+                            f"(실측 {sorted(_dest_of)})")
+            elif _only and declared.get(_only) and _dest_of[_nid] != declared[_only]:
+                _bad.append(f"{_rel}:{_i2} 좌측 네비 항목 `{_nid}` 는 {_dest_of[_nid]} 로 가는데 "
+                            f"그 행의 여정 `{_only}` 페이지는 {declared[_only]} 다")
+        # (다) 「`<id>` 로 좌측 네비에 들어갔」 — 그 항목이 실재해야 한다.
+        for _m in re.finditer(r"`([A-Za-z0-9_-]+)`\s*로 좌측 네비에 들어갔", _ln):
+            _navclaims += 1
+            if _m.group(1) not in _dest_of:
+                _bad.append(f"{_rel}:{_i2} 「`{_m.group(1)}` 로 좌측 네비에 들어갔」 — "
+                            f"실측 네비에 그 항목이 없다 (실측 {sorted(_dest_of)})")
+if _bad:
+    fail("R13", f"좌측 네비 산문 주장 {len(_bad)}건이 실측과 다르다(규칙 7 — 한쪽만 갱신됨):\n    "
+                + "\n    ".join(_bad))
+elif not _navclaims:
+    fail("R13", "세 문서에 좌측 네비 주장이 한 건도 없다 — R13 이 공전한다. "
+                "네비 서술을 지우지 말고 실측과 맞춰 남길 것")
+else:
+    ok("R13", f"좌측 네비 실측 {M_NAV}항목 / 목적지 {M_NAVDEST}파일 · "
+              f"산문 주장 {_navclaims}건 전부 실측과 일치")
+
 # ── R10 ── 서술 절이 재진술하는 숫자 ↔ 실측 대조.
 _unvis_steps = []
 _cov = next((s for s in re.split(r"^## ", idx, flags=re.M) if s.startswith("여정 단계 커버리지")), "")
@@ -484,6 +559,8 @@ CLAIMS = [
     ("화면 단위 수",  r"화면(?:\s*단위)?(?:\s*파일)?\s*(\d+)\s*개",   (M_SCREENS,),    r"여정 페이지\s*\d+"),
     ("이관 완료 수",  r"이관된\s*(\d+)\s*개",                         (M_PAGES,),      None),
     ("미이관 수",    r"나머지\s*(\d+)\s*개",                          (M_JRN - M_PAGES,), r"이관|화면 단위|여정 페이지"),
+    ("네비 항목 수",  r"화면\s*\*{0,2}(\d+)\s*항목",                  (M_NAV,),        r"좌측 네비"),
+    ("네비 목적지 수", r"목적지는\s*\*{0,2}(\d+)\s*파일",              (M_NAVDEST,),    r"좌측 네비"),
 ]
 stale = []
 _jreadme = read(JREADME) if os.path.exists(JREADME) else ""
