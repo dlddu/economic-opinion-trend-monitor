@@ -3,6 +3,7 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -60,14 +61,23 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		`"narrative_subjects":["한국은행 기준금리"],"sentiment":"neutral","analysis_status":"analyzed",` +
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 	for _, f := range []struct{ layer, name, content string }{
-		{"bronze", "news_item", item},
-		{"bronze", "news_body", body},
-		{"silver", "analysis", analysis},
+		{"bronze/news_item/year=2026/month=06/day=23/hour=14", "data", item},
+		{"silver/analysis/year=2026/month=06/day=23/hour=14", "data", analysis},
 	} {
+		if err := os.MkdirAll(filepath.Join(dir, f.layer), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		p := filepath.Join(dir, f.layer, f.name+".jsonl")
 		if err := os.WriteFile(p, []byte(f.content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+	partition := filepath.Join(dir, "bronze", "news_body", "body_hash_prefix=h")
+	if err := os.MkdirAll(partition, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(partition, "h1.json"), []byte(body+"\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
 	lake := New(dir)
@@ -83,12 +93,17 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		t.Errorf("news_item numerics/flags decoded wrong: %+v", items[0])
 	}
 
-	bodies, err := lake.NewsBodies()
+	stored, err := lake.NewsBody("h1")
 	if err != nil {
-		t.Fatalf("NewsBodies: %v", err)
+		t.Fatalf("NewsBody: %v", err)
 	}
-	if len(bodies) != 1 || bodies[0].BodyHash != "h1" || bodies[0].RawText != "본문 전문" {
-		t.Fatalf("news_body decoded wrong: %+v", bodies)
+	if stored == nil || stored.BodyHash != "h1" || stored.RawText != "본문 전문" {
+		t.Fatalf("news_body decoded wrong: %+v", stored)
+	}
+	for _, key := range []string{"h2", "", "../h1", ".h1"} {
+		if got, err := lake.NewsBody(key); err != nil || got != nil {
+			t.Errorf("NewsBody(%q) = %+v, %v; want nil, nil", key, got, err)
+		}
 	}
 
 	analyses, err := lake.Analyses()
@@ -110,13 +125,14 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 // records aside rather than forcing them into one of the four classes.
 func TestAnalysisDecodesNullSentiment(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "silver"), 0o755); err != nil {
+	part := filepath.Join(dir, "silver", "analysis", "year=2026", "month=06", "day=23", "hour=14")
+	if err := os.MkdirAll(part, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	line := `{"record_id":"r-9","source_url":"https://ex.test/9","target_countries":[],` +
 		`"narrative_subjects":[],"sentiment":null,"analysis_status":"unanalyzed",` +
 		`"confidence":0.1,"analyzed_at":"2026-06-23T14:41:00Z","analyzer_version":"v3"}`
-	if err := os.WriteFile(filepath.Join(dir, "silver", "analysis.jsonl"), []byte(line+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(part, "data.jsonl"), []byte(line+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -141,12 +157,40 @@ func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
 	if err != nil || len(items) != 0 {
 		t.Errorf("NewsItems on an empty lake: %v / %d", err, len(items))
 	}
-	bodies, err := lake.NewsBodies()
-	if err != nil || len(bodies) != 0 {
-		t.Errorf("NewsBodies on an empty lake: %v / %d", err, len(bodies))
+	body, err := lake.NewsBody("h1")
+	if err != nil || body != nil {
+		t.Errorf("NewsBody on an empty lake: %v / %+v", err, body)
 	}
 	analyses, err := lake.Analyses()
 	if err != nil || len(analyses) != 0 {
 		t.Errorf("Analyses on an empty lake: %v / %d", err, len(analyses))
+	}
+}
+
+func TestNewsItemsReadEveryCyclePartitionInOrder(t *testing.T) {
+	dir := t.TempDir()
+	write := func(rel, content string) {
+		p := filepath.Join(dir, "bronze", "news_item", rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("year=2026/month=06/day=24/hour=00/data.jsonl", `{"record_id":"c"}`)
+	write("year=2026/month=06/day=23/hour=23/data.jsonl", `{"record_id":"a"}`+"\n"+`{"record_id":"b"}`)
+	write("year=2026/month=06/day=24/hour=01/.data.jsonl.1.tmp", `{"record_id":"half-written"}`)
+
+	items, err := New(dir).NewsItems()
+	if err != nil {
+		t.Fatalf("NewsItems: %v", err)
+	}
+	var got []string
+	for _, it := range items {
+		got = append(got, it.RecordID)
+	}
+	if strings.Join(got, ",") != "a,b,c" {
+		t.Fatalf("records = %v, want a,b,c in partition order", got)
 	}
 }

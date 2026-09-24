@@ -73,6 +73,21 @@ export_lake() {
   done
 }
 
+# Partitioned and object datasets come back as one JSONL per dataset, so specs read
+# them like any other.
+export_parts() {
+  src_root="$1"; layer="$2"; dest="$3"; dataset="$4"; glob="$5"
+  mkdir -p "$dest"
+  kubectl --context "$CTX" exec "$SHELL_POD" -- \
+    sh -c 'cd "$1" && cat $2' _ "$src_root/$layer/$dataset" "$glob" > "$dest/$dataset.jsonl"
+  [ -s "$dest/$dataset.jsonl" ] \
+    || { echo "[e2e] FAIL: $src_root/$layer/$dataset/ came back empty" >&2; exit 1; }
+}
+
+export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/*=*/*=*/data.jsonl'; }
+export_news_body() { export_parts "$1" bronze "$2" news_body '*=*/*.json'; }
+export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data.jsonl'; }
+
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
 # 1) Both images into a fresh single-node cluster (no registry: kind load).
@@ -121,7 +136,8 @@ case "$INGEST_LOG" in
   *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data bronze "$BRONZE_DIR" news_item news_body
+export_news_item /data "$BRONZE_DIR"
+export_news_body /data "$BRONZE_DIR"
 echo "[e2e] bronze exported -> $BRONZE_DIR"
 
 # 4b) Fault-injection cycle (…-test-ingestion.md#시나리오 6).
@@ -132,14 +148,16 @@ case "$FAULTS_LOG" in
          "the broken paths successfully, so scenario 6 has nothing to observe" >&2
     exit 1 ;;
 esac
-export_lake /data/faults bronze "$FAULTS_DIR" news_item news_body
+export_news_item /data/faults "$FAULTS_DIR"
+export_news_body /data/faults "$FAULTS_DIR"
 echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 
 # 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
 for cycle in 1 2 3; do
   run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
     >/dev/null
-  export_lake /data/cycles bronze "$CYCLES_DIR/cycle$cycle" news_item news_body
+  export_news_item /data/cycles "$CYCLES_DIR/cycle$cycle"
+  export_news_body /data/cycles "$CYCLES_DIR/cycle$cycle"
 done
 echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
 
@@ -152,7 +170,8 @@ case "$ANALYSIS_INGEST_LOG" in
           "report a judgement problem rather than a collection one" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_item news_body
+export_news_item /data/analysis "$ANALYSIS_BRONZE_DIR"
+export_news_body /data/analysis "$ANALYSIS_BRONZE_DIR"
 echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
 
 ANALYZE_LOG="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"
@@ -162,7 +181,7 @@ case "$ANALYZE_LOG" in
           "article (see fixtures/llm/responses.json) or is unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis silver "$SILVER_DIR" analysis
+export_analysis /data/analysis "$SILVER_DIR"
 echo "[e2e] silver exported -> $SILVER_DIR"
 
 ANALYZE_V2_LOG="$(run_batch_job econ-e2e-analyze-v2 "$E2E_DIR/k8s/batch/analyze-job-v2.yaml")"
@@ -172,7 +191,7 @@ case "$ANALYZE_V2_LOG" in
           "incomplete or the double is unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis silver "$SILVER_V2_DIR" analysis
+export_analysis /data/analysis "$SILVER_V2_DIR"
 echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
@@ -212,8 +231,8 @@ run_aggregation_stack() {
 }
 
 run_aggregation_stack "" /data/aggregation baseline
-export_lake /data/aggregation bronze "$AGG_BRONZE_DIR" news_item
-export_lake /data/aggregation silver "$AGG_SILVER_DIR" analysis
+export_news_item /data/aggregation "$AGG_BRONZE_DIR"
+export_analysis /data/aggregation "$AGG_SILVER_DIR"
 export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
 echo "[e2e] gold exported -> $GOLD_DIR"
 
@@ -232,8 +251,8 @@ case "$ROLLUP_LOG" in
          "not join back on record_id, so scenario 3 has nothing to observe" >&2
     exit 1 ;;
 esac
-export_lake /data/aggregation-rollup bronze "$ROLLUP_BRONZE_DIR" news_item
-export_lake /data/aggregation-rollup silver "$ROLLUP_SILVER_DIR" analysis
+export_news_item /data/aggregation-rollup "$ROLLUP_BRONZE_DIR"
+export_analysis /data/aggregation-rollup "$ROLLUP_SILVER_DIR"
 export_lake /data/aggregation-rollup gold "$ROLLUP_GOLD_DIR" subject_trend axis_sentiment
 echo "[e2e] gold (multi-bucket rollup) exported -> $ROLLUP_GOLD_DIR"
 

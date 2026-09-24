@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from datetime import datetime
 from pathlib import Path
 
 # Medallion layers.
@@ -24,6 +25,9 @@ DS_ANALYSIS_CACHE = "analysis_cache"  # silver  -> model replies keyed by prompt
 DS_REPROCESS_DECISION = "reprocess_decision"  # silver -> publish/rollback log (not a contract)
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
 DS_AXIS_SENTIMENT = "axis_sentiment"  # gold    -> models.AxisSentiment
+
+#: Collection cycle id format — one cycle per UTC hour.
+CYCLE_FORMAT = "%Y-%m-%dT%H:00"
 
 # Environment override for the local lake root.
 ENV_DATA_ROOT = "ECON_DATA_ROOT"
@@ -56,3 +60,32 @@ def default_data_root() -> Path:
         if (d / "Makefile").exists() and (d / "data").is_dir():
             return d / "data"
     return cur / "data"
+
+
+def parse_cycle(cycle: str) -> datetime:
+    """Parse a collection cycle id, rejecting anything that is not exactly ``CYCLE_FORMAT``.
+
+    Exactness matters because the cycle names its partition: two spellings of one
+    hour (``T9:00`` / ``T09:00``) would otherwise land as two partitions of one cycle.
+    """
+    at = datetime.strptime(cycle, CYCLE_FORMAT)
+    if at.strftime(CYCLE_FORMAT) != cycle:
+        raise ValueError(f"cycle {cycle!r} is not in {CYCLE_FORMAT} form")
+    return at
+
+
+def cycle_partition(cycle: str) -> dict[str, str]:
+    """The ``year=/month=/day=/hour=`` partition holding one collection cycle.
+
+    Bronze ``news_item`` and Silver ``analysis`` share it — a Silver row lives in the
+    partition of the observation it analyzes, not of the hour it was analyzed in, so
+    a cycle's Bronze and Silver sit side by side and re-analysing history rewrites
+    history's partitions rather than piling into the current hour.
+    """
+    at = parse_cycle(cycle)
+    return {
+        "year": at.strftime("%Y"),
+        "month": at.strftime("%m"),
+        "day": at.strftime("%d"),
+        "hour": at.strftime("%H"),
+    }

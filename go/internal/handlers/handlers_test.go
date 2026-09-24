@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -739,23 +740,39 @@ func TestFairnessSurvivesEmptyGold(t *testing.T) {
 // by the tests below.
 func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 	t.Helper()
-	for _, d := range []string{"bronze", "silver"} {
-		if err := os.MkdirAll(filepath.Join(dir, d), 0o755); err != nil {
+	for _, ds := range []struct{ dataset, content string }{
+		{"bronze/news_item", items},
+		{"silver/analysis", analyses},
+	} {
+		if ds.content == "" {
+			continue
+		}
+		part := filepath.Join(dir, ds.dataset, "year=2026", "month=06", "day=23", "hour=14")
+		if err := os.MkdirAll(part, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(part, "data.jsonl"), []byte(ds.content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	write := func(layer, name, content string) {
-		if content == "" {
-			return
+	for _, line := range strings.Split(bodies, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
 		}
-		p := filepath.Join(dir, layer, name+".jsonl")
-		if err := os.WriteFile(p, []byte(content+"\n"), 0o644); err != nil {
+		var body struct {
+			BodyHash string `json:"body_hash"`
+		}
+		if err := json.Unmarshal([]byte(line), &body); err != nil {
+			t.Fatal(err)
+		}
+		partition := filepath.Join(dir, "bronze", "news_body", "body_hash_prefix="+body.BodyHash[:1])
+		if err := os.MkdirAll(partition, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(partition, body.BodyHash+".json"), []byte(line+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	write("bronze", "news_item", items)
-	write("bronze", "news_body", bodies)
-	write("silver", "analysis", analyses)
 }
 
 func getTrace(t *testing.T, dir, query string) traceResponse {

@@ -1,8 +1,8 @@
 // Package store reads data-lake datasets from the local filesystem.
 //
-// The skeleton serializes every layer as JSONL (one JSON object per line); this
-// reader is the Go counterpart of econ_core.storage.LocalFsStore on the Python
-// side. Records are decoded straight into the generated contract types so the
+// Record datasets are JSONL files and object datasets are one file per record;
+// this reader is the Go counterpart of econ_core.storage.LocalFsStore on the
+// Python side. Records are decoded straight into the generated contract types so the
 // schema stays the single source of truth across both runtimes.
 //
 // Most screens read Gold, which is already shaped for display. Lineage is the
@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
@@ -33,6 +34,20 @@ func New(root string) *Lake { return &Lake{Root: root} }
 
 func (l *Lake) path(layer, dataset string) string {
 	return filepath.Join(l.Root, layer, dataset+".jsonl")
+}
+
+// objectPartitionChars mirrors econ_core.storage.OBJECT_PARTITION_CHARS.
+const objectPartitionChars = 1
+
+// objectPath locates one record of an object dataset; ok is false for a key
+// that cannot be a file name.
+func (l *Lake) objectPath(layer, dataset, keyField, key string) (path string, ok bool) {
+	if key == "" || strings.HasPrefix(key, ".") || strings.ContainsAny(key, `/\`) {
+		return "", false
+	}
+	prefix := key[:min(objectPartitionChars, len(key))]
+	partition := keyField + "_prefix=" + prefix
+	return filepath.Join(l.Root, layer, dataset, partition, key+".json"), true
 }
 
 // SubjectTrends reads the Gold subject_trend dataset (empty if absent).
@@ -51,17 +66,28 @@ func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 // Silver analysis carries, which is what makes the lineage join possible at all
 // (AC2.6).
 func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
-	return readJSONL[gen.NewsItem](l.path("bronze", "news_item"))
+	return readPartitions[gen.NewsItem](filepath.Join(l.Root, "bronze", "news_item"))
 }
 
-// NewsBodies reads the Bronze news_body dataset (empty if absent).
-//
-// Bodies are content-addressed by hash and stored once, so they are a separate
-// dataset from the observations that reference them: several observations of an
-// unchanged article share one body, and an edited article appends a new version
-// rather than overwriting (AC1.7).
-func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
-	return readJSONL[gen.NewsBody](l.path("bronze", "news_body"))
+// NewsBody reads one version from the Bronze news_body object dataset by its
+// content hash, or nil if no body is stored under that hash.
+func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
+	path, ok := l.objectPath("bronze", "news_body", "body_hash", hash)
+	if !ok {
+		return nil, nil
+	}
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var body gen.NewsBody
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
 }
 
 // Analyses reads the Silver analysis dataset (empty if absent).
@@ -69,7 +95,7 @@ func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
 // Silver holds one row per (record_id, analyzer_version): a reprocessed record
 // keeps its earlier version's row beside the new one (JRN-logic-backfill).
 func (l *Lake) Analyses() ([]gen.Analysis, error) {
-	return readJSONL[gen.Analysis](l.path("silver", "analysis"))
+	return readPartitions[gen.Analysis](filepath.Join(l.Root, "silver", "analysis"))
 }
 
 // ReprocessDecision is one publish/rollback the batch recorded (the Python
@@ -86,6 +112,34 @@ type ReprocessDecision struct {
 // (empty if absent — no decision ever recorded).
 func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
 	return readJSONL[ReprocessDecision](l.path("silver", "reprocess_decision"))
+}
+
+// partitionFile mirrors econ_core.storage.PARTITION_FILE.
+const partitionFile = "data.jsonl"
+
+// readPartitions decodes every partition of a Hive-partitioned dataset
+// (key=value directories, one data.jsonl each), in path order — the Go
+// counterpart of econ_core.storage.LakeStore.read_partitions.
+func readPartitions[T any](root string) ([]T, error) {
+	var out []T
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) && path == root {
+			return fs.SkipAll
+		}
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || d.Name() != partitionFile {
+			return nil
+		}
+		recs, err := readJSONL[T](path)
+		if err != nil {
+			return err
+		}
+		out = append(out, recs...)
+		return nil
+	})
+	return out, err
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an
