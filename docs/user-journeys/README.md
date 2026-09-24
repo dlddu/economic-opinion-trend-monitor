@@ -36,9 +36,9 @@
 
 ## 여정 ↔ mockup 현황
 
-여정 단위 재편은 **6/7** 이다. 기존 여섯 여정이 자기 전용 페이지 하나(`JRN-<슬러그>.html`)를 갖고,
+여정 단위 재편이 **7/7** 완료됐다. 모든 여정이 자기 전용 페이지 하나(`JRN-<슬러그>.html`)를 갖고,
 흡수한 화면 파일은 전부 삭제됐다 — 화면 단위 mockup 은 **0개**다. 2026-09-24 신설한
-`JRN-judgment-debug` 는 여정 문서만 있고 페이지는 준비 중이다(인덱스의 「규칙 1 미충족 여정 상한」 1).
+`JRN-judgment-debug` 는 여정 문서와 같은 날 페이지가 착지했다.
 
 | 여정 | 대응 mockup | 미시각화·부분 단계 |
 |---|---|---|
@@ -48,9 +48,9 @@
 | `JRN-sentiment-shift` | ✅ `JRN-sentiment-shift.html` (여정 페이지 — 구 `sentiment` 흡수·삭제) | (없음) |
 | `JRN-ingestion-recovery` | ✅ `JRN-ingestion-recovery.html` (여정 페이지 — 운영 축 화면을 이 여정 맥락의 원본으로 새로 그림) | (없음) |
 | `JRN-logic-backfill` | ✅ `JRN-logic-backfill.html` (여정 페이지 — 구 `reprocess` 흡수·삭제) | (없음) |
-| `JRN-judgment-debug` | ⏳ 준비 중 (여정 페이지 미작성 — 2026-09-24 여정 문서 신설) | 🔴 5단계 전부 미시각화 |
+| `JRN-judgment-debug` | ✅ `JRN-judgment-debug.html` (여정 페이지 — 새로 그린 운영 화면, 좌측 네비 항목 없음) | (없음) |
 
-단계 커버리지 30/35(완전) · 0(부분) · 5(미시각화 — `JRN-judgment-debug` 전 단계). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
+단계 커버리지 35/35(완전) · 0(부분) · 0(미시각화). 상세는 `../mockups/econ-opinion-monitor-mockup-index.md`.
 
 마지막까지 남아 있던 두 운영 여정(`JRN-ingestion-recovery`·`JRN-logic-backfill`)은 `reprocess` 화면을
 공유했기에 제품 범위를 먼저 확정하고 이관했고, 그 과정에서 남아 있던 🔴 미시각화 단계가 모두 해소됐다.
