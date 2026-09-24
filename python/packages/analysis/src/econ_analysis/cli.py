@@ -155,7 +155,10 @@ def main(argv: list[str] | None = None) -> int:
     bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
     body_records = store.read_records(domain.BRONZE, domain.DS_NEWS_BODY)
     bodies = {b["body_hash"]: b["raw_text"] for b in body_records}
-    bronze_ids = [item["record_id"] for item in bronze]
+    partition_of = {
+        item["record_id"]: domain.cycle_partition(item["collection_cycle"]) for item in bronze
+    }
+    pruned = silver.reconcile(store, partition_of)
 
     scoped = _scoped(args)
     todo = _select_scope(bronze, args) if scoped else list(bronze)
@@ -180,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
 
     keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
     analyses: list[dict] = []
-    written = pruned = 0
+    written = 0
+    touched: set[str] = set()
     for batch in _batches(todo, args.batch_size):
         if completer is not None:
             rows, batch_stats, new_replies = llm.run_llm_analysis(
@@ -208,24 +212,25 @@ def main(argv: list[str] | None = None) -> int:
                 asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
                 for item in batch
             ]
-        written, dropped = silver.store_analyses(
-            store, bronze_ids, rows, coexist=scoped, keep_versions=keep_versions
+        _, dropped = silver.store_analyses(
+            store, partition_of, rows, coexist=scoped, keep_versions=keep_versions
         )
         pruned += dropped
+        written += len(rows)
+        touched.update(partition_of[r["record_id"]] for r in rows)
         analyses.extend(rows)
-    if not todo:
-        written, pruned = silver.store_analyses(store, bronze_ids, [])
 
     unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")
     low = sum(1 for a in analyses if a["analysis_status"] == "low_confidence")
-    target = store.path(domain.SILVER, domain.DS_ANALYSIS)
+    target = store.root / domain.SILVER / domain.DS_ANALYSIS
     print(
         f"analysis[{args.analyzer}]: read {len(bronze)} bronze, "
-        f"wrote {len(analyses)} silver records -> {target}"
+        f"wrote {written} silver records -> {target}"
     )
     print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed}")
     print(
-        f"  silver now {written} rows ({'coexisting' if scoped else 'in place'}, pruned={pruned})"
+        f"  silver partitions touched={len(touched)} "
+        f"({'coexisting' if scoped else 'in place'}, pruned={pruned})"
     )
     if not scoped:
         print(f"  skipped_already_at_version={skipped}")

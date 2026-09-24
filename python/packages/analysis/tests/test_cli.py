@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from econ_analysis import cli, llm
+from econ_core import domain, open_store
 
 CYCLE = "2026-06-23T14:00"
 
@@ -57,7 +58,8 @@ def _write_jsonl(path: Path, records: list[dict]) -> None:
 
 
 def _silver(root: Path) -> Path:
-    return root / "silver" / "analysis.jsonl"
+    """The Silver partition of the seeded cycle — every seeded record lands there."""
+    return root / "silver" / "analysis" / domain.cycle_partition(CYCLE) / "data.jsonl"
 
 
 def _canned(reply: str):
@@ -76,7 +78,7 @@ def test_llm_is_the_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     # No --analyzer: this now selects llm, which refuses to run without its key.
     assert cli.main(["--data", str(tmp_path)]) == cli.EXIT_CONFIG
-    assert not _silver(tmp_path).exists()
+    assert not (tmp_path / "silver").exists()
 
 
 def test_fake_stays_available_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -96,7 +98,7 @@ def test_llm_without_api_key_writes_nothing(
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == cli.EXIT_CONFIG
     # Aborted before the lake was touched — not even an empty Silver dataset appeared.
-    assert not _silver(tmp_path).exists()
+    assert not (tmp_path / "silver").exists()
 
 
 def test_llm_total_failure_preserves_existing_silver(
@@ -210,7 +212,7 @@ def _bronze_rows(root: Path) -> list[dict]:
 
 
 def _silver_rows(root: Path) -> list[dict]:
-    return [json.loads(line) for line in _silver(root).read_text().splitlines()]
+    return open_store(root).read_records(domain.SILVER, domain.DS_ANALYSIS)
 
 
 def test_whole_lake_rerun_updates_silver_in_place(tmp_path: Path) -> None:

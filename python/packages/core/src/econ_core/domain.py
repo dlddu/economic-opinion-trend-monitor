@@ -17,9 +17,9 @@ SILVER = "silver"
 GOLD = "gold"
 
 # Dataset (file) names within each layer — one dataset per generated record type.
-DS_NEWS_ITEM = "news_item"  # bronze  -> models.NewsItem
+DS_NEWS_ITEM = "news_item"  # bronze  -> models.NewsItem (partitioned by cycle)
 DS_NEWS_BODY = "news_body"  # bronze  -> models.NewsBody (content-addressed bodies)
-DS_ANALYSIS = "analysis"  # silver  -> models.Analysis
+DS_ANALYSIS = "analysis"  # silver  -> models.Analysis (partitioned by its record's cycle)
 DS_ANALYSIS_CACHE = "analysis_cache"  # silver  -> model replies keyed by prompt (not a contract)
 DS_REPROCESS_DECISION = "reprocess_decision"  # silver -> publish/rollback log (not a contract)
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
@@ -56,3 +56,13 @@ def default_data_root() -> Path:
         if (d / "Makefile").exists() and (d / "data").is_dir():
             return d / "data"
     return cur / "data"
+
+
+def cycle_partition(cycle: str) -> str:
+    """Hive-style partition id of a collection cycle: ``2026-06-23T14:00`` →
+    ``date=2026-06-23/hour=14``."""
+    date, _, time = cycle.partition("T")
+    hour = time[:2]
+    if len(date) != 10 or len(hour) != 2 or not hour.isdigit():
+        raise ValueError(f"not a collection cycle id: {cycle!r}")
+    return f"date={date}/hour={hour}"

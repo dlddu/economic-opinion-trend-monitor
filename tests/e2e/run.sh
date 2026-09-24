@@ -62,14 +62,20 @@ run_batch_job() {
   cat "$LOG_DIR/$job.log"
 }
 
+# A dataset is its unpartitioned file plus, for partitioned ones (news_item, analysis),
+# every <dataset>/date=…/hour=…/data.jsonl — exported as one flat JSONL, oldest first,
+# the same order econ_core's read_records returns.
 export_lake() {
   src_root="$1"; layer="$2"; dest="$3"; shift 3
   mkdir -p "$dest"
   for dataset in "$@"; do
-    kubectl --context "$CTX" exec "$SHELL_POD" -- cat "$src_root/$layer/$dataset.jsonl" \
-      > "$dest/$dataset.jsonl"
+    kubectl --context "$CTX" exec "$SHELL_POD" -- sh -c '
+      base="$1"
+      [ -f "$base.jsonl" ] && cat "$base.jsonl"
+      [ -d "$base" ] && find "$base" -name data.jsonl | sort | xargs -r cat
+      true' export_lake "$src_root/$layer/$dataset" > "$dest/$dataset.jsonl"
     [ -s "$dest/$dataset.jsonl" ] \
-      || { echo "[e2e] FAIL: $src_root/$layer/$dataset.jsonl came back empty" >&2; exit 1; }
+      || { echo "[e2e] FAIL: $src_root/$layer/$dataset came back empty" >&2; exit 1; }
   done
 }
 

@@ -91,14 +91,22 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     # Observations accumulate across cycles (PRD ingestion 「보유 기간」: kept
-    # indefinitely). record_id carries the cycle, so a rerun of the same cycle
-    # appends nothing it already stored.
-    written = store.merge_records(domain.BRONZE, domain.DS_NEWS_ITEM, "record_id", items)
+    # indefinitely), one partition per cycle. record_id carries the cycle, so a rerun
+    # of the same cycle appends nothing it already stored. A lake written before
+    # partitioning still has its observations in one file; they move first.
+    store.partition_flat(
+        domain.BRONZE,
+        domain.DS_NEWS_ITEM,
+        lambda item: domain.cycle_partition(item["collection_cycle"]),
+    )
+    written = store.merge_partition(
+        domain.BRONZE, domain.DS_NEWS_ITEM, domain.cycle_partition(cycle), "record_id", items
+    )
     # Content-addressed merge: unchanged bodies are skipped, edited bodies
     # append as new versions without touching prior ones (AC1.7).
     new_bodies = store.merge_records(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", bodies)
 
-    target = store.path(domain.BRONZE, domain.DS_NEWS_ITEM)
+    target = store.partition_path(domain.BRONZE, domain.DS_NEWS_ITEM, domain.cycle_partition(cycle))
     body_target = store.path(domain.BRONZE, domain.DS_NEWS_BODY)
     print(f"ingestion[{args.source}]: wrote {written} bronze records -> {target}")
     print(f"  bodies: {new_bodies} new / {len(bodies) - new_bodies} deduplicated -> {body_target}")

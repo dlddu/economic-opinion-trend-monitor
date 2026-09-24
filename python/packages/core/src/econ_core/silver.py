@@ -14,8 +14,14 @@ run write it, and they differ in what happens to a record's *other* versions:
 
 Two rules hold for both: a row is replaced, not duplicated, when the same record is
 analyzed again at the same version (a resumed run never double-counts), and rows
-whose ``record_id`` Bronze no longer holds are dropped on every write — every Silver
-row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
+whose ``record_id`` Bronze no longer holds are dropped — every Silver row stays
+traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
+
+Silver is partitioned like Bronze: a row lives in the partition of its record's
+collection cycle (``partition_of`` maps every Bronze ``record_id`` to it). A write
+rewrites only the partitions its rows fall in, so an hourly run costs its own cycle,
+not the whole history; :func:`reconcile` is the once-per-run pass that prunes rows
+Bronze no longer holds across every partition.
 
 Which version reaches Gold is a recorded decision (``reprocess_decision``): the last
 ``publish``/``rollback`` names the serving version, and aggregation takes that
@@ -25,7 +31,7 @@ row otherwise so a partially reprocessed range never disappears from the charts.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 
 from econ_core import domain
@@ -38,9 +44,28 @@ def analysis_key(row: dict) -> tuple[str, str]:
     return (row["record_id"], row["analyzer_version"])
 
 
+def reconcile(store: LakeStore, partition_of: Mapping[str, str]) -> int:
+    """Bring Silver in line with Bronze; return the rows pruned.
+
+    Rows still in the unpartitioned file move to their record's partition, and rows
+    whose ``record_id`` Bronze no longer holds (or that sit in another partition than
+    their record's) are dropped. Partitions with nothing to drop are not rewritten.
+    """
+    _, pruned = store.partition_flat(
+        domain.SILVER, domain.DS_ANALYSIS, lambda row: partition_of.get(row["record_id"])
+    )
+    for partition in store.partitions(domain.SILVER, domain.DS_ANALYSIS):
+        rows = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
+        kept = [r for r in rows if partition_of.get(r["record_id"]) == partition]
+        if len(kept) != len(rows):
+            store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, kept)
+            pruned += len(rows) - len(kept)
+    return pruned
+
+
 def store_analyses(
     store: LakeStore,
-    bronze_ids: Iterable[str],
+    partition_of: Mapping[str, str],
     rows: Iterable[dict],
     *,
     coexist: bool = True,
@@ -52,28 +77,33 @@ def store_analyses(
     Without it (a whole-lake run) the records in ``rows`` keep only the version just
     written — plus any version in ``keep_versions`` (the serving version).
 
-    Returns ``(rows now in Silver, rows pruned)``; pruned counts rows dropped because
-    their Bronze record is gone or their version was retired.
+    Only the partitions ``rows`` fall in are read and rewritten. Returns ``(rows now in
+    those partitions, rows pruned)``; pruned counts rows dropped because their Bronze
+    record is gone or their version was retired.
     """
-    keep = set(bronze_ids)
     protected = set(keep_versions)
-    merged: dict[tuple[str, str], dict] = {}
-    pruned = 0
-    for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS):
-        if row["record_id"] not in keep:
-            pruned += 1
-            continue
-        merged[analysis_key(row)] = row
-    written = list(rows)
-    if not coexist:
-        touched = {r["record_id"] for r in written}
-        for key in [k for k in merged if k[0] in touched and k[1] not in protected]:
-            del merged[key]
-            pruned += 1
-    for row in written:
-        merged[analysis_key(row)] = row
-    ordered = sorted(merged.values(), key=lambda r: (r["record_id"], r["analyzer_version"]))
-    return store.write_records(domain.SILVER, domain.DS_ANALYSIS, ordered), pruned
+    by_partition: dict[str, list[dict]] = {}
+    for row in rows:
+        by_partition.setdefault(partition_of[row["record_id"]], []).append(row)
+
+    written = pruned = 0
+    for partition, fresh in sorted(by_partition.items()):
+        merged: dict[tuple[str, str], dict] = {}
+        for row in store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition):
+            if partition_of.get(row["record_id"]) != partition:
+                pruned += 1
+                continue
+            merged[analysis_key(row)] = row
+        if not coexist:
+            touched = {r["record_id"] for r in fresh}
+            for key in [k for k in merged if k[0] in touched and k[1] not in protected]:
+                del merged[key]
+                pruned += 1
+        for row in fresh:
+            merged[analysis_key(row)] = row
+        ordered = sorted(merged.values(), key=lambda r: (r["record_id"], r["analyzer_version"]))
+        written += store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, ordered)
+    return written, pruned
 
 
 def newest_row(rows: list[dict]) -> dict:

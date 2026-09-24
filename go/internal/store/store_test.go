@@ -3,6 +3,7 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -148,5 +149,38 @@ func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
 	analyses, err := lake.Analyses()
 	if err != nil || len(analyses) != 0 {
 		t.Errorf("Analyses on an empty lake: %v / %d", err, len(analyses))
+	}
+}
+
+// Bronze news_item and Silver analysis are partitioned per collection cycle; a lake
+// written before that still has one file, read first.
+func TestPartitionedDatasetsReadEveryPartitionOldestFirst(t *testing.T) {
+	dir := t.TempDir()
+	write := func(rel, recordID string) {
+		p := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		line := `{"record_id":"` + recordID + `","source_id":"s","axis":"KR","rank":1,"view_count":1,` +
+			`"title":"t","source_url":"u","body_hash":"","body_available":false,` +
+			`"collected_at":"2026-06-23T14:05:00Z","collection_cycle":"2026-06-23T14:00"}`
+		if err := os.WriteFile(p, []byte(line+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("bronze/news_item/date=2026-06-23/hour=15/data.jsonl", "r-15")
+	write("bronze/news_item/date=2026-06-23/hour=14/data.jsonl", "r-14")
+	write("bronze/news_item.jsonl", "r-legacy")
+
+	got, err := New(dir).NewsItems()
+	if err != nil {
+		t.Fatalf("NewsItems: %v", err)
+	}
+	var ids []string
+	for _, item := range got {
+		ids = append(ids, item.RecordID)
+	}
+	if want := "r-legacy,r-14,r-15"; strings.Join(ids, ",") != want {
+		t.Errorf("want %s, got %v", want, ids)
 	}
 }

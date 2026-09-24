@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
@@ -35,6 +36,50 @@ func (l *Lake) path(layer, dataset string) string {
 	return filepath.Join(l.Root, layer, dataset+".jsonl")
 }
 
+// partFile is the one file inside each partition of a partitioned dataset.
+const partFile = "data.jsonl"
+
+// files lists what a dataset is made of: the unpartitioned file first (a lake
+// written before partitioning), then every partition file under
+// <layer>/<dataset>/date=…/hour=…/, oldest first. Mirrors
+// econ_core.storage.LocalFsStore.read_records.
+func (l *Lake) files(layer, dataset string) ([]string, error) {
+	out := []string{l.path(layer, dataset)}
+	base := filepath.Join(l.Root, layer, dataset)
+	var parts []string
+	err := filepath.WalkDir(base, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && d.Name() == partFile {
+			parts = append(parts, p)
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
+	sort.Strings(parts)
+	return append(out, parts...), nil
+}
+
+// readDataset decodes every file of a (possibly partitioned) dataset.
+func readDataset[T any](l *Lake, layer, dataset string) ([]T, error) {
+	paths, err := l.files(layer, dataset)
+	if err != nil {
+		return nil, err
+	}
+	var out []T
+	for _, p := range paths {
+		recs, err := readJSONL[T](p)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, recs...)
+	}
+	return out, nil
+}
+
 // SubjectTrends reads the Gold subject_trend dataset (empty if absent).
 func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
@@ -45,13 +90,14 @@ func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 	return readJSONL[gen.AxisSentiment](l.path("gold", "axis_sentiment"))
 }
 
-// NewsItems reads the Bronze news_item dataset (empty if absent).
+// NewsItems reads the Bronze news_item dataset, every cycle partition (empty if
+// absent).
 //
 // One record is one collection observation, keyed by RecordID — the same key
 // Silver analysis carries, which is what makes the lineage join possible at all
 // (AC2.6).
 func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
-	return readJSONL[gen.NewsItem](l.path("bronze", "news_item"))
+	return readDataset[gen.NewsItem](l, "bronze", "news_item")
 }
 
 // NewsBodies reads the Bronze news_body dataset (empty if absent).
@@ -64,12 +110,12 @@ func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
 	return readJSONL[gen.NewsBody](l.path("bronze", "news_body"))
 }
 
-// Analyses reads the Silver analysis dataset (empty if absent).
+// Analyses reads the Silver analysis dataset, every partition (empty if absent).
 //
 // Silver holds one row per (record_id, analyzer_version): a reprocessed record
 // keeps its earlier version's row beside the new one (JRN-logic-backfill).
 func (l *Lake) Analyses() ([]gen.Analysis, error) {
-	return readJSONL[gen.Analysis](l.path("silver", "analysis"))
+	return readDataset[gen.Analysis](l, "silver", "analysis")
 }
 
 // ReprocessDecision is one publish/rollback the batch recorded (the Python

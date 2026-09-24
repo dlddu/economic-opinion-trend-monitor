@@ -21,16 +21,21 @@ def _row(rid: str, version: str, analyzed_at: str, subjects: list[str]) -> dict:
     }
 
 
+P14 = "date=2026-06-23/hour=14"
+P15 = "date=2026-06-23/hour=15"
+BOTH = {"r1": P14, "r2": P14}
+
+
 def test_versions_coexist_and_same_key_is_replaced(tmp_path: Path) -> None:
     store = open_store(tmp_path)
     silver.store_analyses(
-        store, ["r1", "r2"], [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
+        store, BOTH, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
     )
     # A second version lands beside the first — STP-run-reprocess 「병존」.
-    written, pruned = silver.store_analyses(store, ["r1", "r2"], [_row("r1", "v2", "t2", ["b"])])
+    written, pruned = silver.store_analyses(store, BOTH, [_row("r1", "v2", "t2", ["b"])])
     assert (written, pruned) == (3, 0)
     # The same record at the same version is one row, not two (resume never double-counts).
-    written, _ = silver.store_analyses(store, ["r1", "r2"], [_row("r1", "v2", "t3", ["c"])])
+    written, _ = silver.store_analyses(store, BOTH, [_row("r1", "v2", "t3", ["c"])])
     rows = store.read_records(domain.SILVER, domain.DS_ANALYSIS)
     assert written == 3
     assert [r["narrative_subjects"] for r in rows if r["record_id"] == "r1"] == [["a"], ["c"]]
@@ -38,15 +43,14 @@ def test_versions_coexist_and_same_key_is_replaced(tmp_path: Path) -> None:
 
 def test_whole_lake_write_retires_superseded_versions_except_the_kept_one(tmp_path: Path) -> None:
     store = open_store(tmp_path)
-    ids = ["r1", "r2"]
     silver.store_analyses(
-        store, ids, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
+        store, BOTH, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
     )
-    silver.store_analyses(store, ids, [_row("r1", "v2", "t2", ["b"])])
+    silver.store_analyses(store, BOTH, [_row("r1", "v2", "t2", ["b"])])
     # A whole-lake run at v3 that touches only r1: r1's v1 goes, its v2 stays because it
     # is the served version; r2 is untouched.
     written, pruned = silver.store_analyses(
-        store, ids, [_row("r1", "v3", "t3", ["c"])], coexist=False, keep_versions=["v2"]
+        store, BOTH, [_row("r1", "v3", "t3", ["c"])], coexist=False, keep_versions=["v2"]
     )
     rows = store.read_records(domain.SILVER, domain.DS_ANALYSIS)
     assert (written, pruned) == (3, 1)
@@ -60,12 +64,47 @@ def test_whole_lake_write_retires_superseded_versions_except_the_kept_one(tmp_pa
 def test_rows_without_a_bronze_record_are_pruned(tmp_path: Path) -> None:
     store = open_store(tmp_path)
     silver.store_analyses(
-        store, ["r1", "r2"], [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
+        store, BOTH, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
     )
     # Bronze dropped r2: its Silver rows can no longer be traced back (AC2.6), so they go.
-    written, pruned = silver.store_analyses(store, ["r1"], [])
-    assert (written, pruned) == (1, 1)
+    assert silver.reconcile(store, {"r1": P14}) == 1
     assert {r["record_id"] for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS)} == {"r1"}
+
+
+def test_a_write_rewrites_only_the_partitions_its_rows_fall_in(tmp_path: Path) -> None:
+    store = open_store(tmp_path)
+    cycles = {"r1": P14, "r2": P15}
+    silver.store_analyses(
+        store, cycles, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
+    )
+    assert store.partitions(domain.SILVER, domain.DS_ANALYSIS) == [P14, P15]
+    earlier = store.partition_path(domain.SILVER, domain.DS_ANALYSIS, P14)
+    before = earlier.stat().st_mtime_ns
+
+    written, _ = silver.store_analyses(store, cycles, [_row("r2", "v2", "t2", ["b"])])
+    assert written == 2  # rows now in the one partition that was rewritten
+    assert earlier.stat().st_mtime_ns == before
+
+
+def test_reconcile_moves_an_unpartitioned_silver_into_partitions(tmp_path: Path) -> None:
+    store = open_store(tmp_path)
+    store.write_records(
+        domain.SILVER,
+        domain.DS_ANALYSIS,
+        [
+            _row("r1", "v1", "t1", ["a"]),
+            _row("r2", "v1", "t1", ["a"]),
+            _row("gone", "v1", "t1", []),
+        ],
+    )
+    assert silver.reconcile(store, {"r1": P14, "r2": P15}) == 1
+    assert not store.path(domain.SILVER, domain.DS_ANALYSIS).exists()
+    assert [
+        r["record_id"] for r in store.read_partition(domain.SILVER, domain.DS_ANALYSIS, P14)
+    ] == ["r1"]
+    assert [
+        r["record_id"] for r in store.read_partition(domain.SILVER, domain.DS_ANALYSIS, P15)
+    ] == ["r2"]
 
 
 def test_select_serving_prefers_the_serving_version_and_falls_back_to_newest() -> None:
