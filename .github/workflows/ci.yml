@@ -41,12 +41,40 @@ jobs:
         run: make test
 
   # Serving-path e2e on a kind cluster (fixture Gold -> Go API + web render).
-  # Parallel to `build`; docker is preinstalled on ubuntu-latest.
+  # Parallel to `build`; docker is preinstalled on the runner.
+  #
+  # arm64 on purpose, like image.yml's publish job: the e2e images are built from
+  # the same Dockerfiles with the same buildx gha cache scopes (`serving`,
+  # `batch`), and those scopes hold arm64 layers — main pushes keep them warm, so
+  # even a PR's first run starts from cache instead of a plain `docker build`.
+  #
+  # Order is chosen so the slow, independent parts overlap: the kind cluster is
+  # created in the background right after install, the images build meanwhile,
+  # and run.sh itself overlaps the Playwright setup with the batch Jobs.
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
+    env:
+      E2E_CLUSTER: econ-e2e
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install kind + kubectl
+        uses: helm/kind-action@v1
+        with:
+          version: v0.30.0
+          install_only: true
+          # The cluster its post step cleans up; created below under this name.
+          cluster_name: econ-e2e
+
+      # Survives past this step. The subshell's stdio is cut, otherwise the
+      # runner waits for the step's output to close. The exit code lands in
+      # an .rc file that "Wait for kind cluster" picks up.
+      - name: Start kind cluster in background
+        run: |
+          mkdir -p /tmp/bg
+          ( kind create cluster --name "$E2E_CLUSTER" --config tests/e2e/kind-config.yaml --wait 120s \
+              >/tmp/bg/kind-create.log 2>&1; echo $? >/tmp/bg/kind-create.rc ) </dev/null >/dev/null 2>&1 &
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -55,11 +83,14 @@ jobs:
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
 
-      - name: Install kind + kubectl
-        uses: helm/kind-action@v1
+      # Chromium for the Playwright version pinned in the lockfile. run.sh still
+      # runs `playwright install --with-deps` (OS packages are not cached); on a
+      # hit it only skips the download.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
         with:
-          version: v0.30.0
-          install_only: true
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tests/e2e/package-lock.json') }}
 
       # The PR preview overlay is only ever built by Flux, so nothing else
       # would notice it rotting. Build it with the load restrictor
@@ -100,7 +131,44 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Same Dockerfiles and cache scopes as image.yml. Read-only here: the
+      # publish job of this very run writes the same layers, so a second export
+      # would only add upload time to the critical path. `load: true` puts the
+      # image in the local docker store for `kind load` (run.sh, SKIP_BUILD=1).
+      - name: Build serving image (econ-monitor:e2e)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: econ-monitor:e2e
+          # Loaded locally only — no provenance attestation needed.
+          provenance: false
+          cache-from: type=gha,scope=serving
+
+      - name: Build batch image (econ-monitor-batch:e2e)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.batch
+          load: true
+          tags: econ-monitor-batch:e2e
+          provenance: false
+          cache-from: type=gha,scope=batch
+
+      - name: Wait for kind cluster
+        run: |
+          timeout 300 bash -c 'until [ -f /tmp/bg/kind-create.rc ]; do sleep 1; done'
+          cat /tmp/bg/kind-create.log
+          exit "$(cat /tmp/bg/kind-create.rc)"
+
       - name: Run kind e2e
+        env:
+          SKIP_BUILD: "1"
+          E2E_REUSE_CLUSTER: "1"
         run: make e2e
 
       - name: Upload Playwright report

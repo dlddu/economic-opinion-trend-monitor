@@ -6,6 +6,24 @@
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
 # missing and never installs tools itself. Set KEEP_CLUSTER=1 to keep the
 # cluster around for debugging.
+#
+# Anything that does not depend on the previous step overlaps with it:
+#   - the Playwright setup (npm ci + browser) starts first, in the background,
+#     and is only waited for right before the specs;
+#   - the kind cluster is created in the background while the images build;
+#   - the batch Jobs run as independent chains, one per data root (see step 4).
+#
+# Knobs for a caller that already did part of the work (the CI e2e job):
+#   SKIP_BUILD=1         econ-monitor:e2e / econ-monitor-batch:e2e are already in
+#                        the local docker image store (CI builds them with the
+#                        buildx gha cache); fail if they are not.
+#   E2E_REUSE_CLUSTER=1  the kind cluster $E2E_CLUSTER already exists and is ready
+#                        (CI creates it in the background at the top of the job).
+#                        It is still deleted on exit unless KEEP_CLUSTER=1.
+#   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1  do not run `playwright install`.
+# The browser's OS packages (`--with-deps`, needs sudo) are only installed when
+# CI=true — in the background there is no terminal to answer a sudo prompt. Run
+# `npx playwright install-deps chromium` once locally if Chromium will not start.
 set -euo pipefail
 
 E2E_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -29,7 +47,11 @@ ROLLUP_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-rollup"
 ROLLUP_SILVER_DIR="$E2E_DIR/.artifacts/silver-rollup"
 ROLLUP_GOLD_DIR="$E2E_DIR/.artifacts/gold-rollup"
 LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
+CHAIN_LOG_DIR="$E2E_DIR/.artifacts/batch-chains"
+PW_SETUP_LOG="$E2E_DIR/.artifacts/playwright-setup.log"
+KIND_CREATE_LOG="$E2E_DIR/.artifacts/kind-create.log"
 PF=""
+BG_PIDS=()
 
 for tool in docker kind kubectl node npm curl; do
   command -v "$tool" >/dev/null 2>&1 \
@@ -39,6 +61,8 @@ done
 cleanup() {
   status=$?
   [ -n "$PF" ] && kill "$PF" 2>/dev/null || true
+  # `${a[@]+…}`: an empty array under `set -u` is an error on bash 3.2 (macOS).
+  for pid in ${BG_PIDS[@]+"${BG_PIDS[@]}"}; do kill "$pid" 2>/dev/null || true; done
   if [ "${KEEP_CLUSTER:-0}" = "1" ]; then
     echo "[e2e] KEEP_CLUSTER=1 — cluster kept, inspect with: kubectl --context $CTX get all"
   else
@@ -90,22 +114,86 @@ export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
+mkdir -p "$E2E_DIR/.artifacts"
+
+# 0) Playwright setup in the background — it needs neither the images nor the
+# cluster, and used to sit on the critical path right before the specs.
+(
+  cd "$E2E_DIR"
+  npm ci
+  if [ "${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-0}" != "1" ]; then
+    if [ "${CI:-}" = "true" ]; then
+      npx playwright install --with-deps chromium
+    else
+      npx playwright install chromium
+    fi
+  fi
+) </dev/null >"$PW_SETUP_LOG" 2>&1 &
+PW_SETUP_PID=$!
+BG_PIDS+=("$PW_SETUP_PID")
+
 # 1) Both images into a fresh single-node cluster (no registry: kind load).
-docker build -t "$IMAGE" "$ROOT"
-docker build -f "$ROOT/Dockerfile.batch" -t "$BATCH_IMAGE" "$ROOT"
-kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" --wait 120s
+# The cluster comes up in the background while the images build.
+KIND_PID=""
+if [ "${E2E_REUSE_CLUSTER:-0}" = "1" ]; then
+  kind get clusters 2>/dev/null | grep -qx "$CLUSTER" \
+    || { echo "[e2e] FAIL: E2E_REUSE_CLUSTER=1 but kind cluster '$CLUSTER' does not exist" >&2; exit 1; }
+  echo "[e2e] reusing kind cluster $CLUSTER"
+else
+  kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" --wait 120s \
+    </dev/null >"$KIND_CREATE_LOG" 2>&1 &
+  KIND_PID=$!
+  BG_PIDS+=("$KIND_PID")
+fi
+
+if [ "${SKIP_BUILD:-0}" = "1" ]; then
+  for image in "$IMAGE" "$BATCH_IMAGE"; do
+    docker image inspect "$image" >/dev/null 2>&1 \
+      || { echo "[e2e] FAIL: SKIP_BUILD=1 but $image is not in the local docker image store" >&2; exit 1; }
+  done
+  echo "[e2e] SKIP_BUILD=1 — using prebuilt $IMAGE, $BATCH_IMAGE"
+else
+  docker build -t "$IMAGE" "$ROOT"
+  docker build -f "$ROOT/Dockerfile.batch" -t "$BATCH_IMAGE" "$ROOT"
+fi
+
+if [ -n "$KIND_PID" ]; then
+  if ! wait "$KIND_PID"; then
+    cat "$KIND_CREATE_LOG" >&2
+    echo "[e2e] FAIL: kind create cluster failed" >&2
+    exit 1
+  fi
+  cat "$KIND_CREATE_LOG"
+fi
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
-# 2) Fixture Gold as a ConfigMap + the serving stack (e2e overlay of deploy/base).
+# 2) Fixture Gold as a ConfigMap + the serving stack (e2e overlay of deploy/base),
+# and the batch harness (feed/LLM doubles, data volume, export shell). Every
+# ConfigMap and both stacks are applied first and only then waited for, so the
+# rollouts overlap.
 # mock-exception: GOLD-01 — 집계 배치는 e2e 안에 섰지만(run_aggregation_stack) 서빙 입력을 아직 그 파이프라인 Gold로 잇지 않아(원장 R3) 커밋된 픽스처로 채움 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap gold-fixtures --from-file="$E2E_DIR/fixtures/gold"
+# mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
+# 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
+# 만들어 둔다 — 없으면 Pod가 볼륨을 못 붙여 영영 Ready가 되지 않는다.
+# mock-exception: LLM-02 — 실 chat-completions 응답은 비결정적이라 기사별 고정 응답 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
+kubectl --context "$CTX" create configmap llm-fixtures --from-file="$E2E_DIR/fixtures/llm"
+# 4f 의 롤업 체인이 쓰는 하네스 스크립트. 체인들이 동시에 돌므로 여기서 미리 만든다.
+kubectl --context "$CTX" create configmap rollup-timeshift \
+  --from-file="$E2E_DIR/tools/timeshift_bronze.py"
 kubectl --context "$CTX" apply -k "$E2E_DIR/k8s"
+kubectl --context "$CTX" apply -k "$E2E_DIR/k8s/batch"
+
 if ! kubectl --context "$CTX" rollout status deployment/econ-serving --timeout=120s; then
   echo "[e2e] FAIL: serving rollout not ready — pod state follows" >&2
   kubectl --context "$CTX" describe pods -l app=econ-serving >&2 || true
   kubectl --context "$CTX" logs -l app=econ-serving --tail=100 >&2 || true
   exit 1
 fi
+kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=120s
+kubectl --context "$CTX" rollout status deployment/econ-llm-double --timeout=120s
+kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
 
 # 3) Reach the in-cluster Service from the host.
 kubectl --context "$CTX" port-forward service/econ-serving "$PORT:8080" >/dev/null &
@@ -113,86 +201,93 @@ PF=$!
 curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
   "http://127.0.0.1:$PORT/api/health" >/dev/null
 
-# 4) Ingestion batch: the real collection CLI, one cycle, against a feed double.
-# mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
-kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
-# 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
-# 만들어 둔다 — 없으면 Pod가 볼륨을 못 붙여 영영 Ready가 되지 않는다.
-# mock-exception: LLM-02 — 실 chat-completions 응답은 비결정적이라 기사별 고정 응답 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
-kubectl --context "$CTX" create configmap llm-fixtures --from-file="$E2E_DIR/fixtures/llm"
-kubectl --context "$CTX" apply -k "$E2E_DIR/k8s/batch"
-kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=120s
-kubectl --context "$CTX" rollout status deployment/econ-llm-double --timeout=120s
-kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
-
 SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
   -o jsonpath='{.items[0].metadata.name}')"
 
-INGEST_LOG="$(run_batch_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
-# A source the CLI cannot reach is isolated, not fatal — correct for production,
-# but here it would quietly shrink Bronze and surface as a puzzling spec failure.
-case "$INGEST_LOG" in
-  *"failed_sources=[]"*) ;;
-  *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
-     exit 1 ;;
-esac
-export_news_item /data "$BRONZE_DIR"
-export_news_body /data "$BRONZE_DIR"
-echo "[e2e] bronze exported -> $BRONZE_DIR"
+# 4) Batch Jobs. Each chain below owns its own data root on the shared volume
+# (/data, /data/faults, /data/cycles, /data/analysis, /data/aggregation[-skew|-rollup])
+# and nothing reads another chain's root — except the rollup, which re-stamps the
+# baseline aggregation corpus and therefore runs at the end of that chain. The
+# chains run concurrently; the Jobs *inside* a chain stay strictly sequential
+# (the three ingestion cycles in particular — see ingest-job-cycle1.yaml).
+#
+# 4a) Ingestion batch: the real collection CLI, one cycle, against a feed double.
+chain_ingest() {
+  local log
+  log="$(run_batch_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
+  # A source the CLI cannot reach is isolated, not fatal — correct for production,
+  # but here it would quietly shrink Bronze and surface as a puzzling spec failure.
+  case "$log" in
+    *"failed_sources=[]"*) ;;
+    *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
+       exit 1 ;;
+  esac
+  export_news_item /data "$BRONZE_DIR"
+  export_news_body /data "$BRONZE_DIR"
+  echo "[e2e] bronze exported -> $BRONZE_DIR"
+}
 
 # 4b) Fault-injection cycle (…-test-ingestion.md#시나리오 6).
-FAULTS_LOG="$(run_batch_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
-case "$FAULTS_LOG" in
-  *"failed_sources=[]"*)
-    echo "[e2e] FAIL: the fault-injection cycle isolated no source — the double served" \
-         "the broken paths successfully, so scenario 6 has nothing to observe" >&2
-    exit 1 ;;
-esac
-export_news_item /data/faults "$FAULTS_DIR"
-export_news_body /data/faults "$FAULTS_DIR"
-echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
+chain_faults() {
+  local log
+  log="$(run_batch_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
+  case "$log" in
+    *"failed_sources=[]"*)
+      echo "[e2e] FAIL: the fault-injection cycle isolated no source — the double served" \
+           "the broken paths successfully, so scenario 6 has nothing to observe" >&2
+      exit 1 ;;
+  esac
+  export_news_item /data/faults "$FAULTS_DIR"
+  export_news_body /data/faults "$FAULTS_DIR"
+  echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
+}
 
-# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
-for cycle in 1 2 3; do
-  run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
-    >/dev/null
-  export_news_item /data/cycles "$CYCLES_DIR/cycle$cycle"
-  export_news_body /data/cycles "$CYCLES_DIR/cycle$cycle"
-done
-echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
+# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7). Sequential *within*
+# this chain: the snapshot after each cycle must be "the store up to that cycle".
+chain_cycles() {
+  for cycle in 1 2 3; do
+    run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
+      >/dev/null
+    export_news_item /data/cycles "$CYCLES_DIR/cycle$cycle"
+    export_news_body /data/cycles "$CYCLES_DIR/cycle$cycle"
+  done
+  echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
+}
 
 # 4d) Analysis batch (…-test-analysis.md#시나리오 1·2·3·6).
-ANALYSIS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-analysis \
-  "$E2E_DIR/k8s/batch/ingest-job-analysis.yaml")"
-case "$ANALYSIS_INGEST_LOG" in
-  *"failed_sources=[]"*) ;;
-  *) echo "[e2e] FAIL: the analysis corpus feed did not answer — the analysis specs would" \
-          "report a judgement problem rather than a collection one" >&2
-     exit 1 ;;
-esac
-export_news_item /data/analysis "$ANALYSIS_BRONZE_DIR"
-export_news_body /data/analysis "$ANALYSIS_BRONZE_DIR"
-echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
+chain_analysis() {
+  local log
+  log="$(run_batch_job econ-e2e-ingest-analysis "$E2E_DIR/k8s/batch/ingest-job-analysis.yaml")"
+  case "$log" in
+    *"failed_sources=[]"*) ;;
+    *) echo "[e2e] FAIL: the analysis corpus feed did not answer — the analysis specs would" \
+            "report a judgement problem rather than a collection one" >&2
+       exit 1 ;;
+  esac
+  export_news_item /data/analysis "$ANALYSIS_BRONZE_DIR"
+  export_news_body /data/analysis "$ANALYSIS_BRONZE_DIR"
+  echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
 
-ANALYZE_LOG="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"
-case "$ANALYZE_LOG" in
-  *"failed=0"*) ;;
-  *) echo "[e2e] FAIL: a model call failed — the LLM double has no canned reply for some" \
-          "article (see fixtures/llm/responses.json) or is unreachable" >&2
-     exit 1 ;;
-esac
-export_analysis /data/analysis "$SILVER_DIR"
-echo "[e2e] silver exported -> $SILVER_DIR"
+  log="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"
+  case "$log" in
+    *"failed=0"*) ;;
+    *) echo "[e2e] FAIL: a model call failed — the LLM double has no canned reply for some" \
+            "article (see fixtures/llm/responses.json) or is unreachable" >&2
+       exit 1 ;;
+  esac
+  export_analysis /data/analysis "$SILVER_DIR"
+  echo "[e2e] silver exported -> $SILVER_DIR"
 
-ANALYZE_V2_LOG="$(run_batch_job econ-e2e-analyze-v2 "$E2E_DIR/k8s/batch/analyze-job-v2.yaml")"
-case "$ANALYZE_V2_LOG" in
-  *"failed=0"*) ;;
-  *) echo "[e2e] FAIL: a model call failed during re-analysis — the v2 response set is" \
-          "incomplete or the double is unreachable" >&2
-     exit 1 ;;
-esac
-export_analysis /data/analysis "$SILVER_V2_DIR"
-echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
+  log="$(run_batch_job econ-e2e-analyze-v2 "$E2E_DIR/k8s/batch/analyze-job-v2.yaml")"
+  case "$log" in
+    *"failed=0"*) ;;
+    *) echo "[e2e] FAIL: a model call failed during re-analysis — the v2 response set is" \
+            "incomplete or the double is unreachable" >&2
+       exit 1 ;;
+  esac
+  export_analysis /data/analysis "$SILVER_V2_DIR"
+  echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
+}
 
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
 # …-test-aggregation-viz.md#시나리오 1·2·4).
@@ -230,38 +325,73 @@ run_aggregation_stack() {
   echo "[e2e] aggregation ($label) done in $root"
 }
 
-run_aggregation_stack "" /data/aggregation baseline
-export_news_item /data/aggregation "$AGG_BRONZE_DIR"
-export_analysis /data/aggregation "$AGG_SILVER_DIR"
-export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
-echo "[e2e] gold exported -> $GOLD_DIR"
+# Baseline aggregation, then 4f) the rollup root (…-test-aggregation-viz.md#시나리오 3),
+# which re-stamps this chain's corpus — so it has to follow it.
+chain_aggregation() {
+  run_aggregation_stack "" /data/aggregation baseline
+  export_news_item /data/aggregation "$AGG_BRONZE_DIR"
+  export_analysis /data/aggregation "$AGG_SILVER_DIR"
+  export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
+  echo "[e2e] gold exported -> $GOLD_DIR"
 
-run_aggregation_stack "-skew" /data/aggregation-skew skewed
-export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
-echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
+  local log
+  run_batch_job econ-e2e-timeshift-rollup "$E2E_DIR/k8s/batch/timeshift-job.yaml"
+  log="$(run_batch_job econ-e2e-aggregate-rollup "$E2E_DIR/k8s/batch/aggregate-job-rollup.yaml")"
+  case "$log" in
+    *"wrote 0 subject_trend"* | *"+ 0 axis_sentiment"*)
+      echo "[e2e] FAIL: the rollup aggregation wrote an empty Gold — the re-stamped corpus did" \
+           "not join back on record_id, so scenario 3 has nothing to observe" >&2
+      exit 1 ;;
+  esac
+  export_news_item /data/aggregation-rollup "$ROLLUP_BRONZE_DIR"
+  export_analysis /data/aggregation-rollup "$ROLLUP_SILVER_DIR"
+  export_lake /data/aggregation-rollup gold "$ROLLUP_GOLD_DIR" subject_trend axis_sentiment
+  echo "[e2e] gold (multi-bucket rollup) exported -> $ROLLUP_GOLD_DIR"
+}
 
-# 4f) Rollup root (…-test-aggregation-viz.md#시나리오 3).
-kubectl --context "$CTX" create configmap rollup-timeshift \
-  --from-file="$E2E_DIR/tools/timeshift_bronze.py"
-run_batch_job econ-e2e-timeshift-rollup "$E2E_DIR/k8s/batch/timeshift-job.yaml"
-ROLLUP_LOG="$(run_batch_job econ-e2e-aggregate-rollup "$E2E_DIR/k8s/batch/aggregate-job-rollup.yaml")"
-case "$ROLLUP_LOG" in
-  *"wrote 0 subject_trend"* | *"+ 0 axis_sentiment"*)
-    echo "[e2e] FAIL: the rollup aggregation wrote an empty Gold — the re-stamped corpus did" \
-         "not join back on record_id, so scenario 3 has nothing to observe" >&2
-    exit 1 ;;
-esac
-export_news_item /data/aggregation-rollup "$ROLLUP_BRONZE_DIR"
-export_analysis /data/aggregation-rollup "$ROLLUP_SILVER_DIR"
-export_lake /data/aggregation-rollup gold "$ROLLUP_GOLD_DIR" subject_trend axis_sentiment
-echo "[e2e] gold (multi-bucket rollup) exported -> $ROLLUP_GOLD_DIR"
+chain_aggregation_skew() {
+  run_aggregation_stack "-skew" /data/aggregation-skew skewed
+  export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
+  echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
+}
+
+# Start every chain, then collect them in a fixed order so the CI log reads the
+# same way on every run. Each chain's output goes to its own file (printed once
+# it finishes) instead of interleaving. A failed chain does not stop the others —
+# their logs are still worth reading — but fails the run once all are done.
+mkdir -p "$CHAIN_LOG_DIR"
+CHAINS=(ingest faults cycles analysis aggregation aggregation_skew)
+CHAIN_PIDS=()  # same index as CHAINS — no associative arrays, bash 3.2 has none
+for chain in "${CHAINS[@]}"; do
+  ( "chain_$chain" ) </dev/null >"$CHAIN_LOG_DIR/$chain.log" 2>&1 &
+  CHAIN_PIDS+=("$!")
+  BG_PIDS+=("$!")
+done
+failed_chains=()
+for idx in "${!CHAINS[@]}"; do
+  chain="${CHAINS[$idx]}"
+  if wait "${CHAIN_PIDS[$idx]}"; then
+    echo "[e2e] ── batch chain '$chain' ok ──"
+  else
+    failed_chains+=("$chain")
+    echo "[e2e] ── batch chain '$chain' FAILED ──" >&2
+  fi
+  cat "$CHAIN_LOG_DIR/$chain.log"
+done
+if [ "${#failed_chains[@]}" -gt 0 ]; then
+  echo "[e2e] FAIL: batch chain(s) failed: ${failed_chains[*]} — their logs are above" >&2
+  exit 1
+fi
 
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
-cd "$E2E_DIR"
-npm ci
-if [ "${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-0}" != "1" ]; then
-  npx playwright install --with-deps chromium
+# The setup started at step 0; it has had the whole batch phase to finish.
+if ! wait "$PW_SETUP_PID"; then
+  cat "$PW_SETUP_LOG" >&2
+  echo "[e2e] FAIL: Playwright setup (npm ci / playwright install) failed — log above" >&2
+  exit 1
 fi
+tail -n 5 "$PW_SETUP_LOG"
+cd "$E2E_DIR"
 BASE_URL="http://127.0.0.1:$PORT" \
   E2E_BRONZE_DIR="$BRONZE_DIR" \
   E2E_BRONZE_FAULTS_DIR="$FAULTS_DIR" \
