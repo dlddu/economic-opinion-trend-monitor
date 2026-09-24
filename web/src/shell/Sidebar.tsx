@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { SCREENS, type ScreenDef } from "./nav";
 
-// 목업 6페이지가 공유하는 네비 아이콘(`<svg class="ic">`) 그대로. 1180px 이하에서는 라벨이
+// 목업 여정 페이지들이 공유하는 네비 아이콘(`<svg class="ic">`) 그대로. 1180px 이하에서는 라벨이
 // 숨고 이 아이콘만 남으므로, 아이콘이 없으면 빈 칸이 된다.
 const ICONS: Record<string, ReactNode> = {
   dash: <path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z" />,
@@ -29,6 +29,12 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   reprocess: <path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5" />,
+  debug: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3M8 11h6M11 8v6" />
+    </>
+  ),
 };
 
 // CMP-sidebar: brand + nav groups (Observer/Operator) + status foot.

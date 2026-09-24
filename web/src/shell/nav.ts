@@ -1,4 +1,4 @@
-// The 7 screens (mockup index) -> client routes.
+// The 8 screens (mockup index) -> client routes.
 
 export interface ScreenDef {
   id: string;
@@ -18,6 +18,7 @@ export const SCREENS: ScreenDef[] = [
   { id: "fairness", path: "/fairness", label: "공정성·원천 추적", journey: "J4", group: "observer", api: "fairness" },
   { id: "trace", path: "/trace", label: "원문 추적 상세", journey: "J4", group: "observer", api: "trace" },
   { id: "reprocess", path: "/reprocess", label: "재처리 콘솔", journey: "J5", group: "operator", api: "reprocess" },
+  { id: "debug", path: "/debug", label: "판단 디버깅", journey: "JRN-judgment-debug", group: "operator", api: "debug" },
 ];
 
 export const SCREENS_BY_PATH = new Map(SCREENS.map((s) => [s.path, s]));
