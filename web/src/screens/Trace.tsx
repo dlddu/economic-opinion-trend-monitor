@@ -17,6 +17,12 @@ import { MapStrip } from "../shell/MapStrip";
 //   - `bronze.body_preserved=false` — 관측은 있는데 본문이 없다.
 //   - `silver=null` — 수집됐지만 아직 분석되지 않았다(파이프라인이 거기까지 안 갔다).
 
+/** 원문 주소로 **이동할 수 있는가** — http(s) 만 링크로 만든다. 수집원이 준 문자열을 그대로
+ *  href 에 넣으면 `javascript:` 같은 값이 클릭 가능한 코드가 되므로 스킴을 먼저 본다. */
+function openableUrl(url: string | null | undefined): string | null {
+  return url && /^https?:\/\//i.test(url) ? url : null;
+}
+
 const STATUS_LABEL: Record<string, string> = {
   analyzed: "분석됨",
   low_confidence: "저신뢰 — 분류에서 제외",
@@ -188,6 +194,20 @@ export function Trace() {
                   <span className="k">원문 주소</span>
                   <span className="v mono trace-url">{bronze.source_url}</span>
                 </div>
+                {/* 원래 기사로 나간다(새 탭). 링크가 끊긴 기사에는 열리지 않을 버튼을 두지 않는다 —
+                    그때는 위 안내대로 보존 사본이 원문 역할을 한다. */}
+                {!linkDead && openableUrl(bronze.source_url) && (
+                  <div className="trace-open">
+                    <a
+                      className="btn sm"
+                      href={openableUrl(bronze.source_url) ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      원문 열기 ↗
+                    </a>
+                  </div>
+                )}
 
                 {bodyLost ? (
                   <div className="placeholder-note">
