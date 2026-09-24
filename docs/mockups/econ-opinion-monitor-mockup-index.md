@@ -18,6 +18,7 @@
 | `fairness` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
 | `trace` | `docs/mockups/JRN-spike-verification.html` (흡수) | 여정 페이지 |
 | `reprocess` | `docs/mockups/JRN-logic-backfill.html` (흡수) | 여정 페이지 |
+| `debug` | `docs/mockups/JRN-judgment-debug.html` | 여정 페이지 (처음부터 여정 단위로 그린 화면) |
 | (진입) | `docs/mockups/index.html` | `JRN-daily-scan.html`로 리다이렉트 |
 
 > **흡수된 화면의 표기 규약.** 화면이 여정 페이지에 흡수되면 그 화면 id의 목업 파일은 **흡수한 여정 페이지**다.
@@ -115,6 +116,14 @@
 | `STP-run-reprocess` | `reprocess` | 전량 실행·진행 상태. 로직 버전 병존 토글이 여정 문서의 「덮어쓰면 전후 비교가 불가능하다」 페인포인트를 그대로 집행한다 |
 | `STP-compare-before-after` | `reprocess` | 전후 비교 표와 주목 임계. 변화가 큰 항목이 먼저 오도록 정렬하고 임계 초과를 배지로 표시한다 |
 | `STP-publish` | `reprocess` | 반영·롤백 결정. **이 단계도 화면 단위 파일에 대응물이 없던 🔴 미시각화 단계**였다. 이 프로토타입은 결정을 세션 한정으로 그리지만, **제품은 `#97`(2026-09-21, 슬라이스 10 후반부) 이후 결정을 레이크에 영속한다**(`POST /api/reprocess/publish` → 결정 이력 표) — 그 편차(세션 한정 문장 부재 · 구현 전용 결정 이력 표)는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록 「결정의 영속화」 행이 받는다(이전 문면 「결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 「백로그 후보」로 파킹한 항목이라 세션 한정으로 그린다」는 그 커밋 이후 사실과 어긋났고 rct_20260921-0006이 정정했다). 소비자 화면 주석(`notify_consumer`)의 노출 자체는 여전히 백로그다 |
+
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-pin-record` | `debug` | 결과 찾기 · 운영 알림(실행부터 여는 분기) |
+| `STP-read-exchange` | `debug` | 호출 기록 · 보낸 요청/받은 응답 원문 · 응답↔저장값 대조 |
+| `STP-check-input` | `debug` | 모델이 받은 입력 ↔ 보관 원문 버전 대조. 원문 **읽기** 자체는 `trace` 도 하지만, 이 단계의 관심은 「모델이 받은 본문」과의 대조라 `debug` 에 귀속한다 |
+| `STP-scan-run` | `debug` | 실행 단계 표(입력 = 결과별 합) · 증상 몰림 |
+| `STP-route-cause` | `debug` | 원인 판정과 인계. 판정의 **영속화는 여정 문서가 백로그로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
 
 > **`reprocess` 화면 id 의 목업 파일은 이제 `docs/mockups/JRN-logic-backfill.html` 이다.** 두 운영 여정이 그 화면을
 > 공유했고, 위 「흡수된 화면의 표기 규약」이 말하는 흡수(=화면 파일 삭제)는 그 화면을 쓰는 여정이 **전부** 이관될 때
@@ -358,19 +367,19 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 
 ### 여정 페이지 · `JRN-judgment-debug` 분석 판단 디버깅
 - **여정 단계**: `JRN-judgment-debug` / `STP-pin-record`(AC4.3, AC2.6), `STP-read-exchange`(AC4.2), `STP-check-input`(AC4.2, AC2.6, AC1.7), `STP-scan-run`(AC4.1, AC4.3), `STP-route-cause`
-- **파일**: `docs/mockups/JRN-judgment-debug.html` (새로 그린 운영 화면. 흡수한 화면 id 가 없고 좌측 네비 항목도 없다 — 아래 「알려진 정제 항목」 참조)
+- **파일**: `docs/mockups/JRN-judgment-debug.html` (새로 그린 운영 화면 — 화면 id `debug`, 좌측 네비 운영 그룹 두 번째 항목 `판단 디버깅`)
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자)
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-integrity-panel`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`
 
 ## 화면 간 이동(클릭 동선, 실제 링크)
 - `JRN-daily-scan.html` 안에서는 단계 레일·화면 안의 주요 행동 버튼·`#STP-<슬러그>` 딥링크로 5단계를 이동하고, §분기 4행이 각각 `#STP-scan-delta`·`JRN-spike-verification.html#STP-notice-spike`·`JRN-axis-contrast.html#STP-open-compare`·`#STP-open-brief`로 이동한다
-- 좌측 네비(`<a href>`)는 화면 **7항목**(`dash`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` — `nav.ts` 의 `SCREENS` 와 같은 순서·라벨)이고, 목적지는 **5파일**이다(`JRN-daily-scan.html`·`JRN-sentiment-shift.html`·`JRN-axis-contrast.html`·`JRN-spike-verification.html`·`JRN-logic-backfill.html`). **`JRN-ingestion-recovery.html` 은 좌측 네비의 목적지가 아니다** — `reprocess` 항목은 화면 id 규약에 따라 그 화면을 흡수한 `JRN-logic-backfill.html#STP-scope-range` 를 가리키고, 수집 복구 여정 페이지로는 허브와 다른 여정의 이탈 컨트롤로 들어간다. 그래서 네비 목적지 수와 여정 페이지 실측 수는 서로 다른 축이다. 흡수된 일곱 화면은 항목을 유지한 채 흡수한 여정 페이지로 가며, 한 페이지를 나눠 쓰는 `dash`·`trend` 와 `fairness`·`trace` 는 각각 `#STP-open-brief`/`#STP-drill-trend`, `#STP-check-normalized`/`#STP-open-origin` 앵커로 갈라진다. `index.html`은 `JRN-daily-scan.html`로 리다이렉트
+- 좌측 네비(`<a href>`)는 화면 **8항목**(`dash`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess`·`debug` — `nav.ts` 의 `SCREENS` 와 같은 순서·라벨)이고, 목적지는 **6파일**이다(`JRN-daily-scan.html`·`JRN-sentiment-shift.html`·`JRN-axis-contrast.html`·`JRN-spike-verification.html`·`JRN-logic-backfill.html`·`JRN-judgment-debug.html`). **`JRN-ingestion-recovery.html` 은 좌측 네비의 목적지가 아니다** — `reprocess` 항목은 화면 id 규약에 따라 그 화면을 흡수한 `JRN-logic-backfill.html#STP-scope-range` 를 가리키고, 수집 복구 여정 페이지로는 허브와 다른 여정의 이탈 컨트롤로 들어간다. 그래서 네비 목적지 수와 여정 페이지 실측 수는 서로 다른 축이다. 흡수된 일곱 화면은 항목을 유지한 채 흡수한 여정 페이지로 가며, 한 페이지를 나눠 쓰는 `dash`·`trend` 와 `fairness`·`trace` 는 각각 `#STP-open-brief`/`#STP-drill-trend`, `#STP-check-normalized`/`#STP-open-origin` 앵커로 갈라진다. `index.html`은 `JRN-daily-scan.html`로 리다이렉트
 - `JRN-sentiment-shift.html` 안에서는 단계 레일·주요 행동 버튼·`#STP-<슬러그>` 딥링크로 4단계를 이동하고, §분기 4행이 각각 선언된 대상(`#STP-…` 또는 `JRN-spike-verification.html#STP-open-origin`·`JRN-logic-backfill.html#STP-scope-range`)으로 이동한다
 - `JRN-axis-contrast.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 4행이 `#STP-scan-axis-tops`(2건)·`JRN-spike-verification.html#STP-check-normalized`·`JRN-sentiment-shift.html`로 이동한다
 - `JRN-spike-verification.html` 안에서는 같은 방식으로 6단계를 이동하고, 「검증 중 이런 상황이라면」 목록의 §분기 5행이 `#STP-open-origin`·`#STP-inspect-sources`·`JRN-logic-backfill.html#STP-scope-range`·`JRN-ingestion-recovery.html#STP-spot-anomaly`·`#STP-judge`로 이동한다
 - `JRN-ingestion-recovery.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-backfill`·`#STP-verify-integrity`·`#STP-diagnose-source`·`JRN-logic-backfill.html#STP-scope-range`·`#STP-locate-gap` 으로 이동한다
 - `JRN-logic-backfill.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-dry-run`·`#STP-run-reprocess`·`JRN-spike-verification.html#STP-open-origin`·`JRN-ingestion-recovery.html#STP-locate-gap`·`#STP-compare-before-after` 로 이동한다
-- `JRN-judgment-debug.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 7행이 `#STP-scan-run`·`#STP-check-input`·`#STP-read-exchange`·`JRN-logic-backfill.html#STP-dry-run`·`JRN-ingestion-recovery.html#STP-locate-gap`·`JRN-logic-backfill.html#STP-scope-range`·`#STP-pin-record` 로 이동한다. 이 페이지로 들어오는 길은 허브뿐이다(좌측 네비 항목 없음)
+- `JRN-judgment-debug.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 7행이 `#STP-scan-run`·`#STP-check-input`·`#STP-read-exchange`·`JRN-logic-backfill.html#STP-dry-run`·`JRN-ingestion-recovery.html#STP-locate-gap`·`JRN-logic-backfill.html#STP-scope-range`·`#STP-pin-record` 로 이동한다. 좌측 네비 `debug` 항목(`판단 디버깅`)이 이 페이지 `#STP-pin-record` 로 들어온다. 화면 1(고른 결과)과 화면 3(보관된 원문)의 「원문 추적 상세」 CTA 는 고른 결과를 `?record_id=` 로 실어 `JRN-spike-verification.html#STP-open-origin` 에 착지한다 — 분기가 아니라 화면 간 이동이라 §4 분기(`data-goto`)로 세지 않는다. 구현의 `/trace` 는 2026-09-24 부터 `?record_id=` 를 읽어 그 기사로 바로 열고, 화면에서 조회하면 주소에 되써 링크로 공유된다(`web/src/screens/Trace.tsx`)
 - **여정 사이의 인계는 이제 예외 없이 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로, 세 여정의 재처리 인계가 `reprocess.html`로 갔지만, 그 분기들이 선언한 대상은 처음부터 상대 여정의 **단계**였다. 화면 파일이 모두 흡수된 지금 그 괴리는 남아 있지 않다(`JRN-spike-verification` 의 「수집 이상 점검하기」가 선언 대상 `JRN-ingestion-recovery#STP-spot-anomaly` 와 달리 `reprocess.html` 을 가리키던 것도 이번에 바로잡았다)
 
 ## 여정 단계 커버리지 (35/35 완전 · 0 부분 · 0 미시각화)
@@ -405,6 +414,6 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).
 - **여정 페이지의 DOM 하네스는 페이지별 시나리오를 요구한다**: `scripts/check-journey-flow.js` 는 `data-journey` 를 선언한 페이지를 전부 발견해 (a)~(h)를 구동하고, `scripts/journey-scenarios/<여정 식별자>.js` 가 없으면 **실패한다**(fail-closed). 여정 페이지를 새로 얹을 때는 시나리오도 함께 넣어야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.
-- **`JRN-judgment-debug` 진입 경로 — 좌측 네비 항목 없음**: 이 여정 페이지는 새로 그린 운영 화면이지만 좌측 네비에 항목을 더하지 않았다. 네비는 `web/src/shell/nav.ts` 의 `SCREENS` 와 1:1 이어야 하고(R4-nav 상한 0), 항목을 더하는 것은 구현 라우트를 새로 선언하는 제품 결정이기 때문이다. 지금은 허브로만 들어오며, 목업 네비에서는 어느 항목도 활성 표시하지 않는다. 구현 슬라이스가 이 화면의 라우트를 정할 때 네비 항목과 「Mockup 파일」 표의 화면 id 를 함께 연다.
+- **`debug` 화면 추가 (2026-09-24)**: `JRN-judgment-debug` 여정 페이지를 좌측 네비에 넣기로 결정해 화면 id `debug`(`/debug`, 운영 그룹)를 `web/src/shell/nav.ts` 의 `SCREENS` 에 더하고 일곱 목업 페이지의 네비에 같은 항목을 넣었다. 구현은 아직 `Placeholder` 이고 `/api/debug` 는 「실행·호출 기록 구현 전」을 밝히는 스텁이다 — 그 기록(PRD-4 AC4.1~4.3)이 레이크에 생겨야 화면을 세울 수 있으므로 `BUILT` 편입과 목업↔구현 대조는 그 뒤다.
 - **요청·응답 원문 블록(`.code`)은 디자인 시스템 미등재**: 가공 전 텍스트를 그대로 보여 주는 고정폭 블록을 이 페이지에서 처음 썼다. 토큰(`TKN-type` mono · `TKN-surface` · `TKN-line` · `TKN-radius`)만 조합했고 새 색·치수는 없다. 두 번째 사용처가 생기면 컴포넌트로 등재한다.
 - **목업 데이터는 운영 실측 규모를 따른다**: 실행당 관측 약 500건, 새 LLM 호출은 그중 일부이고 나머지는 응답 재사용이라는 비율은 2026-09-24 운영 레이크 실측(PRD-4 「설계 전제」)을 본떴다. 개별 레코드·호출 번호는 가상이다.

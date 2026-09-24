@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { TraceResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -37,10 +38,19 @@ function sentimentBadge(s: string | null): string {
 }
 
 export function Trace() {
-  const [recordId, setRecordId] = useState("");
-  const [query, setQuery] = useState("");
+  // 조회 대상은 URL 의 `?record_id=` 가 소유한다. 다른 화면(판단 디버깅의 「원문 추적 상세」
+  // CTA 등)이 고른 결과를 실어 보내면 그 기사로 바로 열리고, 여기서 조회하면 주소가 따라
+  // 바뀌어 지금 보는 기사를 링크로 공유할 수 있다.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("record_id")?.trim() ?? "";
+  const [recordId, setRecordId] = useState(query);
   const [data, setData] = useState<TraceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 주소가 바뀌면(뒤로 가기, 다른 화면에서 온 링크) 입력칸도 그 값을 따른다.
+  useEffect(() => {
+    setRecordId(query);
+  }, [query]);
 
   useEffect(() => {
     let active = true;
@@ -70,7 +80,8 @@ export function Trace() {
           className="trace-lookup"
           onSubmit={(e) => {
             e.preventDefault();
-            setQuery(recordId.trim());
+            const next = recordId.trim();
+            setSearchParams(next ? { record_id: next } : {});
           }}
         >
           {/* 이 화면의 클래스는 `.trace-` 접두사를 벗지 않는다 — 목업 인라인 CSS 와

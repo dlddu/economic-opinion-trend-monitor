@@ -230,5 +230,12 @@ module.exports = {
     t.is(d.querySelectorAll('#cmp-rows tr').length > 0, true, '(h) 응답↔저장값 대조 표가 인라인 스크립트로 렌더된다');
     t.is(d.querySelectorAll('#stage-rows tr').length > 0, true, '(h) 실행 단계 표가 인라인 스크립트로 렌더된다');
     t.is(d.querySelectorAll('#evidence-rows tr').length > 0, true, '(h) 판정 근거 표가 인라인 스크립트로 렌더된다');
+    /* 원문 추적 상세로 가는 CTA — 고른 결과를 들고 원문 추적 화면에 착지한다. */
+    for (const id of ['to-trace-1', 'to-trace-3']) {
+      const a = d.getElementById(id);
+      t.is(!!a && !a.closest('[data-meta-layer]'), true, `(h) #${id} 원문 추적 CTA 가 제품 평면에 있다`);
+      if (a) t.is(a.getAttribute('href'), 'JRN-spike-verification.html?record_id=R-2609-0412#STP-open-origin',
+        `(h) #${id} 가 고른 결과를 들고 원문 추적 단계로 간다`);
+    }
   },
 };

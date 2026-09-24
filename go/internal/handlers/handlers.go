@@ -1,12 +1,14 @@
 // Package handlers exposes the serving API.
 //
-// There is one route per frontend screen (7 screens -> 7 routes) plus a health
+// There is one route per frontend screen (8 screens -> 8 routes) plus a health
 // check. Five of them (dashboard, compare, sentiment, fairness, trend) derive
 // their response from Gold, so the Python -> Gold -> Go path is exercised end to
 // end. trace reads further down instead — it joins Bronze and Silver directly to
 // walk an aggregate back to its article, and reprocess reads the same two layers
 // to size a re-analysis range and compare analyzer versions (reprocess.go).
 // reprocess's three POSTs are the only routes that cause work (reprocess_trigger.go).
+// debug is still a stub: the run and model-call records it will read (PRD-4
+// AC4.1–4.3) do not exist in the lake yet, so it says so instead of inventing them.
 package handlers
 
 import (
@@ -50,6 +52,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/fairness", h.fairness)   // screen: fairness
 	mux.HandleFunc("GET /api/trace", h.trace)         // screen: trace
 	mux.HandleFunc("GET /api/reprocess", h.reprocess) // screen: reprocess
+	mux.HandleFunc("GET /api/debug", h.debug)         // screen: debug
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)   // STP-dry-run
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)         // STP-run-reprocess

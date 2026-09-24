@@ -454,11 +454,13 @@ describe("Dashboard — 셸 토프바", () => {
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
     const items = [...container.querySelectorAll(".nav-item")];
-    expect(items).toHaveLength(7);
+    // 관찰 6 + 운영 2(재처리 콘솔 · 판단 디버깅) — 목업 좌측 네비와 같은 수·순서.
+    expect(items).toHaveLength(8);
     for (const item of items) {
       expect(item.querySelector("svg.ic path, svg.ic circle")).not.toBeNull();
       expect(item.querySelector(".jn")).toBeNull();
     }
     expect(items[6].className).toContain("op");
+    expect(items[7].className).toContain("op");
   });
 });
