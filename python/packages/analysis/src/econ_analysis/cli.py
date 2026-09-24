@@ -150,8 +150,13 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     bronze = store.read_records(domain.BRONZE, domain.DS_NEWS_ITEM)
-    body_records = store.read_records(domain.BRONZE, domain.DS_NEWS_BODY)
-    bodies = {b["body_hash"]: b["raw_text"] for b in body_records}
+    bodies: dict[str, str] = {}
+    for item in bronze:
+        key = item["body_hash"]
+        if key and key not in bodies:
+            body = store.get_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", key)
+            if body is not None:
+                bodies[key] = body["raw_text"]
     bronze_ids = [item["record_id"] for item in bronze]
 
     scoped = _scoped(args)

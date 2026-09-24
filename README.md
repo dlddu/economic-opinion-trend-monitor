@@ -32,6 +32,10 @@
 - **Bronze** (수집 원문 보존): 관측 레코드 `news_item`(원문 링크 + 수집 메타데이터 + 본문 해시 참조)과
   content-addressed 본문 저장소 `news_body`(동일 본문은 1회만 저장, 수정 본문은 새 버전 append)로 분리 —
   `contracts/bronze/*.schema.json` (JSON Schema)
+  - `news_body`는 레코드 1건 = 파일 1개인 **객체 데이터셋**이다:
+    `bronze/news_body/body_hash_prefix=<해시 첫 글자>/<body_hash>.json` (Hive 스타일 파티션, 파일당 JSON 1줄).
+    저장·중복 확인·조회가 해시 하나로 끝나 데이터셋 전체를 읽지 않는다. 이전 통파일
+    `bronze/news_body.jsonl`은 다음 수집 실행이 객체로 옮기고 `news_body.jsonl.migrated`로 이름을 바꾼다.
 - **Silver** (LLM 분석): 대상 국가 · 핵심 서술 대상 · 분위기 — `contracts/silver/*.avsc` (Avro)
   - 운영 캐시 `silver/analysis_cache.jsonl`(계약 아님): 모델 응답을 (analyzer_version, 모델, 프롬프트) 해시로 보관해,
     매시간 다시 관측되는 미변경 기사는 모델을 다시 부르지 않는다. 본문·제목 수정, 프롬프트·모델 변경,

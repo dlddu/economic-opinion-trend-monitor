@@ -1,8 +1,8 @@
 // Package store reads data-lake datasets from the local filesystem.
 //
-// The skeleton serializes every layer as JSONL (one JSON object per line); this
-// reader is the Go counterpart of econ_core.storage.LocalFsStore on the Python
-// side. Records are decoded straight into the generated contract types so the
+// Record datasets are JSONL files and object datasets are one file per record;
+// this reader is the Go counterpart of econ_core.storage.LocalFsStore on the
+// Python side. Records are decoded straight into the generated contract types so the
 // schema stays the single source of truth across both runtimes.
 //
 // Most screens read Gold, which is already shaped for display. Lineage is the
@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
@@ -33,6 +34,20 @@ func New(root string) *Lake { return &Lake{Root: root} }
 
 func (l *Lake) path(layer, dataset string) string {
 	return filepath.Join(l.Root, layer, dataset+".jsonl")
+}
+
+// objectPartitionChars mirrors econ_core.storage.OBJECT_PARTITION_CHARS.
+const objectPartitionChars = 1
+
+// objectPath locates one record of an object dataset; ok is false for a key
+// that cannot be a file name.
+func (l *Lake) objectPath(layer, dataset, keyField, key string) (path string, ok bool) {
+	if key == "" || strings.HasPrefix(key, ".") || strings.ContainsAny(key, `/\`) {
+		return "", false
+	}
+	prefix := key[:min(objectPartitionChars, len(key))]
+	partition := keyField + "_prefix=" + prefix
+	return filepath.Join(l.Root, layer, dataset, partition, key+".json"), true
 }
 
 // SubjectTrends reads the Gold subject_trend dataset (empty if absent).
@@ -54,14 +69,25 @@ func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
 	return readJSONL[gen.NewsItem](l.path("bronze", "news_item"))
 }
 
-// NewsBodies reads the Bronze news_body dataset (empty if absent).
-//
-// Bodies are content-addressed by hash and stored once, so they are a separate
-// dataset from the observations that reference them: several observations of an
-// unchanged article share one body, and an edited article appends a new version
-// rather than overwriting (AC1.7).
-func (l *Lake) NewsBodies() ([]gen.NewsBody, error) {
-	return readJSONL[gen.NewsBody](l.path("bronze", "news_body"))
+// NewsBody reads one version from the Bronze news_body object dataset by its
+// content hash, or nil if no body is stored under that hash.
+func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
+	path, ok := l.objectPath("bronze", "news_body", "body_hash", hash)
+	if !ok {
+		return nil, nil
+	}
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var body gen.NewsBody
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
 }
 
 // Analyses reads the Silver analysis dataset (empty if absent).

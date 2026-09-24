@@ -327,7 +327,7 @@ def run_feed_ingestion(
     alternative to the fake catalog. Bodies are unique by content hash within the
     run — identical text reached through different URLs (cross-source reprints)
     stores once (AC1.7); cross-run dedup and edited-body versioning happen at the
-    store via ``merge_records``.
+    store via ``put_object``.
     """
     seen: set[str] = set()
     items: list[dict] = []

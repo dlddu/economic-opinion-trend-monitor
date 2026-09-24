@@ -1,9 +1,16 @@
 """Storage abstraction over the medallion data lake.
 
-The skeleton ships a local-filesystem implementation that serializes each
-dataset as JSONL (one JSON object per line). This is the single seam where a
-remote store (e.g. S3) would later plug in; remote implementations are out of
-scope for the bootstrap (see README — only the interface + local FS exist).
+The skeleton ships a local-filesystem implementation with two dataset shapes:
+
+- **record datasets** — one JSONL file per dataset (one JSON object per line),
+  read and replaced/merged as a whole;
+- **object datasets** — one file per record, addressed by a key field and laid
+  out in Hive-style partitions on the key's first characters, so a record is
+  written, checked and read without touching the rest of the dataset.
+
+This is the single seam where a remote store (e.g. S3) would later plug in;
+remote implementations are out of scope for the bootstrap (see README — only
+the interface + local FS exist).
 
 Records cross this boundary as plain JSON-able ``dict``s. Producers convert
 generated dataclasses with ``dataclasses.asdict`` before writing; consumers read
@@ -17,6 +24,11 @@ import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
+
+#: Characters of the key that name an object's partition. Changing it is a pure
+#: re-layout (the key is the record's identity), but every existing object has to
+#: be moved, and the Go reader shares the value.
+OBJECT_PARTITION_CHARS = 1
 
 
 class LakeStore(ABC):
@@ -33,10 +45,36 @@ class LakeStore(ABC):
     ) -> int:
         """Append only records whose ``key_field`` value is not already stored.
 
-        Idempotent by key — the seam content-addressed datasets need (e.g.
-        ``bronze/news_body`` keyed by ``body_hash``): re-merging an unchanged
-        body is a no-op, while a new key (an edited body) appends a new record
-        without touching existing ones. Returns the count actually appended.
+        Idempotent by key: re-merging a stored key is a no-op, a new key appends
+        without touching existing records. Returns the count actually appended.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def put_object(self, layer: str, dataset: str, key_field: str, record: dict) -> bool:
+        """Store ``record`` under ``record[key_field]`` unless that key already exists.
+
+        Returns True if written, False if the key was already stored — the stored
+        record is never replaced, which is what keeps a content-addressed dataset
+        (``bronze/news_body``) immutable per version (AC1.7).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_object(self, layer: str, dataset: str, key_field: str, key: str) -> dict | None:
+        """Return the record stored under ``key``, or None if there is none."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_objects(self, layer: str, dataset: str) -> list[dict]:
+        """Return every record of an object dataset, ordered by key."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def migrate_records_to_objects(self, layer: str, dataset: str, key_field: str) -> int:
+        """Move a legacy record dataset of the same name into the object layout.
+
+        A no-op once migrated. Returns the count of objects written.
         """
         raise NotImplementedError
 
@@ -46,8 +84,18 @@ class LakeStore(ABC):
         raise NotImplementedError
 
 
+def _check_key(key: str) -> None:
+    if not key or key.startswith(".") or "/" in key or "\\" in key:
+        raise ValueError(f"object key {key!r} is not usable as a file name")
+
+
 class LocalFsStore(LakeStore):
-    """Local-filesystem JSONL implementation rooted at ``<root>/<layer>/<dataset>.jsonl``."""
+    """Local-filesystem implementation.
+
+    Record datasets live at ``<root>/<layer>/<dataset>.jsonl``; object datasets at
+    ``<root>/<layer>/<dataset>/<key_field>_prefix=<key[:1]>/<key>.json``, each file
+    a single JSON line.
+    """
 
     def __init__(self, root: Path | str) -> None:
         self.root = Path(root)
@@ -85,6 +133,60 @@ class LocalFsStore(LakeStore):
                 fh.write("\n")
                 added += 1
         return added
+
+    def object_dir(self, layer: str, dataset: str) -> Path:
+        return self.root / layer / dataset
+
+    def object_path(self, layer: str, dataset: str, key_field: str, key: str) -> Path:
+        _check_key(key)
+        partition = f"{key_field}_prefix={key[:OBJECT_PARTITION_CHARS]}"
+        return self.object_dir(layer, dataset) / partition / f"{key}.json"
+
+    def put_object(self, layer: str, dataset: str, key_field: str, record: dict) -> bool:
+        target = self.object_path(layer, dataset, key_field, record[key_field])
+        if target.exists():
+            return False
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+        staging.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+        try:
+            # link() refuses an existing target, so a concurrent writer of the same
+            # key cannot replace a stored object, and readers never see it half-written.
+            os.link(staging, target)
+        except FileExistsError:
+            return False
+        finally:
+            staging.unlink()
+        return True
+
+    def get_object(self, layer: str, dataset: str, key_field: str, key: str) -> dict | None:
+        source = self.object_path(layer, dataset, key_field, key)
+        try:
+            return json.loads(source.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+
+    def read_objects(self, layer: str, dataset: str) -> list[dict]:
+        root = self.object_dir(layer, dataset)
+        if not root.is_dir():
+            return []
+        return [
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in sorted(root.glob("*=*/*.json"), key=lambda p: p.name)
+        ]
+
+    def migrate_records_to_objects(self, layer: str, dataset: str, key_field: str) -> int:
+        legacy = self.path(layer, dataset)
+        if not legacy.exists():
+            return 0
+        written = sum(
+            self.put_object(layer, dataset, key_field, record)
+            for record in self.read_records(layer, dataset)
+        )
+        # Renamed only after every record landed: a run cut short retries the
+        # whole file next time, and put_object skips what already moved.
+        legacy.replace(legacy.with_name(f"{legacy.name}.migrated"))
+        return written
 
     def read_records(self, layer: str, dataset: str) -> list[dict]:
         source = self.path(layer, dataset)

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from econ_analysis import cli, llm
+from econ_core import LocalFsStore
 
 CYCLE = "2026-06-23T14:00"
 
@@ -36,18 +37,19 @@ def _seed_lake(root: Path, bodies_available: bool = True) -> None:
         for n in (1, 2)
     ]
     _write_jsonl(bronze / "news_item.jsonl", items)
-    _write_jsonl(
-        bronze / "news_body.jsonl",
-        [
+    store = LocalFsStore(root)
+    for n in (1, 2):
+        store.put_object(
+            "bronze",
+            "news_body",
+            "body_hash",
             {
                 "body_hash": f"h{n}",
                 "raw_text": "기준금리 동결. tone=neutral 대상국=KR.",
                 "first_seen_at": "2026-06-23T14:00:00+00:00",
                 "first_seen_cycle": CYCLE,
-            }
-            for n in (1, 2)
-        ],
-    )
+            },
+        )
 
 
 def _write_jsonl(path: Path, records: list[dict]) -> None:

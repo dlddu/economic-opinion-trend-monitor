@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -754,8 +755,25 @@ func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 		}
 	}
 	write("bronze", "news_item", items)
-	write("bronze", "news_body", bodies)
 	write("silver", "analysis", analyses)
+	for _, line := range strings.Split(bodies, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var body struct {
+			BodyHash string `json:"body_hash"`
+		}
+		if err := json.Unmarshal([]byte(line), &body); err != nil {
+			t.Fatal(err)
+		}
+		partition := filepath.Join(dir, "bronze", "news_body", "body_hash_prefix="+body.BodyHash[:1])
+		if err := os.MkdirAll(partition, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(partition, body.BodyHash+".json"), []byte(line+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func getTrace(t *testing.T, dir, query string) traceResponse {

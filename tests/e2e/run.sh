@@ -73,6 +73,16 @@ export_lake() {
   done
 }
 
+# Object datasets come back as one JSONL per dataset, so specs read them like any other.
+export_objects() {
+  src_root="$1"; layer="$2"; dest="$3"; dataset="$4"
+  mkdir -p "$dest"
+  kubectl --context "$CTX" exec "$SHELL_POD" -- \
+    sh -c 'cat "$1"/*=*/*.json' _ "$src_root/$layer/$dataset" > "$dest/$dataset.jsonl"
+  [ -s "$dest/$dataset.jsonl" ] \
+    || { echo "[e2e] FAIL: $src_root/$layer/$dataset/ came back empty" >&2; exit 1; }
+}
+
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
 # 1) Both images into a fresh single-node cluster (no registry: kind load).
@@ -121,7 +131,8 @@ case "$INGEST_LOG" in
   *) echo "[e2e] FAIL: a feed source did not answer — feed double unready or unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data bronze "$BRONZE_DIR" news_item news_body
+export_lake /data bronze "$BRONZE_DIR" news_item
+export_objects /data bronze "$BRONZE_DIR" news_body
 echo "[e2e] bronze exported -> $BRONZE_DIR"
 
 # 4b) Fault-injection cycle (…-test-ingestion.md#시나리오 6).
@@ -132,14 +143,16 @@ case "$FAULTS_LOG" in
          "the broken paths successfully, so scenario 6 has nothing to observe" >&2
     exit 1 ;;
 esac
-export_lake /data/faults bronze "$FAULTS_DIR" news_item news_body
+export_lake /data/faults bronze "$FAULTS_DIR" news_item
+export_objects /data/faults bronze "$FAULTS_DIR" news_body
 echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 
 # 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
 for cycle in 1 2 3; do
   run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
     >/dev/null
-  export_lake /data/cycles bronze "$CYCLES_DIR/cycle$cycle" news_item news_body
+  export_lake /data/cycles bronze "$CYCLES_DIR/cycle$cycle" news_item
+  export_objects /data/cycles bronze "$CYCLES_DIR/cycle$cycle" news_body
 done
 echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
 
@@ -152,7 +165,8 @@ case "$ANALYSIS_INGEST_LOG" in
           "report a judgement problem rather than a collection one" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_item news_body
+export_lake /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_item
+export_objects /data/analysis bronze "$ANALYSIS_BRONZE_DIR" news_body
 echo "[e2e] bronze (analysis corpus) exported -> $ANALYSIS_BRONZE_DIR"
 
 ANALYZE_LOG="$(run_batch_job econ-e2e-analyze "$E2E_DIR/k8s/batch/analyze-job.yaml")"

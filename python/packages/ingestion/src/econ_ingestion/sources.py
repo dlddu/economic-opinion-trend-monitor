@@ -167,7 +167,7 @@ def run_ingestion(
 
     Returns ``(news_item dicts, news_body dicts, stats)``. Bodies are already
     unique by content hash within the run (same body via different URLs stores
-    once, AC1.7); cross-run dedup happens at the store via ``merge_records``.
+    once, AC1.7); cross-run dedup happens at the store via ``put_object``.
     """
     sources = CATALOG if sources is None else sources
     seen: set[str] = set()

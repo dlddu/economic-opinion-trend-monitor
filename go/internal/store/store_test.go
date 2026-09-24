@@ -61,13 +61,19 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 	for _, f := range []struct{ layer, name, content string }{
 		{"bronze", "news_item", item},
-		{"bronze", "news_body", body},
 		{"silver", "analysis", analysis},
 	} {
 		p := filepath.Join(dir, f.layer, f.name+".jsonl")
 		if err := os.WriteFile(p, []byte(f.content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
+	}
+	partition := filepath.Join(dir, "bronze", "news_body", "body_hash_prefix=h")
+	if err := os.MkdirAll(partition, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(partition, "h1.json"), []byte(body+"\n"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
 	lake := New(dir)
@@ -83,12 +89,17 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		t.Errorf("news_item numerics/flags decoded wrong: %+v", items[0])
 	}
 
-	bodies, err := lake.NewsBodies()
+	stored, err := lake.NewsBody("h1")
 	if err != nil {
-		t.Fatalf("NewsBodies: %v", err)
+		t.Fatalf("NewsBody: %v", err)
 	}
-	if len(bodies) != 1 || bodies[0].BodyHash != "h1" || bodies[0].RawText != "본문 전문" {
-		t.Fatalf("news_body decoded wrong: %+v", bodies)
+	if stored == nil || stored.BodyHash != "h1" || stored.RawText != "본문 전문" {
+		t.Fatalf("news_body decoded wrong: %+v", stored)
+	}
+	for _, key := range []string{"h2", "", "../h1", ".h1"} {
+		if got, err := lake.NewsBody(key); err != nil || got != nil {
+			t.Errorf("NewsBody(%q) = %+v, %v; want nil, nil", key, got, err)
+		}
 	}
 
 	analyses, err := lake.Analyses()
@@ -141,9 +152,9 @@ func TestMissingBronzeAndSilverReadEmpty(t *testing.T) {
 	if err != nil || len(items) != 0 {
 		t.Errorf("NewsItems on an empty lake: %v / %d", err, len(items))
 	}
-	bodies, err := lake.NewsBodies()
-	if err != nil || len(bodies) != 0 {
-		t.Errorf("NewsBodies on an empty lake: %v / %d", err, len(bodies))
+	body, err := lake.NewsBody("h1")
+	if err != nil || body != nil {
+		t.Errorf("NewsBody on an empty lake: %v / %+v", err, body)
 	}
 	analyses, err := lake.Analyses()
 	if err != nil || len(analyses) != 0 {

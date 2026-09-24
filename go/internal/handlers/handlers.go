@@ -527,10 +527,10 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodies, _ := h.lake.NewsBodies()
+	body, _ := h.lake.NewsBody(item.BodyHash)
 	analyses, _ := h.lake.Analyses()
 
-	bronze := bronzeSection(*item, bodies)
+	bronze := bronzeSection(*item, body)
 	silver, hasSilver := silverSection(item.RecordID, analyses)
 
 	writeJSON(w, http.StatusOK, traceResponse{
@@ -567,7 +567,7 @@ func selectNewsItem(items []gen.NewsItem, requested string) (*gen.NewsItem, stri
 	return &items[0], "auto"
 }
 
-func bronzeSection(item gen.NewsItem, bodies []gen.NewsBody) traceBronze {
+func bronzeSection(item gen.NewsItem, body *gen.NewsBody) traceBronze {
 	out := traceBronze{
 		RecordID:      item.RecordID,
 		SourceID:      item.SourceID,
@@ -577,14 +577,11 @@ func bronzeSection(item gen.NewsItem, bodies []gen.NewsBody) traceBronze {
 		BodyHash:      item.BodyHash,
 		BodyAvailable: item.BodyAvailable,
 	}
-	for _, b := range bodies {
-		if b.BodyHash == item.BodyHash {
-			out.BodyPreserved = true
-			out.BodyText = b.RawText
-			out.BodyFirstSeenAt = b.FirstSeenAt
-			out.BodyFirstSeenCycle = b.FirstSeenCycle
-			break
-		}
+	if body != nil {
+		out.BodyPreserved = true
+		out.BodyText = body.RawText
+		out.BodyFirstSeenAt = body.FirstSeenAt
+		out.BodyFirstSeenCycle = body.FirstSeenCycle
 	}
 	return out
 }

@@ -91,12 +91,15 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     written = store.write_records(domain.BRONZE, domain.DS_NEWS_ITEM, items)
-    # Content-addressed merge: unchanged bodies are skipped, edited bodies
-    # append as new versions without touching prior ones (AC1.7).
-    new_bodies = store.merge_records(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", bodies)
+    migrated = store.migrate_records_to_objects(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash")
+    if migrated:
+        print(f"ingestion: migrated {migrated} legacy bodies into the object layout")
+    new_bodies = sum(
+        store.put_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", body) for body in bodies
+    )
 
     target = store.path(domain.BRONZE, domain.DS_NEWS_ITEM)
-    body_target = store.path(domain.BRONZE, domain.DS_NEWS_BODY)
+    body_target = store.object_dir(domain.BRONZE, domain.DS_NEWS_BODY)
     print(f"ingestion[{args.source}]: wrote {written} bronze records -> {target}")
     print(f"  bodies: {new_bodies} new / {len(bodies) - new_bodies} deduplicated -> {body_target}")
     print(
