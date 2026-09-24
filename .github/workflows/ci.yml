@@ -51,6 +51,9 @@ jobs:
   # Order is chosen so the slow, independent parts overlap: the kind cluster is
   # created in the background right after install, the images build meanwhile,
   # and run.sh itself overlaps the Playwright setup with the batch Jobs.
+  # The Playwright browsers are deliberately not cached: the install already
+  # runs off the critical path, while restoring the cache (~15s) is a
+  # sequential step that would surface as soon as the cluster comes up faster.
   e2e:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
@@ -82,15 +85,6 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
-
-      # Chromium for the Playwright version pinned in the lockfile. run.sh still
-      # runs `playwright install --with-deps` (OS packages are not cached); on a
-      # hit it only skips the download.
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tests/e2e/package-lock.json') }}
 
       # The PR preview overlay is only ever built by Flux, so nothing else
       # would notice it rotting. Build it with the load restrictor
