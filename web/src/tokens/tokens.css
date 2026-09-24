@@ -1539,6 +1539,9 @@ button.norm-toggle {
 }
 
 /* 주소·해시는 접어서라도 전부 보여 준다 — 잘라 내면 대조에 못 쓴다. */
+.trace-open {
+  margin: 10px 0 4px;
+}
 .trace-url {
   word-break: break-all;
 }

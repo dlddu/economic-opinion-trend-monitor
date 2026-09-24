@@ -230,6 +230,13 @@ module.exports = {
     t.is(d.querySelectorAll('#cmp-rows tr').length > 0, true, '(h) 응답↔저장값 대조 표가 인라인 스크립트로 렌더된다');
     t.is(d.querySelectorAll('#stage-rows tr').length > 0, true, '(h) 실행 단계 표가 인라인 스크립트로 렌더된다');
     t.is(d.querySelectorAll('#evidence-rows tr').length > 0, true, '(h) 판정 근거 표가 인라인 스크립트로 렌더된다');
+    /* 원문 열기 — 고른 결과의 원래 주소를 새 탭으로. 외부 주소는 href 가 아니라 data-url 에 두어
+       페이지가 외부 자원을 품지 않게 한다((h) 정적 동작). */
+    for (const id of ['open-source-1', 'open-source-3']) {
+      const b = d.getElementById(id);
+      t.is(!!b && b.tagName === 'BUTTON' && !b.closest('[data-meta-layer]'), true, `(h) #${id} 원문 열기 버튼이 제품 평면에 있다`);
+      if (b) t.is(/^https:\/\//.test(b.getAttribute('data-url') || ''), true, `(h) #${id} 가 고른 결과의 원문 주소를 싣는다`);
+    }
     /* 원문 추적 상세로 가는 CTA — 고른 결과를 들고 원문 추적 화면에 착지한다. */
     for (const id of ['to-trace-1', 'to-trace-3']) {
       const a = d.getElementById(id);

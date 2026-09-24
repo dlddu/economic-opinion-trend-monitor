@@ -213,3 +213,33 @@ it("writes the looked-up record back into the URL", async () => {
     expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("record_id=R-2609-0351"))).toBe(true),
   );
 });
+
+// The article itself is one click away when its address still answers — in a new
+// tab, without handing the opened page a handle back to this one.
+it("links out to the original article while the link is alive", async () => {
+  stubTrace(response());
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+  const a = container.querySelector(".trace-open a") as HTMLAnchorElement;
+  expect(a).not.toBeNull();
+  expect(a.getAttribute("href")).toBe(BRONZE.source_url);
+  expect(a.getAttribute("target")).toBe("_blank");
+  expect(a.getAttribute("rel")).toContain("noopener");
+});
+
+// No button that cannot work: a dead link gets the preserved copy instead, and a
+// non-http address is never turned into a clickable href.
+it("offers no open button for a dead link or a non-http address", async () => {
+  stubTrace(response({ bronze: { ...BRONZE, body_available: false } }));
+  const dead = renderTrace();
+  await waitFor(() => expect(dead.container.textContent).toContain(BRONZE.title));
+  expect(dead.container.querySelector(".trace-open")).toBeNull();
+  dead.unmount();
+
+  stubTrace(response({ bronze: { ...BRONZE, source_url: "javascript:alert(1)" } }));
+  const odd = renderTrace();
+  await waitFor(() => expect(odd.container.textContent).toContain(BRONZE.title));
+  expect(odd.container.querySelector(".trace-open")).toBeNull();
+  expect(odd.container.textContent).toContain("javascript:alert(1)");
+});

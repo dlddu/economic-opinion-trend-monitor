@@ -565,8 +565,8 @@ details.meta table.tbl{margin-top:10px}
                 <div>결과마다 그것을 만든 실행과 모델 호출이 붙어 있습니다. 원문으로 되짚는 키도 그대로입니다.</div>
               </div>
               <div class="actions" style="margin-top:12px">
+                <button type="button" class="btn sm open-src" id="open-source-1">원문 열기 &nearr;</button>
                 <a class="btn sm" id="to-trace-1" href="JRN-spike-verification.html#STP-open-origin">원문 추적 상세에서 보기 &rarr;</a>
-                <span class="muted" style="font-size:12px">이 결과의 원문·링크 상태·보존본을 봅니다</span>
               </div>
             </div>
           </div>
@@ -694,6 +694,7 @@ details.meta table.tbl{margin-top:10px}
               </label>
               <pre class="code" id="arch-body"></pre>
               <div class="actions" style="margin-top:10px">
+                <button type="button" class="btn sm open-src" id="open-source-3">원문 열기 &nearr;</button>
                 <a class="btn sm" id="to-trace-3" href="JRN-spike-verification.html#STP-open-origin">원문 추적 상세에서 전체 보기 &rarr;</a>
               </div>
             </div>
@@ -882,9 +883,9 @@ details.meta table.tbl{margin-top:10px}
           <table class="tbl">
             <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
             <tbody>
-              <tr><td class="mono">STP-pin-record</td><td>이상해 보이는 분석 결과를 레코드 하나로 특정한다</td><td>레코드 검색·선택, 운영 알림, 원문 추적 상세(trace)로 이동</td><td class="mono">AC4.3 &middot; AC2.6</td></tr>
+              <tr><td class="mono">STP-pin-record</td><td>이상해 보이는 분석 결과를 레코드 하나로 특정한다</td><td>레코드 검색·선택, 운영 알림, 원문 열기(새 탭), 원문 추적 상세(trace)로 이동</td><td class="mono">AC4.3 &middot; AC2.6</td></tr>
               <tr><td class="mono">STP-read-exchange</td><td>전송 프롬프트, 가공 전 응답 원문, 파싱 결과를 나란히 읽는다</td><td>호출 기록 패널, 응답↔저장값 대조(CMP-table)</td><td class="mono">AC4.2</td></tr>
-              <tr><td class="mono">STP-check-input</td><td>모델이 받은 제목·본문이 보관된 원문 버전과 같은지 확인한다</td><td>입력 대조(PAT-lineage 계열), 원문 추적 상세(trace)로 이동</td><td class="mono">AC4.2 &middot; AC2.6 &middot; AC1.7</td></tr>
+              <tr><td class="mono">STP-check-input</td><td>모델이 받은 제목·본문이 보관된 원문 버전과 같은지 확인한다</td><td>입력 대조(PAT-lineage 계열), 원문 열기(새 탭), 원문 추적 상세(trace)로 이동</td><td class="mono">AC4.2 &middot; AC2.6 &middot; AC1.7</td></tr>
               <tr><td class="mono">STP-scan-run</td><td>소속 실행의 단계별 건수·실패 사유와 같은 증상의 몰림을 본다</td><td>실행 요약(PAT-integrity-panel 계열), 지표(CMP-metric)</td><td class="mono">AC4.1 &middot; AC4.3</td></tr>
               <tr><td class="mono">STP-route-cause</td><td>원인을 하나 고르고 조치가 필요하면 해당 여정으로 넘긴다</td><td>원인 분류·인계</td><td class="mono">&mdash;</td></tr>
             </tbody>
@@ -958,7 +959,7 @@ var BODIES = {
 };
 
 var RECS = [
-  { id:'R-2609-0412', title:'한은, 기준금리 3.25% 동결…가계부채 경고는 한층 강화', src:'yonhap-economy', axis:'한국', at:'09-24 02:00',
+  { id:'R-2609-0412', url:'https://www.yna.co.kr/view/AKR20260924010200002', title:'한은, 기준금리 3.25% 동결…가계부채 경고는 한층 강화', src:'yonhap-economy', axis:'한국', at:'09-24 02:00',
     status:'analyzed', sent:'긍정', group:'suspect', sym:'mismatch', run:'R0300', sentVer:'v2',
     call:{ kind:'mismatch', id:'C-7731', retries:0, ms:2140, when:'09-24 03:02:11',
       reply:'{"countries":["KR"],"subjects":["한국은행","기준금리"],"sentiment":"positive","confidence":0.62}\n'
@@ -966,34 +967,34 @@ var RECS = [
         + '{"countries":["KR"],"subjects":["한국은행","기준금리","가계부채"],"sentiment":"mixed","confidence":0.81}',
       final:{ countries:'KR', subjects:'한국은행 · 기준금리 · 가계부채', sentiment:'혼합', confidence:'0.81' },
       stored:{ countries:'KR', subjects:'한국은행 · 기준금리', sentiment:'긍정', confidence:'0.62' } } },
-  { id:'R-2609-0398', title:'Fed signals patience as inflation cools', src:'wsj-markets', axis:'미국', at:'09-24 02:00',
+  { id:'R-2609-0398', url:'https://www.wsj.com/economy/central-banking/fed-patience-inflation-cools', title:'Fed signals patience as inflation cools', src:'wsj-markets', axis:'미국', at:'09-24 02:00',
     status:'unanalyzed', sent:'미분석', group:'failed', sym:'failed', run:'R0300', sentVer:'v1',
     call:{ kind:'failed', id:'C-7744', retries:2, ms:31800, when:'09-24 03:05:40', err:'HTTP 429 Too Many Requests',
       reply:'(응답 없음)\n1차 시도: HTTP 429 Too Many Requests\n2차 시도: HTTP 429 Too Many Requests\n3차 시도: HTTP 429 Too Many Requests',
       final:null, stored:{ countries:'—', subjects:'—', sentiment:'미분석', confidence:'—' } } },
-  { id:'R-2609-0377', title:'IMF 세계경제전망 요약 보도자료', src:'imf-mediacenter', axis:'전세계', at:'09-24 02:00',
+  { id:'R-2609-0377', url:'https://www.imf.org/en/News/Articles/2026/09/23/pr-weo-update', title:'IMF 세계경제전망 요약 보도자료', src:'imf-mediacenter', axis:'전세계', at:'09-24 02:00',
     status:'unanalyzed', sent:'미분석', group:'unanalyzed', sym:'notcalled', run:'R0300', sentVer:null,
     call:{ kind:'notcalled', why:'본문 미확보 — 원문 링크만 수집됨',
       stored:{ countries:'—', subjects:'—', sentiment:'미분석', confidence:'—' } } },
-  { id:'R-2609-0365', title:'코스피, 외국인 순매수에 2,700선 회복', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
+  { id:'R-2609-0365', url:'https://www.hankyung.com/article/2026092398765', title:'코스피, 외국인 순매수에 2,700선 회복', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
     status:'analyzed', sent:'긍정', group:'all', sym:null, run:'R0300', sentVer:'v1',
     call:{ kind:'reused', id:'—', orig:{ id:'C-6980', run:'R0100', retries:0, ms:1870, when:'09-24 01:04:22' },
       reply:'{"countries":["KR"],"subjects":["코스피","외국인 순매수","반도체"],"sentiment":"positive","confidence":0.88}',
       final:{ countries:'KR', subjects:'코스피 · 외국인 순매수 · 반도체', sentiment:'긍정', confidence:'0.88' },
       stored:{ countries:'KR', subjects:'코스피 · 외국인 순매수 · 반도체', sentiment:'긍정', confidence:'0.88' } } },
-  { id:'R-2609-0351', title:'반도체 수출 두 달 연속 반등…대중 수출은 여전히 감소', src:'yonhap-economy', axis:'한국', at:'09-24 01:00',
+  { id:'R-2609-0351', url:'https://www.yna.co.kr/view/AKR20260924000500003', title:'반도체 수출 두 달 연속 반등…대중 수출은 여전히 감소', src:'yonhap-economy', axis:'한국', at:'09-24 01:00',
     status:'analyzed', sent:'중립', group:'suspect', sym:'stale', run:'R0100', sentVer:'v1',
     call:{ kind:'ok', id:'C-6951', retries:0, ms:1610, when:'09-24 01:03:08',
       reply:'{"countries":["KR"],"subjects":["반도체 수출"],"sentiment":"neutral","confidence":0.74}',
       final:{ countries:'KR', subjects:'반도체 수출', sentiment:'중립', confidence:'0.74' },
       stored:{ countries:'KR', subjects:'반도체 수출', sentiment:'중립', confidence:'0.74' } } },
-  { id:'R-2609-0420', title:'[단독] 추석 이후 장바구니 물가 전망', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
+  { id:'R-2609-0420', url:'https://www.hankyung.com/article/2026092401234', title:'[단독] 추석 이후 장바구니 물가 전망', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
     status:'low_confidence', sent:'저신뢰', group:'lowconf', sym:'lowconf', run:'R0300', sentVer:'v1',
     call:{ kind:'ok', id:'C-7760', retries:0, ms:1320, when:'09-24 03:07:51',
       reply:'{"countries":["KR"],"subjects":[],"sentiment":"neutral","confidence":0.31}',
       final:{ countries:'KR', subjects:'(없음)', sentiment:'중립', confidence:'0.31' },
       stored:{ countries:'KR', subjects:'(없음)', sentiment:'중립', confidence:'0.31' } } },
-  { id:'R-2608-2210', title:'8월 소비자물가 2.1% 상승…석 달째 2%대', src:'yonhap-economy', axis:'한국', at:'08-29 10:00',
+  { id:'R-2608-2210', url:'https://www.yna.co.kr/view/AKR20260829091000002', title:'8월 소비자물가 2.1% 상승…석 달째 2%대', src:'yonhap-economy', axis:'한국', at:'08-29 10:00',
     status:'analyzed', sent:'부정', group:'suspect', sym:null, run:null, sentVer:null,
     call:{ kind:'legacy', stored:{ countries:'KR', subjects:'소비자물가', sentiment:'부정', confidence:'0.70' } } }
 ];
@@ -1082,6 +1083,7 @@ function pick(id){
 }
 function renderPick(){
   var r = rec();
+  ['open-source-1','open-source-3'].forEach(function(id){ var b = $(id); if(b) b.setAttribute('data-url', r.url); });
   ['to-trace-1','to-trace-3'].forEach(function(id){
     var a = $(id); if(a) a.setAttribute('href', 'JRN-spike-verification.html?record_id=' + encodeURIComponent(r.id) + '#STP-open-origin');
   });
@@ -1089,6 +1091,7 @@ function renderPick(){
   $('pick-title').textContent = r.title;
   $('pick-kv').innerHTML = kv('레코드', '<span class="mono">' + r.id + '</span>')
     + kv('출처', r.src + ' · ' + r.axis) + kv('수집 주기', r.at)
+    + kv('원문 주소', '<span class="mono" style="word-break:break-all">' + esc(r.url) + '</span>')
     + kv('분석 결과', badge(r)) + kv('만든 실행', r.run ? RUNS[r.run].label + ' 정기 실행' : '기록 없음');
 }
 
@@ -1325,6 +1328,9 @@ function submitCause(e){
   window.addEventListener('hashchange', fromHash);
 
   /* 제품 컨트롤 배선 */
+  document.querySelectorAll('.open-src').forEach(function(b){
+    b.addEventListener('click', function(){ var u = b.getAttribute('data-url'); if(u) window.open(u, '_blank', 'noopener'); });
+  });
   $('q').addEventListener('input', function(){ state.q = this.value; renderList(); });
   $('symptom').addEventListener('change', function(){ state.group = this.value; renderList(); });
   $('prompt-part').addEventListener('change', function(){ state.part = this.value; renderCall(); });

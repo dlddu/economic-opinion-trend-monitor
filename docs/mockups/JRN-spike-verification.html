@@ -748,6 +748,10 @@ details.meta table.tbl{margin-top:10px}
               </div>
 
               <div id="origin-body"></div>
+              <div class="kv"><span class="k">원문 주소</span><span class="v mono" id="origin-url" style="word-break:break-all"></span></div>
+              <div class="actions" style="margin:10px 0 4px">
+                <button type="button" class="btn sm" id="open-source">원문 열기 &nearr;</button>
+              </div>
 
               <div class="banner warn" id="s-link-expired" data-state="link-expired" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/><path d="M2 2l20 20"/></svg>
@@ -977,17 +981,17 @@ var SOURCES = [
 
 /* 기여 뉴스. dup=true 는 본문 중복으로 잡힌 재탕. */
 var ARTICLES = [
-  { id: 'a1', title: '환율 1,480원 돌파… 당국 구두개입 시사', src: '연합 통신사', at: '14:02', dup: false,
+  { id: 'a1', url: 'https://www.yna.co.kr/view/AKR20260923140200002', title: '환율 1,480원 돌파… 당국 구두개입 시사', src: '연합 통신사', at: '14:02', dup: false,
     body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a2', title: '[속보] 환율 1,480원 돌파', src: '경제일보', at: '14:05', dup: true,
+  { id: 'a2', url: 'https://www.econdaily.example/news/20260923/fx-1480', title: '[속보] 환율 1,480원 돌파', src: '경제일보', at: '14:05', dup: true,
     body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a3', title: '환율 급등에 수입물가 비상', src: '데일리 마켓', at: '14:31', dup: false,
+  { id: 'a3', url: 'https://www.dailymarket.example/articles/import-prices-fx', title: '환율 급등에 수입물가 비상', src: '데일리 마켓', at: '14:31', dup: false,
     body: '환율 상승이 수입물가로 옮겨붙고 있다. 에너지·원자재 수입 비중이 큰 업종부터 원가 압박이 커진다.' },
-  { id: 'a4', title: '환율 1480원 돌파 (재송)', src: '연합 통신사', at: '14:40', dup: true,
+  { id: 'a4', url: 'https://www.yna.co.kr/view/AKR20260923144000002', title: '환율 1480원 돌파 (재송)', src: '연합 통신사', at: '14:40', dup: true,
     body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a5', title: '달러 강세 지속… 아시아 통화 동반 약세', src: '글로벌 와이어', at: '15:10', dup: false,
+  { id: 'a5', url: 'https://www.globalwire.example/markets/dollar-asia-fx', title: '달러 강세 지속… 아시아 통화 동반 약세', src: '글로벌 와이어', at: '15:10', dup: false,
     body: '달러 인덱스가 다시 올라서며 아시아 통화가 동반 약세를 보였다.' },
-  { id: 'a6', title: '환율 관련 커뮤니티 언급 급증', src: '커뮤니티 수집분', at: '15:22', dup: false,
+  { id: 'a6', url: 'https://community.example/threads/fx-1480', title: '환율 관련 커뮤니티 언급 급증', src: '커뮤니티 수집분', at: '15:22', dup: false,
     body: '커뮤니티에서 환율 언급이 늘었다. 분류 신뢰도가 낮아 별도 항목으로 집계한다.' }
 ];
 
@@ -1228,6 +1232,10 @@ function renderOrigin(){
     '<div class="kv"><span class="k">보존 시각</span><span class="v mono">' + a.at + '</span></div>' +
     '<div class="kv"><span class="k">수집원</span><span class="v">' + a.src + '</span></div>' +
     '<p style="margin-top:12px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">' + a.body + '</p>';
+  $('origin-url').textContent = a.url;
+  var ob = $('open-source');
+  ob.setAttribute('data-url', a.url);
+  show(ob, !expired);
   show($('s-link-expired'), expired);
 }
 
@@ -1317,6 +1325,7 @@ function submitJudge(e){
     var h = (location.hash || '').replace(/^#/, '');
     go(order.indexOf(h) >= 0 ? h : order[0], false);
   }
+  $('open-source').addEventListener('click', function(){ var u = this.getAttribute('data-url'); if(u) window.open(u, '_blank', 'noopener'); });
   window.addEventListener('hashchange', fromHash);
 
   /* 제품 컨트롤 배선 */
