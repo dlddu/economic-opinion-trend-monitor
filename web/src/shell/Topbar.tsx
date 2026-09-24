@@ -3,9 +3,7 @@ import { useLocation } from "react-router-dom";
 import { SCREENS_BY_PATH } from "./nav";
 import { TopbarContext } from "./topbarSlot";
 
-// CMP-topbar: screen title (the route's, unless the screen lifts its own) and
-// the screen's condition pill. The mockups carry no journey crumb here — the
-// journey id lives in the folded 「여정 문서 정보」 layer, not on the product plane.
+// CMP-topbar.
 export function Topbar() {
   const { pathname } = useLocation();
   const { override } = useContext(TopbarContext);

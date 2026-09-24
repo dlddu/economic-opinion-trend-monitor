@@ -11,29 +11,8 @@ import (
 )
 
 // /api/dashboard — JRN-daily-scan 화면 1(STP-open-brief).
-//
-// 목업은 이 화면을 「{축} · 최근 7일 · 일 단위」로 연다. 그래서 응답은 한 단위의
-// 버킷 창(window)을 기준으로 만든다:
-//
-//   - 순위·점유율은 **최신 버킷** 하나에서 매긴다. 여러 버킷의 행을 평평하게 섞어
-//     자르면 같은 대상이 버킷마다 다른 값으로 경쟁하고, 어제의 1위가 오늘의 순위에
-//     끼어든다.
-//   - 스파크라인은 창 안의 버킷을 오래된 순으로 잇는다. 축에 수집이 있었던 버킷에서
-//     대상이 빠졌다면 그 버킷의 점유율은 0이다(관심이 없었던 것). 축 자체에 수집이
-//     없던 버킷은 창에 들어오지 않는다(수집이 없는 것은 0이 아니다).
-//   - 변화량은 축의 **직전 버킷** 대비 %p다. 직전 버킷이 없으면 기준이 없다고
-//     명시한다(has_baseline=false) — 0으로 채우지 않는다.
-//   - 최신 버킷에 이 축의 행이 없으면 「밤사이 수집이 들어오지 않음」이다
-//     (empty_window). 다른 축의 수집 시각이 최신 버킷을 정한다.
-//
-// 지표는 Gold 의 axis_sentiment 만으로 되짚는다. 분석 완료 = analyzed_total,
-// 저신뢰 분리 = unanalyzed 몫, 수집 항목 = analyzed_total / (1 - unanalyzed).
-// 마지막 값은 비율에서 되짚은 건수라 반올림 오차가 1건 범위에서 남을 수 있다
-// (`Sentiment.tsx` 의 `unanalyzedCount` 와 같은 되짚기). 분석이 전부 분리된 버킷은
-// 되짚을 수 없으므로 null 로 둔다.
 
-// dashRanges maps the range query value to how far back the window opens —
-// the same vocabulary /api/reprocess uses.
+// dashRanges is the same range vocabulary /api/reprocess takes.
 var dashRanges = map[string]time.Duration{
 	"24h": 24 * time.Hour,
 	"7d":  7 * 24 * time.Hour,
