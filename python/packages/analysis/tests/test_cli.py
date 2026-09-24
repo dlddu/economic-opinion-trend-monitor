@@ -69,7 +69,16 @@ def _write_jsonl(path: Path, records: list[dict]) -> None:
 
 def _silver(root: Path) -> Path:
     """The Silver partition of the seeded cycle."""
-    return root / "silver" / "analysis" / "date=2026-06-23" / "hour=14" / "data.jsonl"
+    return (
+        root
+        / "silver"
+        / "analysis"
+        / "year=2026"
+        / "month=06"
+        / "day=23"
+        / "hour=14"
+        / "data.jsonl"
+    )
 
 
 def _canned(reply: str):
@@ -375,8 +384,8 @@ def test_silver_rows_land_in_the_partition_of_their_observation(tmp_path: Path) 
         for part in root.rglob("data.jsonl")
     }
     assert ids == {
-        "date=2026-06-23/hour=14": ["r1", "r2"],
-        "date=2026-06-23/hour=15": ["r1-next", "r2-next"],
+        "year=2026/month=06/day=23/hour=14": ["r1", "r2"],
+        "year=2026/month=06/day=23/hour=15": ["r1-next", "r2-next"],
     }
 
 

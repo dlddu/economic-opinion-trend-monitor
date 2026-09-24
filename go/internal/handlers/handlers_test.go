@@ -747,7 +747,7 @@ func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 		if ds.content == "" {
 			continue
 		}
-		part := filepath.Join(dir, ds.dataset, "date=2026-06-23", "hour=14")
+		part := filepath.Join(dir, ds.dataset, "year=2026", "month=06", "day=23", "hour=14")
 		if err := os.MkdirAll(part, 0o755); err != nil {
 			t.Fatal(err)
 		}

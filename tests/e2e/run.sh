@@ -84,9 +84,9 @@ export_parts() {
     || { echo "[e2e] FAIL: $src_root/$layer/$dataset/ came back empty" >&2; exit 1; }
 }
 
-export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/data.jsonl'; }
+export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/*=*/*=*/data.jsonl'; }
 export_news_body() { export_parts "$1" bronze "$2" news_body '*=*/*.json'; }
-export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/data.jsonl'; }
+export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data.jsonl'; }
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 

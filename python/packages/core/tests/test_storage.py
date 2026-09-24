@@ -116,23 +116,24 @@ def test_generated_model_roundtrip() -> None:
 
 def test_partition_is_replaced_alone_and_read_in_path_order(tmp_path: Path) -> None:
     store = LocalFsStore(tmp_path)
-    h23 = {"date": "2026-06-23", "hour": "23"}
-    h00 = {"date": "2026-06-24", "hour": "00"}
+    h23 = domain.cycle_partition("2026-06-23T23:00")
+    h00 = domain.cycle_partition("2026-06-24T00:00")
     store.write_partition("bronze", "news_item", h00, [{"id": "c"}])
     store.write_partition("bronze", "news_item", h23, [{"id": "a"}, {"id": "b"}])
     store.write_partition("bronze", "news_item", h23, [{"id": "b2"}])
 
-    assert (tmp_path / "bronze/news_item/date=2026-06-23/hour=23/data.jsonl").is_file()
+    assert (tmp_path / "bronze/news_item/year=2026/month=06/day=23/hour=23/data.jsonl").is_file()
     assert store.partitions("bronze", "news_item") == [h23, h00]
     assert store.read_partitions("bronze", "news_item") == [{"id": "b2"}, {"id": "c"}]
-    assert store.read_partition("bronze", "news_item", {"date": "2026-01-01", "hour": "00"}) == []
+    unseen = domain.cycle_partition("2026-01-01T00:00")
+    assert store.read_partition("bronze", "news_item", unseen) == []
     assert store.read_partitions("bronze", "missing") == []
     assert not list((tmp_path / "bronze/news_item").rglob(".*"))
 
 
 def test_partition_values_must_be_plain_path_segments(tmp_path: Path) -> None:
     store = LocalFsStore(tmp_path)
-    for partition in ({"date": "a/b"}, {"date": "x=y"}, {"date": ".."}, {"a=b": "1"}):
+    for partition in ({"year": "a/b"}, {"year": "x=y"}, {"year": ".."}, {"a=b": "1"}):
         with pytest.raises(ValueError):
             store.write_partition("bronze", "news_item", partition, [])
 
@@ -142,7 +143,7 @@ def test_legacy_jsonl_migrates_into_partitions_dropping_unlocated(tmp_path: Path
     store.write_records("silver", "analysis", [{"id": "a", "h": "01"}, {"id": "x", "h": None}])
 
     def locate(r: dict) -> dict | None:
-        return {"date": "2026-06-23", "hour": r["h"]} if r["h"] else None
+        return {"year": "2026", "hour": r["h"]} if r["h"] else None
 
     assert store.migrate_records_to_partitions("silver", "analysis", locate) == 1
     assert store.read_partitions("silver", "analysis") == [{"id": "a", "h": "01"}]
@@ -151,7 +152,12 @@ def test_legacy_jsonl_migrates_into_partitions_dropping_unlocated(tmp_path: Path
 
 
 def test_domain_cycle_partition_is_exact() -> None:
-    assert domain.cycle_partition("2026-06-23T14:00") == {"date": "2026-06-23", "hour": "14"}
+    assert domain.cycle_partition("2026-06-23T14:00") == {
+        "year": "2026",
+        "month": "06",
+        "day": "23",
+        "hour": "14",
+    }
     for bad in ("2026-06-23T14", "2026-6-23T14:00", "2026-06-23T14:30", "2026-06-23T14:00:00"):
         with pytest.raises(ValueError):
             domain.cycle_partition(bad)

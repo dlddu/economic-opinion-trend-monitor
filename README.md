@@ -32,7 +32,7 @@
 - **Bronze** (수집 원문 보존): 관측 레코드 `news_item`(원문 링크 + 수집 메타데이터 + 본문 해시 참조)과
   content-addressed 본문 저장소 `news_body`(동일 본문은 1회만 저장, 수정 본문은 새 버전 append)로 분리 —
   `contracts/bronze/*.schema.json` (JSON Schema)
-  - `news_item`은 **주기별 파티션**으로 누적된다: `bronze/news_item/date=<YYYY-MM-DD>/hour=<HH>/data.jsonl`.
+  - `news_item`은 **주기별 파티션**으로 누적된다: `bronze/news_item/year=<YYYY>/month=<MM>/day=<DD>/hour=<HH>/data.jsonl`.
     같은 주기를 다시 돌리면 그 파티션만 교체되고 이전 주기는 남는다 — 재처리·계보 추적의 대상이다.
     주기가 곧 파티션이므로 `--cycle`은 정시(`YYYY-MM-DDTHH:00`)만 받는다.
   - `news_body`는 레코드 1건 = 파일 1개인 **객체 데이터셋**이다:
@@ -41,7 +41,7 @@
   - 이전 통파일(`bronze/news_item.jsonl`, `bronze/news_body.jsonl`)은 다음 수집 실행이 새 레이아웃으로
     옮기고 `*.jsonl.migrated`로 이름을 바꾼다.
 - **Silver** (LLM 분석): 대상 국가 · 핵심 서술 대상 · 분위기 — `contracts/silver/*.avsc` (Avro)
-  - `analysis`는 Bronze와 같은 파티션에 둔다: `silver/analysis/date=<YYYY-MM-DD>/hour=<HH>/data.jsonl`.
+  - `analysis`는 Bronze와 같은 파티션에 둔다: `silver/analysis/year=<YYYY>/month=<MM>/day=<DD>/hour=<HH>/data.jsonl`.
     기준은 분석한 시각이 아니라 **분석 대상 관측의 수집 주기**다 — 한 주기의 Bronze·Silver가 나란히 있고,
     쓰기는 건드린 주기의 파티션만 다시 쓴다. 이전 `silver/analysis.jsonl`은 다음 분석 실행이 옮긴다
     (Bronze에 없는 레코드의 행은 버린다).

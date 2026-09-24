@@ -75,7 +75,7 @@ def parse_cycle(cycle: str) -> datetime:
 
 
 def cycle_partition(cycle: str) -> dict[str, str]:
-    """The ``date=/hour=`` partition holding one collection cycle.
+    """The ``year=/month=/day=/hour=`` partition holding one collection cycle.
 
     Bronze ``news_item`` and Silver ``analysis`` share it — a Silver row lives in the
     partition of the observation it analyzes, not of the hour it was analyzed in, so
@@ -83,4 +83,9 @@ def cycle_partition(cycle: str) -> dict[str, str]:
     history's partitions rather than piling into the current hour.
     """
     at = parse_cycle(cycle)
-    return {"date": at.strftime("%Y-%m-%d"), "hour": at.strftime("%H")}
+    return {
+        "year": at.strftime("%Y"),
+        "month": at.strftime("%m"),
+        "day": at.strftime("%d"),
+        "hour": at.strftime("%H"),
+    }

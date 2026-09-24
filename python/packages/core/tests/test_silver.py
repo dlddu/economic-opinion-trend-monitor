@@ -134,7 +134,16 @@ def test_a_write_rewrites_only_the_partitions_it_touches(tmp_path: Path) -> None
     silver.store_analyses(
         store, CYCLES, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
     )
-    other = tmp_path / "silver" / "analysis" / "date=2026-06-23" / "hour=15" / "data.jsonl"
+    other = (
+        tmp_path
+        / "silver"
+        / "analysis"
+        / "year=2026"
+        / "month=06"
+        / "day=23"
+        / "hour=15"
+        / "data.jsonl"
+    )
     before = other.stat().st_ino
 
     silver.store_analyses(store, CYCLES, [_row("r1", "v2", "t2", ["b"])])

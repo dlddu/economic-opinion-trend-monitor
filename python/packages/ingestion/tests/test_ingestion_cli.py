@@ -50,8 +50,8 @@ def test_each_cycle_lands_in_its_own_partition_and_reruns_replace_it(tmp_path: P
 
     root = tmp_path / "bronze" / "news_item"
     assert sorted(p.relative_to(root).as_posix() for p in root.rglob("*.jsonl")) == [
-        "date=2026-06-23/hour=23/data.jsonl",
-        "date=2026-06-24/hour=00/data.jsonl",
+        "year=2026/month=06/day=23/hour=23/data.jsonl",
+        "year=2026/month=06/day=24/hour=00/data.jsonl",
     ]
     items = LocalFsStore(tmp_path).read_partitions("bronze", "news_item")
     per_cycle = {
@@ -69,7 +69,16 @@ def test_legacy_observation_file_is_migrated_into_its_cycle(tmp_path: Path) -> N
 
     _run(tmp_path, "2026-06-23T14:00")
 
-    part = tmp_path / "bronze" / "news_item" / "date=2026-06-22" / "hour=05" / "data.jsonl"
+    part = (
+        tmp_path
+        / "bronze"
+        / "news_item"
+        / "year=2026"
+        / "month=06"
+        / "day=22"
+        / "hour=05"
+        / "data.jsonl"
+    )
     assert part.is_file()
     assert legacy in store.read_partitions("bronze", "news_item")
     assert (tmp_path / "bronze" / "news_item.jsonl.migrated").exists()
