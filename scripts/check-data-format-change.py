@@ -11,22 +11,20 @@ PR 의 변경분(`base...head`, merge-base 기준)이 **DB 스키마 또는 데�
 판정이 애매하면 "변경 있음" 쪽으로 기운다(fail-closed). 잘못 success 를 붙이는
 비용이 리뷰 한 번 더 받는 비용보다 크기 때문이다.
 
-이 레포에서 "저장 형식"이 결정되는 곳
-  contracts/                        스키마 단일 소스(JSON Schema · Avro) + 코드젠
-  go/gen/, econ_core/models/        contracts → 생성된 레코드 타입
-  econ_core/storage.py              직렬화(JSONL) · 경로 규칙 · replace/merge 의미
-  econ_core/domain.py               레이어·데이터셋(파일) 이름, body_hash 콘텐츠 주소
-  go/internal/store/                Gold 리더(경로 · 디코딩)
-  data/                             로컬 레이크 디렉터리 구조
-  deploy/**/*pvc*.yaml              레이크 볼륨
-그리고 위 밖에서도 **추가·삭제된 줄**(주석 줄 제외)이
-  - 레이크 입출력 호출(`write_records` 등) · 데이터셋 상수(`DS_*`) · 레이크 루트·마운트,
-  - 배치 생산자(ingestion·analysis·aggregation)에서 **계약 필드에 값을 대입하는 줄**
-    (`bucket_unit=unit`, `"bucket_unit": unit` 처럼 —
-    스키마는 그대로여도 저장되는 값의 형식이 바뀔 수 있다)
-을 건드리면 변경으로 본다. 계약 필드 이름은 contracts/ 에서 직접 읽는다.
+보는 것은 두 가지뿐이다.
+  1. 데이터 계약
+     contracts/                     스키마 단일 소스(JSON Schema · Avro) + 코드젠
+     go/gen/, econ_core/models/     contracts → 생성된 레코드 타입
+     그리고 배치 생산자(ingestion·analysis·aggregation)에서 **계약 필드에 값을
+     대입하는 줄**(주석 줄 제외 — `bucket_unit=unit`, `"bucket_unit": unit` 처럼;
+     스키마는 그대로여도 저장되는 값의 형식이 바뀔 수 있다). 계약 필드 이름은
+     contracts/ 에서 직접 읽는다.
+  2. 게이트 자신(이 스크립트 · 워크플로)
+     PR 이 판정기를 고쳐 스스로 통과하지 못하게 한다.
 
-게이트 자신(이 스크립트 · 워크플로)을 바꾸는 PR 도 사람 리뷰 대상이다.
+직렬화·레이크 경로(storage.py · domain.py · go/internal/store/ · 입출력 호출 ·
+데이터셋 상수), data/, 볼륨·마운트(PVC · ECON_DATA_ROOT 등)는 **보지 않는다** —
+그런 변경은 일반 리뷰 몫이다(2026-09 결정으로 규칙에서 뺐다).
 
   python3 scripts/check-data-format-change.py <base-sha> <head-sha>
 
@@ -46,51 +44,17 @@ SENSITIVE_PATHS: list[tuple[str, str]] = [
     ("contracts/**", "스키마 계약(contracts/) — JSON Schema·Avro·코드젠"),
     ("go/gen/**", "contracts 에서 생성된 Go 레코드 타입"),
     ("python/packages/core/src/econ_core/models/**", "contracts 에서 생성된 Python 레코드 타입"),
-    ("python/packages/core/src/econ_core/storage.py", "레이크 직렬화·경로·쓰기 의미"),
-    ("python/packages/core/src/econ_core/domain.py", "레이어·데이터셋 이름, body_hash 콘텐츠 주소"),
-    ("go/internal/store/*.go", "Gold 리더(경로·디코딩)"),
-    ("data/**", "로컬 데이터 레이크 디렉터리 구조"),
-    ("deploy/**/*pvc*.yaml", "데이터 레이크 볼륨(PVC)"),
     (".github/workflows/review-gate.yml", "리뷰 게이트 워크플로 자체"),
     ("scripts/check-data-format-change.py", "리뷰 게이트 판정기 자체"),
 ]
 
-# 경로 규칙에서 빼는 것 — 테스트는 저장 형식을 바꾸지 않는다.
-PATH_EXCLUDES: list[str] = [
-    "go/internal/store/*_test.go",
-]
+# 경로 규칙에서 빼는 것.
+PATH_EXCLUDES: list[str] = []
 
 # ── 내용 규칙: 추가·삭제된 줄이 이 패턴에 걸리면 형식 변경 ─────────────────────────
-# (파일 glob 목록, 줄 정규식, 이유)
-CONTENT_RULES: list[tuple[list[str], re.Pattern[str], str]] = [
-    (
-        ["python/packages/*/src/**/*.py"],
-        re.compile(r"\b(write_records|merge_records|read_records|open_store)\s*\("),
-        "레이크 입출력 호출 변경(데이터셋 · replace/merge · 키 필드)",
-    ),
-    (
-        ["python/packages/*/src/**/*.py", "go/**/*.go"],
-        re.compile(r"\bDS_[A-Z_]+\b|\b(BRONZE|SILVER|GOLD)\b"),
-        "레이어·데이터셋 상수 참조 변경",
-    ),
-    (
-        ["python/packages/*/src/**/*.py"],
-        re.compile(r"\bbody_hash\s*\("),
-        "본문 콘텐츠 주소(body_hash) 계산 경로 변경",
-    ),
-    (
-        ["go/**/*.go"],
-        re.compile(r"\.jsonl\b|readJSONL|\bstore\.New\s*\("),
-        "Go 쪽 레이크 읽기 경로·형식 변경",
-    ),
-    (
-        ["deploy/**/*.yaml", "tests/e2e/k8s/**/*.yaml", "Dockerfile", "Dockerfile.batch"],
-        re.compile(
-            r"ECON_DATA_ROOT|mountPath|claimName|persistentVolumeClaim|econ-(batch|serving)-data"
-        ),
-        "레이크 루트·볼륨 마운트 변경",
-    ),
-]
+# (파일 glob 목록, 줄 정규식, 이유) — 고정 규칙은 없고, 계약 필드 대입 규칙
+# (`field_assignment_rule`)만 contracts/ 에서 읽어 덧붙인다.
+CONTENT_RULES: list[tuple[list[str], re.Pattern[str], str]] = []
 
 # 배치 생산자 — 계약 필드에 값을 채우는 코드가 사는 곳.
 PRODUCER_GLOBS: list[str] = [
