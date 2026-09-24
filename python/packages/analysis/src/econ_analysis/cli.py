@@ -13,10 +13,11 @@ record not yet settled at the target version and *updates* Silver in place (AC2.
 re-analysed batch carries the new version, tracking keys intact), retiring the versions
 it supersedes except the one a recorded publish decision serves. Bronze keeps every
 cycle, so "settled" is what keeps the hourly run proportional to the new cycle rather
-than to the whole history: a row at the target version counts as settled unless it is
-``unanalyzed`` with a body to analyze (a failed call is retried next hour; a bodyless
-record never gains one). Re-analysing history is therefore a version bump, never a
-prompt or model change alone.
+than to the whole history: every row at the target version is settled — including an
+``unanalyzed`` one, since no body or a declining model is the verdict — except the rows
+a failed model call left behind (:func:`econ_core.silver.pending_retries`), which are
+retried next run. Re-analysing history is therefore a version bump, never a prompt or
+model change alone.
 
 A *scoped* run (``--since``/``--axis``/``--source``/``--sample``) is the reprocess
 path of JRN-logic-backfill: it analyzes only the selected Bronze, lands its rows
@@ -163,18 +164,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"analysis: migrated {migrated} legacy silver rows into cycle partitions")
 
     scoped = _scoped(args)
-    at_version = [row for row in silver.read_analyses(store) if row["analyzer_version"] == version]
-    if scoped:
-        todo = _select_scope(bronze, args)
-        done = {row["record_id"] for row in at_version}
-    else:
-        todo = list(bronze)
-        bodyless = {item["record_id"] for item in bronze if not item["body_hash"]}
-        done = {
-            row["record_id"]
-            for row in at_version
-            if row["analysis_status"] != "unanalyzed" or row["record_id"] in bodyless
-        }
+    retry = silver.pending_retries(store, version)
+    done = {
+        row["record_id"]
+        for row in silver.read_analyses(store)
+        if row["analyzer_version"] == version and row["record_id"] not in retry
+    }
+    todo = _select_scope(bronze, args) if scoped else list(bronze)
     selected = len(todo)
     todo = [item for item in todo if item["record_id"] not in done]
     skipped = selected - len(todo)
@@ -201,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     analyses: list[dict] = []
     written = pruned = 0
     for batch in _batches(todo, args.batch_size):
+        failed_ids: list[str] = []
         if completer is not None:
             rows, batch_stats, new_replies = llm.run_llm_analysis(
                 batch, bodies, completer, version, reply_cache
@@ -212,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             stats.failed += batch_stats.failed
             stats.reused += batch_stats.reused
             stats.last_error = batch_stats.last_error or stats.last_error
+            failed_ids = batch_stats.failed_ids
             if batch_stats.attempted and batch_stats.attempted == batch_stats.failed:
                 # Nobody answered: writing now would stamp an all-unanalyzed batch and
                 # blur the AC2.5 signal. Keep the checkpoint and stop here.
@@ -230,6 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         _, dropped = silver.store_analyses(
             store, cycles, rows, coexist=scoped, keep_versions=keep_versions
         )
+        silver.record_retries(store, cycles, version, [r["record_id"] for r in rows], failed_ids)
         pruned += dropped
         analyses.extend(rows)
     written, orphaned = silver.prune_orphans(store, cycles)

@@ -120,6 +120,44 @@ def prune_orphans(store: LakeStore, cycles: Mapping[str, str]) -> tuple[int, int
     return total, pruned
 
 
+def pending_retries(store: LakeStore, version: str) -> set[str]:
+    """Records whose row at ``version`` is unanalyzed because the model call failed.
+
+    An ``unanalyzed`` row alone cannot say why: no body, the model declined the
+    article, and an unreachable model all read the same (AC2.5). Only the last is an
+    outage worth another attempt, and only the analyzer knows which it was, so it
+    names those records here; every other row at the version is settled.
+    """
+    return {
+        row["record_id"]
+        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
+        if row["analyzer_version"] == version
+    }
+
+
+def record_retries(
+    store: LakeStore,
+    cycles: Mapping[str, str],
+    version: str,
+    analyzed: Iterable[str],
+    failed: Iterable[str],
+) -> int:
+    """Update the retry list after writing a batch: ``failed`` records join it, the rest
+    of ``analyzed`` leave it, and records Bronze no longer holds drop out. Returns its size.
+    """
+    failed = set(failed)
+    done = set(analyzed) - failed
+    kept = {
+        (row["record_id"], row["analyzer_version"])
+        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
+        if row["record_id"] in cycles
+        and not (row["analyzer_version"] == version and row["record_id"] in done)
+    }
+    kept |= {(rid, version) for rid in failed}
+    rows = [{"record_id": rid, "analyzer_version": v} for rid, v in sorted(kept)]
+    return store.write_records(domain.SILVER, domain.DS_ANALYSIS_RETRY, rows)
+
+
 def read_analyses(store: LakeStore) -> list[dict]:
     return store.read_partitions(domain.SILVER, domain.DS_ANALYSIS)
 
