@@ -4,7 +4,7 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-09-19
+> 마지막 갱신: 2026-09-24
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -137,7 +137,7 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 새 여정 페이지를 등재할 때는 이 형태의 귀속 표를 함께 넣는다. 한 단계가 두 화면에 걸치면 **더 앞선 화면**에 귀속시키고
 넘겨주는 계약을 비고에 적는다 — 판정 대상이 겹쳐 두 번 세어지는 것보다 한 번 세어지고 인계가 기록되는 편이 낫다.
 
-**규칙 1 미충족 여정 상한: 0** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 **0 이 됐다**(마지막 잔여였다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 상한이 0 이므로 이제 **여정 문서가 하나 늘고 대응 페이지가 없으면 그 즉시 PR 이 빨개진다.**
+**규칙 1 미충족 여정 상한: 1** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 한 번 **0 이 됐고**, 2026-09-24 `JRN-judgment-debug` 여정 문서가 페이지보다 먼저 들어와 **1 로 올렸다**(규칙 8 예외가 아니다 — 페이지를 두지 않기로 한 것이 아니라 아직 그리지 않았다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 그래서 **`JRN-judgment-debug.html` 을 추가하는 PR 은 이 값을 0 으로 되돌려야 초록이 된다.**
 
 **규칙 5 미충족 mockup 페이지 상한: 0** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
 않는 mockup 페이지의 수다. 화면 단위 스냅샷은 여정 워크스루가 아니라 (a)(c)(e)를 구조적으로 만족할 수
@@ -343,7 +343,7 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 - `JRN-logic-backfill.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 5행이 `#STP-dry-run`·`#STP-run-reprocess`·`JRN-spike-verification.html#STP-open-origin`·`JRN-ingestion-recovery.html#STP-locate-gap`·`#STP-compare-before-after` 로 이동한다
 - **여정 사이의 인계는 이제 예외 없이 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로, 세 여정의 재처리 인계가 `reprocess.html`로 갔지만, 그 분기들이 선언한 대상은 처음부터 상대 여정의 **단계**였다. 화면 파일이 모두 흡수된 지금 그 괴리는 남아 있지 않다(`JRN-spike-verification` 의 「수집 이상 점검하기」가 선언 대상 `JRN-ingestion-recovery#STP-spot-anomaly` 와 달리 `reprocess.html` 을 가리키던 것도 이번에 바로잡았다)
 
-## 여정 단계 커버리지 (30/30 완전 · 0 부분 · 0 미시각화)
+## 여정 단계 커버리지 (30/35 완전 · 0 부분 · 5 미시각화)
 
 여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
 
@@ -355,6 +355,9 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |
 | `JRN-ingestion-recovery` | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` | `JRN-ingestion-recovery.html` (여정 페이지) | 🟢 |
 | `JRN-logic-backfill` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` | `JRN-logic-backfill.html` (여정 페이지) | 🟢 |
+| `JRN-judgment-debug` | `STP-pin-record`, `STP-read-exchange`, `STP-check-input`, `STP-scan-run`, `STP-route-cause` | (없음) | 🔴 |
+
+2026-09-24 `JRN-judgment-debug`(분석 판단 디버깅, PRD-4 AC4.1~4.3 을 쓰는 운영자 여정)가 여정 문서로 먼저 들어왔다. 여정 페이지는 아직 없으므로 다섯 단계 전부가 미시각화로 계수된다 — 페이지가 착지하면 이 행을 🟢 로 바꾸고 위 표제의 숫자를 함께 고친다.
 
 ## 가치 커버리지 (5/5)
 | 가치 | 시각화 화면 |
@@ -366,9 +369,9 @@ Gold에 수집원 차원이 없어 표면 자체가 부재다(설계 트래커 �
 | V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 완료 (6/6)**: 여섯 여정 전부가 여정 페이지를 갖고, 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
+- **여정↔mockup 1:1 이관 (6/7)**: 기존 여섯 여정은 전부 여정 페이지를 갖고(2026-09-24 신설 `JRN-judgment-debug` 는 페이지 미작성), 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
 - **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
-- **미시각화 단계 0개**: 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다. 둘 다 「제품에 둘 것인지」가 선행 판단이었고 이 슬라이스가 **둔다**로 확정했다 — 표본 실행은 전량 실행의 관문(표본이 의도와 어긋나면 전량이 잠긴다)으로, 반영·롤백은 근거를 함께 적는 결정 기록으로 그렸다. 결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 파킹한 백로그 그대로다. 앞선 해소: `STP-backfill` 은 `JRN-ingestion-recovery` 이관(2026-09-19), `STP-shortlist` 는 `JRN-daily-scan` 이관(2026-09-18). 🟠 부분 시각화였던 `STP-diagnose-source`·`STP-verify-integrity` 도 같은 흐름에서 닫혔다.
+- **미시각화 단계 5개**: 2026-09-24 신설 `JRN-judgment-debug` 의 다섯 단계 전부 — 여정 페이지 미작성(위 「여정 단계 커버리지」 참조). 그 이전에는 0개였다: 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다. 둘 다 「제품에 둘 것인지」가 선행 판단이었고 이 슬라이스가 **둔다**로 확정했다 — 표본 실행은 전량 실행의 관문(표본이 의도와 어긋나면 전량이 잠긴다)으로, 반영·롤백은 근거를 함께 적는 결정 기록으로 그렸다. 결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 파킹한 백로그 그대로다. 앞선 해소: `STP-backfill` 은 `JRN-ingestion-recovery` 이관(2026-09-19), `STP-shortlist` 는 `JRN-daily-scan` 이관(2026-09-18). 🟠 부분 시각화였던 `STP-diagnose-source`·`STP-verify-integrity` 도 같은 흐름에서 닫혔다.
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).
 - **여정 페이지의 DOM 하네스는 페이지별 시나리오를 요구한다**: `scripts/check-journey-flow.js` 는 `data-journey` 를 선언한 페이지를 전부 발견해 (a)~(h)를 구동하고, `scripts/journey-scenarios/<여정 식별자>.js` 가 없으면 **실패한다**(fail-closed). 여정 페이지를 새로 얹을 때는 시나리오도 함께 넣어야 한다.
 - 데이터는 모두 예시(mock) 값이며 실제 파이프라인 연동 전 디자인 검토용이다.
