@@ -14,3 +14,39 @@ type Analysis struct {
 	AnalyzedAt        string         `json:"analyzed_at"`
 	AnalyzerVersion   string         `json:"analyzer_version"`
 }
+
+// PipelineRun Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1).
+type PipelineRun struct {
+	RunID        string     `json:"run_id"`
+	RunTrigger   RunTrigger `json:"run_trigger"`
+	RunStartedAt string     `json:"run_started_at"`
+	RunEndedAt   *string    `json:"run_ended_at,omitempty"`
+	RunStatus    RunStatus  `json:"run_status"`
+	Stages       []RunStage `json:"stages"`
+}
+
+// RunStage One stage of a run: its state, duration, input count, per-outcome counts and failure reason (AC4.1).
+type RunStage struct {
+	StageName      PipelineStage   `json:"stage_name"`
+	StageStatus    RunStatus       `json:"stage_status"`
+	StageStartedAt string          `json:"stage_started_at"`
+	StageEndedAt   *string         `json:"stage_ended_at,omitempty"`
+	DurationMs     int64           `json:"duration_ms"`
+	InputCount     int64           `json:"input_count"`
+	OutputCount    int64           `json:"output_count"`
+	Outcomes       []StageOutcome  `json:"outcomes"`
+	FailureReason  *string         `json:"failure_reason,omitempty"`
+	SourceFailures []SourceFailure `json:"source_failures"`
+}
+
+// SourceFailure One collection source that failed, and why (AC4.1).
+type SourceFailure struct {
+	SourceID            string `json:"source_id"`
+	SourceFailureReason string `json:"source_failure_reason"`
+}
+
+// StageOutcome One outcome bucket of a stage and how many input units fell into it (AC4.1).
+type StageOutcome struct {
+	OutcomeName  string `json:"outcome_name"`
+	OutcomeCount int64  `json:"outcome_count"`
+}

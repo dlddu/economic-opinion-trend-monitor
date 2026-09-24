@@ -22,7 +22,7 @@ import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
-from econ_core import domain, open_store
+from econ_core import domain, open_store, runlog
 
 from econ_ingestion.feeds import (
     default_feeds_path,
@@ -78,6 +78,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=15.0,
         help="Per-feed HTTP fetch timeout in seconds (--source feed).",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Batch run this collection belongs to (AC4.1); defaults to $ECON_RUN_ID, "
+        "or a fresh id when this CLI runs outside a pipeline.",
+    )
     return parser
 
 
@@ -88,7 +94,19 @@ def main(argv: list[str] | None = None) -> int:
     now = datetime.now(UTC)
     cycle = args.cycle or now.strftime("%Y-%m-%dT%H:00")
     collected_at = now.replace(microsecond=0).isoformat()
+    run_id = runlog.resolve_run_id(args.run_id)
 
+    with runlog.run_stage(open_store(args.data), run_id, runlog.INGESTION) as stage:
+        return _collect(args, cycle, collected_at, run_id, stage)
+
+
+def _collect(
+    args: argparse.Namespace,
+    cycle: str,
+    collected_at: str,
+    run_id: str,
+    stage: runlog.StageReport,
+) -> int:
     if args.source == "feed":
         feeds_path = args.feeds or default_feeds_path()
         configs = load_feed_configs(feeds_path)
@@ -126,4 +144,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     for source_id, reason in stats.failure_reasons.items():
         print(f"  failed_source {source_id}: {reason}")
+
+    # AC4.1 — one observation is either collected or dropped as a duplicate, so the two
+    # buckets partition what the sources handed us; a source that failed outright has no
+    # observations to classify and is named in source_failures instead.
+    stage.input_count = len(items) + stats.duplicates
+    stage.output_count = written
+    stage.count("collected", len(items))
+    stage.count("duplicate_skipped", stats.duplicates)
+    for source_id, reason in stats.failure_reasons.items():
+        stage.source_failed(source_id, reason)
+    print(f"  run={run_id} stage=ingestion")
     return 0

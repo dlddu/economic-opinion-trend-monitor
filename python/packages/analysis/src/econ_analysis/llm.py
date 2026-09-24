@@ -148,6 +148,8 @@ class AnalysisStats:
     version). Items with no body never reach the model, so they are unanalyzed without
     being counted here. ``failed_ids`` names the records behind ``failed``: their
     unanalyzed row is an outage, not the model's judgement, so they are retried.
+    ``reused_ids`` names the records behind ``reused``, so the run record can book each
+    record under exactly one outcome (AC4.1).
     """
 
     attempted: int = 0
@@ -155,6 +157,7 @@ class AnalysisStats:
     reused: int = 0
     last_error: str | None = None
     failed_ids: list[str] = field(default_factory=list)
+    reused_ids: list[str] = field(default_factory=list)
 
 
 def _temperature(raw: str | None) -> float | None:
@@ -394,6 +397,7 @@ def run_llm_analysis(
                     asdict(analyze_llm(item, body, lambda _s, _u: cached, analyzer_version))
                 )
                 stats.reused += 1
+                stats.reused_ids.append(item["record_id"])
                 continue
             except CompletionError:
                 pass  # stored reply no longer parses (parser changed) -> ask the model again
