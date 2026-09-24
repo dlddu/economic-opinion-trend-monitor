@@ -46,7 +46,7 @@ import json
 import os
 import urllib.error
 import urllib.request
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Protocol
 
 from econ_core.models import SENTIMENT_VALUES, Analysis
@@ -146,13 +146,15 @@ class AnalysisStats:
     attempts that came back unusable; ``reused`` counts items answered from the reply
     cache instead (same prompt already judged under the same model and analyzer
     version). Items with no body never reach the model, so they are unanalyzed without
-    being counted here.
+    being counted here. ``failed_ids`` names the records behind ``failed``: their
+    unanalyzed row is an outage, not the model's judgement, so they are retried.
     """
 
     attempted: int = 0
     failed: int = 0
     reused: int = 0
     last_error: str | None = None
+    failed_ids: list[str] = field(default_factory=list)
 
 
 def _temperature(raw: str | None) -> float | None:
@@ -408,6 +410,7 @@ def run_llm_analysis(
             analysis = analyze_llm(item, body, _live, analyzer_version)
         except CompletionError as exc:
             stats.failed += 1
+            stats.failed_ids.append(item["record_id"])
             stats.last_error = str(exc)
             analysis = _unanalyzed(item, analyzer_version)
         else:

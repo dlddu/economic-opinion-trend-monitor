@@ -401,3 +401,41 @@ def test_legacy_silver_file_is_migrated_and_orphans_dropped(tmp_path: Path) -> N
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     assert sorted(r["record_id"] for r in _silver_rows(tmp_path)) == ["r1", "r2"]
     assert (tmp_path / "silver" / "analysis.jsonl.migrated").exists()
+
+
+def test_a_declined_article_is_settled_not_revisited(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A model that declines (analyzable: false) has judged the article; only an outage
+    # is worth another hour.
+    _seed_lake(tmp_path)
+    declined = json.dumps({"analyzable": False})
+    monkeypatch.setattr(llm, "http_completer", _canned(declined))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert {r["analysis_status"] for r in _silver_rows(tmp_path)} == {"unanalyzed"}
+    capsys.readouterr()
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 0 silver records" in out
+    assert "attempted=0 failed=0 reused=0" in out
+
+
+def test_retry_list_holds_only_failed_calls_until_they_succeed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from econ_core import silver
+
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    replies = iter([good, "not json"])
+    monkeypatch.setattr(
+        llm, "http_completer", lambda *_a, **_k: lambda _system, _user: next(replies)
+    )
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    store = LocalFsStore(tmp_path)
+    assert len(silver.pending_retries(store, llm.ANALYZER_VERSION)) == 1
+
+    monkeypatch.setattr(llm, "http_completer", _canned(good))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert silver.pending_retries(store, llm.ANALYZER_VERSION) == set()
