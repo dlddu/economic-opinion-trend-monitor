@@ -20,10 +20,13 @@
 #   E2E_REUSE_CLUSTER=1  the kind cluster $E2E_CLUSTER already exists and is ready
 #                        (CI creates it in the background at the top of the job).
 #                        It is still deleted on exit unless KEEP_CLUSTER=1.
-#   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1  do not run `playwright install`.
-# The browser's OS packages (`--with-deps`, needs sudo) are only installed when
-# CI=true — in the background there is no terminal to answer a sudo prompt. Run
-# `npx playwright install-deps chromium` once locally if Chromium will not start.
+#   E2E_PLAYWRIGHT_SETUP_RC=<path>  playwright-setup.sh was already started by the
+#                        caller (CI starts it at the top of the job, so it is done
+#                        long before the specs). run.sh does not run it again but
+#                        waits for <path> to hold its exit code; the log is read
+#                        from the same path with .log instead of .rc.
+# playwright-setup.sh documents PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD and why the
+# browser's OS packages are only installed when CI=true.
 set -euo pipefail
 
 E2E_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -118,19 +121,16 @@ mkdir -p "$E2E_DIR/.artifacts"
 
 # 0) Playwright setup in the background — it needs neither the images nor the
 # cluster, and used to sit on the critical path right before the specs.
-(
-  cd "$E2E_DIR"
-  npm ci
-  if [ "${PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD:-0}" != "1" ]; then
-    if [ "${CI:-}" = "true" ]; then
-      npx playwright install --with-deps chromium
-    else
-      npx playwright install chromium
-    fi
-  fi
-) </dev/null >"$PW_SETUP_LOG" 2>&1 &
-PW_SETUP_PID=$!
-BG_PIDS+=("$PW_SETUP_PID")
+PW_SETUP_PID=""
+PW_SETUP_RC="${E2E_PLAYWRIGHT_SETUP_RC:-}"
+if [ -n "$PW_SETUP_RC" ]; then
+  PW_SETUP_LOG="${PW_SETUP_RC%.rc}.log"
+  echo "[e2e] Playwright setup started by the caller — waiting on $PW_SETUP_RC before the specs"
+else
+  bash "$E2E_DIR/playwright-setup.sh" </dev/null >"$PW_SETUP_LOG" 2>&1 &
+  PW_SETUP_PID=$!
+  BG_PIDS+=("$PW_SETUP_PID")
+fi
 
 # 1) Both images into a fresh single-node cluster (no registry: kind load).
 # The cluster comes up in the background while the images build.
@@ -384,13 +384,23 @@ if [ "${#failed_chains[@]}" -gt 0 ]; then
 fi
 
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
-# The setup started at step 0; it has had the whole batch phase to finish.
-if ! wait "$PW_SETUP_PID"; then
+# The setup started at step 0 (or earlier, by the caller); it has had at least
+# the whole batch phase to finish.
+pw_wait_start=$SECONDS
+if [ -n "$PW_SETUP_PID" ]; then
+  if wait "$PW_SETUP_PID"; then pw_status=0; else pw_status=$?; fi
+else
+  timeout 600 bash -c 'until [ -f "$1" ]; do sleep 1; done' _ "$PW_SETUP_RC" \
+    || { echo "[e2e] FAIL: $PW_SETUP_RC did not appear within 600s" >&2; exit 1; }
+  pw_status="$(cat "$PW_SETUP_RC")"
+fi
+if [ "$pw_status" != "0" ]; then
   cat "$PW_SETUP_LOG" >&2
   echo "[e2e] FAIL: Playwright setup (npm ci / playwright install) failed — log above" >&2
   exit 1
 fi
 tail -n 5 "$PW_SETUP_LOG"
+echo "[e2e] Playwright setup ready (waited $((SECONDS - pw_wait_start))s)"
 cd "$E2E_DIR"
 BASE_URL="http://127.0.0.1:$PORT" \
   E2E_BRONZE_DIR="$BRONZE_DIR" \

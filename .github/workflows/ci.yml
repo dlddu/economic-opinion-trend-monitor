@@ -48,12 +48,14 @@ jobs:
   # `batch`), and those scopes hold arm64 layers — main pushes keep them warm, so
   # even a PR's first run starts from cache instead of a plain `docker build`.
   #
-  # Order is chosen so the slow, independent parts overlap: the kind cluster is
-  # created in the background right after install, the images build meanwhile,
-  # and run.sh itself overlaps the Playwright setup with the batch Jobs.
-  # The Playwright browsers are deliberately not cached: the install already
-  # runs off the critical path, while restoring the cache (~15s) is a
-  # sequential step that would surface as soon as the cluster comes up faster.
+  # Order is chosen so the slow, independent parts overlap: the kind cluster
+  # and the Playwright setup both start in the background at the top of the
+  # job, the images build meanwhile, and run.sh waits for each only where it
+  # needs it (the cluster before deploying, Playwright before the specs).
+  # The Playwright browsers are deliberately not cached: started this early the
+  # download has ~100s to finish off the critical path, while restoring a cache
+  # (~15s) is a sequential step. Started from run.sh instead (after the builds
+  # and the cluster), it outlasted the batch Jobs by ~4s without a cache.
   e2e:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
@@ -85,6 +87,14 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
+
+      # Same pattern as the kind cluster above; run.sh waits on the .rc file
+      # right before the specs (E2E_PLAYWRIGHT_SETUP_RC) instead of starting
+      # its own setup. CI=true, so the browser's OS packages are installed too.
+      - name: Start Playwright setup in background
+        run: |
+          ( bash tests/e2e/playwright-setup.sh \
+              >/tmp/bg/playwright-setup.log 2>&1; echo $? >/tmp/bg/playwright-setup.rc ) </dev/null >/dev/null 2>&1 &
 
       # The PR preview overlay is only ever built by Flux, so nothing else
       # would notice it rotting. Build it with the load restrictor
@@ -163,6 +173,7 @@ jobs:
         env:
           SKIP_BUILD: "1"
           E2E_REUSE_CLUSTER: "1"
+          E2E_PLAYWRIGHT_SETUP_RC: /tmp/bg/playwright-setup.rc
         run: make e2e
 
       - name: Upload Playwright report
