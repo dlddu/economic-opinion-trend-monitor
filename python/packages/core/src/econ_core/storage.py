@@ -4,9 +4,9 @@ The skeleton ships a local-filesystem implementation with three dataset shapes:
 
 - **record datasets** — one JSONL file per dataset (one JSON object per line),
   read and replaced/merged as a whole;
-- **partitioned datasets** — JSONL part files under Hive-style ``key=value``
-  directories, each part replaced on its own, so writing one slice (a collection
-  cycle) leaves every other slice untouched;
+- **partitioned datasets** — one ``data.jsonl`` per Hive-style ``key=value``
+  partition directory, each replaced on its own, so writing one slice (a
+  collection cycle) leaves every other slice untouched;
 - **object datasets** — one file per record, addressed by a key field and laid
   out in Hive-style partitions on the key's first characters, so a record is
   written, checked and read without touching the rest of the dataset.
@@ -27,6 +27,9 @@ import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
+
+#: File holding one partition's records (the directories above it name the partition).
+PARTITION_FILE = "data.jsonl"
 
 #: Characters of the key that name an object's partition. Changing it is a pure
 #: re-layout (the key is the record's identity), but every existing object has to
@@ -55,31 +58,39 @@ class LakeStore(ABC):
 
     @abstractmethod
     def write_partition(
-        self,
-        layer: str,
-        dataset: str,
-        partition: Mapping[str, str],
-        part: str,
-        records: Iterable[dict],
+        self, layer: str, dataset: str, partition: Mapping[str, str], records: Iterable[dict]
     ) -> int:
-        """Replace one part of a partitioned dataset with ``records``; return count written."""
+        """Replace one partition of a partitioned dataset with ``records``; return count."""
         raise NotImplementedError
 
     @abstractmethod
-    def read_partitions(self, layer: str, dataset: str) -> list[dict]:
-        """Return every record of a partitioned dataset, parts in path order."""
+    def read_partition(self, layer: str, dataset: str, partition: Mapping[str, str]) -> list[dict]:
+        """Return one partition's records (empty list if it does not exist)."""
         raise NotImplementedError
+
+    @abstractmethod
+    def partitions(self, layer: str, dataset: str) -> list[dict[str, str]]:
+        """Return every existing partition of a dataset, in path order."""
+        raise NotImplementedError
+
+    def read_partitions(self, layer: str, dataset: str) -> list[dict]:
+        """Return every record of a partitioned dataset, partitions in path order."""
+        return [
+            record
+            for partition in self.partitions(layer, dataset)
+            for record in self.read_partition(layer, dataset, partition)
+        ]
 
     @abstractmethod
     def migrate_records_to_partitions(
         self,
         layer: str,
         dataset: str,
-        locate: Callable[[dict], tuple[Mapping[str, str], str]],
+        locate: Callable[[dict], Mapping[str, str] | None],
     ) -> int:
         """Move a legacy record dataset of the same name into partitions.
 
-        ``locate`` maps a record to its ``(partition, part)``. A no-op once
+        ``locate`` maps a record to its partition, or None to drop it. A no-op once
         migrated. Returns the count of records moved.
         """
         raise NotImplementedError
@@ -168,25 +179,21 @@ class LocalFsStore(LakeStore):
                 added += 1
         return added
 
-    def partition_path(
-        self, layer: str, dataset: str, partition: Mapping[str, str], part: str
-    ) -> Path:
-        target = self.root / layer / dataset
+    def dataset_dir(self, layer: str, dataset: str) -> Path:
+        return self.root / layer / dataset
+
+    def partition_path(self, layer: str, dataset: str, partition: Mapping[str, str]) -> Path:
+        target = self.dataset_dir(layer, dataset)
         for column, value in partition.items():
+            _check_key(column)
             _check_key(value)
             target /= f"{column}={value}"
-        _check_key(part)
-        return target / f"{part}.jsonl"
+        return target / PARTITION_FILE
 
     def write_partition(
-        self,
-        layer: str,
-        dataset: str,
-        partition: Mapping[str, str],
-        part: str,
-        records: Iterable[dict],
+        self, layer: str, dataset: str, partition: Mapping[str, str], records: Iterable[dict]
     ) -> int:
-        target = self.partition_path(layer, dataset, partition, part)
+        target = self.partition_path(layer, dataset, partition)
         target.parent.mkdir(parents=True, exist_ok=True)
         staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
         count = 0
@@ -198,46 +205,53 @@ class LocalFsStore(LakeStore):
         os.replace(staging, target)
         return count
 
-    def read_partitions(self, layer: str, dataset: str) -> list[dict]:
-        root = self.root / layer / dataset
+    def read_partition(self, layer: str, dataset: str, partition: Mapping[str, str]) -> list[dict]:
+        source = self.partition_path(layer, dataset, partition)
+        try:
+            with source.open(encoding="utf-8") as fh:
+                return [json.loads(line) for line in fh if line.strip()]
+        except FileNotFoundError:
+            return []
+
+    def partitions(self, layer: str, dataset: str) -> list[dict[str, str]]:
+        root = self.dataset_dir(layer, dataset)
         if not root.is_dir():
             return []
-        records: list[dict] = []
-        for part in sorted(root.rglob("*.jsonl")):
-            if part.name.startswith("."):
-                continue
-            with part.open(encoding="utf-8") as fh:
-                records.extend(json.loads(line) for line in fh if line.strip())
-        return records
+        found = []
+        for data in sorted(root.rglob(PARTITION_FILE)):
+            segments = data.parent.relative_to(root).parts
+            found.append(dict(segment.split("=", 1) for segment in segments))
+        return found
 
     def migrate_records_to_partitions(
         self,
         layer: str,
         dataset: str,
-        locate: Callable[[dict], tuple[Mapping[str, str], str]],
+        locate: Callable[[dict], Mapping[str, str] | None],
     ) -> int:
         legacy = self.path(layer, dataset)
         if not legacy.exists():
             return 0
-        groups: dict[Path, tuple[Mapping[str, str], str, list[dict]]] = {}
+        groups: dict[Path, tuple[Mapping[str, str], list[dict]]] = {}
         for record in self.read_records(layer, dataset):
-            partition, part = locate(record)
-            key = self.partition_path(layer, dataset, partition, part)
-            groups.setdefault(key, (partition, part, []))[2].append(record)
+            partition = locate(record)
+            if partition is None:
+                continue
+            key = self.partition_path(layer, dataset, partition)
+            groups.setdefault(key, (partition, []))[1].append(record)
         moved = sum(
-            self.write_partition(layer, dataset, partition, part, records)
-            for partition, part, records in groups.values()
+            self.write_partition(layer, dataset, partition, records)
+            for partition, records in groups.values()
         )
+        # Renamed only after every partition landed: a run cut short rewrites the same
+        # partitions from the same file next time.
         legacy.replace(legacy.with_name(f"{legacy.name}.migrated"))
         return moved
-
-    def object_dir(self, layer: str, dataset: str) -> Path:
-        return self.root / layer / dataset
 
     def object_path(self, layer: str, dataset: str, key_field: str, key: str) -> Path:
         _check_key(key)
         partition = f"{key_field}_prefix={key[:OBJECT_PARTITION_CHARS]}"
-        return self.object_dir(layer, dataset) / partition / f"{key}.json"
+        return self.dataset_dir(layer, dataset) / partition / f"{key}.json"
 
     def put_object(self, layer: str, dataset: str, key_field: str, record: dict) -> bool:
         target = self.object_path(layer, dataset, key_field, record[key_field])
@@ -264,7 +278,7 @@ class LocalFsStore(LakeStore):
             return None
 
     def read_objects(self, layer: str, dataset: str) -> list[dict]:
-        root = self.object_dir(layer, dataset)
+        root = self.dataset_dir(layer, dataset)
         if not root.is_dir():
             return []
         return [

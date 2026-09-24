@@ -157,21 +157,13 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
-    bodies: dict[str, str] = {}
-    for item in bronze:
-        key = item["body_hash"]
-        if key and key not in bodies:
-            body = store.get_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", key)
-            if body is not None:
-                bodies[key] = body["raw_text"]
-    bronze_ids = [item["record_id"] for item in bronze]
+    cycles = silver.cycles_of(bronze)
+    migrated = silver.migrate_legacy(store, cycles)
+    if migrated:
+        print(f"analysis: migrated {migrated} legacy silver rows into cycle partitions")
 
     scoped = _scoped(args)
-    at_version = [
-        row
-        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
-        if row["analyzer_version"] == version
-    ]
+    at_version = [row for row in silver.read_analyses(store) if row["analyzer_version"] == version]
     if scoped:
         todo = _select_scope(bronze, args)
         done = {row["record_id"] for row in at_version}
@@ -188,6 +180,14 @@ def main(argv: list[str] | None = None) -> int:
     skipped = selected - len(todo)
     if scoped:
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
+
+    bodies: dict[str, str] = {}
+    for item in todo:
+        key = item["body_hash"]
+        if key and key not in bodies:
+            body = store.get_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", key)
+            if body is not None:
+                bodies[key] = body["raw_text"]
 
     stats = llm.AnalysisStats() if completer is not None else None
     reply_cache: dict[str, str] = {}
@@ -227,17 +227,17 @@ def main(argv: list[str] | None = None) -> int:
                 asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
                 for item in batch
             ]
-        written, dropped = silver.store_analyses(
-            store, bronze_ids, rows, coexist=scoped, keep_versions=keep_versions
+        _, dropped = silver.store_analyses(
+            store, cycles, rows, coexist=scoped, keep_versions=keep_versions
         )
         pruned += dropped
         analyses.extend(rows)
-    if not todo:
-        written, pruned = silver.store_analyses(store, bronze_ids, [])
+    written, orphaned = silver.prune_orphans(store, cycles)
+    pruned += orphaned
 
     unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")
     low = sum(1 for a in analyses if a["analysis_status"] == "low_confidence")
-    target = store.path(domain.SILVER, domain.DS_ANALYSIS)
+    target = store.dataset_dir(domain.SILVER, domain.DS_ANALYSIS)
     print(
         f"analysis[{args.analyzer}]: read {len(bronze)} bronze, "
         f"wrote {len(analyses)} silver records -> {target}"

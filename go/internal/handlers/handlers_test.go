@@ -740,27 +740,18 @@ func TestFairnessSurvivesEmptyGold(t *testing.T) {
 // by the tests below.
 func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 	t.Helper()
-	for _, d := range []string{"bronze", "silver"} {
-		if err := os.MkdirAll(filepath.Join(dir, d), 0o755); err != nil {
-			t.Fatal(err)
+	for _, ds := range []struct{ dataset, content string }{
+		{"bronze/news_item", items},
+		{"silver/analysis", analyses},
+	} {
+		if ds.content == "" {
+			continue
 		}
-	}
-	write := func(layer, name, content string) {
-		if content == "" {
-			return
-		}
-		p := filepath.Join(dir, layer, name+".jsonl")
-		if err := os.WriteFile(p, []byte(content+"\n"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	write("silver", "analysis", analyses)
-	if items != "" {
-		part := filepath.Join(dir, "bronze", "news_item", "collection_date=2026-06-23")
+		part := filepath.Join(dir, ds.dataset, "date=2026-06-23", "hour=14")
 		if err := os.MkdirAll(part, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(part, "2026-06-23T1400.jsonl"), []byte(items+"\n"), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(part, "data.jsonl"), []byte(ds.content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

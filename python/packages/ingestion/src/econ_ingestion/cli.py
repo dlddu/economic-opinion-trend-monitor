@@ -102,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     migrated_items = store.migrate_records_to_partitions(
         domain.BRONZE,
         domain.DS_NEWS_ITEM,
-        lambda item: domain.news_item_partition(item["collection_cycle"]),
+        lambda item: domain.cycle_partition(item["collection_cycle"]),
     )
     if migrated_items:
         print(f"ingestion: migrated {migrated_items} legacy observations into cycle partitions")
@@ -110,14 +110,14 @@ def main(argv: list[str] | None = None) -> int:
     if migrated:
         print(f"ingestion: migrated {migrated} legacy bodies into the object layout")
 
-    partition, part = domain.news_item_partition(cycle)
-    written = store.write_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition, part, items)
+    partition = domain.cycle_partition(cycle)
+    written = store.write_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition, items)
     new_bodies = sum(
         store.put_object(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", body) for body in bodies
     )
 
-    target = store.partition_path(domain.BRONZE, domain.DS_NEWS_ITEM, partition, part)
-    body_target = store.object_dir(domain.BRONZE, domain.DS_NEWS_BODY)
+    target = store.partition_path(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
+    body_target = store.dataset_dir(domain.BRONZE, domain.DS_NEWS_BODY)
     print(f"ingestion[{args.source}]: wrote {written} bronze records -> {target}")
     print(f"  bodies: {new_bodies} new / {len(bodies) - new_bodies} deduplicated -> {body_target}")
     print(

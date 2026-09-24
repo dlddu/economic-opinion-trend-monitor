@@ -84,8 +84,9 @@ export_parts() {
     || { echo "[e2e] FAIL: $src_root/$layer/$dataset/ came back empty" >&2; exit 1; }
 }
 
-export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*.jsonl'; }
+export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/data.jsonl'; }
 export_news_body() { export_parts "$1" bronze "$2" news_body '*=*/*.json'; }
+export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/data.jsonl'; }
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
@@ -180,7 +181,7 @@ case "$ANALYZE_LOG" in
           "article (see fixtures/llm/responses.json) or is unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis silver "$SILVER_DIR" analysis
+export_analysis /data/analysis "$SILVER_DIR"
 echo "[e2e] silver exported -> $SILVER_DIR"
 
 ANALYZE_V2_LOG="$(run_batch_job econ-e2e-analyze-v2 "$E2E_DIR/k8s/batch/analyze-job-v2.yaml")"
@@ -190,7 +191,7 @@ case "$ANALYZE_V2_LOG" in
           "incomplete or the double is unreachable" >&2
      exit 1 ;;
 esac
-export_lake /data/analysis silver "$SILVER_V2_DIR" analysis
+export_analysis /data/analysis "$SILVER_V2_DIR"
 echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
@@ -231,7 +232,7 @@ run_aggregation_stack() {
 
 run_aggregation_stack "" /data/aggregation baseline
 export_news_item /data/aggregation "$AGG_BRONZE_DIR"
-export_lake /data/aggregation silver "$AGG_SILVER_DIR" analysis
+export_analysis /data/aggregation "$AGG_SILVER_DIR"
 export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
 echo "[e2e] gold exported -> $GOLD_DIR"
 
@@ -251,7 +252,7 @@ case "$ROLLUP_LOG" in
     exit 1 ;;
 esac
 export_news_item /data/aggregation-rollup "$ROLLUP_BRONZE_DIR"
-export_lake /data/aggregation-rollup silver "$ROLLUP_SILVER_DIR" analysis
+export_analysis /data/aggregation-rollup "$ROLLUP_SILVER_DIR"
 export_lake /data/aggregation-rollup gold "$ROLLUP_GOLD_DIR" subject_trend axis_sentiment
 echo "[e2e] gold (multi-bucket rollup) exported -> $ROLLUP_GOLD_DIR"
 

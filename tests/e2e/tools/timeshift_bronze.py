@@ -35,7 +35,7 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-from econ_core import domain, open_store
+from econ_core import domain, open_store, silver
 
 # 수집 시각을 다시 찍을 슬롯. 2026-06-22·23 은 ISO 주 2026-W26, 06-29·30 은 2026-W27 이다.
 # 세 단위가 전부 버킷을 여럿 갖도록 고른 최소 달력이다:
@@ -105,11 +105,11 @@ def main(argv: list[str] | None = None) -> int:
 
     source = open_store(args.source)
     bronze = source.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
-    silver = source.read_records(domain.SILVER, domain.DS_ANALYSIS)
-    if not bronze or not silver:
+    analyses = silver.read_analyses(source)
+    if not bronze or not analyses:
         print(
             f"timeshift: FAIL — {args.source} 가 비었다 "
-            f"(bronze {len(bronze)} · silver {len(silver)}). 집계 코퍼스가 먼저 서야 한다."
+            f"(bronze {len(bronze)} · silver {len(analyses)}). 집계 코퍼스가 먼저 서야 한다."
         )
         return 1
 
@@ -140,12 +140,12 @@ def main(argv: list[str] | None = None) -> int:
         by_cycle[item["collection_cycle"]].append(item)
     n_bronze = sum(
         target.write_partition(
-            domain.BRONZE, domain.DS_NEWS_ITEM, *domain.news_item_partition(cycle), items
+            domain.BRONZE, domain.DS_NEWS_ITEM, domain.cycle_partition(cycle), items
         )
         for cycle, items in by_cycle.items()
     )
     # Silver 는 그대로 — 조인 키(`record_id`)도 라벨도 파이프라인이 쓴 값이다.
-    n_silver = target.write_records(domain.SILVER, domain.DS_ANALYSIS, silver)
+    n_silver, _ = silver.store_analyses(target, silver.cycles_of(shifted), analyses)
 
     print(
         f"timeshift: re-stamped {n_bronze} bronze news_item (+{n_silver} silver analysis carried "

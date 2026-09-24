@@ -61,8 +61,8 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 		`"narrative_subjects":["한국은행 기준금리"],"sentiment":"neutral","analysis_status":"analyzed",` +
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 	for _, f := range []struct{ layer, name, content string }{
-		{"bronze/news_item/collection_date=2026-06-23", "2026-06-23T1400", item},
-		{"silver", "analysis", analysis},
+		{"bronze/news_item/date=2026-06-23/hour=14", "data", item},
+		{"silver/analysis/date=2026-06-23/hour=14", "data", analysis},
 	} {
 		if err := os.MkdirAll(filepath.Join(dir, f.layer), 0o755); err != nil {
 			t.Fatal(err)
@@ -125,13 +125,14 @@ func TestBronzeAndSilverReadIntoContractTypes(t *testing.T) {
 // records aside rather than forcing them into one of the four classes.
 func TestAnalysisDecodesNullSentiment(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "silver"), 0o755); err != nil {
+	part := filepath.Join(dir, "silver", "analysis", "date=2026-06-23", "hour=14")
+	if err := os.MkdirAll(part, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	line := `{"record_id":"r-9","source_url":"https://ex.test/9","target_countries":[],` +
 		`"narrative_subjects":[],"sentiment":null,"analysis_status":"unanalyzed",` +
 		`"confidence":0.1,"analyzed_at":"2026-06-23T14:41:00Z","analyzer_version":"v3"}`
-	if err := os.WriteFile(filepath.Join(dir, "silver", "analysis.jsonl"), []byte(line+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(part, "data.jsonl"), []byte(line+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -177,9 +178,9 @@ func TestNewsItemsReadEveryCyclePartitionInOrder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("collection_date=2026-06-24/2026-06-24T0000.jsonl", `{"record_id":"c"}`)
-	write("collection_date=2026-06-23/2026-06-23T2300.jsonl", `{"record_id":"a"}`+"\n"+`{"record_id":"b"}`)
-	write("collection_date=2026-06-24/.2026-06-24T0100.jsonl.1.tmp", `{"record_id":"half-written"}`)
+	write("date=2026-06-24/hour=00/data.jsonl", `{"record_id":"c"}`)
+	write("date=2026-06-23/hour=23/data.jsonl", `{"record_id":"a"}`+"\n"+`{"record_id":"b"}`)
+	write("date=2026-06-24/hour=01/.data.jsonl.1.tmp", `{"record_id":"half-written"}`)
 
 	items, err := New(dir).NewsItems()
 	if err != nil {

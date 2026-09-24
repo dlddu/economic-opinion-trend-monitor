@@ -50,8 +50,8 @@ def test_each_cycle_lands_in_its_own_partition_and_reruns_replace_it(tmp_path: P
 
     root = tmp_path / "bronze" / "news_item"
     assert sorted(p.relative_to(root).as_posix() for p in root.rglob("*.jsonl")) == [
-        "collection_date=2026-06-23/2026-06-23T2300.jsonl",
-        "collection_date=2026-06-24/2026-06-24T0000.jsonl",
+        "date=2026-06-23/hour=23/data.jsonl",
+        "date=2026-06-24/hour=00/data.jsonl",
     ]
     items = LocalFsStore(tmp_path).read_partitions("bronze", "news_item")
     per_cycle = {
@@ -69,15 +69,15 @@ def test_legacy_observation_file_is_migrated_into_its_cycle(tmp_path: Path) -> N
 
     _run(tmp_path, "2026-06-23T14:00")
 
-    part = (
-        tmp_path / "bronze" / "news_item" / "collection_date=2026-06-22" / "2026-06-22T0500.jsonl"
-    )
+    part = tmp_path / "bronze" / "news_item" / "date=2026-06-22" / "hour=05" / "data.jsonl"
     assert part.is_file()
     assert legacy in store.read_partitions("bronze", "news_item")
     assert (tmp_path / "bronze" / "news_item.jsonl.migrated").exists()
 
 
-@pytest.mark.parametrize("cycle", ["2026-06-23T14", "2026-06-23T9:00", "2026-06-23 14:00"])
+@pytest.mark.parametrize(
+    "cycle", ["2026-06-23T14", "2026-06-23T9:00", "2026-06-23 14:00", "2026-06-23T14:30"]
+)
 def test_cycle_outside_the_partition_format_is_rejected(tmp_path: Path, cycle: str) -> None:
     with pytest.raises(SystemExit):
         cli.main(["--source", "fake", "--data", str(tmp_path), "--cycle", cycle])

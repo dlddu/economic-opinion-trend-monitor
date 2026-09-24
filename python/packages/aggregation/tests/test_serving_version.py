@@ -13,7 +13,7 @@ def _seed(root: Path) -> None:
     store.write_partition(
         domain.BRONZE,
         domain.DS_NEWS_ITEM,
-        *domain.news_item_partition("2026-06-23T14:00"),
+        domain.cycle_partition("2026-06-23T14:00"),
         [
             {
                 "record_id": "r1",
@@ -24,9 +24,10 @@ def _seed(root: Path) -> None:
             }
         ],
     )
-    store.write_records(
+    store.write_partition(
         domain.SILVER,
         domain.DS_ANALYSIS,
+        domain.cycle_partition("2026-06-23T14:00"),
         [
             _row("v1", "2026-06-23T14:05:00+00:00", ["구주제"]),
             _row("v2", "2026-06-23T15:05:00+00:00", ["신주제"]),

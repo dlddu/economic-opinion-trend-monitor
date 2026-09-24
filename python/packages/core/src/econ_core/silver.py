@@ -14,8 +14,12 @@ run write it, and they differ in what happens to a record's *other* versions:
 
 Two rules hold for both: a row is replaced, not duplicated, when the same record is
 analyzed again at the same version (a resumed run never double-counts), and rows
-whose ``record_id`` Bronze no longer holds are dropped on every write — every Silver
-row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
+whose ``record_id`` Bronze no longer holds are dropped (:func:`prune_orphans`) —
+every Silver row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
+
+Silver is partitioned like Bronze, by the collection cycle of the observation a row
+analyzes (:func:`econ_core.domain.cycle_partition`), so a write rewrites only the
+cycles it touched.
 
 Which version reaches Gold is a recorded decision (``reprocess_decision``): the last
 ``publish``/``rollback`` names the serving version, and aggregation takes that
@@ -25,7 +29,7 @@ row otherwise so a partially reprocessed range never disappears from the charts.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 
 from econ_core import domain
@@ -38,9 +42,18 @@ def analysis_key(row: dict) -> tuple[str, str]:
     return (row["record_id"], row["analyzer_version"])
 
 
+def _partition_of(cycles: Mapping[str, str], record_id: str) -> dict[str, str]:
+    return domain.cycle_partition(cycles[record_id])
+
+
+def cycles_of(bronze: Iterable[dict]) -> dict[str, str]:
+    """``record_id -> collection_cycle`` — where each record's Silver rows live."""
+    return {item["record_id"]: item["collection_cycle"] for item in bronze}
+
+
 def store_analyses(
     store: LakeStore,
-    bronze_ids: Iterable[str],
+    cycles: Mapping[str, str],
     rows: Iterable[dict],
     *,
     coexist: bool = True,
@@ -48,32 +61,76 @@ def store_analyses(
 ) -> tuple[int, int]:
     """Upsert ``rows`` into Silver by ``(record_id, analyzer_version)``.
 
+    ``cycles`` is :func:`cycles_of` the current Bronze. Only the partitions of the
+    rows' cycles are read and rewritten.
+
     With ``coexist`` (a scoped reprocess) every other version of a record survives.
     Without it (a whole-lake run) the records in ``rows`` keep only the version just
     written — plus any version in ``keep_versions`` (the serving version).
 
-    Returns ``(rows now in Silver, rows pruned)``; pruned counts rows dropped because
-    their Bronze record is gone or their version was retired.
+    Returns ``(rows now in the touched partitions, rows pruned)``; pruned counts rows
+    dropped because their Bronze record is gone or their version was retired.
     """
-    keep = set(bronze_ids)
     protected = set(keep_versions)
-    merged: dict[tuple[str, str], dict] = {}
-    pruned = 0
-    for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS):
-        if row["record_id"] not in keep:
-            pruned += 1
-            continue
-        merged[analysis_key(row)] = row
-    written = list(rows)
-    if not coexist:
-        touched = {r["record_id"] for r in written}
-        for key in [k for k in merged if k[0] in touched and k[1] not in protected]:
-            del merged[key]
-            pruned += 1
-    for row in written:
-        merged[analysis_key(row)] = row
-    ordered = sorted(merged.values(), key=lambda r: (r["record_id"], r["analyzer_version"]))
-    return store.write_records(domain.SILVER, domain.DS_ANALYSIS, ordered), pruned
+    by_partition: dict[tuple[tuple[str, str], ...], list[dict]] = {}
+    for row in rows:
+        partition = _partition_of(cycles, row["record_id"])
+        by_partition.setdefault(tuple(partition.items()), []).append(row)
+
+    total = pruned = 0
+    for key, written in by_partition.items():
+        partition = dict(key)
+        merged: dict[tuple[str, str], dict] = {}
+        for row in store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition):
+            rid = row["record_id"]
+            if rid not in cycles or _partition_of(cycles, rid) != partition:
+                pruned += 1
+                continue
+            merged[analysis_key(row)] = row
+        if not coexist:
+            touched = {r["record_id"] for r in written}
+            for k in [k for k in merged if k[0] in touched and k[1] not in protected]:
+                del merged[k]
+                pruned += 1
+        for row in written:
+            merged[analysis_key(row)] = row
+        ordered = sorted(merged.values(), key=lambda r: (r["record_id"], r["analyzer_version"]))
+        total += store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, ordered)
+    return total, pruned
+
+
+def prune_orphans(store: LakeStore, cycles: Mapping[str, str]) -> tuple[int, int]:
+    """Drop Silver rows whose record Bronze no longer holds in the same cycle.
+
+    Reads every partition but rewrites only those that lose rows. Returns
+    ``(rows now in Silver, rows pruned)``.
+    """
+    total = pruned = 0
+    for partition in store.partitions(domain.SILVER, domain.DS_ANALYSIS):
+        rows = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
+        kept = [
+            r
+            for r in rows
+            if r["record_id"] in cycles and _partition_of(cycles, r["record_id"]) == partition
+        ]
+        if len(kept) != len(rows):
+            store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, kept)
+            pruned += len(rows) - len(kept)
+        total += len(kept)
+    return total, pruned
+
+
+def read_analyses(store: LakeStore) -> list[dict]:
+    return store.read_partitions(domain.SILVER, domain.DS_ANALYSIS)
+
+
+def migrate_legacy(store: LakeStore, cycles: Mapping[str, str]) -> int:
+    """Move a legacy ``silver/analysis.jsonl`` into cycle partitions; orphans are dropped."""
+    return store.migrate_records_to_partitions(
+        domain.SILVER,
+        domain.DS_ANALYSIS,
+        lambda row: _partition_of(cycles, row["record_id"]) if row["record_id"] in cycles else None,
+    )
 
 
 def newest_row(rows: list[dict]) -> dict:

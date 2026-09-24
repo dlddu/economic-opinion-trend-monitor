@@ -26,8 +26,8 @@ DS_REPROCESS_DECISION = "reprocess_decision"  # silver -> publish/rollback log (
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
 DS_AXIS_SENTIMENT = "axis_sentiment"  # gold    -> models.AxisSentiment
 
-#: Collection cycle id format; the default cycle is the current UTC hour.
-CYCLE_FORMAT = "%Y-%m-%dT%H:%M"
+#: Collection cycle id format — one cycle per UTC hour.
+CYCLE_FORMAT = "%Y-%m-%dT%H:00"
 
 # Environment override for the local lake root.
 ENV_DATA_ROOT = "ECON_DATA_ROOT"
@@ -65,8 +65,8 @@ def default_data_root() -> Path:
 def parse_cycle(cycle: str) -> datetime:
     """Parse a collection cycle id, rejecting anything that is not exactly ``CYCLE_FORMAT``.
 
-    Exactness matters because the cycle names its Bronze partition: two spellings
-    of one instant (``T9:00`` / ``T09:00``) would land as two parts of one cycle.
+    Exactness matters because the cycle names its partition: two spellings of one
+    hour (``T9:00`` / ``T09:00``) would otherwise land as two partitions of one cycle.
     """
     at = datetime.strptime(cycle, CYCLE_FORMAT)
     if at.strftime(CYCLE_FORMAT) != cycle:
@@ -74,12 +74,13 @@ def parse_cycle(cycle: str) -> datetime:
     return at
 
 
-def news_item_partition(cycle: str) -> tuple[dict[str, str], str]:
-    """``(partition, part)`` holding one collection cycle's ``news_item`` observations.
+def cycle_partition(cycle: str) -> dict[str, str]:
+    """The ``date=/hour=`` partition holding one collection cycle.
 
-    One part per cycle under a ``collection_date`` partition: re-running a cycle
-    replaces exactly its own part (idempotent per cycle, AC1.1), and every earlier
-    cycle stays readable for reprocessing and lineage (AC2.6).
+    Bronze ``news_item`` and Silver ``analysis`` share it — a Silver row lives in the
+    partition of the observation it analyzes, not of the hour it was analyzed in, so
+    a cycle's Bronze and Silver sit side by side and re-analysing history rewrites
+    history's partitions rather than piling into the current hour.
     """
     at = parse_cycle(cycle)
-    return {"collection_date": at.strftime("%Y-%m-%d")}, at.strftime("%Y-%m-%dT%H%M")
+    return {"date": at.strftime("%Y-%m-%d"), "hour": at.strftime("%H")}

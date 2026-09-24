@@ -95,7 +95,7 @@ func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
 // Silver holds one row per (record_id, analyzer_version): a reprocessed record
 // keeps its earlier version's row beside the new one (JRN-logic-backfill).
 func (l *Lake) Analyses() ([]gen.Analysis, error) {
-	return readJSONL[gen.Analysis](l.path("silver", "analysis"))
+	return readPartitions[gen.Analysis](filepath.Join(l.Root, "silver", "analysis"))
 }
 
 // ReprocessDecision is one publish/rollback the batch recorded (the Python
@@ -114,25 +114,32 @@ func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
 	return readJSONL[ReprocessDecision](l.path("silver", "reprocess_decision"))
 }
 
-// readPartitions decodes every part file of a Hive-partitioned dataset, in
-// path order (econ_core.storage.LocalFsStore.read_partitions).
+// partitionFile mirrors econ_core.storage.PARTITION_FILE.
+const partitionFile = "data.jsonl"
+
+// readPartitions decodes every partition of a Hive-partitioned dataset
+// (key=value directories, one data.jsonl each), in path order — the Go
+// counterpart of econ_core.storage.LakeStore.read_partitions.
 func readPartitions[T any](root string) ([]T, error) {
-	parts, err := filepath.Glob(filepath.Join(root, "*=*", "*.jsonl"))
-	if err != nil {
-		return nil, err
-	}
 	var out []T
-	for _, part := range parts {
-		if strings.HasPrefix(filepath.Base(part), ".") {
-			continue
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if errors.Is(err, fs.ErrNotExist) && path == root {
+			return fs.SkipAll
 		}
-		recs, err := readJSONL[T](part)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		if d.IsDir() || d.Name() != partitionFile {
+			return nil
+		}
+		recs, err := readJSONL[T](path)
+		if err != nil {
+			return err
 		}
 		out = append(out, recs...)
-	}
-	return out, nil
+		return nil
+	})
+	return out, err
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an

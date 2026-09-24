@@ -57,7 +57,7 @@ def _write_items(root: Path, items: list[dict]) -> None:
         by_cycle.setdefault(item["collection_cycle"], []).append(item)
     for cycle, cycle_items in by_cycle.items():
         LocalFsStore(root).write_partition(
-            "bronze", "news_item", *domain.news_item_partition(cycle), cycle_items
+            "bronze", "news_item", domain.cycle_partition(cycle), cycle_items
         )
 
 
@@ -68,7 +68,8 @@ def _write_jsonl(path: Path, records: list[dict]) -> None:
 
 
 def _silver(root: Path) -> Path:
-    return root / "silver" / "analysis.jsonl"
+    """The Silver partition of the seeded cycle."""
+    return root / "silver" / "analysis" / "date=2026-06-23" / "hour=14" / "data.jsonl"
 
 
 def _canned(reply: str):
@@ -194,7 +195,7 @@ def _bronze_rows(root: Path) -> list[dict]:
 
 
 def _silver_rows(root: Path) -> list[dict]:
-    return [json.loads(line) for line in _silver(root).read_text().splitlines()]
+    return LocalFsStore(root).read_partitions("silver", "analysis")
 
 
 def test_whole_lake_rerun_updates_silver_in_place(tmp_path: Path) -> None:
@@ -354,3 +355,40 @@ def test_whole_lake_run_does_not_revisit_bodyless_records(
     out = capsys.readouterr().out
     assert "wrote 0 silver records" in out
     assert "settled_already_at_version=2" in out
+
+
+def test_silver_rows_land_in_the_partition_of_their_observation(tmp_path: Path) -> None:
+    _seed_lake(tmp_path)
+    _write_items(
+        tmp_path,
+        [
+            {**item, "record_id": f"{item['record_id']}-next", "collection_cycle": NEXT_CYCLE}
+            for item in _bronze_rows(tmp_path)
+        ],
+    )
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    root = tmp_path / "silver" / "analysis"
+    ids = {
+        part.parent.relative_to(root).as_posix(): sorted(
+            json.loads(line)["record_id"] for line in part.read_text().splitlines()
+        )
+        for part in root.rglob("data.jsonl")
+    }
+    assert ids == {
+        "date=2026-06-23/hour=14": ["r1", "r2"],
+        "date=2026-06-23/hour=15": ["r1-next", "r2-next"],
+    }
+
+
+def test_legacy_silver_file_is_migrated_and_orphans_dropped(tmp_path: Path) -> None:
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    store = LocalFsStore(tmp_path)
+    rows = _silver_rows(tmp_path)
+    _silver(tmp_path).unlink()
+    orphan = {**rows[0], "record_id": "gone"}
+    store.write_records("silver", "analysis", [*rows, orphan])
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    assert sorted(r["record_id"] for r in _silver_rows(tmp_path)) == ["r1", "r2"]
+    assert (tmp_path / "silver" / "analysis.jsonl.migrated").exists()
