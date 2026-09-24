@@ -152,10 +152,22 @@ def test_llm_bodyless_batch_writes_without_calling_the_model(
     assert all(r["analysis_status"] == "unanalyzed" for r in records)
 
 
+def _observe_again(root: Path, cycle: str) -> None:
+    """Append the next cycle's observations of the same two articles to Bronze."""
+    again = [
+        {**item, "record_id": f"{item['record_id']}@{cycle}", "collection_cycle": cycle}
+        for item in _bronze_rows(root)
+        if item["collection_cycle"] == CYCLE
+    ]
+    with (root / "bronze" / "news_item.jsonl").open("a", encoding="utf-8") as fh:
+        for record in again:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def test_second_run_reuses_stored_replies(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # The hourly cycle re-observes the same articles: the second run must not re-ask.
+    # The hourly cycle re-observes the same articles: the next run must not re-ask.
     _seed_lake(tmp_path)
     reply = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
     monkeypatch.setattr(llm, "http_completer", _canned(reply))
@@ -164,9 +176,31 @@ def test_second_run_reuses_stored_replies(
     cache = (tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()
     assert len(cache) == 2
 
+    _observe_again(tmp_path, "2026-06-23T15:00")
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
     assert "attempted=0 failed=0 reused=2" in capsys.readouterr().out
     assert len((tmp_path / "silver" / "analysis_cache.jsonl").read_text().splitlines()) == 2
+
+
+def test_hourly_run_analyzes_only_new_observations(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bronze accumulates: an hourly run touches the new cycle and keeps the history."""
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    capsys.readouterr()
+
+    _observe_again(tmp_path, "2026-06-23T15:00")
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert "read 4 bronze, wrote 2 silver records" in out
+    assert "skipped_already_at_version=2" in out
+    assert sorted(r["record_id"] for r in _silver_rows(tmp_path)) == [
+        "r1",
+        "r1@2026-06-23T15:00",
+        "r2",
+        "r2@2026-06-23T15:00",
+    ]
 
 
 def _bronze_rows(root: Path) -> list[dict]:

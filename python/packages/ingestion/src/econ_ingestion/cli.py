@@ -90,7 +90,10 @@ def main(argv: list[str] | None = None) -> int:
         items, bodies, stats = run_ingestion(cycle, collected_at)
 
     store = open_store(args.data)
-    written = store.write_records(domain.BRONZE, domain.DS_NEWS_ITEM, items)
+    # Observations accumulate across cycles (PRD ingestion 「보유 기간」: kept
+    # indefinitely). record_id carries the cycle, so a rerun of the same cycle
+    # appends nothing it already stored.
+    written = store.merge_records(domain.BRONZE, domain.DS_NEWS_ITEM, "record_id", items)
     # Content-addressed merge: unchanged bodies are skipped, edited bodies
     # append as new versions without touching prior ones (AC1.7).
     new_bodies = store.merge_records(domain.BRONZE, domain.DS_NEWS_BODY, "body_hash", bodies)

@@ -8,10 +8,13 @@ offline tests network-free. The default was cut over to the real model once the
 analyzer had landed and been exercised, mirroring the ingestion feed cutover.
 
 Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`).
-A whole-lake run — no scope arguments, the hourly pipeline — re-analyzes every Bronze
-record and *updates* Silver in place (AC2.6: the re-analysed batch carries the new
-version, tracking keys intact), retiring the versions it supersedes except the one a
-recorded publish decision serves. A *scoped* run (``--since``/``--axis``/``--source``/
+A whole-lake run — no scope arguments, the hourly pipeline — analyzes every Bronze
+record that has no row at the run's version yet and *updates* Silver in place (AC2.6:
+the re-analysed batch carries the new version, tracking keys intact), retiring the
+versions it supersedes except the one a recorded publish decision serves. Bronze
+accumulates every cycle, so skipping records already at the version is what keeps an
+hourly run proportional to the new observations rather than to the whole history; a
+version bump still reaches every record. A *scoped* run (``--since``/``--axis``/``--source``/
 ``--sample``) is the reprocess path of JRN-logic-backfill: it analyzes only the
 selected Bronze, lands its rows *beside* the existing versions (that coexistence is
 what the console compares and what a rollback returns to), skips records already at
@@ -156,16 +159,15 @@ def main(argv: list[str] | None = None) -> int:
 
     scoped = _scoped(args)
     todo = _select_scope(bronze, args) if scoped else list(bronze)
-    skipped = 0
+    done = {
+        row["record_id"]
+        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
+        if row["analyzer_version"] == version
+    }
+    selected = len(todo)
+    todo = [item for item in todo if item["record_id"] not in done]
+    skipped = selected - len(todo)
     if scoped:
-        done = {
-            row["record_id"]
-            for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS)
-            if row["analyzer_version"] == version
-        }
-        selected = len(todo)
-        todo = [item for item in todo if item["record_id"] not in done]
-        skipped = selected - len(todo)
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
 
     stats = llm.AnalysisStats() if completer is not None else None
@@ -225,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"  silver now {written} rows ({'coexisting' if scoped else 'in place'}, pruned={pruned})"
     )
+    if not scoped:
+        print(f"  skipped_already_at_version={skipped}")
     if scoped:
         print(
             f"  scope: since={args.since or '-'} axis={args.axis or '-'} "

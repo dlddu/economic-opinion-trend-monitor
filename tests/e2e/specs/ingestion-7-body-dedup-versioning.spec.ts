@@ -5,10 +5,10 @@
 //   (b) 세 번째 주기에 본문 수정 — 주기 3 만 `cycle3_main.rss.xml` 을 받는다(링크·조회수는 동일)
 //   (c) 다른 링크로 같은 본문 전재 — 세 주기 모두에 reprint-a / reprint-b 쌍이 있다
 //
-// 관측 창이 주기마다 하나씩 필요하다. Bronze 의 `news_item` 은 주기마다 **덮어쓰기**이고
-// (`LakeStore.write_records`) `news_body` 만 누적되므로, 최종 파일만 보면 "각 주기의 관측
-// 레코드가 관측 당시의 본문 해시를 가리킨다"를 확인할 수 없다 — 주기 3 것만 남는다. run.sh 가
-// 주기 사이마다 스냅샷을 떠 `cycle1/2/3` 으로 반출하는 이유다.
+// Bronze 의 `news_item`·`news_body` 는 둘 다 주기를 가로질러 누적된다(PRD ingestion
+// 「보유 기간」). 같은 링크가 주기마다 관측 레코드를 하나씩 남기므로 관측 레코드는 링크와
+// `collection_cycle` 로 함께 찾는다. run.sh 는 주기 사이마다 스냅샷을 떠 `cycle1/2/3` 으로
+// 반출한다 — 주기별 본문 저장소 상태(재저장 없음 · 새 버전 추가)를 그 시점으로 보기 위해서다.
 
 import { createHash } from "node:crypto";
 
@@ -36,10 +36,18 @@ function providedBody(file: string, url: string): string {
   return found.body;
 }
 
-/** 그 주기의 관측 레코드를 링크로 찾는다. */
-function itemAt(cycle: number, url: string) {
-  const found = newsItems(cycleDir(cycle)).find((item) => item.source_url === url);
-  if (!found) throw new Error(`주기 ${cycle} 의 Bronze 에 ${url} 관측 레코드가 없다`);
+function cycleId(cycle: number): string {
+  return ingestSummary(`econ-e2e-ingest-cycle${cycle}`).cycle;
+}
+
+/** 그 주기의 관측 레코드를 링크로 찾는다 — 스냅샷에는 앞선 주기의 관측도 함께 있다. */
+function itemAt(cycle: number, url: string, snapshot: number = cycle) {
+  const found = newsItems(cycleDir(snapshot)).find(
+    (item) => item.source_url === url && item.collection_cycle === cycleId(cycle),
+  );
+  if (!found) {
+    throw new Error(`스냅샷 ${snapshot} 의 Bronze 에 주기 ${cycle} 의 ${url} 관측 레코드가 없다`);
+  }
   return found;
 }
 
@@ -85,6 +93,16 @@ test("ingestion: each cycle's observation points at the body seen in that cycle"
   expect(itemAt(1, STORY).body_hash).toBe(original);
   expect(itemAt(2, STORY).body_hash).toBe(original);
   expect(itemAt(3, STORY).body_hash).toBe(edited);
+});
+
+test("ingestion: earlier cycles' observations survive later cycles", () => {
+  const original = hashOf(providedBody("e2e-feeds-cycle12.json", STORY));
+  const edited = hashOf(providedBody("e2e-feeds-cycle3.json", STORY));
+
+  // 마지막 스냅샷 하나에 세 주기의 관측이 모두 남아 있어야 관측 이력이 곧 수정 이력이 된다.
+  expect(itemAt(1, STORY, 3).body_hash).toBe(original);
+  expect(itemAt(2, STORY, 3).body_hash).toBe(original);
+  expect(itemAt(3, STORY, 3).body_hash).toBe(edited);
 });
 
 test("ingestion: reprints under different links share one stored body", () => {
