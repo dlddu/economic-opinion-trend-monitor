@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { Trace } from "./Trace";
 import type { TraceResponse } from "../api/types";
 
@@ -56,6 +57,21 @@ function response(over: Partial<TraceResponse> = {}): TraceResponse {
   };
 }
 
+// The screen reads its record from the URL, so it always renders under a router.
+function renderTrace(entry = "/trace") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Trace />
+      <LocationProbe />
+    </MemoryRouter>,
+  );
+}
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <span data-testid="loc">{loc.pathname + loc.search}</span>;
+}
+
 function stubTrace(body: TraceResponse) {
   vi.stubGlobal(
     "fetch",
@@ -66,7 +82,7 @@ function stubTrace(body: TraceResponse) {
 // The screen's reason to exist: three layers, one record, on one surface.
 it("puts all three layers of one record on the screen", async () => {
   stubTrace(response());
-  const { container } = render(<Trace />);
+  const { container } = renderTrace();
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
 
@@ -92,7 +108,7 @@ it("puts all three layers of one record on the screen", async () => {
 // taken at collection time carries the reader the rest of the way (AC1.4).
 it("keeps going on a dead link by showing the preserved copy", async () => {
   stubTrace(response({ bronze: { ...BRONZE, body_available: false } }));
-  const { container } = render(<Trace />);
+  const { container } = renderTrace();
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
 
@@ -113,7 +129,7 @@ it("leaves sentiment blank for a set-aside record instead of picking a class", a
       silver: { ...SILVER, sentiment: null, analysis_status: "low_confidence", confidence: 0.21 },
     }),
   );
-  const { container } = render(<Trace />);
+  const { container } = renderTrace();
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
 
@@ -141,7 +157,7 @@ it("tells 'not analyzed yet' apart from 'not collected'", async () => {
       ],
     }),
   );
-  const { container, unmount } = render(<Trace />);
+  const { container, unmount } = renderTrace();
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
   expect(container.textContent).toContain("아직 분석되지 않았습니다");
@@ -151,7 +167,7 @@ it("tells 'not analyzed yet' apart from 'not collected'", async () => {
   unmount();
 
   stubTrace(response({ found: false, bronze: null, silver: null, selection: "requested-missing" }));
-  const missing = render(<Trace />);
+  const missing = renderTrace();
   await waitFor(() => expect(missing.container.textContent).toContain("Bronze 에 없습니다"));
   // No lineage is drawn for a record that was never collected.
   expect(missing.container.querySelectorAll(".trace-crumb-step")).toHaveLength(0);
@@ -160,8 +176,40 @@ it("tells 'not analyzed yet' apart from 'not collected'", async () => {
 // A fallback must not read as a hit: the screen says it chose for you.
 it("says so when it picked the record itself", async () => {
   stubTrace(response({ selection: "auto" }));
-  const { container } = render(<Trace />);
+  const { container } = renderTrace();
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
   expect(container.textContent).toContain("첫 관측");
+});
+
+// Another screen hands a record over in the URL (the judgment-debug CTA does):
+// the screen must open on that record, not on "first observation".
+it("opens the record named in ?record_id= and asks the API for it", async () => {
+  stubTrace(response());
+  const { container } = renderTrace("/trace?record_id=R-2609-0412");
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+  const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+  expect(String(fetchMock.mock.calls[0][0])).toContain("record_id=R-2609-0412");
+  expect((container.querySelector(".trace-lookup input") as HTMLInputElement).value).toBe("R-2609-0412");
+});
+
+// And the reverse: looking a record up here puts it in the URL, so the view can
+// be shared as a link and survives a reload.
+it("writes the looked-up record back into the URL", async () => {
+  stubTrace(response());
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+  const input = container.querySelector(".trace-lookup input") as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "  R-2609-0351 " } });
+  fireEvent.submit(container.querySelector(".trace-lookup") as HTMLFormElement);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="loc"]')?.textContent).toBe("/trace?record_id=R-2609-0351"),
+  );
+  const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+  await waitFor(() =>
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("record_id=R-2609-0351"))).toBe(true),
+  );
 });
