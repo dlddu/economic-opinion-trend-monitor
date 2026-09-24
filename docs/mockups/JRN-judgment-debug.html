@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>판단 디버깅 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+.screen{display:none;animation:none}
+.screen.active{display:block}
+.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
+.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
+.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
+.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
+.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
+.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+
+/* —— Phone (≤720px) ——————————————————————————————
+   1180px 규칙은 사이드바를 64px 아이콘 레일로 접을 뿐이라, 폰 폭에서는
+   본문이 ~300px 로 줄어 12컬럼 그리드·랭킹 행의 고정 트랙이 이름 칸을 한 글자 폭으로 짓눌렀다.
+   폰에서는 사이드바를 상단 가로 아이콘 줄로 바꾸고, 카드는 한 줄에 하나(지표 타일만 2열),
+   랭킹 행은 2줄(순위·이름·변화 / 점유율 막대·스파크라인)로 재배치한다. */
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;flex-direction:row;align-items:center}
+  .brand{display:none}
+  .nav{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px 10px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-group{display:flex;align-items:center;gap:2px;margin:0}
+  .nav-group + .nav-group{padding-left:6px;margin-left:4px;border-left:1px solid rgba(255,255,255,.14)}
+  .nav-group > .gl{display:none}
+  .nav-item{width:42px;height:40px;flex:none;padding:0}
+  .nav-item.active::before{left:9px;right:9px;top:auto;bottom:-6px;width:auto;height:3px;
+    border-radius:3px 3px 0 0}
+
+  .topbar{padding:10px 16px;flex-wrap:wrap;row-gap:8px}
+  .topbar .spacer{display:none}
+  .ctl{flex-wrap:wrap}
+  .canvas{padding:16px 14px 48px}
+  .grid{gap:12px}
+  .col-4,.col-5{grid-column:span 12}
+  .card-h{flex-wrap:wrap}
+  .card-h .r{margin-left:0}
+  .metric .mv{font-size:26px}
+
+  .rankrow:not([style]){grid-template-columns:20px minmax(0,1fr) 88px;
+    grid-template-areas:"rk nm dlt" ". share spark";row-gap:7px;column-gap:10px}
+  .rankrow:not([style]) .rk{grid-area:rk}
+  .rankrow:not([style]) .nm{grid-area:nm}
+  .rankrow:not([style]) .share{grid-area:share}
+  .rankrow:not([style]) .spark{grid-area:spark}
+  .rankrow:not([style]) .dlt{grid-area:dlt}
+  .rankrow:not([style]) > .rk ~ .rk{grid-area:spark;font-size:11px}
+  .rankrow .nm{flex-wrap:wrap;gap:2px 6px;min-width:0}
+
+  .card,.card-b{min-width:0}
+  .card-b:has(> table.tbl),.card-b:has(> div > table.tbl),.scrolly{overflow-x:auto}
+  table.tbl th,table.tbl td{padding:8px 8px}
+  .formrow > *{flex:1 1 100%}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-judgment-debug) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+/* 요청·응답 원문 — 가공 없이 보여 주는 고정폭 블록(TKN-type mono · TKN-surface) */
+.code{font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--ink);background:var(--panel-2);
+  border:1px solid var(--line);border-radius:7px;padding:10px 12px;margin:0;white-space:pre-wrap;word-break:break-word;
+  max-height:260px;overflow:auto}
+.actions .btn.sm{white-space:nowrap}
+</style>
+
+<body data-journey="JRN-judgment-debug">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="JRN-daily-scan.html#STP-drill-trend">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="sentiment" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="JRN-spike-verification.html#STP-open-origin">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>분석 로직 llm-v1 &middot; gpt-5.6-luna<br/>
+      실행 기록 보관 &middot; 최근 실행 09-24 03:00 KST
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>판단 디버깅</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" id="tb-rec">레코드 미선택</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 화면 1 — 의심 판단 특정 ============ -->
+      <section class="jstep" id="STP-pin-record" data-step="STP-pin-record" hidden>
+        <div class="grid g-12">
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>분석 결과 찾기</h3>
+              <span class="sub" id="list-sub">제목·레코드 번호로 찾거나 증상으로 좁힙니다</span>
+              <div class="r"><span class="tag">제보 링크로 들어오면 그 레코드가 먼저 골라져 있습니다</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:1 1 220px">
+                  <span class="fl">검색</span>
+                  <input type="search" id="q" name="q" placeholder="제목 또는 레코드 번호" autocomplete="off" />
+                </label>
+                <label class="fld" style="flex:0 0 190px">
+                  <span class="fl">증상</span>
+                  <select id="symptom" name="symptom">
+                    <option value="all" selected>전체</option>
+                    <option value="suspect">분류가 의심됨</option>
+                    <option value="failed">호출 실패</option>
+                    <option value="unanalyzed">미분석</option>
+                    <option value="lowconf">저신뢰</option>
+                  </select>
+                </label>
+              </div>
+
+              <table class="tbl">
+                <thead><tr><th style="width:34px"></th><th>레코드</th><th>제목</th><th>분석 결과</th><th>수집</th></tr></thead>
+                <tbody id="rec-rows"></tbody>
+              </table>
+
+              <div class="emptybox" id="s-no-match" data-state="no-match" hidden>
+                찾는 분석 결과가 없습니다.<br/>레코드 번호는 제보 링크 끝의 <span class="mono">R-</span>로 시작하는 값입니다 &mdash; 증상 필터를 &lsquo;전체&rsquo;로 넓혀 보세요.
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 결과</h3><span class="sub">이 판단이 어디서 나왔는지 되짚습니다</span></div>
+            <div class="card-b">
+              <p class="verdict" id="pick-title"></p>
+              <div id="pick-kv"></div>
+              <div class="note info" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>결과마다 그것을 만든 실행과 모델 호출이 붙어 있습니다. 원문으로 되짚는 키도 그대로입니다.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h"><h3>운영 알림</h3><span class="sub">결과 하나가 아니라 실행 전체가 이상할 때</span></div>
+            <div class="card-b">
+              <div class="banner warn" style="margin-top:0">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>09-24 03:00 실행에서 응답과 저장값이 어긋난 결과가 평소보다 많습니다 (23건).</b>
+                  결과 하나를 고르기 전에 그 실행부터 열어 증상이 어디 몰렸는지 볼 수 있습니다.
+                  <div class="actions"><a class="btn sm" id="alert-run" href="#STP-scan-run"
+                     data-goto="JRN-judgment-debug#STP-scan-run">실행 기록부터 보기 &rarr;</a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-read-exchange" id="cta-1">
+            모델 호출 기록 열기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">고른 결과의 요청·응답 원문으로 갑니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 2 — LLM 요청·응답 열람 ============ -->
+      <section class="jstep" id="STP-read-exchange" data-step="STP-read-exchange" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>모델 호출 기록</h3>
+              <span class="sub" id="call-sub"></span>
+              <div class="r"><span class="tag">보낸 그대로 · 받은 그대로</span></div>
+            </div>
+            <div class="card-b">
+              <div id="call-kv"></div>
+
+              <div class="banner err" id="s-parse-mismatch" data-state="parse-mismatch" hidden>
+                <div><b>응답의 마지막 판단과 저장값이 다릅니다.</b>
+                  모델은 초안을 낸 뒤 판단을 고쳐 다시 답했는데, 저장값은 응답 안의 첫 번째 JSON(초안)에서 읽혔습니다 &mdash; 모델이 아니라 읽는 쪽을 먼저 의심할 근거입니다.</div>
+              </div>
+              <div class="banner err" id="s-call-failed" data-state="call-failed" hidden>
+                <div><b>모델 호출이 실패해 결과를 채우지 않았습니다.</b>
+                  재시도 <span id="fail-retries">0</span>회 뒤에도 응답을 받지 못해 미분석으로 두었습니다. 마지막 오류: <span class="mono" id="fail-err"></span></div>
+              </div>
+              <div class="emptybox" id="s-not-called" data-state="not-called" hidden>
+                이 결과는 모델을 부르지 않았습니다 &mdash; <b id="notcalled-why"></b>.<br/>볼 요청·응답이 없으니 모델이 무엇을 받았어야 했는지부터 봅니다.
+                <div class="actions" style="justify-content:center"><a class="btn sm" href="#STP-check-input"
+                   data-goto="JRN-judgment-debug#STP-check-input">입력부터 점검하기 &rarr;</a></div>
+              </div>
+              <div class="banner good" id="s-reused" data-state="reused" hidden>
+                <div><b>이번 실행은 모델을 다시 부르지 않았습니다.</b>
+                  같은 제목·본문의 이전 응답을 재사용했습니다 &mdash; 판단은 <span class="mono" id="reused-orig"></span> 호출에서 나왔습니다.
+                  <div class="actions"><a class="btn sm" id="open-orig" href="#STP-read-exchange"
+                     data-goto="JRN-judgment-debug#STP-read-exchange">원 호출 기록 열기 &rarr;</a></div></div>
+              </div>
+              <div class="banner warn" id="s-no-call-record" data-state="no-call-record" hidden>
+                <div><b>이 결과에는 호출 기록이 없습니다.</b>
+                  호출 기록을 남기기 전에 분석된 결과라 요청·응답을 되짚을 수 없습니다. 원문과 실행 정보만으로 보되, 판단을 재현하려면 표본 재분석으로 넘기세요.
+                  <div class="actions"><a class="btn sm" href="JRN-logic-backfill.html#STP-dry-run"
+                     data-goto="JRN-logic-backfill#STP-dry-run">표본 재분석으로 재현하기 &rarr;</a></div></div>
+              </div>
+
+              <div id="exchange" style="margin-top:14px">
+                <div class="formrow" style="margin-bottom:8px">
+                  <label class="fld" style="flex:0 0 190px">
+                    <span class="fl">보낸 요청</span>
+                    <select id="prompt-part" name="prompt-part">
+                      <option value="user" selected>사용자 메시지</option>
+                      <option value="system">시스템 지시문</option>
+                    </select>
+                  </label>
+                  <span class="muted" id="hash-line" style="font-size:12px;padding-bottom:8px"></span>
+                </div>
+                <pre class="code" id="prompt-pre"></pre>
+                <div class="seclabel" style="margin:14px 0 6px">받은 응답 (가공 전)</div>
+                <pre class="code" id="reply-pre"></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>응답 &harr; 저장값</h3><span class="sub" id="cmp-sub">필드마다 모델의 최종 답과 저장된 값을 맞춰 봅니다</span></div>
+            <div class="card-b">
+              <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="diff-only" name="diff-only" /> 어긋난 필드만 보기</label>
+              <table class="tbl">
+                <thead><tr><th>필드</th><th>응답</th><th>저장값</th><th></th></tr></thead>
+                <tbody id="cmp-rows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-check-input" id="cta-2">
+            모델이 받은 입력 점검 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">응답이 맞게 읽혔더라도 입력이 틀렸을 수 있습니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 3 — 입력 점검 ============ -->
+      <section class="jstep" id="STP-check-input" data-step="STP-check-input" hidden>
+        <div class="grid g-12">
+          <div class="card col-6">
+            <div class="card-h">
+              <h3>모델이 받은 입력</h3>
+              <span class="sub" id="sent-sub"></span>
+            </div>
+            <div class="card-b">
+              <pre class="code" id="sent-body"></pre>
+            </div>
+          </div>
+          <div class="card col-6">
+            <div class="card-h">
+              <h3>보관된 원문</h3>
+              <span class="sub">수정될 때마다 새 버전으로 쌓입니다</span>
+            </div>
+            <div class="card-b">
+              <label class="fld" style="max-width:260px;margin-bottom:10px">
+                <span class="fl">원문 버전</span>
+                <select id="body-ver" name="body-ver"></select>
+              </label>
+              <pre class="code" id="arch-body"></pre>
+            </div>
+          </div>
+          <div class="card col-12">
+            <div class="card-b">
+              <p class="verdict" id="diff-sum"></p>
+              <p class="vsub" id="diff-sub"></p>
+              <div class="banner warn" id="s-body-mismatch" data-state="body-mismatch" hidden>
+                <div><b>분석에 쓴 본문과 지금 보관된 최신 본문이 다릅니다.</b>
+                  기사가 분석 뒤에 <span id="stale-n">0</span>번 수정됐습니다. 판단은 당시 본문 기준으로는 맞았을 수 있습니다 &mdash; 이 경우 고칠 곳은 모델이 아니라 수정본을 다시 분석하는 흐름입니다.</div>
+              </div>
+              <div class="banner warn" id="s-body-empty" data-state="body-empty" hidden>
+                <div><b>본문이 사실상 비어 있습니다.</b>
+                  <span id="empty-why"></span> 이 입력으로는 어떤 모델도 판단할 수 없습니다 &mdash; 수집 쪽을 먼저 봐야 합니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-scan-run" id="cta-3">
+            같은 실행 훑어보기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">이 결과만의 문제인지, 그 시간 실행 전체의 문제인지 봅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 4 — 같은 실행 훑기 ============ -->
+      <section class="jstep" id="STP-scan-run" data-step="STP-scan-run" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h">
+              <h3>배치 실행</h3>
+              <span class="sub" id="run-sub"></span>
+              <div class="r"><span class="tag">스케줄러 이력이 지워져도 남는 기록</span></div>
+            </div>
+            <div class="card-b">
+              <label class="fld" style="max-width:300px;margin-bottom:12px">
+                <span class="fl">실행</span>
+                <select id="run-pick" name="run-pick">
+                  <option value="R0300">09-24 03:00 &middot; 정기</option>
+                  <option value="R0200">09-24 02:00 &middot; 정기</option>
+                  <option value="R0100">09-24 01:00 &middot; 정기</option>
+                  <option value="R2300">09-23 23:00 &middot; 정기</option>
+                </select>
+              </label>
+              <div id="run-kv"></div>
+              <table class="tbl" style="margin-top:12px">
+                <thead><tr><th>단계</th><th>상태</th><th class="num">입력</th><th>처리 결과</th><th>합</th><th class="num">소요</th></tr></thead>
+                <tbody id="stage-rows"></tbody>
+              </table>
+              <div class="banner err" id="s-run-stage-failed" data-state="run-stage-failed" hidden>
+                <div><b>이 실행은 분석 단계에서 멈췄습니다.</b>
+                  모델 호출이 연달아 실패해 남은 기사를 처리하지 않고 중단했고, 집계는 돌지 않았습니다. 멈춘 지점까지의 건수와 사유가 위 표에 남아 있습니다.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card col-5">
+            <div class="card-h"><h3>증상이 몰렸나</h3><span class="sub">이 결과 하나인지, 실행 전체인지</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:12px">
+                <label class="fld" style="flex:1 1 160px">
+                  <span class="fl">증상</span>
+                  <select id="run-symptom" name="run-symptom">
+                    <option value="mismatch">응답과 저장값 불일치</option>
+                    <option value="failed">호출 실패</option>
+                    <option value="lowconf">저신뢰</option>
+                    <option value="notcalled">미호출 (본문 미확보)</option>
+                    <option value="stale">분석 뒤 본문 수정</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 110px">
+                  <span class="fl">몰림 기준 %</span>
+                  <input type="number" id="conc-th" name="conc-th" min="0" max="100" step="0.5" value="2" />
+                </label>
+              </div>
+              <div class="metric" style="padding:6px 0 10px">
+                <div class="ml">이 실행에서</div>
+                <div class="mv" id="sym-count">0<small>건</small></div>
+                <div class="md" id="sym-ratio"></div>
+              </div>
+              <div id="sym-list" class="muted" style="font-size:12px;line-height:1.7"></div>
+              <div class="banner warn" id="s-run-concentrated" data-state="run-concentrated" hidden>
+                <div><b>이 증상은 이 실행에 몰려 있습니다.</b>
+                  <span id="conc-why"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-route-cause" id="cta-4">
+            원인 판정하기 <span class="ar">&rarr;</span>
+          </button>
+          <span class="hint">모은 근거로 원인을 하나 고릅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 화면 5 — 원인 판정과 인계 ============ -->
+      <section class="jstep" id="STP-route-cause" data-step="STP-route-cause" hidden>
+        <div class="grid g-12">
+          <div class="card col-7">
+            <div class="card-h"><h3>원인 판정</h3><span class="sub" id="cause-sub"></span></div>
+            <div class="card-b">
+              <table class="tbl" style="margin-bottom:14px">
+                <thead><tr><th>모은 근거</th><th>본 것</th></tr></thead>
+                <tbody id="evidence-rows"></tbody>
+              </table>
+              <form id="cause-form" novalidate>
+                <div class="fld" style="margin-bottom:12px">
+                  <span class="fl">원인</span>
+                  <div class="radios">
+                    <label><input type="radio" name="cause" value="input" /> 입력(수집)</label>
+                    <label><input type="radio" name="cause" value="logic" /> 로직&middot;프롬프트</label>
+                    <label><input type="radio" name="cause" value="model" /> 모델 응답</label>
+                    <label><input type="radio" name="cause" value="parse" /> 파싱</label>
+                    <label><input type="radio" name="cause" value="oneoff" /> 일회성</label>
+                  </div>
+                  <span class="muted" id="cause-hint" style="font-size:12px"></span>
+                </div>
+                <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="apply-same" name="apply-same" />
+                  같은 실행에서 같은 증상인 결과 <b id="same-n">0</b>건에도 이 판정 붙이기</label>
+                <label class="fld" style="margin-bottom:12px">
+                  <span class="fl">판정 메모</span>
+                  <textarea id="cause-memo" name="cause-memo" placeholder="무엇을 보고 이렇게 판정했는지"></textarea>
+                </label>
+                <div id="cause-kv"></div>
+                <div class="stepact" style="margin-top:12px">
+                  <button type="submit" class="cta" id="cause-submit">판정 기록</button>
+                  <span class="hint">조치가 필요하면 아래 길로 넘깁니다.</span>
+                </div>
+              </form>
+              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
+                <div><b id="invalid-msg"></b></div>
+              </div>
+              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
+                <div><b id="recorded-what"></b>
+                  이 판정은 이 화면 안에서만 유지됩니다 &mdash; 판정 보존은 아직 제품에 없습니다.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card col-5">
+            <div class="card-h"><h3>판정 뒤 이어지는 길</h3></div>
+            <div class="card-b">
+              <div class="br-row" style="grid-template-columns:1fr;gap:4px">
+                <span class="br-when">입력(수집)이 문제였다면</span>
+                <span class="br-how">빈 본문·빠진 버전을 수집 복구로 넘깁니다.</span>
+                <a class="btn sm br-go" href="JRN-ingestion-recovery.html#STP-locate-gap"
+                   data-goto="JRN-ingestion-recovery#STP-locate-gap">수집 복구로 넘기기 &rarr;</a>
+              </div>
+              <div class="br-row" style="grid-template-columns:1fr;gap:4px">
+                <span class="br-when">로직&middot;프롬프트가 문제였다면</span>
+                <span class="br-how">고친 뒤 표본부터 소급 적용합니다.</span>
+                <a class="btn sm br-go" href="JRN-logic-backfill.html#STP-scope-range"
+                   data-goto="JRN-logic-backfill#STP-scope-range">소급 적용 범위 정하기 &rarr;</a>
+              </div>
+              <div class="br-row" style="grid-template-columns:1fr;gap:4px">
+                <span class="br-when">지금 결론을 못 내겠다면</span>
+                <span class="br-how">이 결과의 링크로 같은 자리에서 다시 시작합니다.</span>
+                <a class="btn sm br-go" href="#STP-pin-record"
+                   data-goto="JRN-judgment-debug#STP-pin-record">이 결과부터 다시 보기 &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-judgment-debug</b> &mdash; 분석 판단 디버깅.
+             <a id="doc-link" href="../reader.html?doc=user-journeys/JRN-judgment-debug.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-pin-record"><button type="button" class="jr-btn" data-goto-step="STP-pin-record"><span class="jr-n">1</span><span class="jr-t">의심 판단 특정</span><span class="jr-id mono">STP-pin-record</span></button></li>
+            <li class="jr-item" data-rail="STP-read-exchange"><button type="button" class="jr-btn" data-goto-step="STP-read-exchange"><span class="jr-n">2</span><span class="jr-t">LLM 요청·응답 열람</span><span class="jr-id mono">STP-read-exchange</span></button></li>
+            <li class="jr-item" data-rail="STP-check-input"><button type="button" class="jr-btn" data-goto-step="STP-check-input"><span class="jr-n">3</span><span class="jr-t">입력 점검</span><span class="jr-id mono">STP-check-input</span></button></li>
+            <li class="jr-item" data-rail="STP-scan-run"><button type="button" class="jr-btn" data-goto-step="STP-scan-run"><span class="jr-n">4</span><span class="jr-t">같은 실행 훑기</span><span class="jr-id mono">STP-scan-run</span></button></li>
+            <li class="jr-item" data-rail="STP-route-cause"><button type="button" class="jr-btn" data-goto-step="STP-route-cause"><span class="jr-n">5</span><span class="jr-t">원인 판정과 인계</span><span class="jr-id mono">STP-route-cause</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-pin-record</td><td>이상해 보이는 분석 결과를 레코드 하나로 특정한다</td><td>레코드 검색·선택, 운영 알림</td><td class="mono">AC4.3 &middot; AC2.6</td></tr>
+              <tr><td class="mono">STP-read-exchange</td><td>전송 프롬프트, 가공 전 응답 원문, 파싱 결과를 나란히 읽는다</td><td>호출 기록 패널, 응답↔저장값 대조(CMP-table)</td><td class="mono">AC4.2</td></tr>
+              <tr><td class="mono">STP-check-input</td><td>모델이 받은 제목·본문이 보관된 원문 버전과 같은지 확인한다</td><td>입력 대조(PAT-lineage 계열)</td><td class="mono">AC4.2 &middot; AC2.6 &middot; AC1.7</td></tr>
+              <tr><td class="mono">STP-scan-run</td><td>소속 실행의 단계별 건수·실패 사유와 같은 증상의 몰림을 본다</td><td>실행 요약(PAT-integrity-panel 계열), 지표(CMP-metric)</td><td class="mono">AC4.1 &middot; AC4.3</td></tr>
+              <tr><td class="mono">STP-route-cause</td><td>원인을 하나 고르고 조치가 필요하면 해당 여정으로 넘긴다</td><td>원인 분류·인계</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>운영 알림으로 실행 단위에서 진입</td><td>화면 1 · 운영 알림 카드</td><td class="mono">STP-scan-run</td></tr>
+              <tr><td>모델을 호출하지 않은 레코드</td><td>화면 2 · 미호출 안내</td><td class="mono">STP-check-input</td></tr>
+              <tr><td>기존 응답을 재사용한 레코드</td><td>화면 2 · 재사용 배너</td><td class="mono">STP-read-exchange</td></tr>
+              <tr><td>호출 기록이 없는 레코드</td><td>화면 2 · 기록 없음 배너</td><td class="mono">JRN-logic-backfill · STP-dry-run</td></tr>
+              <tr><td>입력(수집) 이상으로 판정</td><td>화면 5 · 이어지는 길 1행</td><td class="mono">JRN-ingestion-recovery · STP-locate-gap</td></tr>
+              <tr><td>로직·프롬프트 결함으로 판정</td><td>화면 5 · 이어지는 길 2행</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+              <tr><td>조사 도중 이탈</td><td>화면 5 · 이어지는 길 3행</td><td class="mono">STP-pin-record</td></tr>
+            </tbody>
+          </table>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-judgment-debug</b></span>
+            <span class="chip"><b>STP-pin-record</b></span>
+            <span class="chip"><b>STP-read-exchange</b></span>
+            <span class="chip"><b>STP-check-input</b></span>
+            <span class="chip"><b>STP-scan-run</b></span>
+            <span class="chip"><b>STP-route-cause</b></span>
+            <span class="chip v"><b>V5</b> 원문 추적성·재처리</span>
+            <span class="chip">AC4.1 · AC4.2 · AC4.3 · AC2.6 · AC1.7</span>
+          </div>
+          <p class="muted" style="margin-top:10px">기록 계약(PRD-4)은 아직 구현 전이다. 이 화면은 그 계약이 채워졌을 때의 모습을 먼저 보여 준다.</p>
+        </div>
+      </details>
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   프로토타입 데이터 — 분석 결과(Silver 레코드)와 그것을 만든 모델 호출·배치 실행.
+   레코드 → 호출 → 입력(원문 버전) → 실행으로 되짚는 흐름을 그대로 옮긴다.
+   ============================================================ */
+var SYSTEM_PROMPT = 'You analyze one economic news article and reply with ONLY a JSON object, no prose.\n'
+  + 'Fields: countries (ISO codes or GLOBAL), subjects (Korean canonical names), '
+  + 'sentiment (positive|neutral|negative|mixed), confidence (0..1).\n'
+  + 'Use mixed when opposing tones coexist; neutral when no tone is expressed.';
+
+var BODIES = {
+  'R-2609-0412': [
+    { v:'v1', at:'09-24 01:12', text:'한국은행이 기준금리를 연 3.25%로 동결했다. 총재는 기자간담회에서 물가 둔화 흐름을 긍정적으로 평가했다.' },
+    { v:'v2', at:'09-24 01:40', text:'한국은행이 기준금리를 연 3.25%로 동결했다. 총재는 기자간담회에서 물가 둔화 흐름을 긍정적으로 평가했다.\n다만 가계부채 증가세에 대해서는 "경계를 늦출 수 없다"며 이전보다 강한 경고를 내놨다.' }
+  ],
+  'R-2609-0398': [
+    { v:'v1', at:'09-24 01:55', text:'Federal Reserve officials signaled patience on further rate cuts as inflation continued to cool, while flagging softer hiring.' }
+  ],
+  'R-2609-0377': [],
+  'R-2609-0365': [
+    { v:'v1', at:'09-23 23:48', text:'코스피가 외국인 순매수에 힘입어 2,700선을 회복했다. 반도체 대형주가 상승을 이끌었다.' }
+  ],
+  'R-2609-0351': [
+    { v:'v1', at:'09-24 00:05', text:'9월 1~20일 반도체 수출이 전년 대비 증가했다. (속보)' },
+    { v:'v2', at:'09-24 00:40', text:'9월 1~20일 반도체 수출이 전년 대비 증가했다. 두 달 연속 반등이다.\n다만 대중 수출은 여전히 감소세다.' },
+    { v:'v3', at:'09-24 02:15', text:'9월 1~20일 반도체 수출이 전년 대비 18% 늘어 두 달 연속 반등했다. 업계는 회복 국면 진입으로 본다.\n다만 대중 수출은 여전히 감소세다.' }
+  ],
+  'R-2609-0420': [
+    { v:'v1', at:'09-24 02:02', text:'이 기사는 구독자 전용입니다. 로그인하고 전문을 확인하세요. 무단 전재·재배포 금지.' }
+  ],
+  'R-2608-2210': [
+    { v:'v1', at:'08-29 09:10', text:'8월 소비자물가가 전년 대비 2.1% 올라 석 달째 2%대를 이어갔다. 농산물 가격 상승이 물가를 끌어올렸다.' }
+  ]
+};
+
+var RECS = [
+  { id:'R-2609-0412', title:'한은, 기준금리 3.25% 동결…가계부채 경고는 한층 강화', src:'yonhap-economy', axis:'한국', at:'09-24 02:00',
+    status:'analyzed', sent:'긍정', group:'suspect', sym:'mismatch', run:'R0300', sentVer:'v2',
+    call:{ kind:'mismatch', id:'C-7731', retries:0, ms:2140, when:'09-24 03:02:11',
+      reply:'{"countries":["KR"],"subjects":["한국은행","기준금리"],"sentiment":"positive","confidence":0.62}\n'
+        + '가계부채 경고가 함께 있어 톤이 엇갈립니다. 판단을 고칩니다.\n'
+        + '{"countries":["KR"],"subjects":["한국은행","기준금리","가계부채"],"sentiment":"mixed","confidence":0.81}',
+      final:{ countries:'KR', subjects:'한국은행 · 기준금리 · 가계부채', sentiment:'혼합', confidence:'0.81' },
+      stored:{ countries:'KR', subjects:'한국은행 · 기준금리', sentiment:'긍정', confidence:'0.62' } } },
+  { id:'R-2609-0398', title:'Fed signals patience as inflation cools', src:'wsj-markets', axis:'미국', at:'09-24 02:00',
+    status:'unanalyzed', sent:'미분석', group:'failed', sym:'failed', run:'R0300', sentVer:'v1',
+    call:{ kind:'failed', id:'C-7744', retries:2, ms:31800, when:'09-24 03:05:40', err:'HTTP 429 Too Many Requests',
+      reply:'(응답 없음)\n1차 시도: HTTP 429 Too Many Requests\n2차 시도: HTTP 429 Too Many Requests\n3차 시도: HTTP 429 Too Many Requests',
+      final:null, stored:{ countries:'—', subjects:'—', sentiment:'미분석', confidence:'—' } } },
+  { id:'R-2609-0377', title:'IMF 세계경제전망 요약 보도자료', src:'imf-mediacenter', axis:'전세계', at:'09-24 02:00',
+    status:'unanalyzed', sent:'미분석', group:'unanalyzed', sym:'notcalled', run:'R0300', sentVer:null,
+    call:{ kind:'notcalled', why:'본문 미확보 — 원문 링크만 수집됨',
+      stored:{ countries:'—', subjects:'—', sentiment:'미분석', confidence:'—' } } },
+  { id:'R-2609-0365', title:'코스피, 외국인 순매수에 2,700선 회복', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
+    status:'analyzed', sent:'긍정', group:'all', sym:null, run:'R0300', sentVer:'v1',
+    call:{ kind:'reused', id:'—', orig:{ id:'C-6980', run:'R0100', retries:0, ms:1870, when:'09-24 01:04:22' },
+      reply:'{"countries":["KR"],"subjects":["코스피","외국인 순매수","반도체"],"sentiment":"positive","confidence":0.88}',
+      final:{ countries:'KR', subjects:'코스피 · 외국인 순매수 · 반도체', sentiment:'긍정', confidence:'0.88' },
+      stored:{ countries:'KR', subjects:'코스피 · 외국인 순매수 · 반도체', sentiment:'긍정', confidence:'0.88' } } },
+  { id:'R-2609-0351', title:'반도체 수출 두 달 연속 반등…대중 수출은 여전히 감소', src:'yonhap-economy', axis:'한국', at:'09-24 01:00',
+    status:'analyzed', sent:'중립', group:'suspect', sym:'stale', run:'R0100', sentVer:'v1',
+    call:{ kind:'ok', id:'C-6951', retries:0, ms:1610, when:'09-24 01:03:08',
+      reply:'{"countries":["KR"],"subjects":["반도체 수출"],"sentiment":"neutral","confidence":0.74}',
+      final:{ countries:'KR', subjects:'반도체 수출', sentiment:'중립', confidence:'0.74' },
+      stored:{ countries:'KR', subjects:'반도체 수출', sentiment:'중립', confidence:'0.74' } } },
+  { id:'R-2609-0420', title:'[단독] 추석 이후 장바구니 물가 전망', src:'hankyung-economy', axis:'한국', at:'09-24 02:00',
+    status:'low_confidence', sent:'저신뢰', group:'lowconf', sym:'lowconf', run:'R0300', sentVer:'v1',
+    call:{ kind:'ok', id:'C-7760', retries:0, ms:1320, when:'09-24 03:07:51',
+      reply:'{"countries":["KR"],"subjects":[],"sentiment":"neutral","confidence":0.31}',
+      final:{ countries:'KR', subjects:'(없음)', sentiment:'중립', confidence:'0.31' },
+      stored:{ countries:'KR', subjects:'(없음)', sentiment:'중립', confidence:'0.31' } } },
+  { id:'R-2608-2210', title:'8월 소비자물가 2.1% 상승…석 달째 2%대', src:'yonhap-economy', axis:'한국', at:'08-29 10:00',
+    status:'analyzed', sent:'부정', group:'suspect', sym:null, run:null, sentVer:null,
+    call:{ kind:'legacy', stored:{ countries:'KR', subjects:'소비자물가', sentiment:'부정', confidence:'0.70' } } }
+];
+
+var RUNS = {
+  R0300:{ label:'09-24 03:00', trigger:'정기', span:'03:00:04 → 03:11:52', code:'a1c9f2e (02:40 배포)', status:'완료', input:513,
+    stages:[
+      ['수집', '완료', 513, { '관측 적재':513 }, '1분 12초'],
+      ['분석', '완료', 513, { '새 호출 성공':38, '응답 재사용':356, '저신뢰':12, '미호출':94, '호출 실패':11, '파싱 실패':2 }, '9분 41초'],
+      ['집계', '완료', 513, { '집계 반영':394, '분리 표기':119 }, '0분 55초']
+    ],
+    sym:{ mismatch:23, failed:11, lowconf:12, notcalled:94, stale:6 } },
+  R0200:{ label:'09-24 02:00', trigger:'정기', span:'02:00:03 → 02:10:37', code:'7be31d0', status:'완료', input:509,
+    stages:[
+      ['수집', '완료', 509, { '관측 적재':509 }, '1분 08초'],
+      ['분석', '완료', 509, { '새 호출 성공':51, '응답 재사용':358, '저신뢰':9, '미호출':90, '호출 실패':1, '파싱 실패':0 }, '8분 32초'],
+      ['집계', '완료', 509, { '집계 반영':409, '분리 표기':100 }, '0분 54초']
+    ],
+    sym:{ mismatch:0, failed:1, lowconf:9, notcalled:90, stale:3 } },
+  R0100:{ label:'09-24 01:00', trigger:'정기', span:'01:00:02 → 01:10:15', code:'7be31d0', status:'완료', input:505,
+    stages:[
+      ['수집', '완료', 505, { '관측 적재':505 }, '1분 10초'],
+      ['분석', '완료', 505, { '새 호출 성공':60, '응답 재사용':340, '저신뢰':11, '미호출':88, '호출 실패':6, '파싱 실패':0 }, '8분 11초'],
+      ['집계', '완료', 505, { '집계 반영':400, '분리 표기':105 }, '0분 52초']
+    ],
+    sym:{ mismatch:0, failed:6, lowconf:11, notcalled:88, stale:4 } },
+  R2300:{ label:'09-23 23:00', trigger:'정기', span:'23:00:03 → 23:06:40', code:'7be31d0', status:'분석 단계 중단', input:507,
+    stages:[
+      ['수집', '완료', 507, { '관측 적재':507 }, '1분 09초'],
+      ['분석', '중단', 507, { '호출 실패':40, '처리 안 됨(중단)':467 }, '5분 28초'],
+      ['집계', '실행 안 됨', null, {}, '—']
+    ],
+    sym:{ mismatch:0, failed:40, lowconf:0, notcalled:0, stale:0 } }
+};
+
+var SYM_NAME = { mismatch:'응답과 저장값 불일치', failed:'호출 실패', lowconf:'저신뢰', notcalled:'미호출', stale:'분석 뒤 본문 수정' };
+var CAUSE_NAME = { input:'입력(수집)', logic:'로직·프롬프트', model:'모델 응답', parse:'파싱', oneoff:'일회성' };
+var CAUSE_HINT = { mismatch:'parse', failed:'oneoff', notcalled:'input', stale:'input', lowconf:'input' };
+
+var state = { rec:'R-2609-0412', q:'', group:'all', part:'user', diffOnly:false, showOrig:false,
+              bodyVer:null, run:null, runSym:null, th:2 };
+
+function $(id){ return document.getElementById(id); }
+function show(el, on){ if(el) el.hidden = !on; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function kv(k, v){ return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+function rec(){ return RECS.filter(function(r){ return r.id === state.rec; })[0]; }
+function badge(r){
+  var cls = { '긍정':'b-pos', '중립':'b-neu', '부정':'b-neg', '혼합':'b-mix' }[r.sent] || 'b-na';
+  return '<span class="badge ' + cls + '"><span class="d"></span>' + r.sent + '</span>';
+}
+function userPrompt(r){
+  var b = (BODIES[r.id] || []).filter(function(x){ return x.v === r.sentVer; })[0];
+  return 'TITLE: ' + r.title + '\n\nBODY:\n' + (b ? b.text : '');
+}
+function fakeHash(s){
+  var h = 2166136261;
+  for(var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  return ('00000000' + h.toString(16)).slice(-8);
+}
+
+/* ---------------- 화면 1 — 결과 찾기 ---------------- */
+function filtered(){
+  var q = state.q.trim().toLowerCase();
+  return RECS.filter(function(r){
+    if(state.group !== 'all' && r.group !== state.group) return false;
+    if(q && (r.id + ' ' + r.title).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function renderList(){
+  var rows = filtered();
+  $('rec-rows').innerHTML = rows.map(function(r){
+    return '<tr><td><input type="radio" name="rec" value="' + r.id + '"' + (r.id === state.rec ? ' checked' : '') + ' aria-label="' + r.id + ' 고르기" /></td>'
+      + '<td class="mono">' + r.id + '</td><td>' + esc(r.title) + '</td><td>' + badge(r) + '</td><td class="mono">' + r.at + '</td></tr>';
+  }).join('');
+  $('rec-rows').querySelectorAll('input[name="rec"]').forEach(function(el){
+    el.addEventListener('change', function(){ pick(el.value); });
+  });
+  show($('s-no-match'), rows.length === 0);
+  $('list-sub').textContent = rows.length + '건 · 제목·레코드 번호로 찾거나 증상으로 좁힙니다';
+}
+function pick(id){
+  state.rec = id; state.showOrig = false; state.bodyVer = null; state.run = null; state.runSym = null;
+  renderPick(); renderCall(); renderInput(); renderRun(); renderCause();
+}
+function renderPick(){
+  var r = rec();
+  $('tb-rec').textContent = r.id;
+  $('pick-title').textContent = r.title;
+  $('pick-kv').innerHTML = kv('레코드', '<span class="mono">' + r.id + '</span>')
+    + kv('출처', r.src + ' · ' + r.axis) + kv('수집 주기', r.at)
+    + kv('분석 결과', badge(r)) + kv('만든 실행', r.run ? RUNS[r.run].label + ' 정기 실행' : '기록 없음');
+}
+
+/* ---------------- 화면 2 — 요청·응답 ---------------- */
+function renderCall(){
+  var r = rec(), c = r.call;
+  var viewOrig = c.kind === 'reused' && state.showOrig;
+  var hasExchange = c.kind === 'mismatch' || c.kind === 'failed' || c.kind === 'ok' || viewOrig;
+  show($('s-parse-mismatch'), c.kind === 'mismatch');
+  show($('s-call-failed'), c.kind === 'failed');
+  show($('s-not-called'), c.kind === 'notcalled');
+  show($('s-reused'), c.kind === 'reused' && !state.showOrig);
+  show($('s-no-call-record'), c.kind === 'legacy');
+  show($('exchange'), hasExchange);
+  if(c.kind === 'failed'){ $('fail-retries').textContent = c.retries; $('fail-err').textContent = c.err; }
+  if(c.kind === 'notcalled') $('notcalled-why').textContent = c.why;
+  if(c.kind === 'reused') $('reused-orig').textContent = c.orig.id;
+
+  var src = viewOrig ? c.orig : c;
+  var rows = '';
+  if(c.kind === 'notcalled' || c.kind === 'legacy'){
+    rows = kv('모델 호출', c.kind === 'notcalled' ? '없음 — ' + c.why : '기록 없음 (기록 도입 이전 분석)');
+    $('call-sub').textContent = r.id + ' · 볼 요청·응답이 없습니다';
+  } else if(c.kind === 'reused' && !state.showOrig){
+    rows = kv('이번 실행', RUNS[r.run].label + ' · 모델 호출 없음 (응답 재사용)') + kv('판단 출처', '<span class="mono">' + c.orig.id + '</span> · ' + RUNS[c.orig.run].label + ' 실행');
+    $('call-sub').textContent = r.id + ' · 재사용한 결과입니다';
+  } else {
+    var runId = viewOrig ? c.orig.run : r.run;
+    rows = kv('호출', '<span class="mono">' + src.id + '</span>' + (viewOrig ? ' (원 호출)' : ''))
+      + kv('실행', RUNS[runId].label + ' 정기')
+      + kv('모델', 'gpt-5.6-luna · temperature 기본값')
+      + kv('분석 로직', 'llm-v1')
+      + kv('재시도', src.retries + '회') + kv('소요', (src.ms / 1000).toFixed(1) + '초') + kv('호출 시각', src.when);
+    $('call-sub').textContent = r.id + ' · ' + (viewOrig ? '원 호출 기록' : '이 결과를 만든 호출');
+  }
+  $('call-kv').innerHTML = rows;
+
+  if(hasExchange){
+    var up = userPrompt(r);
+    $('prompt-pre').textContent = state.part === 'system' ? SYSTEM_PROMPT : up;
+    $('hash-line').textContent = '전송본 해시 ' + fakeHash(SYSTEM_PROMPT + '\u0000' + up) + ' · 보관 원문으로 재구성한 요청과 바이트 일치 ✓';
+    $('reply-pre').textContent = c.reply;
+  }
+  renderCmp();
+}
+function renderCmp(){
+  var c = rec().call;
+  var F = [['countries','대상 국가'],['subjects','서술 대상'],['sentiment','분위기'],['confidence','신뢰도']];
+  var rows = F.map(function(f){
+    var a = c.final ? c.final[f[0]] : '—', b = c.stored[f[0]];
+    var same = !!c.final && a === b;
+    return { html:'<tr><td>' + f[1] + '</td><td>' + esc(a) + '</td><td>' + esc(b) + '</td><td>'
+      + (c.final ? (same ? '<span class="badge b-pos"><span class="d"></span>같음</span>' : '<span class="badge b-neg"><span class="d"></span>다름</span>') : '<span class="badge b-na"><span class="d"></span>대조 불가</span>')
+      + '</td></tr>', same:same };
+  });
+  var shown = state.diffOnly ? rows.filter(function(x){ return !x.same; }) : rows;
+  $('cmp-rows').innerHTML = shown.length ? shown.map(function(x){ return x.html; }).join('')
+    : '<tr><td colspan="4" class="muted">어긋난 필드가 없습니다</td></tr>';
+  var diff = rows.filter(function(x){ return !x.same; }).length;
+  $('cmp-sub').textContent = c.final ? ('4개 필드 중 ' + diff + '개가 다릅니다') : '응답이 없어 대조할 수 없습니다';
+}
+
+/* ---------------- 화면 3 — 입력 점검 ---------------- */
+function renderInput(){
+  var r = rec(), vers = BODIES[r.id] || [];
+  var latest = vers.length ? vers[vers.length - 1].v : null;
+  if(!state.bodyVer) state.bodyVer = latest;
+  $('body-ver').innerHTML = vers.length
+    ? vers.map(function(b){ return '<option value="' + b.v + '"' + (b.v === state.bodyVer ? ' selected' : '') + '>'
+        + b.v + ' · ' + b.at + (b.v === r.sentVer ? ' · 분석에 쓴 버전' : '') + (b.v === latest ? ' · 최신' : '') + '</option>'; }).join('')
+    : '<option value="">보관된 본문 없음</option>';
+  var arch = vers.filter(function(b){ return b.v === state.bodyVer; })[0];
+  $('arch-body').textContent = arch ? 'TITLE: ' + r.title + '\n\nBODY:\n' + arch.text : '(본문 없음 — 원문 링크만 보관)';
+
+  var sentKnown = r.call.kind !== 'legacy' && r.call.kind !== 'notcalled';
+  $('sent-body').textContent = r.call.kind === 'notcalled' ? '(모델에 보내지 않음)'
+    : r.call.kind === 'legacy' ? '(호출 기록이 없어 모델이 받은 입력을 재구성할 수 없습니다)'
+    : userPrompt(r);
+  $('sent-sub').textContent = sentKnown ? '요청의 제목·본문 · 본문 ' + r.sentVer : '재구성할 요청이 없습니다';
+
+  var same = sentKnown && arch && arch.v === r.sentVer;
+  var stale = sentKnown && latest && r.sentVer !== latest;
+  var emptyish = !vers.length || (arch && arch.text.length < 60);
+  $('diff-sum').textContent = !arch ? '비교할 원문이 없습니다'
+    : !sentKnown ? '모델이 받은 입력을 알 수 없어 원문만 보여 줍니다'
+    : same ? '고른 원문 버전이 모델이 받은 본문과 같습니다'
+    : '고른 원문 버전이 모델이 받은 본문과 다릅니다 (' + r.sentVer + ' ↔ ' + arch.v + ')';
+  $('diff-sub').textContent = vers.length ? '보관 버전 ' + vers.length + '개 · 분석에 쓴 버전 ' + (r.sentVer || '알 수 없음') + ' · 최신 ' + latest : '보관 버전 0개';
+  var idx = vers.map(function(b){ return b.v; });
+  $('stale-n').textContent = stale ? (idx.indexOf(latest) - idx.indexOf(r.sentVer)) : 0;
+  show($('s-body-mismatch'), !!stale);
+  $('empty-why').textContent = !vers.length ? '원문 링크만 있고 본문이 수집되지 않았습니다.' : '보관된 본문이 구독·저작권 안내 문구뿐입니다.';
+  show($('s-body-empty'), !!emptyish);
+}
+
+/* ---------------- 화면 4 — 같은 실행 ---------------- */
+function renderRun(){
+  var r = rec();
+  if(!state.run) state.run = r.run || 'R0300';
+  if(!state.runSym) state.runSym = r.sym || 'mismatch';
+  $('run-pick').value = state.run;
+  $('run-symptom').value = state.runSym;
+  var R = RUNS[state.run];
+  $('run-sub').textContent = R.label + ' ' + R.trigger + ' 실행' + (r.run ? (state.run === r.run ? ' · 고른 결과를 만든 실행' : '') : ' · 고른 결과는 실행 기록 이전이라 최근 실행을 보여 줍니다');
+  $('run-kv').innerHTML = kv('트리거', R.trigger) + kv('시작 → 종료', R.span) + kv('분석 코드', R.code) + kv('최종 상태', R.status);
+  $('stage-rows').innerHTML = R.stages.map(function(s){
+    var parts = Object.keys(s[3]).map(function(k){ return k + ' ' + s[3][k]; });
+    var sum = Object.keys(s[3]).reduce(function(a, k){ return a + s[3][k]; }, 0);
+    var bal = s[2] === null ? '—' : (sum === s[2] ? '✓ 입력 = 합' : '✗ ' + sum + ' ≠ ' + s[2]);
+    return '<tr><td>' + s[0] + '</td><td>' + s[1] + '</td><td class="num">' + (s[2] === null ? '—' : s[2]) + '</td><td>'
+      + (parts.join(' · ') || '—') + '</td><td>' + bal + '</td><td class="num">' + s[4] + '</td></tr>';
+  }).join('');
+  show($('s-run-stage-failed'), R.status !== '완료');
+  renderSym();
+}
+function renderSym(){
+  var R = RUNS[state.run], n = R.sym[state.runSym] || 0;
+  var th = parseFloat($('conc-th').value); if(isNaN(th)) th = 0;
+  state.th = th;
+  var ratio = R.input ? (n / R.input * 100) : 0;
+  $('sym-count').innerHTML = n + '<small>건</small>';
+  $('sym-ratio').textContent = SYM_NAME[state.runSym] + ' · 분석 입력 ' + R.input + '건 중 ' + ratio.toFixed(1) + '%';
+  var ids = [];
+  if(n){
+    var mine = RECS.filter(function(x){ return x.run === state.run && x.sym === state.runSym; }).map(function(x){ return x.id; });
+    ids = mine.slice(0, 5);
+  }
+  $('sym-list').innerHTML = n ? '해당 결과: ' + ids.map(function(i){ return '<span class="mono">' + i + '</span>'; }).join(', ')
+    + (n > ids.length ? ' 외 ' + (n - ids.length) + '건' : '') : '이 실행에는 이 증상이 없습니다.';
+  var conc = n > 0 && ratio >= th;
+  show($('s-run-concentrated'), conc);
+  var prev = { R0300:'R0200', R0200:'R0100', R0100:'R2300', R2300:null }[state.run];
+  $('conc-why').textContent = '기준 ' + th + '%를 넘는 ' + ratio.toFixed(1) + '%입니다'
+    + (prev ? ' · 직전 실행(' + RUNS[prev].label + ')은 ' + (RUNS[prev].sym[state.runSym] || 0) + '건' : '')
+    + (state.run === 'R0300' && state.runSym === 'mismatch' ? ' — 이 실행부터 분석 코드가 바뀌었습니다.' : '.');
+  $('same-n').textContent = n;
+  renderCauseKv();
+}
+
+/* ---------------- 화면 5 — 원인 판정 ---------------- */
+function renderCause(){
+  var r = rec(), c = r.call;
+  $('cause-sub').textContent = r.id + ' · ' + r.title;
+  var ev = [
+    ['요청·응답', c.kind === 'mismatch' ? '응답의 최종 판단 ≠ 저장값 (초안에서 읽힘)' : c.kind === 'failed' ? '호출 실패 · ' + c.err
+      : c.kind === 'notcalled' ? '호출 없음 · ' + c.why : c.kind === 'legacy' ? '기록 없음' : c.kind === 'reused' ? '재사용 · 원 응답과 저장값 같음' : '응답과 저장값 같음'],
+    ['입력', r.call.kind === 'notcalled' ? '본문 없음' : r.id === 'R-2609-0420' ? '안내 문구뿐인 본문'
+      : (r.sentVer && BODIES[r.id].length && r.sentVer !== BODIES[r.id][BODIES[r.id].length - 1].v) ? '분석 뒤 본문 수정됨' : '보관 원문과 같음'],
+    ['실행', !r.run ? '실행 기록 없음' : r.sym ? RUNS[r.run].label + ' · ' + SYM_NAME[r.sym] + ' ' + RUNS[r.run].sym[r.sym] + '건' : RUNS[r.run].label + ' · 특이 증상 없음']
+  ];
+  $('evidence-rows').innerHTML = ev.map(function(e){ return '<tr><td>' + e[0] + '</td><td>' + esc(e[1]) + '</td></tr>'; }).join('');
+  var hint = r.sym ? CAUSE_HINT[r.sym] : null;
+  $('cause-hint').textContent = hint ? '모은 근거로 보면 「' + CAUSE_NAME[hint] + '」에 가깝습니다.' : '근거가 한쪽을 가리키지 않습니다.';
+  renderCauseKv();
+}
+function renderCauseKv(){
+  var picked = document.querySelector('input[name="cause"]:checked');
+  var n = $('apply-same').checked ? (RUNS[state.run || 'R0300'].sym[state.runSym || 'mismatch'] || 0) : 1;
+  $('cause-kv').innerHTML = kv('판정 대상', n + '건') + kv('원인', picked ? CAUSE_NAME[picked.value] : '아직 고르지 않음');
+}
+function submitCause(e){
+  if(e) e.preventDefault();
+  var picked = document.querySelector('input[name="cause"]:checked');
+  var memo = $('cause-memo').value.trim();
+  if(!picked || !memo){
+    $('invalid-msg').textContent = !picked ? '원인을 먼저 고르세요.'
+      : '무엇을 보고 판정했는지 적어야 기록됩니다 — 근거 없는 판정은 다음 조사에 쓸 수 없습니다.';
+    show($('s-invalid'), true); show($('s-recorded'), false);
+    return;
+  }
+  show($('s-invalid'), false);
+  var n = $('apply-same').checked ? (RUNS[state.run || 'R0300'].sym[state.runSym || 'mismatch'] || 0) : 1;
+  $('recorded-what').textContent = '「' + CAUSE_NAME[picked.value] + '」로 ' + n + '건을 판정했습니다.';
+  show($('s-recorded'), true);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var order = ['STP-pin-record','STP-read-exchange','STP-check-input','STP-scan-run','STP-route-cause'];
+  var secs = {}, rails = {};
+  order.forEach(function(id){
+    secs[id] = document.getElementById(id);
+    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
+  });
+  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+
+  function go(id, push){
+    if(order.indexOf(id) < 0) return;
+    cur = id;
+    var i = order.indexOf(id);
+    order.forEach(function(o, k){
+      secs[o].hidden = (o !== id);
+      if(rails[o]){
+        rails[o].classList.toggle('on', o === id);
+        rails[o].classList.toggle('done', k < i);
+      }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
+    var dl = $('doc-link');
+    if(dl) dl.setAttribute('href', '../reader.html?doc=user-journeys/JRN-judgment-debug.md#' + id);
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  /* 분기 전용 준비 — 공통 이동보다 먼저 건다 */
+  $('alert-run').addEventListener('click', function(){ state.run = 'R0300'; state.runSym = 'mismatch'; renderRun(); });
+  $('open-orig').addEventListener('click', function(){ state.showOrig = true; renderCall(); });
+
+  document.querySelectorAll('[data-advance]').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(b.disabled) return;
+      go(b.getAttribute('data-advance'), true);
+    });
+  });
+  document.querySelectorAll('[data-goto-step]').forEach(function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    var parts = (a.getAttribute('data-goto') || '').split('#');
+    if(parts[0] === 'JRN-judgment-debug'){
+      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+    }
+  });
+  if(prevBtn) prevBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){
+    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  function fromHash(){
+    var h = (location.hash || '').replace(/^#/, '');
+    go(order.indexOf(h) >= 0 ? h : order[0], false);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  /* 제품 컨트롤 배선 */
+  $('q').addEventListener('input', function(){ state.q = this.value; renderList(); });
+  $('symptom').addEventListener('change', function(){ state.group = this.value; renderList(); });
+  $('prompt-part').addEventListener('change', function(){ state.part = this.value; renderCall(); });
+  $('diff-only').addEventListener('change', function(){ state.diffOnly = this.checked; renderCmp(); });
+  $('body-ver').addEventListener('change', function(){ state.bodyVer = this.value; renderInput(); });
+  $('run-pick').addEventListener('change', function(){ state.run = this.value; renderRun(); });
+  $('run-symptom').addEventListener('change', function(){ state.runSym = this.value; renderSym(); });
+  $('conc-th').addEventListener('input', renderSym);
+  document.querySelectorAll('input[name="cause"]').forEach(function(el){ el.addEventListener('change', renderCauseKv); });
+  $('apply-same').addEventListener('change', renderCauseKv);
+  $('cause-form').addEventListener('submit', submitCause);
+
+  renderList();
+  pick(state.rec);
+  fromHash();
+})();
+</script>
+</body>
+</html>
