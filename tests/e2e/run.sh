@@ -140,7 +140,9 @@ if [ "${E2E_REUSE_CLUSTER:-0}" = "1" ]; then
     || { echo "[e2e] FAIL: E2E_REUSE_CLUSTER=1 but kind cluster '$CLUSTER' does not exist" >&2; exit 1; }
   echo "[e2e] reusing kind cluster $CLUSTER"
 else
-  kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" --wait 120s \
+  # No --wait: the node turning Ready overlaps with `kind load` and the applies
+  # below; `rollout status` waits for the pods anyway.
+  kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" \
     </dev/null >"$KIND_CREATE_LOG" 2>&1 &
   KIND_PID=$!
   BG_PIDS+=("$KIND_PID")

@@ -75,11 +75,21 @@ jobs:
       # Survives past this step. The subshell's stdio is cut, otherwise the
       # runner waits for the step's output to close. The exit code lands in
       # an .rc file that "Wait for kind cluster" picks up.
+      #
+      # No `--wait`: kind returns once kubeadm init is done and the API server
+      # answers; the node turning Ready (CNI up, ~20s) then overlaps with
+      # `kind load` and the applies in run.sh, whose `rollout status` waits for
+      # the pods anyway. Every output line is stamped with the time so the log
+      # shows how long each phase (node image, boot, control plane) took.
       - name: Start kind cluster in background
         run: |
           mkdir -p /tmp/bg
-          ( kind create cluster --name "$E2E_CLUSTER" --config tests/e2e/kind-config.yaml --wait 120s \
-              >/tmp/bg/kind-create.log 2>&1; echo $? >/tmp/bg/kind-create.rc ) </dev/null >/dev/null 2>&1 &
+          ( set -o pipefail
+            { echo 'kind create: start'
+              kind create cluster --name "$E2E_CLUSTER" --config tests/e2e/kind-config.yaml 2>&1
+            } | while IFS= read -r line; do printf '%s %s\n' "$(date -u +%T.%3N)" "$line"; done \
+              >/tmp/bg/kind-create.log
+            echo $? >/tmp/bg/kind-create.rc ) </dev/null >/dev/null 2>&1 &
 
       - name: Set up Node
         uses: actions/setup-node@v4
