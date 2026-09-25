@@ -1,10 +1,4 @@
-# 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **재처리** — 시나리오 실행 단계 (3)
-# 「로직 버전을 올려 같은 기사를 재처리한 뒤 호출 기록을 다시 조회한다」에 해당하는 자리다.
-#
-# 데이터 루트는 **같다**. 바뀌는 것은 `--analyzer-version` 하나뿐이고, 응답 묶음은 그대로 쓴다 —
-# 이 시나리오가 묻는 것은 「모델이 다르게 답하는가」가 아니라 「새 버전의 호출 기록이 **추가**되고
-# 이전 버전의 기록이 **그대로 남는가**」이기 때문이다. 호출 기록은 call_id 를 키로 put_object 로
-# 적재돼 교체가 저장 계층에서 거부되므로(append-only), 그 잔존은 구성상 성립하고 spec 이 잰다.
+# 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **재처리** — 시나리오 실행 단계 (3).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -31,18 +25,12 @@ spec:
           env:
             - name: ECON_DATA_ROOT
               value: /data/llm-calls
-            # 실행 ID 를 고정한다 — 호출 기록이 실행 ID 를 갖는지(시나리오 2 의 기대 결과)와
-            # 어느 실행의 기록인지를 spec 이 이름으로 집을 수 있어야 한다.
             - name: ECON_RUN_ID
               value: e2e-calls-run-3
             - name: ECON_LLM_BASE_URL
               value: http://econ-llm-double:8080/v1
-            # 재처리도 같은 응답 표를 쓴다 — 바뀌는 것은 analyzer_version 뿐이다.
             - name: ECON_LLM_MODEL
               value: e2e-llm-calls
-            # 운영에서는 external-secrets가 넣는 `econ-llm` Secret에서 온다. 더블은 키를 보지
-            # 않지만 CLI가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야 한다.
-            # 비밀이 아닌 고정 문자열이며, 실 엔드포인트에는 쓰이지 않는다.
             - name: ECON_LLM_API_KEY
               value: e2e-double-not-a-secret
           resources:

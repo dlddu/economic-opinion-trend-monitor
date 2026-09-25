@@ -62,16 +62,7 @@ export function cannedReply(model: string, title: string): CannedReply {
   return found;
 }
 
-/**
- * 응답 표의 값을 **해석하지 않고** 그대로 읽는다.
- *
- * `cannedReply` 는 값이 제품 응답 스키마라고 가정하지만, `e2e-llm-calls` 묶음은 일부러 객체가
- * 아닌 값을 하나 담는다(`…-test-pipeline-ops.md#시나리오 2` 의 「형식이 깨진 응답」 갈래). 그 값을
- * `CannedReply` 로 읽으면 타입이 거짓말을 하므로, 모양을 묻는 쪽은 이 접근자를 쓴다.
- *
- * 더블이 content 에 싣는 문자열은 이 값의 `JSON.stringify` 와 같다(`server.py` 의 `json.dumps`,
- * `ensure_ascii=False`) — spec 이 기록된 `response_raw` 를 픽스처에서 유도할 수 있는 근거다.
- */
+/** 응답 표의 값을 **해석하지 않고** 그대로 읽는다. */
 export function rawReplyValue(model: string, title: string): unknown {
   const fixture = JSON.parse(readFileSync(FIXTURE, "utf-8")) as {
     models: Record<string, { extends?: string; responses?: Record<string, unknown> }>;

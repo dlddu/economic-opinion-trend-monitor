@@ -1,11 +1,4 @@
 # 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **주기 1 분석** — 캐시를 채우는 실행.
-# 주기 1의 세 건에 대해 정상 1 · 파싱 실패 1 · 호출 실패 1 을 만든다. 갈래를 정하는 것은 이
-# 매니페스트가 아니라 더블의 응답 표(`e2e-llm-calls` 묶음)다: 응답이 객체면 parsed, 객체가 아닌
-# 값이면 제품의 parse_response 가 끊어 parse_failed, 표에 없는 제목이면 더블이 404 라 call_failed.
-#
-# **실패가 기대값이므로** 이 Job 은 run.sh 에서 `failed=0` 이 아니라 `failed=2` 로 가드된다.
-# 제품 CLI 는 한 배치의 호출이 **전건** 실패할 때만 비정상 종료하므로(EXIT_ALL_CALLS_FAILED),
-# 정상 1건이 섞인 이 실행은 0으로 끝난다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -30,8 +23,6 @@ spec:
           env:
             - name: ECON_DATA_ROOT
               value: /data/llm-calls
-            # 실행 ID 를 고정한다 — 호출 기록이 실행 ID 를 갖는지(시나리오 2 의 기대 결과)와
-            # 어느 실행의 기록인지를 spec 이 이름으로 집을 수 있어야 한다.
             - name: ECON_RUN_ID
               value: e2e-calls-run-1
             - name: ECON_LLM_BASE_URL
@@ -40,9 +31,6 @@ spec:
             # (analyzer_version, model, system, user) 라 모델 이름이 달라지면 재사용이 일어나지 않는다.
             - name: ECON_LLM_MODEL
               value: e2e-llm-calls
-            # 운영에서는 external-secrets가 넣는 `econ-llm` Secret에서 온다. 더블은 키를 보지
-            # 않지만 CLI가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야 한다.
-            # 비밀이 아닌 고정 문자열이며, 실 엔드포인트에는 쓰이지 않는다.
             - name: ECON_LLM_API_KEY
               value: e2e-double-not-a-secret
           resources:
