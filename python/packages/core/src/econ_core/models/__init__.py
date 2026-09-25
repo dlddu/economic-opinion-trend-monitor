@@ -6,14 +6,20 @@ from econ_core.models.enums import (
     ANALYSISSTATUS_VALUES,
     AXIS_VALUES,
     BUCKETUNIT_VALUES,
+    PIPELINESTAGE_VALUES,
+    RUNSTATUS_VALUES,
+    RUNTRIGGER_VALUES,
     SENTIMENT_VALUES,
     AnalysisStatus,
     Axis,
     BucketUnit,
+    PipelineStage,
+    RunStatus,
+    RunTrigger,
     Sentiment,
 )
 from econ_core.models.gold import AxisSentiment, SentimentDistribution, SubjectTrend
-from econ_core.models.silver import Analysis
+from econ_core.models.silver import Analysis, PipelineRun, RunStage, SourceFailure, StageOutcome
 
 __all__ = [
     "ANALYSISSTATUS_VALUES",
@@ -26,8 +32,18 @@ __all__ = [
     "BucketUnit",
     "NewsBody",
     "NewsItem",
+    "PIPELINESTAGE_VALUES",
+    "PipelineRun",
+    "PipelineStage",
+    "RUNSTATUS_VALUES",
+    "RUNTRIGGER_VALUES",
+    "RunStage",
+    "RunStatus",
+    "RunTrigger",
     "SENTIMENT_VALUES",
     "Sentiment",
     "SentimentDistribution",
+    "SourceFailure",
+    "StageOutcome",
     "SubjectTrend",
 ]

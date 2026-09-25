@@ -106,6 +106,18 @@ class LakeStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def write_object(self, layer: str, dataset: str, key_field: str, record: dict) -> None:
+        """Store ``record`` under ``record[key_field]``, replacing any stored version.
+
+        The counterpart of :meth:`put_object`, for an object dataset whose records are
+        *revised* rather than content-addressed — a batch run record grows a stage at a
+        time, and the stages of one run are separate processes (PRD pipeline-ops, AC4.1).
+        ``put_object`` keeps refusing a stored key, which is what makes
+        ``bronze/news_body`` immutable; the two never share a dataset.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_object(self, layer: str, dataset: str, key_field: str, key: str) -> dict | None:
         """Return the record stored under ``key``, or None if there is none."""
         raise NotImplementedError
@@ -269,6 +281,15 @@ class LocalFsStore(LakeStore):
         finally:
             staging.unlink()
         return True
+
+    def write_object(self, layer: str, dataset: str, key_field: str, record: dict) -> None:
+        target = self.object_path(layer, dataset, key_field, record[key_field])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+        staging.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
+        # Rename over the old version: a reader sees either the previous record or the
+        # new one, never a half-written file.
+        os.replace(staging, target)
 
     def get_object(self, layer: str, dataset: str, key_field: str, key: str) -> dict | None:
         source = self.object_path(layer, dataset, key_field, key)

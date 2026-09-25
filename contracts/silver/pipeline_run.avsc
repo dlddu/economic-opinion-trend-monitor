@@ -1,0 +1,157 @@
+{
+  "type": "record",
+  "name": "PipelineRun",
+  "namespace": "econ.silver",
+  "doc": "Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1).",
+  "x-layer": "silver",
+  "fields": [
+    {
+      "name": "run_id",
+      "type": "string",
+      "doc": "Run identity; the key this record is stored under (AC4.1). Shared by every stage of one execution."
+    },
+    {
+      "name": "run_trigger",
+      "type": {
+        "type": "enum",
+        "name": "RunTrigger",
+        "symbols": ["scheduled", "reprocess"],
+        "doc": "What started the run: the hourly schedule, or an operator reprocess (AC4.1)."
+      },
+      "doc": "Trigger of this run, set by the stage that opened it (AC4.1)."
+    },
+    {
+      "name": "run_started_at",
+      "type": "string",
+      "doc": "When the run's first stage started (AC4.1)."
+    },
+    {
+      "name": "run_ended_at",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "When the run's last recorded stage ended; null while a stage is still running (AC4.1)."
+    },
+    {
+      "name": "run_status",
+      "type": {
+        "type": "enum",
+        "name": "RunStatus",
+        "symbols": ["running", "succeeded", "failed"],
+        "doc": "State of a run or of one of its stages (AC4.1)."
+      },
+      "doc": "Final state of the run: failed if any stage failed, succeeded once every recorded stage has ended, running otherwise. How far the run got is read off `stages` — an execution cut short simply has no record for the stages after it (AC4.1)."
+    },
+    {
+      "name": "stages",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "RunStage",
+          "doc": "One stage of a run: its state, duration, input count, per-outcome counts and failure reason (AC4.1).",
+          "fields": [
+            {
+              "name": "stage_name",
+              "type": {
+                "type": "enum",
+                "name": "PipelineStage",
+                "symbols": ["ingestion", "analysis", "aggregation"],
+                "doc": "The three stages one run walks (AC4.1)."
+              },
+              "doc": "Which stage this record belongs to (AC4.1)."
+            },
+            {
+              "name": "stage_status",
+              "type": "RunStatus",
+              "doc": "State of this stage (AC4.1)."
+            },
+            {
+              "name": "stage_started_at",
+              "type": "string",
+              "doc": "When this stage started (AC4.1)."
+            },
+            {
+              "name": "stage_ended_at",
+              "type": ["null", "string"],
+              "default": null,
+              "doc": "When this stage ended; null while it runs (AC4.1)."
+            },
+            {
+              "name": "duration_ms",
+              "type": "long",
+              "doc": "Stage duration in milliseconds (AC4.1)."
+            },
+            {
+              "name": "input_count",
+              "type": "long",
+              "doc": "Units this stage took in. The per-outcome counts below partition exactly this many units, so their sum equals it (AC4.1)."
+            },
+            {
+              "name": "output_count",
+              "type": "long",
+              "doc": "Units this stage handed to the next one, so consecutive stages can be read as a chain (AC4.1)."
+            },
+            {
+              "name": "outcomes",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "StageOutcome",
+                  "doc": "One outcome bucket of a stage and how many input units fell into it (AC4.1).",
+                  "fields": [
+                    {
+                      "name": "outcome_name",
+                      "type": "string",
+                      "doc": "Outcome bucket, named per stage (analysis e.g. analyzed / low_confidence / unanalyzed / call_failed / reused / skipped_settled). Buckets are disjoint, so one input unit lands in exactly one (AC4.1)."
+                    },
+                    {
+                      "name": "outcome_count",
+                      "type": "long",
+                      "doc": "Input units in this bucket (AC4.1)."
+                    }
+                  ]
+                }
+              },
+              "default": [],
+              "doc": "Per-outcome counts; their sum equals input_count (AC4.1)."
+            },
+            {
+              "name": "failure_reason",
+              "type": ["null", "string"],
+              "default": null,
+              "doc": "Why the stage failed; null when it did not (AC4.1)."
+            },
+            {
+              "name": "source_failures",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "SourceFailure",
+                  "doc": "One collection source that failed, and why (AC4.1).",
+                  "fields": [
+                    {
+                      "name": "source_id",
+                      "type": "string",
+                      "doc": "The source that failed (AC1.2, AC4.1)."
+                    },
+                    {
+                      "name": "source_failure_reason",
+                      "type": "string",
+                      "doc": "Why that source failed (AC4.1)."
+                    }
+                  ]
+                }
+              },
+              "default": [],
+              "doc": "Per-source collection failures; empty for stages that read no sources (AC4.1)."
+            }
+          ]
+        }
+      },
+      "default": [],
+      "doc": "Stage records in the order they were recorded. A run cut short keeps the stages it did reach (AC4.1)."
+    }
+  ]
+}

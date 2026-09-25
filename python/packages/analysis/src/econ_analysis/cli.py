@@ -43,7 +43,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from econ_core import domain, open_store, silver
+from econ_core import LakeStore, domain, open_store, runlog, silver
 
 from econ_analysis import fake_llm, llm
 
@@ -105,6 +105,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=100,
         help="Records analyzed between two Silver checkpoints.",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Batch run this analysis belongs to (AC4.1); defaults to $ECON_RUN_ID, "
+        "or a fresh id when this CLI runs outside a pipeline.",
+    )
     return parser
 
 
@@ -140,6 +146,27 @@ def _batches(items: list[dict], size: int) -> list[list[dict]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
+def _book_outcomes(
+    stage: runlog.StageReport, rows: list[dict], failed_ids: list[str], reused_ids: list[str]
+) -> None:
+    """Book each analyzed record under exactly one AC4.1 outcome.
+
+    The buckets have to partition the input, so the order matters: a failed model call
+    leaves an ``unanalyzed`` row that is an outage rather than a judgement, and a reused
+    reply produces a real label without a call. Checking failure first, then reuse, then
+    the row's own status keeps one record in one bucket.
+    """
+    failed = set(failed_ids)
+    reused = set(reused_ids)
+    for row in rows:
+        if row["record_id"] in failed:
+            stage.count("call_failed")
+        elif row["record_id"] in reused:
+            stage.count("reused")
+        else:
+            stage.count(row["analysis_status"])
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
@@ -157,6 +184,22 @@ def main(argv: list[str] | None = None) -> int:
         version = args.analyzer_version or fake_llm.ANALYZER_VERSION
 
     store = open_store(args.data)
+    run_id = runlog.resolve_run_id(args.run_id)
+    # A scoped run is the JRN-logic-backfill reprocess path; a whole-lake run is the
+    # hourly schedule. Whichever stage opens the run record names its trigger (AC4.1).
+    trigger = runlog.REPROCESS if _scoped(args) else runlog.SCHEDULED
+    with runlog.run_stage(store, run_id, runlog.ANALYSIS, trigger=trigger) as stage:
+        return _analyze(args, store, version, completer, run_id, stage)
+
+
+def _analyze(
+    args: argparse.Namespace,
+    store: LakeStore,
+    version: str,
+    completer: llm.Completer | None,
+    run_id: str,
+    stage: runlog.StageReport,
+) -> int:
     bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
     cycles = silver.cycles_of(bronze)
     migrated = silver.migrate_legacy(store, cycles)
@@ -175,7 +218,13 @@ def main(argv: list[str] | None = None) -> int:
     todo = [item for item in todo if item["record_id"] not in done]
     skipped = selected - len(todo)
     if scoped:
+        before_sample = len(todo)
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
+        stage.count("skipped_not_sampled", before_sample - len(todo))
+    # AC4.1 — the stage's input is every record the scope selected; the buckets below
+    # partition it, so their sum is this number.
+    stage.input_count = selected
+    stage.count("skipped_settled", skipped)
 
     bodies: dict[str, str] = {}
     for item in todo:
@@ -210,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
             stats.reused += batch_stats.reused
             stats.last_error = batch_stats.last_error or stats.last_error
             failed_ids = batch_stats.failed_ids
+            _book_outcomes(stage, rows, failed_ids, batch_stats.reused_ids)
             if batch_stats.attempted and batch_stats.attempted == batch_stats.failed:
                 # Nobody answered: writing now would stamp an all-unanalyzed batch and
                 # blur the AC2.5 signal. Keep the checkpoint and stop here.
@@ -219,12 +269,20 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 print(f"  last error: {batch_stats.last_error}", file=sys.stderr)
+                # The run record keeps what this run did reach; the records of the
+                # batches never started are booked as not_reached (AC4.1).
+                stage.output_count = len(analyses)
+                stage.fail(
+                    f"all {batch_stats.attempted} model calls failed; "
+                    f"last error: {batch_stats.last_error}"
+                )
                 return EXIT_ALL_CALLS_FAILED
         else:
             rows = [
                 asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
                 for item in batch
             ]
+            _book_outcomes(stage, rows, [], [])
         _, dropped = silver.store_analyses(
             store, cycles, rows, coexist=scoped, keep_versions=keep_versions
         )
@@ -260,4 +318,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         if stats.failed:
             print(f"  last error: {stats.last_error}")
+    stage.output_count = len(analyses)
+    print(f"  run={run_id} stage=analysis")
     return 0

@@ -37,4 +37,14 @@ func TestDebugIsAnHonestStubUntilRunAndCallRecordsExist(t *testing.T) {
 	if len(got.Runs) != 0 || len(got.Calls) != 0 {
 		t.Fatalf("debug must not fabricate records, got runs=%d calls=%d", len(got.Runs), len(got.Calls))
 	}
+	// Honest in the other direction too: batch run records landed with AC4.1, so the
+	// stub may no longer name run_record among what is missing.
+	for _, missing := range got.Missing {
+		if missing == "run_record" {
+			t.Fatalf("run_record exists since AC4.1 — missing must not still claim it: %v", got.Missing)
+		}
+	}
+	if len(got.Missing) == 0 {
+		t.Fatal("the stub must still name what it is waiting for (AC4.2-AC4.3)")
+	}
 }

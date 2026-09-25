@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from econ_core.models.enums import AnalysisStatus, Sentiment
+from econ_core.models.enums import AnalysisStatus, PipelineStage, RunStatus, RunTrigger, Sentiment
 
 
 @dataclass(kw_only=True)
@@ -34,4 +34,88 @@ class Analysis:
             confidence=d["confidence"],
             analyzed_at=d["analyzed_at"],
             analyzer_version=d["analyzer_version"],
+        )
+
+
+@dataclass(kw_only=True)
+class PipelineRun:
+    """Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1)."""
+
+    run_id: str
+    run_trigger: RunTrigger
+    run_started_at: str
+    run_ended_at: str | None = None
+    run_status: RunStatus
+    stages: list[RunStage] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> PipelineRun:
+        return cls(
+            run_id=d["run_id"],
+            run_trigger=d["run_trigger"],
+            run_started_at=d["run_started_at"],
+            run_ended_at=d.get("run_ended_at"),
+            run_status=d["run_status"],
+            stages=[RunStage.from_dict(x) for x in d.get("stages", [])],
+        )
+
+
+@dataclass(kw_only=True)
+class RunStage:
+    """One stage of a run: its state, duration, input count, per-outcome counts and failure reason (AC4.1)."""
+
+    stage_name: PipelineStage
+    stage_status: RunStatus
+    stage_started_at: str
+    stage_ended_at: str | None = None
+    duration_ms: int
+    input_count: int
+    output_count: int
+    outcomes: list[StageOutcome] = field(default_factory=list)
+    failure_reason: str | None = None
+    source_failures: list[SourceFailure] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> RunStage:
+        return cls(
+            stage_name=d["stage_name"],
+            stage_status=d["stage_status"],
+            stage_started_at=d["stage_started_at"],
+            stage_ended_at=d.get("stage_ended_at"),
+            duration_ms=d["duration_ms"],
+            input_count=d["input_count"],
+            output_count=d["output_count"],
+            outcomes=[StageOutcome.from_dict(x) for x in d.get("outcomes", [])],
+            failure_reason=d.get("failure_reason"),
+            source_failures=[SourceFailure.from_dict(x) for x in d.get("source_failures", [])],
+        )
+
+
+@dataclass(kw_only=True)
+class SourceFailure:
+    """One collection source that failed, and why (AC4.1)."""
+
+    source_id: str
+    source_failure_reason: str
+
+    @classmethod
+    def from_dict(cls, d: dict) -> SourceFailure:
+        return cls(
+            source_id=d["source_id"],
+            source_failure_reason=d["source_failure_reason"],
+        )
+
+
+@dataclass(kw_only=True)
+class StageOutcome:
+    """One outcome bucket of a stage and how many input units fell into it (AC4.1)."""
+
+    outcome_name: str
+    outcome_count: int
+
+    @classmethod
+    def from_dict(cls, d: dict) -> StageOutcome:
+        return cls(
+            outcome_name=d["outcome_name"],
+            outcome_count=d["outcome_count"],
         )

@@ -26,6 +26,29 @@ const (
 	BucketUnitWeek BucketUnit = "week"
 )
 
+type PipelineStage string
+
+const (
+	PipelineStageIngestion   PipelineStage = "ingestion"
+	PipelineStageAnalysis    PipelineStage = "analysis"
+	PipelineStageAggregation PipelineStage = "aggregation"
+)
+
+type RunStatus string
+
+const (
+	RunStatusRunning   RunStatus = "running"
+	RunStatusSucceeded RunStatus = "succeeded"
+	RunStatusFailed    RunStatus = "failed"
+)
+
+type RunTrigger string
+
+const (
+	RunTriggerScheduled RunTrigger = "scheduled"
+	RunTriggerReprocess RunTrigger = "reprocess"
+)
+
 type Sentiment string
 
 const (

@@ -161,3 +161,24 @@ def test_domain_cycle_partition_is_exact() -> None:
     for bad in ("2026-06-23T14", "2026-6-23T14:00", "2026-06-23T14:30", "2026-06-23T14:00:00"):
         with pytest.raises(ValueError):
             domain.cycle_partition(bad)
+
+
+def test_write_object_revises_where_put_object_refuses(tmp_path: Path) -> None:
+    """Two object-dataset writes with opposite promises (AC1.7 vs AC4.1).
+
+    ``put_object`` keeps a content-addressed record immutable; ``write_object`` is for a
+    record that is revised in place, like a run record gaining a stage. They never share
+    a dataset, so the two promises cannot collide.
+    """
+    store = LocalFsStore(tmp_path)
+    store.write_object("silver", "pipeline_run", "run_id", {"run_id": "r1", "stages": []})
+    store.write_object("silver", "pipeline_run", "run_id", {"run_id": "r1", "stages": ["a"]})
+    assert store.get_object("silver", "pipeline_run", "run_id", "r1") == {
+        "run_id": "r1",
+        "stages": ["a"],
+    }
+    assert store.read_objects("silver", "pipeline_run") == [{"run_id": "r1", "stages": ["a"]}]
+
+    assert store.put_object("bronze", "news_body", "body_hash", {"body_hash": "h1", "t": 1})
+    assert not store.put_object("bronze", "news_body", "body_hash", {"body_hash": "h1", "t": 2})
+    assert store.get_object("bronze", "news_body", "body_hash", "h1") == {"body_hash": "h1", "t": 1}

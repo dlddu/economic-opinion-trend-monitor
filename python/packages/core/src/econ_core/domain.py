@@ -24,6 +24,7 @@ DS_ANALYSIS = "analysis"  # silver  -> models.Analysis
 DS_ANALYSIS_CACHE = "analysis_cache"  # silver  -> model replies keyed by prompt (not a contract)
 DS_ANALYSIS_RETRY = "analysis_retry"  # silver  -> records whose model call failed (not a contract)
 DS_REPROCESS_DECISION = "reprocess_decision"  # silver -> publish/rollback log (not a contract)
+DS_PIPELINE_RUN = "pipeline_run"  # silver  -> models.PipelineRun (batch run log, AC4.1)
 DS_SUBJECT_TREND = "subject_trend"  # gold    -> models.SubjectTrend
 DS_AXIS_SENTIMENT = "axis_sentiment"  # gold    -> models.AxisSentiment
 
