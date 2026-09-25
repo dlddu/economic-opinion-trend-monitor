@@ -1,0 +1,64 @@
+# `…-test-pipeline-ops.md#시나리오 1` **정상 실행**의 둘째 단계.
+#
+# 컨테이너 계약은 analyze-job-agg.yaml 과 같고(같은 배치 이미지 · `econ-analysis` · 기본값인
+# **실 llm 분석기** · 응답 묶음 `e2e-llm-agg`) 바뀌는 것은 데이터 루트와 `ECON_RUN_ID` 뿐이다.
+# 응답 묶음을 집계 묶음과 공유하는 것은 이 루트의 기사가 집계 corpus 와 같은 세 소스에서
+# 오기 때문이다 — 묶음을 따로 두면 같은 기사에 두 벌의 픽스처를 유지해야 한다.
+#
+# 이 단계가 **성공**해야 다음 단계(집계)가 돌고, 그래야 「앞 단계 출력이 다음 단계 입력과
+# 맞물린다」를 세 단계에 걸쳐 관측할 수 있다. 호출이 하나라도 실패하면 run.sh 가 끊는다 —
+# 실패를 관측하는 것은 이 Job 이 아니라 analyze-job-ops-stopped.yaml 의 몫이다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-analyze-ops
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: analyze
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-analysis"]
+          args: []
+          # mock-exception: LLM-09 — 실행 기록 묶음의 분석 CLI 상류를 클러스터 안 LLM 더블로 돌린다(BASE_URL·MODEL·더미 KEY 한 묶음, 응답 묶음 `e2e-llm-agg`) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/pipeline-ops
+            - name: ECON_RUN_ID
+              value: e2e-ops-run-ok
+            - name: ECON_LLM_BASE_URL
+              value: http://econ-llm-double:8080/v1
+            - name: ECON_LLM_MODEL
+              value: e2e-llm-agg
+            - name: ECON_LLM_API_KEY
+              value: e2e-double-not-a-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: tmp
+          emptyDir: {}

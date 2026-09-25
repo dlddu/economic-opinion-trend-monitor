@@ -1,0 +1,6 @@
+[
+  { "source_id": "e2e-ops-kr-wire",  "axis": "KR", "feed_url": "http://econ-feed-double:8080/agg_kr_wire.rss.xml",        "limit": 100 },
+  { "source_id": "e2e-ops-kr-daily", "axis": "KR", "feed_url": "http://econ-feed-double:8080/agg_kr_daily.rss.xml",       "limit": 100 },
+  { "source_id": "e2e-ops-us-desk",  "axis": "US", "feed_url": "http://econ-feed-double:8080/agg_us_desk.rss.xml",        "limit": 100 },
+  { "source_id": "e2e-ops-down",     "axis": "KR", "feed_url": "http://econ-feed-double:8080/__fail__/agg_kr_wire.rss.xml", "limit": 100 }
+]
