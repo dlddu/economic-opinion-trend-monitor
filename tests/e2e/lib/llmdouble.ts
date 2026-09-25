@@ -21,6 +21,8 @@ export const MODEL_V1 = "e2e-llm-v1";
 export const MODEL_V2 = "e2e-llm-v2";
 /** 집계 묶음이 고르는 묶음 — `k8s/batch/analyze-job-agg.yaml` 의 `ECON_LLM_MODEL` 과 같아야 한다. */
 export const MODEL_AGG = "e2e-llm-agg";
+/** 호출 기록 묶음이 고르는 묶음 — `k8s/batch/analyze-job-calls*.yaml` 의 `ECON_LLM_MODEL` 과 같아야 한다. */
+export const MODEL_CALLS = "e2e-llm-calls";
 
 /** 더블이 한 기사에 대해 돌려주는 응답 — 제품이 기대하는 모델 응답 스키마 그대로다. */
 export type CannedReply = {
@@ -58,4 +60,37 @@ export function cannedReply(model: string, title: string): CannedReply {
   const found = cannedReplies(model).get(title);
   if (!found) throw new Error(`모델 ${model} 묶음에 제목 ${JSON.stringify(title)} 의 응답이 없다`);
   return found;
+}
+
+/**
+ * 응답 표의 값을 **해석하지 않고** 그대로 읽는다.
+ *
+ * `cannedReply` 는 값이 제품 응답 스키마라고 가정하지만, `e2e-llm-calls` 묶음은 일부러 객체가
+ * 아닌 값을 하나 담는다(`…-test-pipeline-ops.md#시나리오 2` 의 「형식이 깨진 응답」 갈래). 그 값을
+ * `CannedReply` 로 읽으면 타입이 거짓말을 하므로, 모양을 묻는 쪽은 이 접근자를 쓴다.
+ *
+ * 더블이 content 에 싣는 문자열은 이 값의 `JSON.stringify` 와 같다(`server.py` 의 `json.dumps`,
+ * `ensure_ascii=False`) — spec 이 기록된 `response_raw` 를 픽스처에서 유도할 수 있는 근거다.
+ */
+export function rawReplyValue(model: string, title: string): unknown {
+  const fixture = JSON.parse(readFileSync(FIXTURE, "utf-8")) as {
+    models: Record<string, { extends?: string; responses?: Record<string, unknown> }>;
+  };
+  const spec = fixture.models[model];
+  if (!spec) throw new Error(`responses.json 에 모델 ${model} 의 응답 묶음이 없다`);
+  const own = spec.responses ?? {};
+  if (title in own) return own[title];
+  const parent = spec.extends ? fixture.models[spec.extends]?.responses ?? {} : {};
+  if (title in parent) return parent[title];
+  throw new Error(`모델 ${model} 묶음에 제목 ${JSON.stringify(title)} 의 응답이 없다`);
+}
+
+/** 응답 표에 **없는** 제목인지 — 더블이 404 로 끊고 제품이 `call_failed` 로 기록하는 갈래. */
+export function hasCannedReply(model: string, title: string): boolean {
+  try {
+    rawReplyValue(model, title);
+    return true;
+  } catch {
+    return false;
+  }
 }
