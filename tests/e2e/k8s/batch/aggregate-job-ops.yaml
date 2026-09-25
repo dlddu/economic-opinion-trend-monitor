@@ -1,10 +1,6 @@
 # `…-test-pipeline-ops.md#시나리오 1` **정상 실행**의 마지막 단계.
 #
 # 컨테이너 계약은 aggregate-job.yaml 과 같고 바뀌는 것은 데이터 루트와 `ECON_RUN_ID` 뿐이다.
-# 모킹 지점이 없다 — 집계는 상류를 갖지 않고 앞 단계가 쓴 Silver 만 읽는다.
-#
-# 이 단계까지 돌아야 실행 기록의 `stages` 가 셋이 되고, 「두 번째 실행에서는 집계 단계가
-# 실행되지 않았음이 드러난다」는 기대 결과가 **대조 대상**을 갖는다(셋 vs 둘).
 apiVersion: batch/v1
 kind: Job
 metadata:
