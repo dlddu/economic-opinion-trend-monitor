@@ -15,7 +15,12 @@
     "재분석한다」에 해당하는 자리이고, 전체를 복사해 두면 두 묶음이 조용히 어긋난다.",
     "",
     "여기 없는 제목이 오면 더블은 404 를 낸다. 조용히 기본값을 주면 픽스처가 낡아 빠진 기사가",
-    "생겨도 spec 이 초록으로 지나간다 — 빠진 제목은 실패로 드러나야 한다."
+    "생겨도 spec 이 초록으로 지나간다 — 빠진 제목은 실패로 드러나야 한다.",
+    "",
+    "값이 **객체가 아닌 경우도 의도된 입력**이다(`e2e-llm-calls` 묶음). 더블은 값의 모양을 보지 않고",
+    "그대로 JSON 으로 감싸 content 에 실으므로, 문자열을 넣으면 제품의 parse_response 가 `{...}` 를",
+    "찾지 못해 끊고 호출 기록이 parse_failed 로 남는다 — `…-test-pipeline-ops.md#시나리오 2` 가",
+    "요구하는 「형식이 깨진 응답」 갈래를 더블에 모드를 더하지 않고 픽스처만으로 세우는 자리다."
   ],
   "models": {
     "e2e-llm-v1": {
@@ -237,6 +242,25 @@
           "analyzable": true,
           "confidence": 0.86
         }
+      }
+    },
+    "e2e-llm-calls": {
+      "responses": {
+        "한국은행 기준금리 동결 — 호출 기록 묶음": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["기준금리"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.82
+        },
+        "연준 위원 발언에 국채금리 출렁 — 신규 관측": {
+          "target_countries": ["미국"],
+          "narrative_subjects": ["통화정책"],
+          "sentiment": "negative",
+          "analyzable": true,
+          "confidence": 0.71
+        },
+        "원화 약세에 수출업계 촉각 — 형식이 깨진 응답": "모델이 JSON 대신 설명 문장만 돌려준 응답"
       }
     }
   }

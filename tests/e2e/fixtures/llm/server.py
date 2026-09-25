@@ -11,6 +11,10 @@
                               JSON 문자열로 감싸 돌려준다.
   GET  /healthz               readinessProbe 용. 픽스처가 로드됐는지까지 본다.
 
+받은 요청마다 stderr 에 `received model=… prompt_sha256=…` 한 줄을 남긴다. 제품이 호출 기록에
+적는 `prompt_sha256` 과 **같은 정의**라, spec 이 「기록된 프롬프트 = 실제로 전송된 프롬프트」를
+수신 측 값과 대조할 수 있다(`…-test-pipeline-ops.md#시나리오 2`).
+
 응답은 `responses.json` 이 정한다(ConfigMap `llm-fixtures` 로 마운트). 묶음은 모델 이름으로
 고르고, `extends` 로 다른 묶음을 물려받을 수 있다 — 재분석(`…-test-analysis.md#시나리오 6`)이
 "몇 건만 다시 판정한" 상태를 표현하는 자리다.
@@ -26,6 +30,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -87,6 +92,27 @@ def extract_title(payload: dict) -> str | None:
     return None
 
 
+def received_digest(payload: dict) -> str:
+    """SHA-256 over the prompt bytes this request actually carried, system then user.
+
+    Same definition as the product's `econ_core.calllog.prompt_digest` (NUL separator), on
+    purpose: the call record stores `prompt_sha256` over what it *says* it sent, and a spec
+    can only check "the record equals what was transmitted" against a digest taken on the
+    receiving side. Logging the digest rather than the prompt keeps article text out of CI
+    logs and needs no writable volume — the double's root filesystem is read-only.
+    """
+    system = ""
+    user = ""
+    for message in payload.get("messages") or []:
+        if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+            continue
+        if message.get("role") == "system" and not system:
+            system = message["content"]
+        elif message.get("role") == "user":
+            user = message["content"]  # last user message is the one build_prompt rendered
+    return hashlib.sha256(system.encode("utf-8") + b"\0" + user.encode("utf-8")).hexdigest()
+
+
 class DoubleHandler(BaseHTTPRequestHandler):
     """chat-completions 한 경로와 헬스 체크만 있는 최소 핸들러."""
 
@@ -127,6 +153,12 @@ class DoubleHandler(BaseHTTPRequestHandler):
                 f"model={model!r} 의 응답 묶음이 없다 (있는 것: {sorted(MODELS)})",
             )
             return
+
+        # Logged before the canned lookup: a title the table lacks still *arrived*, and the
+        # product records that as call_failed — its prompt must be checkable like any other.
+        sys.stderr.write(
+            f"[llm-double] received model={model} prompt_sha256={received_digest(payload)}\n"
+        )
 
         title = extract_title(payload)
         if title is None:

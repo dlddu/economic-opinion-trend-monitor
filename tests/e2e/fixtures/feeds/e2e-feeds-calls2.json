@@ -1,0 +1,3 @@
+[
+  { "source_id": "e2e-calls-desk", "axis": "KR", "feed_url": "http://econ-feed-double:8080/llm_calls_cycle2.rss.xml", "limit": 100 }
+]

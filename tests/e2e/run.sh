@@ -51,6 +51,8 @@ ROLLUP_SILVER_DIR="$E2E_DIR/.artifacts/silver-rollup"
 ROLLUP_GOLD_DIR="$E2E_DIR/.artifacts/gold-rollup"
 LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 CHAIN_LOG_DIR="$E2E_DIR/.artifacts/batch-chains"
+LLM_CALL_DIR="$E2E_DIR/.artifacts/llm-calls"
+LLM_DOUBLE_LOG="$E2E_DIR/.artifacts/llm-double.log"
 PW_SETUP_LOG="$E2E_DIR/.artifacts/playwright-setup.log"
 KIND_CREATE_LOG="$E2E_DIR/.artifacts/kind-create.log"
 RUNLOG_OPS_DIR="$E2E_DIR/.artifacts/runlog-ops"
@@ -135,6 +137,8 @@ export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data
 # `silver/pipeline_run` is an object dataset keyed by run id, so it lays out like
 # `news_body`: one `<key>.json` under a key-prefix partition.
 export_pipeline_run() { export_parts "$1" silver "$2" pipeline_run '*=*/*.json'; }
+# Call records lay out the same way (call_id_prefix=<c>/<call_id>.json).
+export_llm_call() { export_parts "$1" silver "$2" llm_call '*=*/*.json'; }
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
@@ -312,6 +316,50 @@ chain_analysis() {
   echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 }
 
+# 4e) Per-article model call log (…-test-pipeline-ops.md#시나리오 2). Sequential *within*
+# this chain, and that order is the point: cycle 1 fills the reply cache, cycle 2 re-observes
+# the same articles so their prompts hit it (a reuse), and the version bump reprocesses the
+# same Bronze so the earlier records must survive beside the new ones.
+chain_llm_calls() {
+  local log
+  run_batch_job econ-e2e-ingest-calls1 "$E2E_DIR/k8s/batch/ingest-job-calls1.yaml" >/dev/null
+
+  # Cycle 1: one article answers, one reply will not parse, one title the double does not
+  # know. Two failures are the *expected* state here, so this chain guards on the count
+  # rather than on `failed=0` — a green `failed=0` would mean the branches never happened.
+  log="$(run_batch_job econ-e2e-analyze-calls1 "$E2E_DIR/k8s/batch/analyze-job-calls1.yaml")"
+  case "$log" in
+    *"failed=2"*) ;;
+    *) echo "[e2e] FAIL: cycle 1 did not produce exactly the two intended failures — the" \
+            "double's response table drifted from llm_calls_cycle1.rss.xml" >&2
+       exit 1 ;;
+  esac
+
+  run_batch_job econ-e2e-ingest-calls2 "$E2E_DIR/k8s/batch/ingest-job-calls2.yaml" >/dev/null
+
+  # Cycle 2 is the run the spec reads. `reused=1` is the load-bearing part: without it the
+  # cache did not carry across runs and the scenario's "already answered earlier" branch is
+  # missing, which a record-shape assertion alone would not notice.
+  log="$(run_batch_job econ-e2e-analyze-calls2 "$E2E_DIR/k8s/batch/analyze-job-calls2.yaml")"
+  case "$log" in
+    *"reused=1"*) ;;
+    *) echo "[e2e] FAIL: cycle 2 reused no earlier reply — the two cycles' prompts are not" \
+            "byte-identical (titles/bodies drifted between the two feed fixtures)" >&2
+       exit 1 ;;
+  esac
+
+  run_batch_job econ-e2e-analyze-calls-v2 "$E2E_DIR/k8s/batch/analyze-job-calls-v2.yaml" >/dev/null
+
+  export_llm_call /data/llm-calls "$LLM_CALL_DIR"
+  # What the double actually received, as digests over the transmitted prompt bytes. The
+  # double serves every chain at once, so the spec filters these lines by model name.
+  kubectl --context "$CTX" logs deploy/econ-llm-double --tail=-1 > "$LLM_DOUBLE_LOG"
+  [ -s "$LLM_DOUBLE_LOG" ] \
+    || { echo "[e2e] FAIL: the llm double logged nothing — no request digests to check the" \
+              "recorded prompts against" >&2; exit 1; }
+  echo "[e2e] llm call log exported -> $LLM_CALL_DIR"
+}
+
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
 # …-test-aggregation-viz.md#시나리오 1·2·4).
 run_aggregation_stack() {
@@ -383,7 +431,7 @@ chain_aggregation_skew() {
 # it finishes) instead of interleaving. A failed chain does not stop the others —
 # their logs are still worth reading — but fails the run once all are done.
 mkdir -p "$CHAIN_LOG_DIR"
-CHAINS=(ingest faults cycles analysis aggregation aggregation_skew)
+CHAINS=(ingest faults cycles analysis llm_calls aggregation aggregation_skew)
 CHAIN_PIDS=()  # same index as CHAINS — no associative arrays, bash 3.2 has none
 for chain in "${CHAINS[@]}"; do
   ( "chain_$chain" ) </dev/null >"$CHAIN_LOG_DIR/$chain.log" 2>&1 &
@@ -514,6 +562,8 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_GOLD_ROLLUP_DIR="$ROLLUP_GOLD_DIR" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
   E2E_RUNLOG_OPS_DIR="$RUNLOG_OPS_DIR" \
+  E2E_LLM_CALL_DIR="$LLM_CALL_DIR" \
+  E2E_LLM_DOUBLE_LOG="$LLM_DOUBLE_LOG" \
   npx playwright test
 
 echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
@@ -521,5 +571,6 @@ echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
 echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
 echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"
 echo "[e2e] OK: aggregation batch -> pipeline-produced Gold (baseline + skewed volume)"
+echo "[e2e] OK: two collection cycles + a version bump -> per-article model call log"
 echo "[e2e] OK: re-stamped collection times -> aggregation -> multi-bucket Gold (hour/day/week)"
 echo "[e2e] OK: two pipeline runs (one whole, one stopped in analysis) -> pipeline_run records"

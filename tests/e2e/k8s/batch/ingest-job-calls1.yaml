@@ -1,0 +1,65 @@
+# 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **주기 1** 수집.
+# 시나리오의 사전 조건 「이전 실행에서 이미 응답을 받은 기사를 하나 포함한다」를 세우는 자리다 —
+# 여기서 정상 응답을 받은 기사가 주기 2에서 캐시를 맞혀 `reused` 호출 기록이 된다.
+#
+# 데이터 루트를 `/data/llm-calls` 로 가른다 — 묶음마다 자기 루트를 갖는 것이 이 하네스의 관례다.
+# 분석 묶음(`/data/analysis`)과 섞이면 그쪽의 `failed=0` 가드가 이 묶음의 의도된 실패를 잡는다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-calls1
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-25 — 호출 기록 묶음 주기 1 의 상류를 전용 설정(`e2e-feeds-calls1.json`)으로 돌린다(상류 재배선) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-calls1.json
+            - --cycle
+            - "2026-02-05T00:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/llm-calls
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-27 — 수집 CLI가 읽는 피드 설정·픽스처를 같은 ConfigMap으로 주입한다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}

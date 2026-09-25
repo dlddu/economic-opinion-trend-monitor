@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 호출 기록 픽스처 — 주기 2: 시나리오 2 가 관측하는 **본 실행**의 입력이다.
+
+     주기 1의 세 건을 **같은 `<link>`·제목·본문으로 그대로** 다시 싣고, 신규 1건(004)을 더한다.
+     그래서 이 주기의 분석 한 번이 네 갈래를 **한 실행 안에** 세운다:
+       * 001 재관측 -> 프롬프트가 주기 1과 바이트 동일하므로 응답 캐시를 맞혀 `reused`
+                      (레코드는 새 `record_id`, `reused_from_call_id` 가 주기 1의 호출을 가리킨다)
+       * 002 재관측 -> 캐시는 파싱에 성공한 응답만 담으므로 다시 보내고 다시 `parse_failed`
+       * 003 재관측 -> 같은 이유로 다시 `call_failed`
+       * 004 신규   -> 응답 표에 정상 응답이 있어 `parsed`
+
+     001~003 의 제목·`<link>`·`<description>` 은 주기 1과 **한 글자도 달라선 안 된다**.
+     제목이나 본문이 바뀌면 프롬프트가 달라져 캐시를 맞히지 못하고 `reused` 갈래가 사라진다
+     (`reply_cache_key` 가 analyzer_version·model·system·user 프롬프트로 만들어진다). -->
+<rss version="2.0">
+  <channel>
+    <title>E2E LLM Call Log</title>
+    <link>https://calls.e2e.invalid/desk</link>
+
+    <item>
+      <title>한국은행 기준금리 동결 — 호출 기록 묶음</title>
+      <link>https://calls.e2e.invalid/desk/001</link>
+      <description>한국은행이 기준금리를 동결했다. 금통위는 추가 조정 없이 상황을 지켜보겠다고 밝혔다. 이 기사는 다음 주기에 그대로 다시 관측되어 응답 재사용의 원 호출이 된다.</description>
+      <views>9100</views>
+    </item>
+
+    <item>
+      <title>원화 약세에 수출업계 촉각 — 형식이 깨진 응답</title>
+      <link>https://calls.e2e.invalid/desk/002</link>
+      <description>원달러 환율이 장중 고점을 다시 썼다. 수출업계는 단가 재협상 여부를 두고 관망하고 있다. 이 기사에 대해 더블은 JSON 객체가 아닌 값을 돌려준다.</description>
+      <views>8200</views>
+    </item>
+
+    <item>
+      <title>전기요금 조정안 발표 예정 — 응답 없는 기사</title>
+      <link>https://calls.e2e.invalid/desk/003</link>
+      <description>정부가 다음 분기 전기요금 조정안을 발표할 예정이다. 이 기사의 제목은 더블의 응답 표에 없으므로 더블이 404로 끊고 제품 경로는 호출 실패로 기록한다.</description>
+      <views>7300</views>
+    </item>
+    <item>
+      <title>연준 위원 발언에 국채금리 출렁 — 신규 관측</title>
+      <link>https://calls.e2e.invalid/desk/004</link>
+      <description>연준 위원의 발언 이후 미 국채금리가 장중 방향을 바꿨다. 이 기사는 주기 2에서 처음 관측되므로 캐시에 없고 모델을 실제로 부른다.</description>
+      <views>6400</views>
+    </item>
+
+  </channel>
+</rss>
