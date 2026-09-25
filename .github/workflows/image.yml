@@ -21,9 +21,17 @@
 # Tags published earlier as `sha-<commit>` stay in the registry; nothing new is
 # written in that format.
 #
-# No path filter on purpose: a preview references the head SHA tag, so even a
-# docs-only PR labelled `deploy/preview` needs an image at that SHA. Unchanged
-# sources hit the buildx gha cache wholesale, so that costs little.
+# No path filter on the PR path on purpose: a preview references the head SHA
+# tag, so even a docs-only PR labelled `deploy/preview` needs an image at that
+# SHA. Unchanged sources hit the buildx gha cache wholesale, so that costs little.
+#
+# main pushes do filter: a merge that reaches neither image (go/ · web/ ·
+# python/ — see .dockerignore) nor the manifests (deploy/) would only mint a new
+# SHA tag and restart production pods. A skipped commit never reaches `deploy`;
+# the `Source-Commit:` trailer on its tip still names what production runs.
+# It is an exclusion list, so a new directory triggers by default — before
+# excluding a path, check that neither Dockerfile nor Flux reads it. The filter
+# applies to the push trigger only; workflow_call (PRs) always runs.
 #
 # Triggers: main pushes run it directly (publish + pin). PRs reach it through
 # checks.yml, so a failed publish fails the single required check `required`;
@@ -34,6 +42,20 @@ name: Image
 on:
   push:
     branches: [main]
+    paths:
+      - '**'
+      - '.dockerignore'
+      - '!docs/**'
+      - '!scripts/**'
+      - '!tests/**'
+      - '!data/**'
+      - '!contracts/**'
+      - '!**/*_test.go'
+      - '!Makefile'
+      - '!README.md'
+      - '!.gitignore'
+      - '!.github/**'
+      - '.github/workflows/image.yml'
   workflow_call:
   workflow_dispatch:
 

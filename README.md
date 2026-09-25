@@ -130,6 +130,9 @@ make run                       # http://localhost:8080  (대시보드 + /api/* �
   `required`)으로 보호되어 되커밋하지 않고, Flux는 `deploy`를 추적한다. 기본 `GITHUB_TOKEN`만
   쓰므로 장기 크레덴셜이 없다. 운영이 어느 커밋을 돌리는지는 `deploy` 브랜치의 `deploy/`만
   보면 된다(main에 남은 태그는 운영과 무관). 롤백은 main에 revert PR.
+  이미지(`go/`·`web/`·`python/`)와 `deploy/`에 닿지 않는 머지(`docs/`·`scripts/`·`tests/`·
+  `data/`·`contracts/`·`*_test.go`·`Makefile`·`README.md`·다른 워크플로)에는 돌지 않아 운영 파드도
+  재시작되지 않는다 — 그 커밋은 `deploy`에 반영되지 않으므로 운영 커밋은 `Source-Commit`으로 본다.
 - **PR 빌드**: PR head SHA 태그로 발행만 하고 매니페스트는 건드리지 않는다. 이 태그를
   PR 프리뷰가 가져다 쓴다(아래).
 
