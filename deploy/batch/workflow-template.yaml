@@ -81,8 +81,6 @@ spec:
         command: ["econ-ingestion"]
         args: []
         env:
-          # AC4.1 — every stage of one Workflow shares this run id, so the three
-          # Pods fold their stage records into one run record on the data volume.
           - name: ECON_RUN_ID
             value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
@@ -132,8 +130,6 @@ spec:
         command: ["econ-analysis"]
         args: []
         env:
-          # AC4.1 — every stage of one Workflow shares this run id, so the three
-          # Pods fold their stage records into one run record on the data volume.
           - name: ECON_RUN_ID
             value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
@@ -202,8 +198,6 @@ spec:
           - --batch-size
           - "{{workflow.parameters.batch}}"
         env:
-          # AC4.1 — every stage of one Workflow shares this run id, so the three
-          # Pods fold their stage records into one run record on the data volume.
           - name: ECON_RUN_ID
             value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
@@ -258,8 +252,6 @@ spec:
           - --notify-consumer
           - "{{workflow.parameters.notify}}"
         env:
-          # AC4.1 — every stage of one Workflow shares this run id, so the three
-          # Pods fold their stage records into one run record on the data volume.
           - name: ECON_RUN_ID
             value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
@@ -296,8 +288,6 @@ spec:
         command: ["econ-aggregation"]
         args: []
         env:
-          # AC4.1 — every stage of one Workflow shares this run id, so the three
-          # Pods fold their stage records into one run record on the data volume.
           - name: ECON_RUN_ID
             value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT

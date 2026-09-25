@@ -10,9 +10,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// The debug route exists so the screen can be routed and navigated to, but it
-// must not pretend: until the run and call records exist it says it is a stub
-// and returns no runs or calls.
 func TestDebugIsAnHonestStubUntilRunAndCallRecordsExist(t *testing.T) {
 	mux := http.NewServeMux()
 	New(store.New(t.TempDir())).Register(mux)
@@ -37,8 +34,6 @@ func TestDebugIsAnHonestStubUntilRunAndCallRecordsExist(t *testing.T) {
 	if len(got.Runs) != 0 || len(got.Calls) != 0 {
 		t.Fatalf("debug must not fabricate records, got runs=%d calls=%d", len(got.Runs), len(got.Calls))
 	}
-	// Honest in the other direction too: batch run records landed with AC4.1, so the
-	// stub may no longer name run_record among what is missing.
 	for _, missing := range got.Missing {
 		if missing == "run_record" {
 			t.Fatalf("run_record exists since AC4.1 — missing must not still claim it: %v", got.Missing)

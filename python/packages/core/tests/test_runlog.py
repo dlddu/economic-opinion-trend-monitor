@@ -45,7 +45,6 @@ def test_three_stages_fold_into_one_run_record(tmp_path: Path) -> None:
     assert run["run_status"] == runlog.SUCCEEDED
     assert run["run_trigger"] == runlog.SCHEDULED
     assert run["run_ended_at"] is not None
-    # One file per run — the run id is the object key.
     assert [r["run_id"] for r in runlog.read_runs(store)] == ["run-1"]
 
 

@@ -111,7 +111,6 @@ def test_a_run_whose_model_never_answered_keeps_its_partial_stage(
     assert counts[runlog.NOT_REACHED] == 2
     assert sum(counts.values()) == stage["input_count"] == 3
     assert run["run_status"] == runlog.FAILED
-    # Aggregation never ran, and the record shows that by having no entry for it.
     assert [s["stage_name"] for s in run["stages"]] == [runlog.ANALYSIS]
 
 

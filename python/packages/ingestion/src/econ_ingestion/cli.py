@@ -145,9 +145,6 @@ def _collect(
     for source_id, reason in stats.failure_reasons.items():
         print(f"  failed_source {source_id}: {reason}")
 
-    # AC4.1 — one observation is either collected or dropped as a duplicate, so the two
-    # buckets partition what the sources handed us; a source that failed outright has no
-    # observations to classify and is named in source_failures instead.
     stage.input_count = len(items) + stats.duplicates
     stage.output_count = written
     stage.count("collected", len(items))
