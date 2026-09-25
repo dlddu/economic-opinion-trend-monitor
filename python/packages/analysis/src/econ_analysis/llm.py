@@ -451,9 +451,6 @@ def run_llm_analysis(
     for item in items:
         body = bodies.get(item.get("body_hash") or "")
         if not (item.get("body_available") and body):
-            # Never reached the model, so there is no call to record. What such a record
-            # *would* say — why no call was made — is AC4.3's "미호출 사유" on the Silver
-            # row, not a call record for a call that did not happen.
             analyses.append(asdict(analyze_llm(item, body, completer, analyzer_version)))
             continue
 
@@ -505,9 +502,6 @@ def run_llm_analysis(
             stats.failed_ids.append(item["record_id"])
             stats.last_error = str(exc)
             analysis = _unanalyzed(item, analyzer_version)
-            # A reply that came back and would not parse is a different failure from a
-            # request that never came back, and AC4.2 asks for both — `replies` holding
-            # the transmitted pair is exactly the difference.
             sent_system, sent_user, sent_reply = (
                 replies[0] if replies else (_SYSTEM_PROMPT, user_prompt, None)
             )
@@ -554,7 +548,6 @@ def run_llm_analysis(
                         "model": model,
                         "analyzer_version": analyzer_version,
                         "first_seen_at": item.get("collected_at"),
-                        # Lets a later reuse name the call this reply came from (AC4.2).
                         "call_id": call["call_id"],
                     }
                 )

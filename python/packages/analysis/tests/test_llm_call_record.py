@@ -91,13 +91,10 @@ def test_every_outcome_leaves_a_call_record_with_its_verdict():
     assert got["ok"]["response_raw"] == GOOD
     assert got["ok"]["call_failure_reason"] is None
 
-    # A reply that came back and would not parse is recorded *with* the reply — that is
-    # the case somebody reads back to see what the model actually said.
     assert got["bad"]["call_outcome"] == "parse_failed"
     assert got["bad"]["response_raw"] == "not json at all"
     assert got["bad"]["call_failure_reason"]
 
-    # A request that never came back has no reply to keep, but still a record.
     assert got["down"]["call_outcome"] == "call_failed"
     assert got["down"]["response_raw"] is None
     assert "unreachable" in got["down"]["call_failure_reason"]
@@ -160,7 +157,6 @@ def test_a_reused_reply_is_recorded_and_names_the_call_it_replays():
     assert reuse["reused_from_call_id"] == origin
     assert reuse["response_raw"] == GOOD
     assert reuse["call_attempt_count"] == 0
-    # Still a *new* record, so the log counts the reuse rather than hiding it.
     assert reuse["call_id"] != origin
 
 
@@ -192,7 +188,6 @@ def test_reprocessing_appends_and_never_overwrites_an_earlier_call(tmp_path):
     for call in v1:
         assert calllog.record_call(store, call)
 
-    # A version bump re-asks the model about the same article (a different cache key).
     v2: list[dict] = []
     run_llm_analysis([item], {"h": "본문"}, completer, "llm-v2", calls=v2)
     for call in v2:
@@ -202,8 +197,6 @@ def test_reprocessing_appends_and_never_overwrites_an_earlier_call(tmp_path):
     assert len(stored) == 2
     assert {c["analyzer_version"] for c in stored} == {"llm-v1", "llm-v2"}
 
-    # Append-only is a property of the write, not a convention: re-putting a stored
-    # call is refused rather than silently replacing the earlier judgement.
     assert calllog.record_call(store, v1[0]) is False
     assert len(calllog.read_calls(store)) == 2
 

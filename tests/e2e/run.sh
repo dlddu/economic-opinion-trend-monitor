@@ -6,27 +6,6 @@
 # Requires docker, kind, kubectl and node/npm — it fails fast if one is
 # missing and never installs tools itself. Set KEEP_CLUSTER=1 to keep the
 # cluster around for debugging.
-#
-# Anything that does not depend on the previous step overlaps with it:
-#   - the Playwright setup (npm ci + browser) starts first, in the background,
-#     and is only waited for right before the specs;
-#   - the kind cluster is created in the background while the images build;
-#   - the batch Jobs run as independent chains, one per data root (see step 4).
-#
-# Knobs for a caller that already did part of the work (the CI e2e job):
-#   SKIP_BUILD=1         econ-monitor:e2e / econ-monitor-batch:e2e are already in
-#                        the local docker image store (CI builds them with the
-#                        buildx gha cache); fail if they are not.
-#   E2E_REUSE_CLUSTER=1  the kind cluster $E2E_CLUSTER already exists and is ready
-#                        (CI creates it in the background at the top of the job).
-#                        It is still deleted on exit unless KEEP_CLUSTER=1.
-#   E2E_PLAYWRIGHT_SETUP_RC=<path>  playwright-setup.sh was already started by the
-#                        caller (CI starts it at the top of the job, so it is done
-#                        long before the specs). run.sh does not run it again but
-#                        waits for <path> to hold its exit code; the log is read
-#                        from the same path with .log instead of .rc.
-# playwright-setup.sh documents PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD and why the
-# browser's OS packages are only installed when CI=true.
 set -euo pipefail
 
 E2E_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -140,8 +119,7 @@ echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
 mkdir -p "$E2E_DIR/.artifacts"
 
-# 0) Playwright setup in the background — it needs neither the images nor the
-# cluster, and used to sit on the critical path right before the specs.
+# 0) Playwright setup in the background.
 PW_SETUP_PID=""
 PW_SETUP_RC="${E2E_PLAYWRIGHT_SETUP_RC:-}"
 if [ -n "$PW_SETUP_RC" ]; then
@@ -154,15 +132,12 @@ else
 fi
 
 # 1) Both images into a fresh single-node cluster (no registry: kind load).
-# The cluster comes up in the background while the images build.
 KIND_PID=""
 if [ "${E2E_REUSE_CLUSTER:-0}" = "1" ]; then
   kind get clusters 2>/dev/null | grep -qx "$CLUSTER" \
     || { echo "[e2e] FAIL: E2E_REUSE_CLUSTER=1 but kind cluster '$CLUSTER' does not exist" >&2; exit 1; }
   echo "[e2e] reusing kind cluster $CLUSTER"
 else
-  # No --wait: the node turning Ready overlaps with `kind load` and the applies
-  # below; `rollout status` waits for the pods anyway.
   kind create cluster --name "$CLUSTER" --config "$E2E_DIR/kind-config.yaml" \
     </dev/null >"$KIND_CREATE_LOG" 2>&1 &
   KIND_PID=$!
@@ -190,10 +165,7 @@ if [ -n "$KIND_PID" ]; then
 fi
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
-# 2) Fixture Gold as a ConfigMap + the serving stack (e2e overlay of deploy/base),
-# and the batch harness (feed/LLM doubles, data volume, export shell). Every
-# ConfigMap and both stacks are applied first and only then waited for, so the
-# rollouts overlap.
+# 2) Fixture Gold as a ConfigMap + the serving stack and the batch harness (e2e overlay of deploy/base).
 # mock-exception: GOLD-01 — 집계 배치는 e2e 안에 섰지만(run_aggregation_stack) 서빙 입력을 아직 그 파이프라인 Gold로 잇지 않아(원장 R3) 커밋된 픽스처로 채움 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap gold-fixtures --from-file="$E2E_DIR/fixtures/gold"
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
@@ -227,12 +199,7 @@ curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
 SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
   -o jsonpath='{.items[0].metadata.name}')"
 
-# 4) Batch Jobs. Each chain below owns its own data root on the shared volume
-# (/data, /data/faults, /data/cycles, /data/analysis, /data/aggregation[-skew|-rollup])
-# and nothing reads another chain's root — except the rollup, which re-stamps the
-# baseline aggregation corpus and therefore runs at the end of that chain. The
-# chains run concurrently; the Jobs *inside* a chain stay strictly sequential
-# (the three ingestion cycles in particular — see ingest-job-cycle1.yaml).
+# 4) Batch Jobs — one chain per data root. A chain must not read another's root.
 #
 # 4a) Ingestion batch: the real collection CLI, one cycle, against a feed double.
 chain_ingest() {
@@ -265,8 +232,7 @@ chain_faults() {
   echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 }
 
-# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7). Sequential *within*
-# this chain: the snapshot after each cycle must be "the store up to that cycle".
+# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
 chain_cycles() {
   for cycle in 1 2 3; do
     run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
@@ -348,8 +314,7 @@ run_aggregation_stack() {
   echo "[e2e] aggregation ($label) done in $root"
 }
 
-# Baseline aggregation, then 4f) the rollup root (…-test-aggregation-viz.md#시나리오 3),
-# which re-stamps this chain's corpus — so it has to follow it.
+# Baseline aggregation, then 4f) the rollup root (…-test-aggregation-viz.md#시나리오 3) — it must follow it.
 chain_aggregation() {
   run_aggregation_stack "" /data/aggregation baseline
   export_news_item /data/aggregation "$AGG_BRONZE_DIR"
@@ -378,10 +343,6 @@ chain_aggregation_skew() {
   echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
 }
 
-# Start every chain, then collect them in a fixed order so the CI log reads the
-# same way on every run. Each chain's output goes to its own file (printed once
-# it finishes) instead of interleaving. A failed chain does not stop the others —
-# their logs are still worth reading — but fails the run once all are done.
 mkdir -p "$CHAIN_LOG_DIR"
 CHAINS=(ingest faults cycles analysis aggregation aggregation_skew)
 CHAIN_PIDS=()  # same index as CHAINS — no associative arrays, bash 3.2 has none
@@ -480,8 +441,6 @@ export_pipeline_run /data/pipeline-ops "$RUNLOG_OPS_DIR"
 echo "[e2e] pipeline_run exported after deleting its Jobs -> $RUNLOG_OPS_DIR"
 
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
-# The setup started at step 0 (or earlier, by the caller); it has had at least
-# the whole batch phase to finish.
 pw_wait_start=$SECONDS
 if [ -n "$PW_SETUP_PID" ]; then
   if wait "$PW_SETUP_PID"; then pw_status=0; else pw_status=$?; fi
