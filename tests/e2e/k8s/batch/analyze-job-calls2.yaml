@@ -1,7 +1,4 @@
 # 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **주기 2 분석** — spec 이 관측하는 본 실행.
-# 네 갈래가 한 실행 안에 선다: 주기 1에서 답을 받은 기사의 재관측분은 프롬프트가 바이트 동일해
-# 캐시를 맞혀 `reused`(원 호출을 `reused_from_call_id` 로 가리킨다), 파싱 실패·호출 실패 건은
-# 캐시에 없으므로 다시 보내 다시 실패하고, 신규 1건은 `parsed` 가 된다.
 #
 # `--analyzer-version` 을 주지 않는다 — 주기 1과 **같은 버전**이어야 캐시 키가 맞는다.
 # 버전을 올리는 재처리는 다음 Job(`analyze-job-calls-v2.yaml`)의 몫이다.
@@ -29,8 +26,6 @@ spec:
           env:
             - name: ECON_DATA_ROOT
               value: /data/llm-calls
-            # 실행 ID 를 고정한다 — 호출 기록이 실행 ID 를 갖는지(시나리오 2 의 기대 결과)와
-            # 어느 실행의 기록인지를 spec 이 이름으로 집을 수 있어야 한다.
             - name: ECON_RUN_ID
               value: e2e-calls-run-2
             - name: ECON_LLM_BASE_URL
@@ -38,9 +33,6 @@ spec:
             # 주기 1 분석과 같은 이름이어야 캐시가 맞는다(위 주석 참조).
             - name: ECON_LLM_MODEL
               value: e2e-llm-calls
-            # 운영에서는 external-secrets가 넣는 `econ-llm` Secret에서 온다. 더블은 키를 보지
-            # 않지만 CLI가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야 한다.
-            # 비밀이 아닌 고정 문자열이며, 실 엔드포인트에는 쓰이지 않는다.
             - name: ECON_LLM_API_KEY
               value: e2e-double-not-a-secret
           resources:

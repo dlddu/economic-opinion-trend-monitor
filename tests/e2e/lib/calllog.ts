@@ -1,11 +1,6 @@
 // 분석 배치가 레이크에 적재한 **기사별 모델 호출 기록**(`silver/llm_call`)을 읽는다.
 // run.sh 가 객체 데이터셋을 JSONL 한 벌로 반출하고($E2E_LLM_CALL_DIR), 더블이 stderr 에
 // 남긴 수신 요청 digest 를 함께 반출한다($E2E_LLM_DOUBLE_LOG).
-//
-// 왜 두 벌인가: 「기록된 프롬프트가 실제로 전송된 것과 같은가」(`…-test-pipeline-ops.md#시나리오 2`)
-// 는 기록만 봐서는 판정할 수 없다. 기록을 만든 쪽과 프롬프트를 만든 쪽이 같은 코드라,
-// 기록을 픽스처에서 재구성해 대조하면 언제나 참인 단정이 된다. 수신 측(더블)이 받은 바이트로
-// 계산한 digest 만이 그 단정을 거짓이 될 수 있게 만든다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";

@@ -71,9 +71,6 @@ run_batch_job() {
   cat "$LOG_DIR/$job.log"
 }
 
-# A Job whose failure *is* the observation. `…-test-pipeline-ops.md#시나리오 1` needs a run
-# that stops in the analysis stage, so a completed Job here would mean the injected outage
-# did not happen — the spec would then read an absent failure as a passing pipeline.
 run_batch_job_expecting_failure() {
   job="$1"; manifest="$2"
   kubectl --context "$CTX" apply -f "$manifest"
@@ -113,10 +110,7 @@ export_parts() {
 export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/*=*/*=*/data.jsonl'; }
 export_news_body() { export_parts "$1" bronze "$2" news_body '*=*/*.json'; }
 export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data.jsonl'; }
-# `silver/pipeline_run` is an object dataset keyed by run id, so it lays out like
-# `news_body`: one `<key>.json` under a key-prefix partition.
 export_pipeline_run() { export_parts "$1" silver "$2" pipeline_run '*=*/*.json'; }
-# Call records lay out the same way (call_id_prefix=<c>/<call_id>.json).
 export_llm_call() { export_parts "$1" silver "$2" llm_call '*=*/*.json'; }
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
@@ -282,10 +276,7 @@ chain_analysis() {
   echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 }
 
-# 4e) Per-article model call log (…-test-pipeline-ops.md#시나리오 2). Sequential *within*
-# this chain, and that order is the point: cycle 1 fills the reply cache, cycle 2 re-observes
-# the same articles so their prompts hit it (a reuse), and the version bump reprocesses the
-# same Bronze so the earlier records must survive beside the new ones.
+# 4e) Per-article model call log (…-test-pipeline-ops.md#시나리오 2).
 chain_llm_calls() {
   local log
   run_batch_job econ-e2e-ingest-calls1 "$E2E_DIR/k8s/batch/ingest-job-calls1.yaml" >/dev/null
@@ -317,8 +308,6 @@ chain_llm_calls() {
   run_batch_job econ-e2e-analyze-calls-v2 "$E2E_DIR/k8s/batch/analyze-job-calls-v2.yaml" >/dev/null
 
   export_llm_call /data/llm-calls "$LLM_CALL_DIR"
-  # What the double actually received, as digests over the transmitted prompt bytes. The
-  # double serves every chain at once, so the spec filters these lines by model name.
   kubectl --context "$CTX" logs deploy/econ-llm-double --tail=-1 > "$LLM_DOUBLE_LOG"
   [ -s "$LLM_DOUBLE_LOG" ] \
     || { echo "[e2e] FAIL: the llm double logged nothing — no request digests to check the" \
@@ -416,26 +405,7 @@ if [ "${#failed_chains[@]}" -gt 0 ]; then
 fi
 
 # 4g) Pipeline-ops root (…-test-pipeline-ops.md#시나리오 1).
-#
-# Two executions on one root, told apart only by `ECON_RUN_ID`, which is what folds the
-# stages of one execution into one `silver/pipeline_run` record (in production the Argo
-# WorkflowTemplate sets the same variable to `{{workflow.name}}`).
-#
-#   e2e-ops-run-ok       ingest -> analyze -> aggregate, all three succeeding, with one
-#                        always-failing source in the collection config so the run record
-#                        carries a named source failure.
-#   e2e-ops-run-stopped  ingest (four articles the first run never saw) -> analyze against
-#                        an address that does not resolve, so every model call fails and
-#                        the stage stops. No aggregate Job: its absence from the record is
-#                        what the scenario asks to observe.
-#
-# The root is its own (`/data/pipeline-ops`) because the meshing assertion — a stage's
-# output count is the next stage's input count — only holds when the first run starts from
-# an empty lake. Sharing a root with another bundle would feed its settled Silver into the
-# analysis stage's input and break the very invariant this spec measures.
 OPS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-ops "$E2E_DIR/k8s/batch/ingest-job-ops.yaml")"
-# The opposite guard from every other route: here a source *must* fail, or the run record
-# has no source failure to show and the scenario loses one of its three expectations.
 case "$OPS_INGEST_LOG" in
   *"failed_sources=['e2e-ops-down']"*) ;;
   *) echo "[e2e] FAIL: the pipeline-ops collection isolated no source — the feed double" \
@@ -468,11 +438,6 @@ case "$OPS_STOPPED_LOG" in
      exit 1 ;;
 esac
 
-# Scenario 1 step (3): "after clearing the scheduler's run history, query both runs".
-# This harness has no Argo controller, so the Jobs (and their Pod logs) *are* the
-# scheduler's history — AC4.1's own reasoning for writing to the lake is that both age
-# out. Deleting them and exporting afterwards observes exactly that: the export reads the
-# PVC through the long-lived bronze-shell Pod, and the Job logs were captured above.
 OPS_JOBS="econ-e2e-ingest-ops econ-e2e-analyze-ops econ-e2e-aggregate-ops \
 econ-e2e-ingest-ops-2 econ-e2e-analyze-ops-stopped"
 # shellcheck disable=SC2086 # the job names are a deliberate word list, not one argument
