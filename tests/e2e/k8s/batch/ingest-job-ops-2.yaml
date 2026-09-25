@@ -1,0 +1,75 @@
+# `…-test-pipeline-ops.md#시나리오 1`의 **중단 실행**, 첫 단계.
+#
+# 시나리오의 사전 조건이 요구하는 「이미 분석된 기사와 새 기사가 섞인 Bronze」를 만드는 자리다.
+# 앞 실행(`e2e-ops-run-ok`)이 같은 루트에 열 건을 수집·분석해 뒀으므로, 이 주기가 **새 기사
+# 네 건**을 더하면 다음 분석 단계의 입력은 「이미 확정된 10 + 새 4」가 된다. 그래서 그 단계의
+# 처리 결과별 건수는 `skipped_settled` 와 (실패한) 새 기사 넷으로 갈리고, 시나리오가 요구하는
+# 「중단 시점까지의 건수」가 그냥 0이 아니라 **어디까지 갔는지 읽히는 수**가 된다.
+#
+# 상류는 기존 `faults_ok.rss.xml`(4건)을 그대로 쓴다 — 새 RSS 픽스처를 만들지 않는다. 이 실행에
+# 필요한 것은 「앞 실행이 다루지 않은 기사가 있다」뿐이고, 모델 호출은 전건 실패할 예정이라
+# 응답 픽스처도 필요하지 않다.
+#
+# `ECON_RUN_ID` 가 앞 실행과 **다르다** — 그것이 두 실행을 두 레코드로 가르는 유일한 배선이다.
+# 이 Job 은 성공(completed)이 기대값이다: 중단되는 것은 수집이 아니라 다음 단계다.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-ingest-ops-2
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: ingest
+          image: econ-monitor-batch:e2e
+          imagePullPolicy: Never
+          command: ["econ-ingestion"]
+          # mock-exception: FEED-23 — 중단 실행의 상류를 후속 주기 전용 설정(`e2e-feeds-ops-2.json`)으로 돌린다(상류 재배선 — 「앞 실행이 다루지 않은 기사」를 실 상류에서는 고를 수 없다) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+          args:
+            - --source
+            - feed
+            - --feeds
+            - /feeds/e2e-feeds-ops-2.json
+            - --cycle
+            - "2026-04-01T10:00"
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/pipeline-ops
+            - name: ECON_RUN_ID
+              value: e2e-ops-run-stopped
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: feeds
+              mountPath: /feeds
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: feeds
+          configMap:
+            # mock-exception: FEED-24 — 중단 실행의 수집 Job 이 피드 설정·픽스처를 같은 ConfigMap 으로 받는다(상류 재배선의 마운트 지점) — docs/econ-opinion-monitor-e2e-mocking-policy.md
+            name: feed-fixtures
+        - name: tmp
+          emptyDir: {}

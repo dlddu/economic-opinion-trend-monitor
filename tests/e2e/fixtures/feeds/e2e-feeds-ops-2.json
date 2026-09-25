@@ -1,0 +1,3 @@
+[
+  { "source_id": "e2e-ops-followup", "axis": "KR", "feed_url": "http://econ-feed-double:8080/faults_ok.rss.xml", "limit": 100 }
+]

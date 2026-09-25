@@ -53,6 +53,7 @@ LOG_DIR="$E2E_DIR/.artifacts/ingest-logs"
 CHAIN_LOG_DIR="$E2E_DIR/.artifacts/batch-chains"
 PW_SETUP_LOG="$E2E_DIR/.artifacts/playwright-setup.log"
 KIND_CREATE_LOG="$E2E_DIR/.artifacts/kind-create.log"
+RUNLOG_OPS_DIR="$E2E_DIR/.artifacts/runlog-ops"
 PF=""
 BG_PIDS=()
 
@@ -89,6 +90,23 @@ run_batch_job() {
   cat "$LOG_DIR/$job.log"
 }
 
+# A Job whose failure *is* the observation. `…-test-pipeline-ops.md#시나리오 1` needs a run
+# that stops in the analysis stage, so a completed Job here would mean the injected outage
+# did not happen — the spec would then read an absent failure as a passing pipeline.
+run_batch_job_expecting_failure() {
+  job="$1"; manifest="$2"
+  kubectl --context "$CTX" apply -f "$manifest"
+  if ! kubectl --context "$CTX" wait --for=condition=failed "job/$job" --timeout=300s; then
+    echo "[e2e] FAIL: $job did not fail — the analysis stage was supposed to stop here" >&2
+    kubectl --context "$CTX" describe "job/$job" >&2 || true
+    kubectl --context "$CTX" logs "job/$job" --tail=100 >&2 || true
+    exit 1
+  fi
+  mkdir -p "$LOG_DIR"
+  kubectl --context "$CTX" logs "job/$job" > "$LOG_DIR/$job.log"
+  cat "$LOG_DIR/$job.log"
+}
+
 export_lake() {
   src_root="$1"; layer="$2"; dest="$3"; shift 3
   mkdir -p "$dest"
@@ -114,6 +132,9 @@ export_parts() {
 export_news_item() { export_parts "$1" bronze "$2" news_item '*=*/*=*/*=*/*=*/data.jsonl'; }
 export_news_body() { export_parts "$1" bronze "$2" news_body '*=*/*.json'; }
 export_analysis() { export_parts "$1" silver "$2" analysis '*=*/*=*/*=*/*=*/data.jsonl'; }
+# `silver/pipeline_run` is an object dataset keyed by run id, so it lays out like
+# `news_body`: one `<key>.json` under a key-prefix partition.
+export_pipeline_run() { export_parts "$1" silver "$2" pipeline_run '*=*/*.json'; }
 
 echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
@@ -385,6 +406,79 @@ if [ "${#failed_chains[@]}" -gt 0 ]; then
   exit 1
 fi
 
+# 4g) Pipeline-ops root (…-test-pipeline-ops.md#시나리오 1).
+#
+# Two executions on one root, told apart only by `ECON_RUN_ID`, which is what folds the
+# stages of one execution into one `silver/pipeline_run` record (in production the Argo
+# WorkflowTemplate sets the same variable to `{{workflow.name}}`).
+#
+#   e2e-ops-run-ok       ingest -> analyze -> aggregate, all three succeeding, with one
+#                        always-failing source in the collection config so the run record
+#                        carries a named source failure.
+#   e2e-ops-run-stopped  ingest (four articles the first run never saw) -> analyze against
+#                        an address that does not resolve, so every model call fails and
+#                        the stage stops. No aggregate Job: its absence from the record is
+#                        what the scenario asks to observe.
+#
+# The root is its own (`/data/pipeline-ops`) because the meshing assertion — a stage's
+# output count is the next stage's input count — only holds when the first run starts from
+# an empty lake. Sharing a root with another bundle would feed its settled Silver into the
+# analysis stage's input and break the very invariant this spec measures.
+OPS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-ops "$E2E_DIR/k8s/batch/ingest-job-ops.yaml")"
+# The opposite guard from every other route: here a source *must* fail, or the run record
+# has no source failure to show and the scenario loses one of its three expectations.
+case "$OPS_INGEST_LOG" in
+  *"failed_sources=['e2e-ops-down']"*) ;;
+  *) echo "[e2e] FAIL: the pipeline-ops collection isolated no source — the feed double" \
+          "served /__fail__/ successfully, so the run record carries no source failure" >&2
+     exit 1 ;;
+esac
+OPS_ANALYZE_LOG="$(run_batch_job econ-e2e-analyze-ops "$E2E_DIR/k8s/batch/analyze-job-ops.yaml")"
+case "$OPS_ANALYZE_LOG" in
+  *"failed=0"*) ;;
+  *) echo "[e2e] FAIL: a model call failed in the pipeline-ops run that is supposed to" \
+          "succeed — the LLM double has no canned reply for some article (see" \
+          "fixtures/llm/responses.json, bundle e2e-llm-agg) or is unreachable" >&2
+     exit 1 ;;
+esac
+OPS_AGGREGATE_LOG="$(run_batch_job econ-e2e-aggregate-ops "$E2E_DIR/k8s/batch/aggregate-job-ops.yaml")"
+case "$OPS_AGGREGATE_LOG" in
+  *"wrote 0 subject_trend"* | *"+ 0 axis_sentiment"*)
+    echo "[e2e] FAIL: the pipeline-ops aggregation wrote an empty Gold — the stage would" \
+         "book zero served rows and the meshing assertion would compare 0 to 0" >&2
+    exit 1 ;;
+esac
+
+run_batch_job econ-e2e-ingest-ops-2 "$E2E_DIR/k8s/batch/ingest-job-ops-2.yaml" >/dev/null
+OPS_STOPPED_LOG="$(run_batch_job_expecting_failure econ-e2e-analyze-ops-stopped \
+  "$E2E_DIR/k8s/batch/analyze-job-ops-stopped.yaml")"
+case "$OPS_STOPPED_LOG" in
+  *"model calls failed"*) ;;
+  *) echo "[e2e] FAIL: econ-e2e-analyze-ops-stopped failed for some other reason than the" \
+          "injected outage — the stage record would name a different cause" >&2
+     exit 1 ;;
+esac
+
+# Scenario 1 step (3): "after clearing the scheduler's run history, query both runs".
+# This harness has no Argo controller, so the Jobs (and their Pod logs) *are* the
+# scheduler's history — AC4.1's own reasoning for writing to the lake is that both age
+# out. Deleting them and exporting afterwards observes exactly that: the export reads the
+# PVC through the long-lived bronze-shell Pod, and the Job logs were captured above.
+OPS_JOBS="econ-e2e-ingest-ops econ-e2e-analyze-ops econ-e2e-aggregate-ops \
+econ-e2e-ingest-ops-2 econ-e2e-analyze-ops-stopped"
+# shellcheck disable=SC2086 # the job names are a deliberate word list, not one argument
+kubectl --context "$CTX" delete job $OPS_JOBS --wait=true
+# shellcheck disable=SC2086
+surviving="$(kubectl --context "$CTX" get job $OPS_JOBS \
+  --ignore-not-found -o name 2>/dev/null | grep -c . || true)"
+if [ "$surviving" != "0" ]; then
+  echo "[e2e] FAIL: $surviving pipeline-ops Job(s) survived the delete — the scheduler" \
+       "history was not cleared, so the export below proves nothing" >&2
+  exit 1
+fi
+export_pipeline_run /data/pipeline-ops "$RUNLOG_OPS_DIR"
+echo "[e2e] pipeline_run exported after deleting its Jobs -> $RUNLOG_OPS_DIR"
+
 # 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 # The setup started at step 0 (or earlier, by the caller); it has had at least
 # the whole batch phase to finish.
@@ -419,6 +513,7 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_SILVER_ROLLUP_DIR="$ROLLUP_SILVER_DIR" \
   E2E_GOLD_ROLLUP_DIR="$ROLLUP_GOLD_DIR" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
+  E2E_RUNLOG_OPS_DIR="$RUNLOG_OPS_DIR" \
   npx playwright test
 
 echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
@@ -427,3 +522,4 @@ echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
 echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"
 echo "[e2e] OK: aggregation batch -> pipeline-produced Gold (baseline + skewed volume)"
 echo "[e2e] OK: re-stamped collection times -> aggregation -> multi-bucket Gold (hour/day/week)"
+echo "[e2e] OK: two pipeline runs (one whole, one stopped in analysis) -> pipeline_run records"
