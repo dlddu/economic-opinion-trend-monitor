@@ -14,9 +14,6 @@
 #     `failed_sources=[]` 가드가 이미 착지한 집계 spec 들을 지키고 있다.
 #   * `ECON_RUN_ID` — 세 단계가 **한 실행 기록**에 접히게 하는 유일한 배선. 운영에서는 Argo
 #     WorkflowTemplate 이 `{{workflow.name}}` 을 같은 이름으로 넣는다(deploy/batch/).
-#
-# 이 Job 은 **성공(completed)하는 것이 기대값**이다. 한 소스가 끝내 실패해도 수집 전체가
-# 중단되지 않는 것이 제품 동작이고, 시나리오는 그 실패가 **기록되는지**를 본다.
 apiVersion: batch/v1
 kind: Job
 metadata:

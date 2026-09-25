@@ -15,10 +15,6 @@
 # Silver 체크포인트를 지키고 종료 코드 3으로 끊고(`EXIT_ALL_CALLS_FAILED`), 그 시점까지의 단계
 # 기록은 `runlog.run_stage` 가 블록을 나가며 레이크에 쓴다. `backoffLimit: 0` 은 재시도를 막아
 # 같은 실패를 두 번 기다리지 않게 한다 — 재시도해도 결과는 같다(주소는 계속 없다).
-#
-# 집계 Job 은 이 실행에 **없다**. 시나리오가 「집계 단계는 실행되지 않았음이 드러난다」를 기대
-# 결과로 요구하므로, 그 부재 자체가 관측 대상이다(실행 기록의 `stages` 에 `aggregation` 이
-# 없는 것으로 읽힌다).
 apiVersion: batch/v1
 kind: Job
 metadata:
