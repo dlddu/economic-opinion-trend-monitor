@@ -39,7 +39,6 @@ import re
 import subprocess
 import sys
 
-# ── 경로 규칙: 이 경로의 파일이 추가·수정·삭제·이름변경되면 곧 형식 변경 ──────────
 SENSITIVE_PATHS: list[tuple[str, str]] = [
     ("contracts/**", "스키마 계약(contracts/) — JSON Schema·Avro·코드젠"),
     ("go/gen/**", "contracts 에서 생성된 Go 레코드 타입"),
@@ -48,25 +47,18 @@ SENSITIVE_PATHS: list[tuple[str, str]] = [
     ("scripts/check-data-format-change.py", "리뷰 게이트 판정기 자체"),
 ]
 
-# 경로 규칙에서 빼는 것.
 PATH_EXCLUDES: list[str] = []
 
-# ── 내용 규칙: 추가·삭제된 줄이 이 패턴에 걸리면 형식 변경 ─────────────────────────
-# (파일 glob 목록, 줄 정규식, 이유) — 고정 규칙은 없고, 계약 필드 대입 규칙
-# (`field_assignment_rule`)만 contracts/ 에서 읽어 덧붙인다.
 CONTENT_RULES: list[tuple[list[str], re.Pattern[str], str]] = []
 
-# 배치 생산자 — 계약 필드에 값을 채우는 코드가 사는 곳.
 PRODUCER_GLOBS: list[str] = [
     "python/packages/ingestion/src/**/*.py",
     "python/packages/analysis/src/**/*.py",
     "python/packages/aggregation/src/**/*.py",
 ]
 
-# 주석 줄은 형식을 바꾸지 않는다.
 COMMENT_LINE = re.compile(r"^\s*(#|//)")
 
-# 내용 규칙에서 빼는 것 — 테스트 코드는 대상이 아니다.
 CONTENT_EXCLUDES: list[str] = [
     "**/tests/**",
     "**/*_test.go",
@@ -146,7 +138,6 @@ def field_assignment_rule(fields: set[str]) -> tuple[list[str], re.Pattern[str],
         PRODUCER_GLOBS,
         # ruff format 이 강제하는 모양에 기댄다: 키워드 인자는 `field=value`(공백 없음),
         # 지역 변수 대입은 `field = value`(공백 있음) — 후자는 잡지 않는다.
-        # dict 리터럴 `"field": value` 도 레코드를 직접 짓는 모양이라 잡는다.
         re.compile(rf"(?<![\w.])({alt})=(?!=)|[\"']({alt})[\"']\s*:"),
         "배치 생산자가 계약 필드에 채우는 값 변경",
     )
