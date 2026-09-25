@@ -4,9 +4,25 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      code:
+        description: false 면 build · e2e 를 건너뛴다(checks.yml 의 changes 판정).
+        type: boolean
+        default: true
 
 jobs:
+  # `make lint` 중 docs/ 를 읽는 유일한 검사. build 가 걸러지는 문서 PR 에서도 돌아야 하므로
+  # 따로 떼어 항상 돌린다(build 가 도는 PR 에선 `make lint` 안에서 한 번 더 돈다).
+  scenario-mapping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scenario <-> e2e spec mapping
+        run: make lint-scenario-mapping
+
   build:
+    if: inputs.code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +73,7 @@ jobs:
   # (~15s) is a sequential step. Started from run.sh instead (after the builds
   # and the cluster), it outlasted the batch Jobs by ~4s without a cache.
   e2e:
+    if: inputs.code
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     env:

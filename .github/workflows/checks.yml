@@ -2,6 +2,7 @@
 # require exactly one status check: `required`.
 #
 #   ci    -> ci.yml                   build (gen-check · lint · test), kind e2e
+#                                     (둘 다 `changes` 가 거른다 — 아래 changes 잡)
 #   docs  -> docs-journey-mockup.yml  journey ↔ mockup structure + flow
 #   render-> docs-mockup-render.yml   mockup ↔ implementation render (rules 3·5)
 #   image -> image.yml                publish serving/batch images (PR head SHA)
@@ -31,8 +32,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ci.yml 의 무거운 두 job(build · e2e)을 PR 이 실제로 건드린 경로로 거른다. 워크플로
+  # 레벨 `paths:` 를 쓰지 않는 이유: 그러면 `required` 체크 자체가 생기지 않아 필수 체크가
+  # 영원히 pending 이 된다. 그래서 여기서 판정해 ci.yml 에 입력으로 넘긴다.
+  #
+  # `code` 는 제외 목록이다 — build(make setup/gen-check/lint/test)와 e2e 에 닿지 않는다고
+  # 확인된 경로만 적고, 나머지(새 디렉터리 포함)는 전부 돌린다. docs/ 를 읽는 검사
+  # (lint-scenario-mapping)는 ci.yml 이 필터와 무관하게 따로 돌린다.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # merge ref 의 첫 부모는 그 시점 main 이라, HEAD^1..HEAD 가 「머지되면 실제로 바뀌는
+      # 파일」이다. diff 가 실패하면 거르지 않고 전부 돌린다.
+      - name: Classify changed files
+        id: filter
+        run: |
+          if ! files=$(git diff --name-only HEAD^1 HEAD); then
+            echo "::warning::변경 파일을 구하지 못했다 — 전부 돌린다."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          code=false
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            case "$f" in
+              docs/*|scripts/*|README.md) ;;
+              .github/workflows/docs-*.yml|.github/workflows/review-gate.yml) ;;
+              *) code=true ;;
+            esac
+          done <<< "$files"
+          echo "$files"
+          echo "code=$code"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   ci:
+    needs: changes
     uses: ./.github/workflows/ci.yml
+    with:
+      code: ${{ needs.changes.outputs.code == 'true' }}
 
   docs:
     uses: ./.github/workflows/docs-journey-mockup.yml
@@ -53,7 +98,7 @@ jobs:
   required:
     name: required
     if: always()
-    needs: [ci, docs, render, image]
+    needs: [changes, ci, docs, render, image]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
