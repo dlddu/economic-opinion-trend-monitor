@@ -26,6 +26,38 @@ const (
 	BucketUnitWeek BucketUnit = "week"
 )
 
+type LlmCallOutcome string
+
+const (
+	LlmCallOutcomeParsed      LlmCallOutcome = "parsed"
+	LlmCallOutcomeParseFailed LlmCallOutcome = "parse_failed"
+	LlmCallOutcomeCallFailed  LlmCallOutcome = "call_failed"
+	LlmCallOutcomeReused      LlmCallOutcome = "reused"
+)
+
+type PipelineStage string
+
+const (
+	PipelineStageIngestion   PipelineStage = "ingestion"
+	PipelineStageAnalysis    PipelineStage = "analysis"
+	PipelineStageAggregation PipelineStage = "aggregation"
+)
+
+type RunStatus string
+
+const (
+	RunStatusRunning   RunStatus = "running"
+	RunStatusSucceeded RunStatus = "succeeded"
+	RunStatusFailed    RunStatus = "failed"
+)
+
+type RunTrigger string
+
+const (
+	RunTriggerScheduled RunTrigger = "scheduled"
+	RunTriggerReprocess RunTrigger = "reprocess"
+)
+
 type Sentiment string
 
 const (

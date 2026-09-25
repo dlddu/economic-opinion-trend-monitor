@@ -12,5 +12,22 @@ AXIS_VALUES: tuple[Axis, ...] = ("KR", "US", "GLOBAL")
 BucketUnit = Literal["hour", "day", "week"]
 BUCKETUNIT_VALUES: tuple[BucketUnit, ...] = ("hour", "day", "week")
 
+LlmCallOutcome = Literal["parsed", "parse_failed", "call_failed", "reused"]
+LLMCALLOUTCOME_VALUES: tuple[LlmCallOutcome, ...] = (
+    "parsed",
+    "parse_failed",
+    "call_failed",
+    "reused",
+)
+
+PipelineStage = Literal["ingestion", "analysis", "aggregation"]
+PIPELINESTAGE_VALUES: tuple[PipelineStage, ...] = ("ingestion", "analysis", "aggregation")
+
+RunStatus = Literal["running", "succeeded", "failed"]
+RUNSTATUS_VALUES: tuple[RunStatus, ...] = ("running", "succeeded", "failed")
+
+RunTrigger = Literal["scheduled", "reprocess"]
+RUNTRIGGER_VALUES: tuple[RunTrigger, ...] = ("scheduled", "reprocess")
+
 Sentiment = Literal["positive", "neutral", "negative", "mixed"]
 SENTIMENT_VALUES: tuple[Sentiment, ...] = ("positive", "neutral", "negative", "mixed")

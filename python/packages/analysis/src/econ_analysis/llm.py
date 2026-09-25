@@ -44,12 +44,15 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from typing import Protocol
 
-from econ_core.models import SENTIMENT_VALUES, Analysis
+from econ_core import calllog
+from econ_core.models import SENTIMENT_VALUES, Analysis, LlmCallRecord
 
 from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
 
@@ -148,6 +151,8 @@ class AnalysisStats:
     version). Items with no body never reach the model, so they are unanalyzed without
     being counted here. ``failed_ids`` names the records behind ``failed``: their
     unanalyzed row is an outage, not the model's judgement, so they are retried.
+    ``reused_ids`` names the records behind ``reused``, so the run record can book each
+    record under exactly one outcome (AC4.1).
     """
 
     attempted: int = 0
@@ -155,6 +160,7 @@ class AnalysisStats:
     reused: int = 0
     last_error: str | None = None
     failed_ids: list[str] = field(default_factory=list)
+    reused_ids: list[str] = field(default_factory=list)
 
 
 def _temperature(raw: str | None) -> float | None:
@@ -240,6 +246,7 @@ def http_completer(
             raise CompletionError(f"unexpected completion envelope: {exc}") from exc
 
     _complete.model = name  # type: ignore[attr-defined]  # part of the reply-cache key
+    _complete.temperature = temperature  # type: ignore[attr-defined]  # named by the call record
     return _complete
 
 
@@ -355,12 +362,59 @@ def reply_cache_key(analyzer_version: str, model: str, system: str, user: str) -
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+def _call_record(
+    *,
+    item: dict,
+    run_id: str,
+    analyzer_version: str,
+    model: str,
+    temperature: float | None,
+    system: str,
+    user: str,
+    outcome: str,
+    response_raw: str | None = None,
+    failure_reason: str | None = None,
+    attempts: int,
+    started: float,
+    reused_from: str | None = None,
+) -> dict:
+    """One :class:`~econ_core.models.LlmCallRecord` for a call that just happened (AC4.2).
+
+    ``system`` / ``user`` are the strings the transport was actually handed, not a
+    rebuild of them, so the stored prompt equals the transmitted one by construction.
+    """
+    return asdict(
+        LlmCallRecord(
+            call_id=calllog.new_call_id(),
+            run_id=run_id,
+            record_id=item["record_id"],
+            source_url=item["source_url"],
+            analyzer_version=analyzer_version,
+            call_model=model,
+            call_temperature=temperature,
+            prompt_system=system,
+            prompt_user=user,
+            prompt_sha256=calllog.prompt_digest(system, user),
+            response_raw=response_raw,
+            call_outcome=outcome,
+            call_failure_reason=failure_reason,
+            call_attempt_count=attempts,
+            called_at=datetime.now(UTC).replace(microsecond=0).isoformat(),
+            duration_ms=int((time.monotonic() - started) * 1000),
+            reused_from_call_id=reused_from,
+        )
+    )
+
+
 def run_llm_analysis(
     items: list[dict],
     bodies: dict[str, str],
     completer: Completer,
     analyzer_version: str = ANALYZER_VERSION,
     reply_cache: dict[str, str] | None = None,
+    calls: list[dict] | None = None,
+    reply_origins: dict[str, str] | None = None,
+    run_id: str = "",
 ) -> tuple[list[dict], AnalysisStats, list[dict]]:
     """Analyze every Bronze item, isolating per-item model failures.
 
@@ -372,40 +426,78 @@ def run_llm_analysis(
 
     ``reply_cache`` maps :func:`reply_cache_key` to a raw reply from an earlier run;
     a hit skips the model call and replays that reply through the same parse path.
-    Only replies that produced a record are returned as new cache entries, so a
-    malformed reply is retried next cycle rather than remembered.
+    Only replies that produced a record are returned as new cache entries, so the cache
+    stays an index of answers worth replaying rather than a log of what happened.
+
+    ``calls`` is the append sink for the call log (AC4.2): every article that reaches the
+    model leaves exactly one record in it — a reply that parsed, a reply that did not, a
+    request that never came back, or a cached reply replayed. The log is separate from the
+    cache on purpose: the cache exists to avoid a call, so it keeps only useful answers,
+    while AC4.2 asks precisely about the failures. It is an in/out parameter for the same
+    reason ``reply_cache`` is — the caller owns the batch boundary at which records are
+    flushed to the lake, so a run cut short keeps the records it already made.
+    ``reply_origins`` maps a cache key to the ``call_id`` that first produced that reply,
+    so a reuse names its original; a key missing from it (a cache entry written before
+    call records existed) yields a reuse record with a null origin rather than no record.
     """
     cache = reply_cache if reply_cache is not None else {}
+    call_log = calls if calls is not None else []
+    origins = reply_origins if reply_origins is not None else {}
     model = str(getattr(completer, "model", ""))
+    temperature = getattr(completer, "temperature", None)
     stats = AnalysisStats()
     analyses: list[dict] = []
     new_entries: list[dict] = []
     for item in items:
         body = bodies.get(item.get("body_hash") or "")
         if not (item.get("body_available") and body):
+            # Never reached the model, so there is no call to record. What such a record
+            # *would* say — why no call was made — is AC4.3's "미호출 사유" on the Silver
+            # row, not a call record for a call that did not happen.
             analyses.append(asdict(analyze_llm(item, body, completer, analyzer_version)))
             continue
 
-        key = reply_cache_key(analyzer_version, model, _SYSTEM_PROMPT, build_prompt(item, body))
+        user_prompt = build_prompt(item, body)
+        key = reply_cache_key(analyzer_version, model, _SYSTEM_PROMPT, user_prompt)
         cached = cache.get(key)
         if cached is not None:
+            started = time.monotonic()
             try:
                 analyses.append(
                     asdict(analyze_llm(item, body, lambda _s, _u: cached, analyzer_version))
                 )
-                stats.reused += 1
-                continue
             except CompletionError:
                 pass  # stored reply no longer parses (parser changed) -> ask the model again
+            else:
+                stats.reused += 1
+                stats.reused_ids.append(item["record_id"])
+                call_log.append(
+                    _call_record(
+                        item=item,
+                        run_id=run_id,
+                        analyzer_version=analyzer_version,
+                        model=model,
+                        temperature=temperature,
+                        system=_SYSTEM_PROMPT,
+                        user=user_prompt,
+                        outcome="reused",
+                        response_raw=cached,
+                        attempts=0,
+                        started=started,
+                        reused_from=origins.get(key),
+                    )
+                )
+                continue
 
         replies: list[str] = []
 
         def _live(system: str, user: str, _sink: list[str] = replies) -> str:
             reply = completer(system, user)
-            _sink.append(reply)
+            _sink.append((system, user, reply))
             return reply
 
         stats.attempted += 1
+        started = time.monotonic()
         try:
             analysis = analyze_llm(item, body, _live, analyzer_version)
         except CompletionError as exc:
@@ -413,16 +505,57 @@ def run_llm_analysis(
             stats.failed_ids.append(item["record_id"])
             stats.last_error = str(exc)
             analysis = _unanalyzed(item, analyzer_version)
+            # A reply that came back and would not parse is a different failure from a
+            # request that never came back, and AC4.2 asks for both — `replies` holding
+            # the transmitted pair is exactly the difference.
+            sent_system, sent_user, sent_reply = (
+                replies[0] if replies else (_SYSTEM_PROMPT, user_prompt, None)
+            )
+            call_log.append(
+                _call_record(
+                    item=item,
+                    run_id=run_id,
+                    analyzer_version=analyzer_version,
+                    model=model,
+                    temperature=temperature,
+                    system=sent_system,
+                    user=sent_user,
+                    outcome="parse_failed" if replies else "call_failed",
+                    response_raw=sent_reply,
+                    failure_reason=str(exc),
+                    attempts=1,
+                    started=started,
+                )
+            )
         else:
+            sent_system, sent_user, sent_reply = (
+                replies[0] if replies else (_SYSTEM_PROMPT, user_prompt, None)
+            )
+            call = _call_record(
+                item=item,
+                run_id=run_id,
+                analyzer_version=analyzer_version,
+                model=model,
+                temperature=temperature,
+                system=sent_system,
+                user=sent_user,
+                outcome="parsed",
+                response_raw=sent_reply,
+                attempts=1,
+                started=started,
+            )
+            call_log.append(call)
             if cached is None and replies:
-                cache[key] = replies[0]
+                cache[key] = sent_reply
                 new_entries.append(
                     {
                         "cache_key": key,
-                        "reply": replies[0],
+                        "reply": sent_reply,
                         "model": model,
                         "analyzer_version": analyzer_version,
                         "first_seen_at": item.get("collected_at"),
+                        # Lets a later reuse name the call this reply came from (AC4.2).
+                        "call_id": call["call_id"],
                     }
                 )
         analyses.append(asdict(analysis))

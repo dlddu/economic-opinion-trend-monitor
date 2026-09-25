@@ -43,7 +43,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from econ_core import domain, open_store, silver
+from econ_core import LakeStore, calllog, domain, open_store, runlog, silver
 
 from econ_analysis import fake_llm, llm
 
@@ -105,6 +105,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=100,
         help="Records analyzed between two Silver checkpoints.",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Batch run this analysis belongs to (AC4.1); defaults to $ECON_RUN_ID, "
+        "or a fresh id when this CLI runs outside a pipeline.",
+    )
     return parser
 
 
@@ -140,6 +146,27 @@ def _batches(items: list[dict], size: int) -> list[list[dict]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
+def _book_outcomes(
+    stage: runlog.StageReport, rows: list[dict], failed_ids: list[str], reused_ids: list[str]
+) -> None:
+    """Book each analyzed record under exactly one AC4.1 outcome.
+
+    The buckets have to partition the input, so the order matters: a failed model call
+    leaves an ``unanalyzed`` row that is an outage rather than a judgement, and a reused
+    reply produces a real label without a call. Checking failure first, then reuse, then
+    the row's own status keeps one record in one bucket.
+    """
+    failed = set(failed_ids)
+    reused = set(reused_ids)
+    for row in rows:
+        if row["record_id"] in failed:
+            stage.count("call_failed")
+        elif row["record_id"] in reused:
+            stage.count("reused")
+        else:
+            stage.count(row["analysis_status"])
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
@@ -157,6 +184,20 @@ def main(argv: list[str] | None = None) -> int:
         version = args.analyzer_version or fake_llm.ANALYZER_VERSION
 
     store = open_store(args.data)
+    run_id = runlog.resolve_run_id(args.run_id)
+    trigger = runlog.REPROCESS if _scoped(args) else runlog.SCHEDULED
+    with runlog.run_stage(store, run_id, runlog.ANALYSIS, trigger=trigger) as stage:
+        return _analyze(args, store, version, completer, run_id, stage)
+
+
+def _analyze(
+    args: argparse.Namespace,
+    store: LakeStore,
+    version: str,
+    completer: llm.Completer | None,
+    run_id: str,
+    stage: runlog.StageReport,
+) -> int:
     bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
     cycles = silver.cycles_of(bronze)
     migrated = silver.migrate_legacy(store, cycles)
@@ -175,7 +216,11 @@ def main(argv: list[str] | None = None) -> int:
     todo = [item for item in todo if item["record_id"] not in done]
     skipped = selected - len(todo)
     if scoped:
+        before_sample = len(todo)
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
+        stage.count("skipped_not_sampled", before_sample - len(todo))
+    stage.input_count = selected
+    stage.count("skipped_settled", skipped)
 
     bodies: dict[str, str] = {}
     for item in todo:
@@ -187,11 +232,14 @@ def main(argv: list[str] | None = None) -> int:
 
     stats = llm.AnalysisStats() if completer is not None else None
     reply_cache: dict[str, str] = {}
+    # Cache key -> the call that first produced that reply, so a reuse can name its
+    # original (AC4.2). Entries written before call records existed have no call_id;
+    # they are simply absent here and the reuse records a null origin.
+    reply_origins: dict[str, str] = {}
     if completer is not None:
-        reply_cache = {
-            r["cache_key"]: r["reply"]
-            for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
-        }
+        cached_replies = store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
+        reply_cache = {r["cache_key"]: r["reply"] for r in cached_replies}
+        reply_origins = {r["cache_key"]: r["call_id"] for r in cached_replies if r.get("call_id")}
 
     keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
     analyses: list[dict] = []
@@ -199,17 +247,34 @@ def main(argv: list[str] | None = None) -> int:
     for batch in _batches(todo, args.batch_size):
         failed_ids: list[str] = []
         if completer is not None:
+            batch_calls: list[dict] = []
             rows, batch_stats, new_replies = llm.run_llm_analysis(
-                batch, bodies, completer, version, reply_cache
+                batch,
+                bodies,
+                completer,
+                version,
+                reply_cache,
+                calls=batch_calls,
+                reply_origins=reply_origins,
+                run_id=run_id,
             )
             # Keep what the model did answer even if the batch as a whole fails below.
             store.merge_records(domain.SILVER, domain.DS_ANALYSIS_CACHE, "cache_key", new_replies)
+            # Same reason, one step stronger: the call log is what AC4.2 asks for *about*
+            # failures, so it is written before the all-calls-failed exit below — a batch
+            # nobody answered is exactly the one whose call records must survive.
+            for call in batch_calls:
+                calllog.record_call(store, call)
+            reply_origins.update(
+                {r["cache_key"]: r["call_id"] for r in new_replies if r.get("call_id")}
+            )
             assert stats is not None
             stats.attempted += batch_stats.attempted
             stats.failed += batch_stats.failed
             stats.reused += batch_stats.reused
             stats.last_error = batch_stats.last_error or stats.last_error
             failed_ids = batch_stats.failed_ids
+            _book_outcomes(stage, rows, failed_ids, batch_stats.reused_ids)
             if batch_stats.attempted and batch_stats.attempted == batch_stats.failed:
                 # Nobody answered: writing now would stamp an all-unanalyzed batch and
                 # blur the AC2.5 signal. Keep the checkpoint and stop here.
@@ -219,12 +284,18 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 print(f"  last error: {batch_stats.last_error}", file=sys.stderr)
+                stage.output_count = len(analyses)
+                stage.fail(
+                    f"all {batch_stats.attempted} model calls failed; "
+                    f"last error: {batch_stats.last_error}"
+                )
                 return EXIT_ALL_CALLS_FAILED
         else:
             rows = [
                 asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
                 for item in batch
             ]
+            _book_outcomes(stage, rows, [], [])
         _, dropped = silver.store_analyses(
             store, cycles, rows, coexist=scoped, keep_versions=keep_versions
         )
@@ -260,4 +331,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         if stats.failed:
             print(f"  last error: {stats.last_error}")
+    stage.output_count = len(analyses)
+    print(f"  run={run_id} stage=analysis")
     return 0

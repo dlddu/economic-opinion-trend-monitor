@@ -31,31 +31,24 @@ export interface DashRow {
   subject: string;
   normalized_share: number;
   raw_count: number;
-  /** Rank by raw mentions in the same bucket; differs from `rank` when normalizing reorders. */
   raw_rank: number;
-  /** Share per window bucket, oldest first (0 where the axis collected but the subject was absent). */
   spark: number[];
-  /** %p against `basis.previous_bucket`; meaningless when `basis.has_baseline` is false. */
   delta: number;
-  /** Absent in the previous bucket. */
   is_new: boolean;
 }
 
 export interface DashBasis {
   range: DashRange;
   unit: BucketUnit;
-  /** Latest bucket of the unit across every axis. */
   bucket: string;
   previous_bucket: string;
   has_baseline: boolean;
   buckets: string[];
-  /** This axis has no row in `bucket` — the latest collection did not reach it. */
   empty_window: boolean;
   last_bucket: string;
 }
 
 export interface DashSummary {
-  /** Re-derived from the analyzed count and the share set aside; null when not recoverable. */
   collected: number | null;
   collected_prev: number | null;
   analyzed: number;

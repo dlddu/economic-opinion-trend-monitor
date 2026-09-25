@@ -5,7 +5,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from econ_core.models.enums import AnalysisStatus, Sentiment
+from econ_core.models.enums import (
+    AnalysisStatus,
+    LlmCallOutcome,
+    PipelineStage,
+    RunStatus,
+    RunTrigger,
+    Sentiment,
+)
 
 
 @dataclass(kw_only=True)
@@ -34,4 +41,133 @@ class Analysis:
             confidence=d["confidence"],
             analyzed_at=d["analyzed_at"],
             analyzer_version=d["analyzer_version"],
+        )
+
+
+@dataclass(kw_only=True)
+class LlmCallRecord:
+    """One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2)."""
+
+    call_id: str
+    run_id: str
+    record_id: str
+    source_url: str
+    analyzer_version: str
+    call_model: str
+    call_temperature: float | None = None
+    prompt_system: str
+    prompt_user: str
+    prompt_sha256: str
+    response_raw: str | None = None
+    call_outcome: LlmCallOutcome
+    call_failure_reason: str | None = None
+    call_attempt_count: int
+    called_at: str
+    duration_ms: int
+    reused_from_call_id: str | None = None
+
+    @classmethod
+    def from_dict(cls, d: dict) -> LlmCallRecord:
+        return cls(
+            call_id=d["call_id"],
+            run_id=d["run_id"],
+            record_id=d["record_id"],
+            source_url=d["source_url"],
+            analyzer_version=d["analyzer_version"],
+            call_model=d["call_model"],
+            call_temperature=d.get("call_temperature"),
+            prompt_system=d["prompt_system"],
+            prompt_user=d["prompt_user"],
+            prompt_sha256=d["prompt_sha256"],
+            response_raw=d.get("response_raw"),
+            call_outcome=d["call_outcome"],
+            call_failure_reason=d.get("call_failure_reason"),
+            call_attempt_count=d["call_attempt_count"],
+            called_at=d["called_at"],
+            duration_ms=d["duration_ms"],
+            reused_from_call_id=d.get("reused_from_call_id"),
+        )
+
+
+@dataclass(kw_only=True)
+class PipelineRun:
+    """Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1)."""
+
+    run_id: str
+    run_trigger: RunTrigger
+    run_started_at: str
+    run_ended_at: str | None = None
+    run_status: RunStatus
+    stages: list[RunStage] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> PipelineRun:
+        return cls(
+            run_id=d["run_id"],
+            run_trigger=d["run_trigger"],
+            run_started_at=d["run_started_at"],
+            run_ended_at=d.get("run_ended_at"),
+            run_status=d["run_status"],
+            stages=[RunStage.from_dict(x) for x in d.get("stages", [])],
+        )
+
+
+@dataclass(kw_only=True)
+class RunStage:
+    """One stage of a run: its state, duration, input count, per-outcome counts and failure reason (AC4.1)."""
+
+    stage_name: PipelineStage
+    stage_status: RunStatus
+    stage_started_at: str
+    stage_ended_at: str | None = None
+    duration_ms: int
+    input_count: int
+    output_count: int
+    outcomes: list[StageOutcome] = field(default_factory=list)
+    failure_reason: str | None = None
+    source_failures: list[SourceFailure] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> RunStage:
+        return cls(
+            stage_name=d["stage_name"],
+            stage_status=d["stage_status"],
+            stage_started_at=d["stage_started_at"],
+            stage_ended_at=d.get("stage_ended_at"),
+            duration_ms=d["duration_ms"],
+            input_count=d["input_count"],
+            output_count=d["output_count"],
+            outcomes=[StageOutcome.from_dict(x) for x in d.get("outcomes", [])],
+            failure_reason=d.get("failure_reason"),
+            source_failures=[SourceFailure.from_dict(x) for x in d.get("source_failures", [])],
+        )
+
+
+@dataclass(kw_only=True)
+class SourceFailure:
+    """One collection source that failed, and why (AC4.1)."""
+
+    source_id: str
+    source_failure_reason: str
+
+    @classmethod
+    def from_dict(cls, d: dict) -> SourceFailure:
+        return cls(
+            source_id=d["source_id"],
+            source_failure_reason=d["source_failure_reason"],
+        )
+
+
+@dataclass(kw_only=True)
+class StageOutcome:
+    """One outcome bucket of a stage and how many input units fell into it (AC4.1)."""
+
+    outcome_name: str
+    outcome_count: int
+
+    @classmethod
+    def from_dict(cls, d: dict) -> StageOutcome:
+        return cls(
+            outcome_name=d["outcome_name"],
+            outcome_count=d["outcome_count"],
         )

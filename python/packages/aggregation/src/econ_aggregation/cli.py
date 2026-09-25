@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from econ_core import domain, open_store, silver
+from econ_core import LakeStore, domain, open_store, runlog, silver
 
 from econ_aggregation.aggregate import (
     BUCKET_UNITS,
@@ -50,9 +50,24 @@ def main(argv: list[str] | None = None) -> int:
         default="true",
         help="Whether consumer screens may annotate the publish time and version.",
     )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Batch run this aggregation belongs to (AC4.1); defaults to $ECON_RUN_ID, "
+        "or a fresh id when this CLI runs outside a pipeline.",
+    )
     args = parser.parse_args(argv)
 
     store = open_store(args.data)
+    run_id = runlog.resolve_run_id(args.run_id)
+    trigger = runlog.REPROCESS if args.decision else runlog.SCHEDULED
+    with runlog.run_stage(store, run_id, runlog.AGGREGATION, trigger=trigger) as stage:
+        return _aggregate(args, store, run_id, stage)
+
+
+def _aggregate(
+    args: argparse.Namespace, store: LakeStore, run_id: str, stage: runlog.StageReport
+) -> int:
     if args.decision:
         try:
             decision = silver.record_decision(
@@ -60,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         except ValueError as exc:
             print(f"aggregation: decision not recorded — {exc}", file=sys.stderr)
+            stage.fail(f"decision not recorded: {exc}")
             return 2
         log_path = store.path(domain.SILVER, domain.DS_REPROCESS_DECISION)
         print(
@@ -92,4 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_TREND)}")
     print(f"  -> {store.path(domain.GOLD, domain.DS_AXIS_SENTIMENT)}")
+
+    stage.input_count = len(all_silver)
+    stage.output_count = n_trend + n_sent
+    stage.count("served", len(chosen))
+    stage.count("superseded", len(all_silver) - len(chosen))
+    print(f"  run={run_id} stage=aggregation")
     return 0

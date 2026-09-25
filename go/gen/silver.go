@@ -14,3 +14,60 @@ type Analysis struct {
 	AnalyzedAt        string         `json:"analyzed_at"`
 	AnalyzerVersion   string         `json:"analyzer_version"`
 }
+
+// LlmCallRecord One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2).
+type LlmCallRecord struct {
+	CallID            string         `json:"call_id"`
+	RunID             string         `json:"run_id"`
+	RecordID          string         `json:"record_id"`
+	SourceURL         string         `json:"source_url"`
+	AnalyzerVersion   string         `json:"analyzer_version"`
+	CallModel         string         `json:"call_model"`
+	CallTemperature   *float64       `json:"call_temperature,omitempty"`
+	PromptSystem      string         `json:"prompt_system"`
+	PromptUser        string         `json:"prompt_user"`
+	PromptSha256      string         `json:"prompt_sha256"`
+	ResponseRaw       *string        `json:"response_raw,omitempty"`
+	CallOutcome       LlmCallOutcome `json:"call_outcome"`
+	CallFailureReason *string        `json:"call_failure_reason,omitempty"`
+	CallAttemptCount  int64          `json:"call_attempt_count"`
+	CalledAt          string         `json:"called_at"`
+	DurationMs        int64          `json:"duration_ms"`
+	ReusedFromCallID  *string        `json:"reused_from_call_id,omitempty"`
+}
+
+// PipelineRun Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1).
+type PipelineRun struct {
+	RunID        string     `json:"run_id"`
+	RunTrigger   RunTrigger `json:"run_trigger"`
+	RunStartedAt string     `json:"run_started_at"`
+	RunEndedAt   *string    `json:"run_ended_at,omitempty"`
+	RunStatus    RunStatus  `json:"run_status"`
+	Stages       []RunStage `json:"stages"`
+}
+
+// RunStage One stage of a run: its state, duration, input count, per-outcome counts and failure reason (AC4.1).
+type RunStage struct {
+	StageName      PipelineStage   `json:"stage_name"`
+	StageStatus    RunStatus       `json:"stage_status"`
+	StageStartedAt string          `json:"stage_started_at"`
+	StageEndedAt   *string         `json:"stage_ended_at,omitempty"`
+	DurationMs     int64           `json:"duration_ms"`
+	InputCount     int64           `json:"input_count"`
+	OutputCount    int64           `json:"output_count"`
+	Outcomes       []StageOutcome  `json:"outcomes"`
+	FailureReason  *string         `json:"failure_reason,omitempty"`
+	SourceFailures []SourceFailure `json:"source_failures"`
+}
+
+// SourceFailure One collection source that failed, and why (AC4.1).
+type SourceFailure struct {
+	SourceID            string `json:"source_id"`
+	SourceFailureReason string `json:"source_failure_reason"`
+}
+
+// StageOutcome One outcome bucket of a stage and how many input units fell into it (AC4.1).
+type StageOutcome struct {
+	OutcomeName  string `json:"outcome_name"`
+	OutcomeCount int64  `json:"outcome_count"`
+}

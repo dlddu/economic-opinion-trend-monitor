@@ -81,6 +81,8 @@ spec:
         command: ["econ-ingestion"]
         args: []
         env:
+          - name: ECON_RUN_ID
+            value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
             value: /data
         resources:
@@ -128,6 +130,8 @@ spec:
         command: ["econ-analysis"]
         args: []
         env:
+          - name: ECON_RUN_ID
+            value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
             value: /data
           - name: ECON_LLM_BASE_URL
@@ -194,6 +198,8 @@ spec:
           - --batch-size
           - "{{workflow.parameters.batch}}"
         env:
+          - name: ECON_RUN_ID
+            value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
             value: /data
           - name: ECON_LLM_BASE_URL
@@ -246,6 +252,8 @@ spec:
           - --notify-consumer
           - "{{workflow.parameters.notify}}"
         env:
+          - name: ECON_RUN_ID
+            value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
             value: /data
         resources:
@@ -280,6 +288,8 @@ spec:
         command: ["econ-aggregation"]
         args: []
         env:
+          - name: ECON_RUN_ID
+            value: "{{workflow.name}}"
           - name: ECON_DATA_ROOT
             value: /data
         resources:
