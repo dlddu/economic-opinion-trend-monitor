@@ -232,9 +232,6 @@ def _analyze(
 
     stats = llm.AnalysisStats() if completer is not None else None
     reply_cache: dict[str, str] = {}
-    # Cache key -> the call that first produced that reply, so a reuse can name its
-    # original (AC4.2). Entries written before call records existed have no call_id;
-    # they are simply absent here and the reuse records a null origin.
     reply_origins: dict[str, str] = {}
     if completer is not None:
         cached_replies = store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
@@ -260,9 +257,7 @@ def _analyze(
             )
             # Keep what the model did answer even if the batch as a whole fails below.
             store.merge_records(domain.SILVER, domain.DS_ANALYSIS_CACHE, "cache_key", new_replies)
-            # Same reason, one step stronger: the call log is what AC4.2 asks for *about*
-            # failures, so it is written before the all-calls-failed exit below — a batch
-            # nobody answered is exactly the one whose call records must survive.
+            # Must stay ahead of the all-calls-failed exit below (AC4.2).
             for call in batch_calls:
                 calllog.record_call(store, call)
             reply_origins.update(
