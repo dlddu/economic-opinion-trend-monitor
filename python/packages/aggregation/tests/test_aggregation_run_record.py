@@ -57,7 +57,6 @@ def test_every_stage_balances_and_the_stages_chain(
     ingestion = _stage(tmp_path, "run-b", runlog.INGESTION)
     analysis = _stage(tmp_path, "run-b", runlog.ANALYSIS)
     aggregation = _stage(tmp_path, "run-b", runlog.AGGREGATION)
-    # On a lake this run filled itself, each stage's output is the next one's input.
     assert ingestion["output_count"] == analysis["input_count"]
     assert analysis["output_count"] == aggregation["input_count"]
     assert aggregation["output_count"] > 0

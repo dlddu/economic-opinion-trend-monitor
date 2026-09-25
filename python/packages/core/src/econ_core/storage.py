@@ -273,8 +273,6 @@ class LocalFsStore(LakeStore):
         staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
         staging.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
         try:
-            # link() refuses an existing target, so a concurrent writer of the same
-            # key cannot replace a stored object, and readers never see it half-written.
             os.link(staging, target)
         except FileExistsError:
             return False
@@ -287,8 +285,6 @@ class LocalFsStore(LakeStore):
         target.parent.mkdir(parents=True, exist_ok=True)
         staging = target.with_name(f".{target.name}.{os.getpid()}.tmp")
         staging.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
-        # Rename over the old version: a reader sees either the previous record or the
-        # new one, never a half-written file.
         os.replace(staging, target)
 
     def get_object(self, layer: str, dataset: str, key_field: str, key: str) -> dict | None:

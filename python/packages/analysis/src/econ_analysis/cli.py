@@ -185,8 +185,6 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     run_id = runlog.resolve_run_id(args.run_id)
-    # A scoped run is the JRN-logic-backfill reprocess path; a whole-lake run is the
-    # hourly schedule. Whichever stage opens the run record names its trigger (AC4.1).
     trigger = runlog.REPROCESS if _scoped(args) else runlog.SCHEDULED
     with runlog.run_stage(store, run_id, runlog.ANALYSIS, trigger=trigger) as stage:
         return _analyze(args, store, version, completer, run_id, stage)
@@ -221,8 +219,6 @@ def _analyze(
         before_sample = len(todo)
         todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
         stage.count("skipped_not_sampled", before_sample - len(todo))
-    # AC4.1 — the stage's input is every record the scope selected; the buckets below
-    # partition it, so their sum is this number.
     stage.input_count = selected
     stage.count("skipped_settled", skipped)
 
@@ -269,8 +265,6 @@ def _analyze(
                     file=sys.stderr,
                 )
                 print(f"  last error: {batch_stats.last_error}", file=sys.stderr)
-                # The run record keeps what this run did reach; the records of the
-                # batches never started are booked as not_reached (AC4.1).
                 stage.output_count = len(analyses)
                 stage.fail(
                     f"all {batch_stats.attempted} model calls failed; "

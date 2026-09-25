@@ -177,6 +177,7 @@ PR #117 본문이 이 패스의 주된 ③ 이다. 특히 다음 두 절이 축�
   그 status 는 이 스크립트가 `format_changed=false` 일 때만 붙는데 `SENSITIVE_PATHS`(`:48`)에 스크립트 자신이 있다.
 - **열린 PR 과 겹치는 26** — #130 이 `debug.go` 9 · `debug_test.go` 3 · `storage.py` 10 · `domain.py` 1 · `test_storage.py` 1 을,
   #131 이 `tests/e2e/run.sh` 2 를 동시에 고친다. 먼저 손대면 리베이스 비용만 든다.
+  **— #130 몫 24 는 해소됨(2026-09-25, #130 `9ebc095` 착지 · [runlog-window-pass](2026-09-25-runlog-window-pass.md) 가 판정, rct_20260925-0001)**. 그때 **귀속 두 건이 틀린 것으로 드러났다**: #130 이 `domain.py`·`test_storage.py` 에 더한 것은 줄 끝 주석과 docstring 이라 **지문의 사각지대**여서 그 두 파일의 기존 1줄씩은 애초에 #130 과 겹치지 않았다(실측: `git diff 9a37d04 9ebc095` 의 두 파일 주석 줄 델타 0). #131 몫 `run.sh` 2 는 그 PR 이 아직 열려 있어 유예가 유효하다.
 - **무인 패스의 다음 선 75** — 가장 큰 표적은 `scripts/journey-scenarios/JRN-judgment-debug.js` 30(#124·#126·#128 이 세운 여정
   하네스, 행 없음)과 `Trace.tsx`/`Trace.test.tsx` 16(#126·#128) 묶음. 그 밖에 `check-journey-mockup.py` 12(#129) ·
   `tokens.css` 6(#128) · `test_cli.py` 4 · `store.go` 3 · `Sidebar.tsx` 2 · `test_llm.py`·`test_silver.py` 각 1.

@@ -60,7 +60,6 @@ def main(argv: list[str] | None = None) -> int:
 
     store = open_store(args.data)
     run_id = runlog.resolve_run_id(args.run_id)
-    # A recorded decision is the operator's STP-publish, not the hourly schedule (AC4.1).
     trigger = runlog.REPROCESS if args.decision else runlog.SCHEDULED
     with runlog.run_stage(store, run_id, runlog.AGGREGATION, trigger=trigger) as stage:
         return _aggregate(args, store, run_id, stage)
@@ -110,8 +109,6 @@ def _aggregate(
     print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_TREND)}")
     print(f"  -> {store.path(domain.GOLD, domain.DS_AXIS_SENTIMENT)}")
 
-    # AC4.1 — every Silver row this stage read is either the one Gold serves for its
-    # record or a version that row supersedes, so the two buckets partition the input.
     stage.input_count = len(all_silver)
     stage.output_count = n_trend + n_sent
     stage.count("served", len(chosen))
