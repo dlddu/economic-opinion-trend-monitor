@@ -15,6 +15,27 @@ type Analysis struct {
 	AnalyzerVersion   string         `json:"analyzer_version"`
 }
 
+// LlmCallRecord One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2).
+type LlmCallRecord struct {
+	CallID            string         `json:"call_id"`
+	RunID             string         `json:"run_id"`
+	RecordID          string         `json:"record_id"`
+	SourceURL         string         `json:"source_url"`
+	AnalyzerVersion   string         `json:"analyzer_version"`
+	CallModel         string         `json:"call_model"`
+	CallTemperature   *float64       `json:"call_temperature,omitempty"`
+	PromptSystem      string         `json:"prompt_system"`
+	PromptUser        string         `json:"prompt_user"`
+	PromptSha256      string         `json:"prompt_sha256"`
+	ResponseRaw       *string        `json:"response_raw,omitempty"`
+	CallOutcome       LlmCallOutcome `json:"call_outcome"`
+	CallFailureReason *string        `json:"call_failure_reason,omitempty"`
+	CallAttemptCount  int64          `json:"call_attempt_count"`
+	CalledAt          string         `json:"called_at"`
+	DurationMs        int64          `json:"duration_ms"`
+	ReusedFromCallID  *string        `json:"reused_from_call_id,omitempty"`
+}
+
 // PipelineRun Batch run record — one per pipeline execution, with one nested stage record per stage (PRD pipeline-ops, AC4.1).
 type PipelineRun struct {
 	RunID        string     `json:"run_id"`

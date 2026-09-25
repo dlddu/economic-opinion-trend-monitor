@@ -43,7 +43,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from econ_core import LakeStore, domain, open_store, runlog, silver
+from econ_core import LakeStore, calllog, domain, open_store, runlog, silver
 
 from econ_analysis import fake_llm, llm
 
@@ -232,11 +232,14 @@ def _analyze(
 
     stats = llm.AnalysisStats() if completer is not None else None
     reply_cache: dict[str, str] = {}
+    # Cache key -> the call that first produced that reply, so a reuse can name its
+    # original (AC4.2). Entries written before call records existed have no call_id;
+    # they are simply absent here and the reuse records a null origin.
+    reply_origins: dict[str, str] = {}
     if completer is not None:
-        reply_cache = {
-            r["cache_key"]: r["reply"]
-            for r in store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
-        }
+        cached_replies = store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
+        reply_cache = {r["cache_key"]: r["reply"] for r in cached_replies}
+        reply_origins = {r["cache_key"]: r["call_id"] for r in cached_replies if r.get("call_id")}
 
     keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
     analyses: list[dict] = []
@@ -244,11 +247,27 @@ def _analyze(
     for batch in _batches(todo, args.batch_size):
         failed_ids: list[str] = []
         if completer is not None:
+            batch_calls: list[dict] = []
             rows, batch_stats, new_replies = llm.run_llm_analysis(
-                batch, bodies, completer, version, reply_cache
+                batch,
+                bodies,
+                completer,
+                version,
+                reply_cache,
+                calls=batch_calls,
+                reply_origins=reply_origins,
+                run_id=run_id,
             )
             # Keep what the model did answer even if the batch as a whole fails below.
             store.merge_records(domain.SILVER, domain.DS_ANALYSIS_CACHE, "cache_key", new_replies)
+            # Same reason, one step stronger: the call log is what AC4.2 asks for *about*
+            # failures, so it is written before the all-calls-failed exit below — a batch
+            # nobody answered is exactly the one whose call records must survive.
+            for call in batch_calls:
+                calllog.record_call(store, call)
+            reply_origins.update(
+                {r["cache_key"]: r["call_id"] for r in new_replies if r.get("call_id")}
+            )
             assert stats is not None
             stats.attempted += batch_stats.attempted
             stats.failed += batch_stats.failed

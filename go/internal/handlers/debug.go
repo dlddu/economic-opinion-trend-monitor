@@ -14,9 +14,9 @@ type debugResponse struct {
 
 func (h *Handlers) debug(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, debugResponse{
-		Stub:      "stub: 판단 디버깅 자리 — 호출 기록과 레코드↔실행↔호출 연결(PRD-4 AC4.2~4.3) 구현 전",
+		Stub:      "stub: 판단 디버깅 자리 — 레코드↔실행↔호출 연결(PRD-4 AC4.3) 구현 전",
 		Available: false,
-		Missing:   []string{"llm_call_record"},
+		Missing:   []string{"record_run_call_link"},
 		Runs:      []any{},
 		Calls:     []any{},
 	})
