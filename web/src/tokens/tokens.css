@@ -229,7 +229,6 @@ a {
   margin-left: auto;
 }
 
-/* 목업 네비 아이콘(`<svg class="ic">`) — 1180px 이하에서는 라벨이 숨고 이것만 남는다. */
 .nav-item .ic {
   width: 15px;
   height: 15px;
@@ -309,7 +308,6 @@ a {
   flex: 1;
 }
 
-/* 토프바 조건 슬롯 — 화면이 `useTopbar` 로 올린 pill 을 그린다(목업 `.ctl` · `.pill-ctl`). */
 .ctl {
   display: flex;
   align-items: center;
@@ -718,7 +716,6 @@ a {
   font-weight: 600;
 }
 
-/* note 머리의 안내 아이콘 — 목업 `.note .ic` 그대로. */
 .note .ic {
   width: 15px;
   height: 15px;
@@ -1742,8 +1739,6 @@ button.norm-toggle {
   line-height: 1.7;
 }
 
-/* 빈 창 배너(`STP-open-brief` 의 `#s-empty-window`). 값은 목업 `.banner`·`.banner.warn`·
-   `.banner b` 그대로이고 선택자만 `.dash-` 로 접두한다(규칙 5 대조 규약). */
 .dash-banner {
   display: flex;
   gap: 11px;
@@ -1770,7 +1765,6 @@ button.norm-toggle {
   font-feature-settings: "tnum" 1;
 }
 
-/* 여정 문서 정보 — 목업의 접힌 메타 레이어(`details.meta`) 그대로. */
 details.meta {
   margin-top: 34px;
   border-top: 1px solid var(--line-2);

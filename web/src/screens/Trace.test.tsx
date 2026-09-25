@@ -57,7 +57,6 @@ function response(over: Partial<TraceResponse> = {}): TraceResponse {
   };
 }
 
-// The screen reads its record from the URL, so it always renders under a router.
 function renderTrace(entry = "/trace") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -182,8 +181,6 @@ it("says so when it picked the record itself", async () => {
   expect(container.textContent).toContain("첫 관측");
 });
 
-// Another screen hands a record over in the URL (the judgment-debug CTA does):
-// the screen must open on that record, not on "first observation".
 it("opens the record named in ?record_id= and asks the API for it", async () => {
   stubTrace(response());
   const { container } = renderTrace("/trace?record_id=R-2609-0412");
@@ -194,8 +191,6 @@ it("opens the record named in ?record_id= and asks the API for it", async () => 
   expect((container.querySelector(".trace-lookup input") as HTMLInputElement).value).toBe("R-2609-0412");
 });
 
-// And the reverse: looking a record up here puts it in the URL, so the view can
-// be shared as a link and survives a reload.
 it("writes the looked-up record back into the URL", async () => {
   stubTrace(response());
   const { container } = renderTrace();
@@ -214,8 +209,6 @@ it("writes the looked-up record back into the URL", async () => {
   );
 });
 
-// The article itself is one click away when its address still answers — in a new
-// tab, without handing the opened page a handle back to this one.
 it("links out to the original article while the link is alive", async () => {
   stubTrace(response());
   const { container } = renderTrace();
@@ -228,8 +221,6 @@ it("links out to the original article while the link is alive", async () => {
   expect(a.getAttribute("rel")).toContain("noopener");
 });
 
-// No button that cannot work: a dead link gets the preserved copy instead, and a
-// non-http address is never turned into a clickable href.
 it("offers no open button for a dead link or a non-http address", async () => {
   stubTrace(response({ bronze: { ...BRONZE, body_available: false } }));
   const dead = renderTrace();

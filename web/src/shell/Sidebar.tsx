@@ -2,8 +2,6 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { SCREENS, type ScreenDef } from "./nav";
 
-// 목업 여정 페이지들이 공유하는 네비 아이콘(`<svg class="ic">`) 그대로. 1180px 이하에서는 라벨이
-// 숨고 이 아이콘만 남으므로, 아이콘이 없으면 빈 칸이 된다.
 const ICONS: Record<string, ReactNode> = {
   dash: <path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z" />,
   trend: (

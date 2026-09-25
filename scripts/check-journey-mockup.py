@@ -470,11 +470,6 @@ else:
         ok("R11", f"트래커 문서 목록의 mockup 파일 {len(listed)}건 == 실파일 {len(actual)}건")
 
 # ── R13 ── 좌측 네비에 관한 산문 주장 ↔ 실측 대조.
-#   R10 은 이미 같은 세 문서(인덱스·트래커·여정 README)를 스캔하지만 검사 대상이 **숫자**라,
-#   「좌측 네비 항목 없음」 같은 **정성 주장**은 파일 축이 아니라 술어 축에서 빠져나간다.
-#   rct_20260924-0001 의 잔여가 정확히 그 형태였다: #126 이 일곱 페이지에 `debug` 네비를
-#   넣으면서 docs/user-journeys/README.md 만 빠뜨려, 그 행이 「좌측 네비 항목 없음」이라고
-#   적은 채 `required` 가 초록으로 통과했다.
 _nav_dest = {}                      # data-id -> {목적지 파일}
 for _fn, _raw in pages.items():
     _nb = re.search(r'<nav class="nav">(.*?)</nav>', strip_comments(_raw), re.S)
@@ -483,8 +478,6 @@ for _fn, _raw in pages.items():
     for _i, _href in re.findall(
             r'<a class="nav-item[^"]*" data-id="([^"]+)"[^>]*href="([^"]+)"', _nb.group(1)):
         _nav_dest.setdefault(_i, set()).add(html.unescape(_href).split("#")[0])
-# 같은 네비 항목이 페이지마다 다른 파일로 가면 「흡수한 페이지로 보낸다」는 규약이 깨진다.
-# (id·라벨·순서는 R4 의 몫이고, 이 href 축은 이 검사기만 본다.)
 _split = sorted(i for i, d in _nav_dest.items() if len(d) > 1)
 if _split:
     fail("R13", "좌측 네비 항목의 목적지가 페이지마다 갈린다: "
@@ -494,7 +487,6 @@ M_NAVDEST = len({next(iter(d)) for d in _nav_dest.values() if len(d) == 1})
 _dest_of = {i: next(iter(d)) for i, d in _nav_dest.items() if len(d) == 1}
 _navpages = set(_dest_of.values())
 
-# 산문 주장 3형태. 어느 것도 걸리지 않으면 이 규칙은 공전(空轉)하므로 그것도 위반으로 본다.
 _navclaims, _bad = 0, []
 for _path, _body in ((IDX, idx), (TRACKER, tracker), (JREADME, (read(JREADME) if os.path.exists(JREADME) else ''))):
     _rel, _fenced = os.path.relpath(_path, ROOT), False
@@ -506,7 +498,6 @@ for _path, _body in ((IDX, idx), (TRACKER, tracker), (JREADME, (read(JREADME) if
             continue
         _jids = re.findall(r"`(JRN-[a-z0-9-]+)`", _ln)
         _only = _jids[0] if len(_jids) == 1 else None
-        # (가) 「좌측 네비 항목 없음」 — 그 여정 페이지가 정말 네비 목적지가 아니어야 한다.
         if "좌측 네비 항목 없음" in _ln and _only:
             _navclaims += 1
             _pg = declared.get(_only)
@@ -514,7 +505,6 @@ for _path, _body in ((IDX, idx), (TRACKER, tracker), (JREADME, (read(JREADME) if
                 _via = sorted(i for i, d in _dest_of.items() if d == _pg)
                 _bad.append(f"{_rel}:{_i2} 「좌측 네비 항목 없음」 — 실측은 `{_only}` 페이지"
                             f"({_pg})가 네비 항목 {_via} 의 목적지다")
-        # (나) 「좌측 네비 항목 `<id>`」 — 그 항목이 실재하고, 그 여정 페이지로 가야 한다.
         for _m in re.finditer(r"좌측 네비 항목 `([A-Za-z0-9_-]+)`", _ln):
             _navclaims += 1
             _nid = _m.group(1)
@@ -524,7 +514,6 @@ for _path, _body in ((IDX, idx), (TRACKER, tracker), (JREADME, (read(JREADME) if
             elif _only and declared.get(_only) and _dest_of[_nid] != declared[_only]:
                 _bad.append(f"{_rel}:{_i2} 좌측 네비 항목 `{_nid}` 는 {_dest_of[_nid]} 로 가는데 "
                             f"그 행의 여정 `{_only}` 페이지는 {declared[_only]} 다")
-        # (다) 「`<id>` 로 좌측 네비에 들어갔」 — 그 항목이 실재해야 한다.
         for _m in re.finditer(r"`([A-Za-z0-9_-]+)`\s*로 좌측 네비에 들어갔", _ln):
             _navclaims += 1
             if _m.group(1) not in _dest_of:

@@ -39,8 +39,7 @@ func (l *Lake) path(layer, dataset string) string {
 // objectPartitionChars mirrors econ_core.storage.OBJECT_PARTITION_CHARS.
 const objectPartitionChars = 1
 
-// objectPath locates one record of an object dataset; ok is false for a key
-// that cannot be a file name.
+// objectPath locates one record of an object dataset.
 func (l *Lake) objectPath(layer, dataset, keyField, key string) (path string, ok bool) {
 	if key == "" || strings.HasPrefix(key, ".") || strings.ContainsAny(key, `/\`) {
 		return "", false
@@ -69,8 +68,7 @@ func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
 	return readPartitions[gen.NewsItem](filepath.Join(l.Root, "bronze", "news_item"))
 }
 
-// NewsBody reads one version from the Bronze news_body object dataset by its
-// content hash, or nil if no body is stored under that hash.
+// NewsBody reads one version from the Bronze news_body object dataset by its content hash.
 func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
 	path, ok := l.objectPath("bronze", "news_body", "body_hash", hash)
 	if !ok {
@@ -117,9 +115,7 @@ func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
 // partitionFile mirrors econ_core.storage.PARTITION_FILE.
 const partitionFile = "data.jsonl"
 
-// readPartitions decodes every partition of a Hive-partitioned dataset
-// (key=value directories, one data.jsonl each), in path order — the Go
-// counterpart of econ_core.storage.LakeStore.read_partitions.
+// readPartitions is the Go counterpart of econ_core.storage.LakeStore.read_partitions.
 func readPartitions[T any](root string) ([]T, error) {
 	var out []T
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
