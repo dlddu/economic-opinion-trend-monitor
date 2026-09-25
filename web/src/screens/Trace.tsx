@@ -17,8 +17,6 @@ import { MapStrip } from "../shell/MapStrip";
 //   - `bronze.body_preserved=false` — 관측은 있는데 본문이 없다.
 //   - `silver=null` — 수집됐지만 아직 분석되지 않았다(파이프라인이 거기까지 안 갔다).
 
-/** 원문 주소로 **이동할 수 있는가** — http(s) 만 링크로 만든다. 수집원이 준 문자열을 그대로
- *  href 에 넣으면 `javascript:` 같은 값이 클릭 가능한 코드가 되므로 스킴을 먼저 본다. */
 function openableUrl(url: string | null | undefined): string | null {
   return url && /^https?:\/\//i.test(url) ? url : null;
 }
@@ -44,16 +42,12 @@ function sentimentBadge(s: string | null): string {
 }
 
 export function Trace() {
-  // 조회 대상은 URL 의 `?record_id=` 가 소유한다. 다른 화면(판단 디버깅의 「원문 추적 상세」
-  // CTA 등)이 고른 결과를 실어 보내면 그 기사로 바로 열리고, 여기서 조회하면 주소가 따라
-  // 바뀌어 지금 보는 기사를 링크로 공유할 수 있다.
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("record_id")?.trim() ?? "";
   const [recordId, setRecordId] = useState(query);
   const [data, setData] = useState<TraceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 주소가 바뀌면(뒤로 가기, 다른 화면에서 온 링크) 입력칸도 그 값을 따른다.
   useEffect(() => {
     setRecordId(query);
   }, [query]);
@@ -194,8 +188,6 @@ export function Trace() {
                   <span className="k">원문 주소</span>
                   <span className="v mono trace-url">{bronze.source_url}</span>
                 </div>
-                {/* 원래 기사로 나간다(새 탭). 링크가 끊긴 기사에는 열리지 않을 버튼을 두지 않는다 —
-                    그때는 위 안내대로 보존 사본이 원문 역할을 한다. */}
                 {!linkDead && openableUrl(bronze.source_url) && (
                   <div className="trace-open">
                     <a
