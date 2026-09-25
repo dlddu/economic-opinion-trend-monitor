@@ -1,0 +1,103 @@
+{
+  "type": "record",
+  "name": "LlmCallRecord",
+  "namespace": "econ.silver",
+  "doc": "One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2).",
+  "x-layer": "silver",
+  "fields": [
+    {
+      "name": "call_id",
+      "type": "string",
+      "doc": "Call identity; the key this record is stored under. A fresh id per call, so a re-analysis adds a record instead of replacing one (AC4.2)."
+    },
+    {
+      "name": "run_id",
+      "type": "string",
+      "doc": "The run this call belongs to — the same id the run record is keyed by, so a call leads back to its execution (AC4.1, AC4.2)."
+    },
+    {
+      "name": "record_id",
+      "type": "string",
+      "doc": "Bronze observation this call analyzed (AC2.6, AC4.2)."
+    },
+    {
+      "name": "source_url",
+      "type": "string",
+      "doc": "Bronze tracking key beside record_id, so a call reaches the original article the same way a Silver row does (AC2.6, AC4.2)."
+    },
+    {
+      "name": "analyzer_version",
+      "type": "string",
+      "doc": "Analysis logic version in force for this call; a bump reprocesses the same Bronze and lands beside the earlier call rather than over it (AC2.6, AC4.2)."
+    },
+    {
+      "name": "call_model",
+      "type": "string",
+      "doc": "Model the request named (AC4.2)."
+    },
+    {
+      "name": "call_temperature",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Temperature sent with the request; null when the field was deliberately omitted so the model uses its own default (AC4.2)."
+    },
+    {
+      "name": "prompt_system",
+      "type": "string",
+      "doc": "System prompt as transmitted, stored verbatim (AC4.2)."
+    },
+    {
+      "name": "prompt_user",
+      "type": "string",
+      "doc": "User prompt as transmitted, stored verbatim (AC4.2)."
+    },
+    {
+      "name": "prompt_sha256",
+      "type": "string",
+      "doc": "SHA-256 over the exact transmitted prompt bytes. AC4.2 allows storing the prompt verbatim or reconstructing it; this record does the former and carries the digest anyway, so a later move to reconstruction can be checked against the same value (AC4.2)."
+    },
+    {
+      "name": "response_raw",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "The model's reply before any parsing, exactly as received; null when the call itself never produced one (AC4.2)."
+    },
+    {
+      "name": "call_outcome",
+      "type": {
+        "type": "enum",
+        "name": "LlmCallOutcome",
+        "symbols": ["parsed", "parse_failed", "call_failed", "reused"],
+        "doc": "How the call ended: a reply that parsed, a reply that did not, a request that never came back, or an earlier reply replayed instead of calling (AC4.2)."
+      },
+      "doc": "Outcome of this call (AC4.2)."
+    },
+    {
+      "name": "call_failure_reason",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Why the call or its parse failed; null when it did not (AC4.2)."
+    },
+    {
+      "name": "call_attempt_count",
+      "type": "long",
+      "doc": "Transmissions this record covers. The analyzer sends once per cycle, so a retry is a *new* call record in the next cycle rather than a higher count here — the count says what this record did, not what the analyzer is capable of (AC4.2)."
+    },
+    {
+      "name": "called_at",
+      "type": "string",
+      "doc": "When the call was made (AC4.2)."
+    },
+    {
+      "name": "duration_ms",
+      "type": "long",
+      "doc": "How long the call took in milliseconds; 0 for a reused reply, which sent nothing (AC4.2)."
+    },
+    {
+      "name": "reused_from_call_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "The call whose reply was replayed, set only when call_outcome is reused. Null on a reuse means the cache entry predates call records and no original can be named — the reuse is still recorded rather than hidden (AC4.2)."
+    }
+  ]
+}

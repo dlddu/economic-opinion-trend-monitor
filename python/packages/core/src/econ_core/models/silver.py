@@ -5,7 +5,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from econ_core.models.enums import AnalysisStatus, PipelineStage, RunStatus, RunTrigger, Sentiment
+from econ_core.models.enums import (
+    AnalysisStatus,
+    LlmCallOutcome,
+    PipelineStage,
+    RunStatus,
+    RunTrigger,
+    Sentiment,
+)
 
 
 @dataclass(kw_only=True)
@@ -34,6 +41,51 @@ class Analysis:
             confidence=d["confidence"],
             analyzed_at=d["analyzed_at"],
             analyzer_version=d["analyzer_version"],
+        )
+
+
+@dataclass(kw_only=True)
+class LlmCallRecord:
+    """One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2)."""
+
+    call_id: str
+    run_id: str
+    record_id: str
+    source_url: str
+    analyzer_version: str
+    call_model: str
+    call_temperature: float | None = None
+    prompt_system: str
+    prompt_user: str
+    prompt_sha256: str
+    response_raw: str | None = None
+    call_outcome: LlmCallOutcome
+    call_failure_reason: str | None = None
+    call_attempt_count: int
+    called_at: str
+    duration_ms: int
+    reused_from_call_id: str | None = None
+
+    @classmethod
+    def from_dict(cls, d: dict) -> LlmCallRecord:
+        return cls(
+            call_id=d["call_id"],
+            run_id=d["run_id"],
+            record_id=d["record_id"],
+            source_url=d["source_url"],
+            analyzer_version=d["analyzer_version"],
+            call_model=d["call_model"],
+            call_temperature=d.get("call_temperature"),
+            prompt_system=d["prompt_system"],
+            prompt_user=d["prompt_user"],
+            prompt_sha256=d["prompt_sha256"],
+            response_raw=d.get("response_raw"),
+            call_outcome=d["call_outcome"],
+            call_failure_reason=d.get("call_failure_reason"),
+            call_attempt_count=d["call_attempt_count"],
+            called_at=d["called_at"],
+            duration_ms=d["duration_ms"],
+            reused_from_call_id=d.get("reused_from_call_id"),
         )
 
 

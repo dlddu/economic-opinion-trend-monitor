@@ -26,6 +26,15 @@ const (
 	BucketUnitWeek BucketUnit = "week"
 )
 
+type LlmCallOutcome string
+
+const (
+	LlmCallOutcomeParsed      LlmCallOutcome = "parsed"
+	LlmCallOutcomeParseFailed LlmCallOutcome = "parse_failed"
+	LlmCallOutcomeCallFailed  LlmCallOutcome = "call_failed"
+	LlmCallOutcomeReused      LlmCallOutcome = "reused"
+)
+
 type PipelineStage string
 
 const (
