@@ -28,6 +28,9 @@ class Analysis:
     confidence: float
     analyzed_at: str
     analyzer_version: str
+    run_id: str
+    call_id: str | None = None
+    no_call_reason: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> Analysis:
@@ -41,6 +44,9 @@ class Analysis:
             confidence=d["confidence"],
             analyzed_at=d["analyzed_at"],
             analyzer_version=d["analyzer_version"],
+            run_id=d["run_id"],
+            call_id=d.get("call_id"),
+            no_call_reason=d.get("no_call_reason"),
         )
 
 

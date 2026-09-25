@@ -58,6 +58,9 @@ from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
 
 ANALYZER_VERSION = "llm-v1"
 
+#: AC4.3 no-call reason: the body was never captured, so there was nothing to send.
+NO_CALL_BODY_UNAVAILABLE = "body_unavailable"
+
 # Shared with the fake analyzer: below this the label is kept but marked low-confidence.
 _LOW_CONFIDENCE = 0.6
 
@@ -281,25 +284,34 @@ def _clean_list(value: object) -> list[str]:
     return [s.strip() for s in value if isinstance(s, str) and s.strip()]
 
 
-def _tracking_key(item: dict, analyzer_version: str) -> dict:
-    """The Bronze -> Silver tracking key every record carries (AC2.6)."""
+def _tracking_key(item: dict, analyzer_version: str, run_id: str) -> dict:
+    """The Bronze -> Silver tracking key every record carries (AC2.6), plus the run that
+    wrote it (AC4.3): AC2.6 reaches the article, ``run_id`` reaches the execution."""
     return {
         "record_id": item["record_id"],
         "source_url": item["source_url"],
         "analyzed_at": item["collected_at"],
         "analyzer_version": analyzer_version,
+        "run_id": run_id,
     }
 
 
-def _unanalyzed(item: dict, analyzer_version: str) -> Analysis:
-    """A record the model did not judge — never a forced label (AC2.5)."""
+def _unanalyzed(
+    item: dict, analyzer_version: str, run_id: str, no_call_reason: str | None = None
+) -> Analysis:
+    """A record the model did not judge — never a forced label (AC2.5).
+
+    ``no_call_reason`` is set only when no request went out at all; a call that came
+    back unusable produced a call record, and the row points at *that* instead (AC4.3).
+    """
     return Analysis(
         target_countries=[],
         narrative_subjects=[],
         sentiment=None,
         analysis_status="unanalyzed",
         confidence=0.0,
-        **_tracking_key(item, analyzer_version),
+        no_call_reason=no_call_reason,
+        **_tracking_key(item, analyzer_version, run_id),
     )
 
 
@@ -308,6 +320,7 @@ def analyze_llm(
     body: str | None,
     completer: Completer,
     analyzer_version: str = ANALYZER_VERSION,
+    run_id: str = "",
 ) -> Analysis:
     """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis`` via a real model.
 
@@ -322,11 +335,13 @@ def analyze_llm(
     """
     body = body or ""
     if not item.get("body_available") or not body:
-        return _unanalyzed(item, analyzer_version)
+        return _unanalyzed(item, analyzer_version, run_id, NO_CALL_BODY_UNAVAILABLE)
 
     parsed = parse_response(completer(_SYSTEM_PROMPT, build_prompt(item, body)))
     if parsed.get("analyzable") is False:
-        return _unanalyzed(item, analyzer_version)
+        # A model that declined *was* called, so this row points at that call record,
+        # not at a no-call reason — the caller stamps the id (AC4.3).
+        return _unanalyzed(item, analyzer_version, run_id)
 
     sentiment = parsed.get("sentiment")
     if sentiment not in SENTIMENT_VALUES:
@@ -346,7 +361,7 @@ def analyze_llm(
         sentiment=sentiment,  # AC2.3
         analysis_status=status,
         confidence=confidence,
-        **_tracking_key(item, analyzer_version),
+        **_tracking_key(item, analyzer_version, run_id),
     )
 
 
@@ -451,7 +466,7 @@ def run_llm_analysis(
     for item in items:
         body = bodies.get(item.get("body_hash") or "")
         if not (item.get("body_available") and body):
-            analyses.append(asdict(analyze_llm(item, body, completer, analyzer_version)))
+            analyses.append(asdict(analyze_llm(item, body, completer, analyzer_version, run_id)))
             continue
 
         user_prompt = build_prompt(item, body)
@@ -460,30 +475,34 @@ def run_llm_analysis(
         if cached is not None:
             started = time.monotonic()
             try:
-                analyses.append(
-                    asdict(analyze_llm(item, body, lambda _s, _u: cached, analyzer_version))
+                row = asdict(
+                    analyze_llm(item, body, lambda _s, _u: cached, analyzer_version, run_id)
                 )
             except CompletionError:
                 pass  # stored reply no longer parses (parser changed) -> ask the model again
             else:
                 stats.reused += 1
                 stats.reused_ids.append(item["record_id"])
-                call_log.append(
-                    _call_record(
-                        item=item,
-                        run_id=run_id,
-                        analyzer_version=analyzer_version,
-                        model=model,
-                        temperature=temperature,
-                        system=_SYSTEM_PROMPT,
-                        user=user_prompt,
-                        outcome="reused",
-                        response_raw=cached,
-                        attempts=0,
-                        started=started,
-                        reused_from=origins.get(key),
-                    )
+                call = _call_record(
+                    item=item,
+                    run_id=run_id,
+                    analyzer_version=analyzer_version,
+                    model=model,
+                    temperature=temperature,
+                    system=_SYSTEM_PROMPT,
+                    user=user_prompt,
+                    outcome="reused",
+                    response_raw=cached,
+                    attempts=0,
+                    started=started,
+                    reused_from=origins.get(key),
                 )
+                call_log.append(call)
+                # The row names the record *this* run wrote, not the original reply's
+                # call: an entry cached before call records existed has no original to
+                # name, and `reused_from_call_id` is the hop AC4.3 reads (AC4.2).
+                row["call_id"] = call["call_id"]
+                analyses.append(row)
                 continue
 
         replies: list[str] = []
@@ -496,31 +515,30 @@ def run_llm_analysis(
         stats.attempted += 1
         started = time.monotonic()
         try:
-            analysis = analyze_llm(item, body, _live, analyzer_version)
+            analysis = analyze_llm(item, body, _live, analyzer_version, run_id)
         except CompletionError as exc:
             stats.failed += 1
             stats.failed_ids.append(item["record_id"])
             stats.last_error = str(exc)
-            analysis = _unanalyzed(item, analyzer_version)
+            analysis = _unanalyzed(item, analyzer_version, run_id)
             sent_system, sent_user, sent_reply = (
                 replies[0] if replies else (_SYSTEM_PROMPT, user_prompt, None)
             )
-            call_log.append(
-                _call_record(
-                    item=item,
-                    run_id=run_id,
-                    analyzer_version=analyzer_version,
-                    model=model,
-                    temperature=temperature,
-                    system=sent_system,
-                    user=sent_user,
-                    outcome="parse_failed" if replies else "call_failed",
-                    response_raw=sent_reply,
-                    failure_reason=str(exc),
-                    attempts=1,
-                    started=started,
-                )
+            call = _call_record(
+                item=item,
+                run_id=run_id,
+                analyzer_version=analyzer_version,
+                model=model,
+                temperature=temperature,
+                system=sent_system,
+                user=sent_user,
+                outcome="parse_failed" if replies else "call_failed",
+                response_raw=sent_reply,
+                failure_reason=str(exc),
+                attempts=1,
+                started=started,
             )
+            call_log.append(call)
         else:
             sent_system, sent_user, sent_reply = (
                 replies[0] if replies else (_SYSTEM_PROMPT, user_prompt, None)
@@ -551,5 +569,9 @@ def run_llm_analysis(
                         "call_id": call["call_id"],
                     }
                 )
-        analyses.append(asdict(analysis))
+        # Failed or parsed, a request went out and left a record — the row points at it,
+        # so an unanalyzed row that is an outage still reaches its call (AC4.3).
+        row = asdict(analysis)
+        row["call_id"] = call["call_id"]
+        analyses.append(row)
     return analyses, stats, new_entries

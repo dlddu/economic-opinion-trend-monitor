@@ -202,7 +202,7 @@ def test_reprocessing_appends_and_never_overwrites_an_earlier_call(tmp_path):
 
 
 def test_an_article_that_never_reached_the_model_has_no_call_record():
-    """본문 미확보 기사는 호출 자체가 없으므로 기록도 없다(미호출 사유는 AC4.3 몫)."""
+    """본문 미확보 기사는 호출 자체가 없으므로 기록도 없고, 그 자리를 미호출 사유가 채운다."""
     item = _bronze(record_id="nobody", body_available=False)
     completer = _completer({"정상": GOOD})
     calls: list[dict] = []
@@ -211,6 +211,9 @@ def test_an_article_that_never_reached_the_model_has_no_call_record():
     assert rows[0]["analysis_status"] == "unanalyzed"
     assert calls == []
     assert completer.seen == []
+    # The record AC4.2 does not write is answered by AC4.3 on the row itself.
+    assert rows[0]["call_id"] is None
+    assert rows[0]["no_call_reason"] == "body_unavailable"
 
 
 def test_call_records_land_in_the_contract_dataset(tmp_path):

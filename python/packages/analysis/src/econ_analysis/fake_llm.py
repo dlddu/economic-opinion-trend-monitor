@@ -8,6 +8,12 @@ enough to exercise the Silver schema and the downstream aggregation:
   - sentiment 4-way classification                       (AC2.3)
   - low-confidence / unanalyzed handling                 (AC2.5)
   - Bronze tracking key preserved for reprocessing       (AC2.6)
+
+Every row it writes carries ``no_call_reason="keyword_analyzer"``: this analyzer
+reaches no model at all, so AC4.3's "호출하지 않은 사유" is a property of the analyzer
+rather than of one article. The run is still named — a one-off CLI run is its own
+single-stage run (:func:`econ_core.runlog.resolve_run_id`), so no row is left without
+an execution to lead back to.
 """
 
 from __future__ import annotations
@@ -17,6 +23,10 @@ import re
 from econ_core.models import Analysis
 
 ANALYZER_VERSION = "fake-v1"
+
+#: AC4.3 no-call reason for every row this analyzer writes: it judges by keyword and
+#: reaches no model, so there is no call record to point at.
+NO_CALL_KEYWORD_ANALYZER = "keyword_analyzer"
 
 # Canonical narrative-subject keys the fake "model" knows about.
 KNOWN_SUBJECTS = [
@@ -86,7 +96,12 @@ def _parse_countries(body: str) -> list[str]:
     return [c.strip() for c in match.group(1).split(",") if c.strip()]
 
 
-def analyze(item: dict, body: str | None, analyzer_version: str = ANALYZER_VERSION) -> Analysis:
+def analyze(
+    item: dict,
+    body: str | None,
+    analyzer_version: str = ANALYZER_VERSION,
+    run_id: str = "",
+) -> Analysis:
     """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis``.
 
     ``body`` is the raw text resolved from the content-addressed body store via
@@ -100,6 +115,8 @@ def analyze(item: dict, body: str | None, analyzer_version: str = ANALYZER_VERSI
         "narrative_subjects": subjects,
         "analyzed_at": item["collected_at"],
         "analyzer_version": analyzer_version,
+        "run_id": run_id,
+        "no_call_reason": NO_CALL_KEYWORD_ANALYZER,
     }
 
     body = body or ""

@@ -287,7 +287,9 @@ def _analyze(
                 return EXIT_ALL_CALLS_FAILED
         else:
             rows = [
-                asdict(fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version))
+                asdict(
+                    fake_llm.analyze(item, bodies.get(item.get("body_hash") or ""), version, run_id)
+                )
                 for item in batch
             ]
             _book_outcomes(stage, rows, [], [])

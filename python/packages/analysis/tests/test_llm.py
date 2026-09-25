@@ -278,8 +278,14 @@ def test_second_cycle_reuses_unchanged_replies() -> None:
     second, stats2, entries2 = run_llm_analysis(items, bodies, completer, reply_cache=cache)
     assert len(calls) == 2
     assert (stats2.attempted, stats2.reused, entries2) == (0, 2, [])
-    strip = lambda rs: [{k: v for k, v in r.items() if k != "analyzed_at"} for r in rs]  # noqa: E731
+    # The judgement is what carries over; when and under which call record it was
+    # reached does not — a reuse writes its own call record (AC4.2), so the row it
+    # points at differs by design (AC4.3).
+    per_call = {"analyzed_at", "call_id"}
+    strip = lambda rs: [{k: v for k, v in r.items() if k not in per_call} for r in rs]  # noqa: E731
     assert strip(first) == strip(second)
+    assert [r["call_id"] for r in second] != [r["call_id"] for r in first]
+    assert all(r["call_id"] for r in first + second)
 
 
 def test_edited_body_or_version_bump_calls_again() -> None:

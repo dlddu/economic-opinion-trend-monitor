@@ -53,6 +53,23 @@
       "name": "analyzer_version",
       "type": "string",
       "doc": "Analyzer logic version; bump enables reprocessing of the same Bronze (AC2.6)."
+    },
+    {
+      "name": "run_id",
+      "type": "string",
+      "doc": "The run that wrote this row — the same id the run record is keyed by, so a record leads back to its execution (AC4.1, AC4.3). Two rows of one record at different analyzer versions name the runs that made them, which is what keeps a reprocess comparison honest."
+    },
+    {
+      "name": "call_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "The model call this run made for this row, keyed as in llm_call (AC4.2, AC4.3). Null exactly when no call was made, and then no_call_reason says why. A replayed reply still leaves a call record here (call_outcome 'reused'); the original call AC4.3 names is one documented hop away, on that record's reused_from_call_id — pointing straight at the original instead would have no answer for a cache entry written before call records existed (AC4.3)."
+    },
+    {
+      "name": "no_call_reason",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Why this row's judgement involved no model call: 'body_unavailable' (the body was never captured, so there was nothing to send) or 'keyword_analyzer' (the offline stand-in judges without a model). Null exactly when call_id is set — one of the two is always present, so no row is silent about where its judgement came from (AC4.3)."
     }
   ]
 }
