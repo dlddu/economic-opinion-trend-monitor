@@ -13,10 +13,7 @@ import { MapStrip } from "../shell/MapStrip";
 import { useTopbar } from "../shell/topbarSlot";
 
 // JRN-daily-scan 화면 1 · STP-open-brief (`docs/mockups/JRN-daily-scan.html`).
-// 목업이 그대로 스펙이다 — 지표 카드 넷, `오늘의 조회 조건` 카드, `상위 서술 대상` 순위,
-// 토프바의 조건 pill. 같은 페이지의 화면 2·3(STP-scan-delta · STP-adjust-window)은 아직
-// 구현이 없어서, 그리로 넘어가는 CTA(`어제 대비 변화 훑기 →`)와 빈 창 배너의 `해석은
-// 보류하고 변화만 훑기` 는 두지 않는다 — 눌러도 갈 곳이 없는 컨트롤이 된다.
+// 화면 2·3 으로 넘어가는 컨트롤은 두지 않는다 — 설계 트래커 「허위 컨트롤 금지」.
 
 const AXES: { id: Axis; label: string }[] = [
   { id: "KR", label: "한국" },
@@ -39,7 +36,6 @@ const UNIT_LABEL: Record<BucketUnit, string> = {
   week: "주 단위",
 };
 
-/** 수집 항목 카드의 비교 기준 — 직전 버킷이 무엇인지는 단위가 정한다. */
 const PREV_LABEL: Record<BucketUnit, string> = {
   hour: "직전 시간 대비",
   day: "전일 대비",
@@ -82,8 +78,6 @@ const SPARK_COLOR = { up: "var(--pos)", dn: "var(--neg)", fl: "var(--neu)" } as 
 // **수명은 목업 문면이 정한다.** 카드 sub 가 `어제 닫을 때의 조건으로 열립니다`, note 가
 // `어제와 같은 화면에서 밤사이 변화만 보게 됩니다` 라고 약속하므로, 탭을 닫으면 사라지는
 // `sessionStorage` 로는 두 문장이 거짓이 된다 — 날을 넘겨 살아남는 저장소여야 한다.
-// 기간·단위도 같은 조건에 들어 있다. 이 화면에는 아직 그것을 고르는 컨트롤이 없지만
-// (화면 3 몫) 저장·복원·조회는 이미 그 값으로 한다.
 const BRIEF_KEY = "econ-monitor:dash:brief";
 
 type StoredBrief = { axis: Axis; q: string; restore: boolean; range: DashRange; unit: BucketUnit };
@@ -273,7 +267,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* 보조 레이어 — 문서 메타는 제품 평면이 아니라 접힌 자리에 둔다(목업 `details.meta`). */}
       <details className="meta">
         <summary>여정 문서 정보</summary>
         <div className="metabody">
