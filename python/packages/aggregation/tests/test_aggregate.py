@@ -34,8 +34,8 @@ def test_subject_trend_shares_sum_to_one_per_axis() -> None:
         _silver("2", ["B"], "neutral", "analyzed"),
     ]
     kr = [t for t in build_subject_trends(bronze, silver) if t["axis"] == "KR"]
-    assert round(sum(t["normalized_share"] for t in kr), 2) == 1.0  # AC3.1
-    assert all(t["bucket_unit"] == "hour" for t in kr)  # AC3.3
+    assert round(sum(t["normalized_share"] for t in kr), 2) == 1.0
+    assert all(t["bucket_unit"] == "hour" for t in kr)
 
 
 def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
@@ -143,7 +143,6 @@ def test_every_unit_is_emitted_finest_first() -> None:
 
 
 def test_rollup_raw_counts_equal_the_sum_of_the_finer_buckets() -> None:
-    """AC3.3 검증 방법 — "롤업 시 합산이 하위 버킷 합과 일치"."""
     bronze, silver = _span_bronze(), _span_silver()
     by_unit = {unit: build_subject_trends(bronze, silver, unit) for unit in BUCKET_UNITS}
 
@@ -163,7 +162,6 @@ def test_rollup_raw_counts_equal_the_sum_of_the_finer_buckets() -> None:
 
 
 def test_rollup_shares_stay_a_distribution_inside_each_bucket() -> None:
-    """Shares are renormalized per bucket, never summed across the finer ones."""
     bronze, silver = _span_bronze(), _span_silver()
     for unit in BUCKET_UNITS:
         per_bucket: dict[str, float] = {}

@@ -51,7 +51,7 @@ test("api: dashboard marks the ratio as normalized and keeps raw counts alongsid
   expect(typeof row.normalized_share).toBe("number");
   expect(typeof row.raw_count).toBe("number");
   expect(row.normalized_share).toBeGreaterThan(0);
-  expect(row.normalized_share).toBeLessThanOrEqual(1); // 비율 (0~1)
+  expect(row.normalized_share).toBeLessThanOrEqual(1);
   expect(row.raw_count).toBeGreaterThan(1); // 원시 건수 — 비율이 아니다
 });
 

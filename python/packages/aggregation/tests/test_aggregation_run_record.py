@@ -1,8 +1,4 @@
-"""Aggregation writes its stage into the batch run record (PRD pipeline-ops, AC4.1).
-
-This is also where the chain AC4.1 asks to be readable shows up: the analysis stage's
-output count is the aggregation stage's input count when both ran over the same lake.
-"""
+"""Aggregation writes its stage into the batch run record (PRD pipeline-ops, AC4.1)."""
 
 from pathlib import Path
 

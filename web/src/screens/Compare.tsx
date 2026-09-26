@@ -182,7 +182,7 @@ function AxisRows({
 }
 
 function MiniSent({ dist }: { dist: SentimentDistribution }) {
-  const scale = 1 - dist.unanalyzed; // sentiment ratios are over analyzed items
+  const scale = 1 - dist.unanalyzed;
   const segs: { cls: string; label: string; w: number }[] = [
     { cls: "s-pos", label: "긍정", w: dist.positive * scale },
     { cls: "s-neu", label: "중립", w: dist.neutral * scale },

@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """주석 판정 원장(docs/comment-policy/ledger.md) 게이트.
 
-원장의 행 단위 불변식을 CI에서 강제하고 집계를 출력한다. 집계는 원장에 저장하지 않고
-매 실행 계산한다 — 손으로 적은 합계는 원본만 고쳐질 때 조용히 낡기 때문이다.
-
 범위 추출 규칙은 모델 tbm_econ-opinion-monitor-comment-redundancy 의 as-is versionScript와
 같아야 한다. 둘이 갈라지면 지문에는 있는데 원장 불변식은 모르는 파일이 생긴다.
-
-판정 표면은 셋이고 원장은 표면마다 표를 둔다 — L(줄머리 주석) · D(Python docstring 본문) ·
-E(코드 뒤의 줄 끝·줄 중간 주석). 표면이 하나라도 이 게이트 밖에 있으면 그 표면의 행은
-손으로 유지되고, 실측과 갈라져도 게이트는 초록으로 통과시킨다.
 """
 
 from __future__ import annotations
@@ -121,8 +114,6 @@ def read_lines(path: str) -> list[str]:
 class DE:
     """D·E 표면 추출기 — 모델 as-is versionScript의 D·E 블록과 같은 규칙.
 
-    L이 줄머리 패턴이라 보지 못하는 주석을 뽑는다. D는 Python 모듈·클래스·함수 docstring
-    본문(`ast`, `cleandoc` 정리 후 줄 단위), E는 코드 **뒤에** 오는 줄 끝·줄 중간 주석이다.
     파싱에 실패한 파일은 `X:` 줄로 남아 `unparsed`로 세진다 — 조용히 표면에서 빠지지 않게.
 
     기계가 읽는 주석(`DIRECTIVE`)은 E에서도 뺀다. 다만 지시자 **뒤에 붙은 사유**
@@ -259,7 +250,6 @@ class DE:
     def scan(self, root: str, tagged: list[tuple[str, str]]) -> list[str]:
         """(언어군 태그, 경로) 목록에서 D·E·X 줄을 뽑는다.
 
-        MIXED·MARKUP·NONE 언어군에는 태그를 주지 않는다 — 그 표면은 지문도 보지 않는다.
         `go.mod`·`go.work`의 `// indirect`는 go mod tidy가 쓰고 읽는 표식이라 뺀다.
         """
         for tag, path in tagged:

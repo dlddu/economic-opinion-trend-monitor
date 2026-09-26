@@ -93,7 +93,7 @@ func buildDashboard(
 	// Everything below reads one unit: bucket keys only order within a unit.
 	var anchor string
 	axisBuckets := map[string]bool{}
-	shares := map[string]map[string]gen.SubjectTrend{} // bucket -> subject -> row
+	shares := map[string]map[string]gen.SubjectTrend{}
 	sentAt := map[string]gen.AxisSentiment{}
 	for _, t := range trends {
 		if t.BucketUnit != unit {

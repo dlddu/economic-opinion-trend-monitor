@@ -95,7 +95,7 @@ test("ingestion: reprints under different links share one stored body", () => {
     const a = itemAt(cycle, REPRINT_A);
     const b = itemAt(cycle, REPRINT_B);
 
-    expect(a.source_url).not.toBe(b.source_url); // 전재 쌍은 링크가 다르다
+    expect(a.source_url).not.toBe(b.source_url);
     expect(a.body_hash).toBe(b.body_hash);
 
     const shared = newsBodies(cycleDir(cycle)).filter(

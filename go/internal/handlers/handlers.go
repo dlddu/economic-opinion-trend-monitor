@@ -35,18 +35,18 @@ func (h *Handlers) WithArgo(c *argo.Client) *Handlers {
 // Register wires every API route onto mux (Go 1.22 method+path patterns).
 func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/health", h.health)
-	mux.HandleFunc("GET /api/dashboard", h.dashboard) // screen: dash
-	mux.HandleFunc("GET /api/trend", h.trend)         // screen: trend
-	mux.HandleFunc("GET /api/compare", h.compare)     // screen: compare
-	mux.HandleFunc("GET /api/sentiment", h.sentiment) // screen: sentiment
-	mux.HandleFunc("GET /api/fairness", h.fairness)   // screen: fairness
-	mux.HandleFunc("GET /api/trace", h.trace)         // screen: trace
-	mux.HandleFunc("GET /api/reprocess", h.reprocess) // screen: reprocess
-	mux.HandleFunc("GET /api/debug", h.debug)         // screen: debug
+	mux.HandleFunc("GET /api/dashboard", h.dashboard)
+	mux.HandleFunc("GET /api/trend", h.trend)
+	mux.HandleFunc("GET /api/compare", h.compare)
+	mux.HandleFunc("GET /api/sentiment", h.sentiment)
+	mux.HandleFunc("GET /api/fairness", h.fairness)
+	mux.HandleFunc("GET /api/trace", h.trace)
+	mux.HandleFunc("GET /api/reprocess", h.reprocess)
+	mux.HandleFunc("GET /api/debug", h.debug)
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
-	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)   // STP-dry-run
-	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)         // STP-run-reprocess
-	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish) // STP-publish
+	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)
+	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)
+	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish)
 }
 
 type rankRow struct {
