@@ -1,34 +1,8 @@
 #!/usr/bin/env python3
 """데이터 저장 형식 변경 감지기 — 사람 리뷰 필요 여부 판정 (stdlib 전용).
 
-PR 의 변경분(`base...head`, merge-base 기준)이 **DB 스키마 또는 데이터가 저장되는
-형식**을 건드리는지 본다. 건드리지 않으면 `review-gate.yml` 이 head 커밋에
-`success` commit status 를 붙이고, 건드리면 아무 status 도 붙이지 않는다.
-
-  status 있음(success) → 저장 형식 변경 없음 → 사람 리뷰 없이 진행 가능
-  status 없음          → 저장 형식 변경 있음(또는 판정 실패) → 사람 리뷰 필요
-
 판정이 애매하면 "변경 있음" 쪽으로 기운다(fail-closed). 잘못 success 를 붙이는
 비용이 리뷰 한 번 더 받는 비용보다 크기 때문이다.
-
-보는 것은 두 가지뿐이다.
-  1. 데이터 계약
-     contracts/                     스키마 단일 소스(JSON Schema · Avro) + 코드젠
-     go/gen/, econ_core/models/     contracts → 생성된 레코드 타입
-     그리고 배치 생산자(ingestion·analysis·aggregation)에서 **계약 필드에 값을
-     대입하는 줄**(주석 줄 제외 — `bucket_unit=unit`, `"bucket_unit": unit` 처럼;
-     스키마는 그대로여도 저장되는 값의 형식이 바뀔 수 있다). 계약 필드 이름은
-     contracts/ 에서 직접 읽는다.
-  2. 게이트 자신(이 스크립트 · 워크플로)
-     PR 이 판정기를 고쳐 스스로 통과하지 못하게 한다.
-
-직렬화·레이크 경로(storage.py · domain.py · go/internal/store/ · 입출력 호출 ·
-데이터셋 상수), data/, 볼륨·마운트(PVC · ECON_DATA_ROOT 등)는 **보지 않는다** —
-그런 변경은 일반 리뷰 몫이다(2026-09 결정으로 규칙에서 뺐다).
-
-  python3 scripts/check-data-format-change.py <base-sha> <head-sha>
-
-종료 코드: 0 = 판정 완료(결과는 stdout 마지막 줄 / $GITHUB_OUTPUT), 2 = 판정 실패.
 """
 
 from __future__ import annotations
@@ -67,7 +41,6 @@ CONTENT_EXCLUDES: list[str] = [
 
 
 def _glob_to_regex(pattern: str) -> re.Pattern[str]:
-    """`**` 는 디렉터리 경계를 넘고 `*`·`?` 는 넘지 않는 glob → 정규식."""
     out = []
     i = 0
     while i < len(pattern):
