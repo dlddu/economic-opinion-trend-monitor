@@ -1,22 +1,3 @@
-# Publishes the two runtime images to GHCR under exactly one tag each: the
-# commit SHA the image was built from.
-#   ghcr.io/dlddu/economic-opinion-trend-monitor:<sha>         serving (Dockerfile)
-#     -> deploy/base/deployment.yaml
-#   ghcr.io/dlddu/economic-opinion-trend-monitor-batch:<sha>   batch   (Dockerfile.batch)
-#     -> deploy/batch/workflow-template.yaml (ingest + analyze)
-#
-# On main pushes the `pin` job then rewrites deploy/ to that SHA and force-pushes
-# the result (main@SHA + one pin commit, `Source-Commit:` trailer) to the
-# `deploy` branch. Production (flux-cd-apps/cluster/econ-monitor.yaml) tracks
-# `deploy`, not main: main is protected by a ruleset (required check
-# `required`) and nothing commits back to it, and no long-lived credential is
-# kept to bypass that — the default GITHUB_TOKEN is enough for `deploy`.
-#
-# No `latest` any more. This workflow used to push `latest` with no branch
-# condition, so every pull_request build overwrote the tag production was
-# pulling — an unmerged PR could reach production on the next pull. PR builds
-# still publish, but only under the PR *head* SHA: the PR preview environments
-# (flux-cd-apps/apps/econ-monitor-preview) retag deploy/ to exactly that SHA.
 # Tags are immutable, so the default imagePullPolicy (IfNotPresent) is correct.
 # Tags published earlier as `sha-<commit>` stay in the registry; nothing new is
 # written in that format.
@@ -32,11 +13,6 @@
 # It is an exclusion list, so a new directory triggers by default — before
 # excluding a path, check that neither Dockerfile nor Flux reads it. The filter
 # applies to the push trigger only; workflow_call (PRs) always runs.
-#
-# Triggers: main pushes run it directly (publish + pin). PRs reach it through
-# checks.yml, so a failed publish fails the single required check `required`;
-# a called workflow sees the caller's github context, so the event/ref
-# conditions below behave the same either way. workflow_dispatch runs it alone.
 name: Image
 
 on:
@@ -120,8 +96,6 @@ jobs:
     name: pin deploy images (main only)
     # Waits for every matrix leg: both images must exist before either is pinned.
     needs: [publish]
-    # PR builds only publish their head-SHA images for the preview; they never
-    # touch the manifests production reads.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 5
@@ -166,10 +140,6 @@ jobs:
               || { echo "::error::deploy/: ghcr.io/dlddu/${image} is not pinned anywhere"; exit 1; }
           done
 
-          # ── deploy 브랜치로 발행 ─────────────────────────────────────────────
-          # main 은 ruleset(required status check)으로 보호되어 봇이 직접 커밋할 수 없고,
-          # 그러려고 장기 크레덴셜(App 키)을 두지도 않는다. 대신 「main@SHA + 고정 커밋
-          # 하나」를 deploy 브랜치로 force-push 하고, Flux 는 deploy 를 추적한다.
           # 기본 GITHUB_TOKEN 의 push 는 새 워크플로를 트리거하지 않고, 어떤 워크플로도
           # deploy 푸시에 걸려 있지 않으므로 재귀가 없다.
           git fetch --no-tags origin +refs/heads/deploy:refs/remotes/origin/deploy 2>/dev/null || true

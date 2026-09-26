@@ -1,8 +1,3 @@
-# Two images build from this context:
-#   Dockerfile        serving  — needs go/ and web/
-#   Dockerfile.batch  batch    — needs python/ (the uv workspace)
-# Keep everything else out, and keep host build artifacts / caches out of the
-# image (each build makes its own).
 *
 !go
 !web
