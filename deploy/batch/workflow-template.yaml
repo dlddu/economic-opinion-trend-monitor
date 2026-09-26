@@ -1,19 +1,6 @@
-# Two entrypoints on purpose. `ingest` is what the live hourly CronWorkflow has
-# always called and is kept exactly as it was; `pipeline` chains ingest ->
-# analyze for the cutover to the real analyzer, and is driven by a *separate*
-# CronWorkflow that ships suspended (see cronworkflow-pipeline.yaml). Adding
-# templates changes nothing on its own — a template nobody invokes never runs.
-#
-# Two more, `reprocess` and `publish`, are invoked by the serving Pod rather
-# than by a schedule (deploy/base/rbac.yaml); their operator input arrives as
-# workflow parameters — `arguments.parameters` below are the defaults a bare
-# submit gets.
-#
-# `imagePullSecrets` is declared here rather than left to the cluster: the
-# batch image is a private GHCR package, and the cluster's imagePullSecret
-# patch is scoped to the serving Deployment, so a batch Pod would otherwise
-# never receive it. The `ghcr` Secret itself is injected into the namespace by
-# external-secrets.
+# `ingest` and `pipeline` are driven by the CronWorkflows; `reprocess` and
+# `publish` are submitted by the serving Pod (deploy/base/rbac.yaml), and the
+# operator input they take arrives as the `arguments.parameters` defaults below.
 #
 # The `image:` tags in this file are CI-owned and move in step with the serving
 # image in deploy/base — do not edit them by hand (README 「운영 고정(`pin` job)」).
@@ -57,7 +44,6 @@ spec:
     runAsNonRoot: true
     runAsUser: 65532
     runAsGroup: 65532
-    # Hand the mounted data volume to the batch user on attach.
     fsGroup: 65532
   volumes:
     # Overlay seam, mirroring deploy/base: prod swaps this for a PVC.
@@ -66,7 +52,6 @@ spec:
     - name: tmp
       emptyDir: {}
   templates:
-    # AC1.1 "실행 누락 시 재시도" — Argo-native per-step retries.
     - name: ingest
       retryStrategy:
         limit: "3"
@@ -75,9 +60,7 @@ spec:
         image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
         # Set explicitly (rather than relying on the image ENTRYPOINT) so the
         # emissary executor never has to look the entrypoint up from a private
-        # registry. No args: the default source is the real feed list and the
-        # cycle defaults to the current UTC hour. Add e.g.
-        # ["--cycle", "2026-06-23T14:00"] to backfill a specific window.
+        # registry.
         command: ["econ-ingestion"]
         args: []
         env:
@@ -102,10 +85,7 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # One full cycle: collect into Bronze, enrich that Bronze into Silver, then
-    # aggregate that Silver into Gold. Sequential on purpose — every step reads
-    # what the previous one just wrote, and all three share the one `data`
-    # volume declared above.
+    # Sequential on purpose — every step reads what the previous one just wrote.
     - name: pipeline
       steps:
         - - name: ingest
@@ -115,8 +95,6 @@ spec:
         - - name: aggregate
             template: aggregate
 
-    # AC2.1-2.6 "실분석 -> 실 Silver". No args: the analyzer default is the real
-    # model, exactly as the ingest step relies on the real-feed default.
     - name: analyze
       retryStrategy:
         limit: "3"
@@ -142,11 +120,8 @@ spec:
           # unsupported_value), so the field is omitted rather than pinned to 0.
           - name: ECON_LLM_TEMPERATURE
             value: default
-          # The key is the one piece that cannot live in git. Like the `ghcr`
-          # pull secret, the `econ-llm` Secret is injected into the namespace by
-          # external-secrets; this manifest only names it. Declared required
-          # (not `optional`) so a missing Secret stops the Pod loudly instead of
-          # letting the container start and exit 2 every retry.
+          # Declared required (not `optional`) so a missing Secret stops the
+          # Pod loudly instead of letting it start and exit 2 on every retry.
           - name: ECON_LLM_API_KEY
             valueFrom:
               secretKeyRef:
@@ -273,10 +248,6 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # AC3.2 "핵심 서술 대상 기준 집계" — Silver -> Gold. No args: the CLI defaults
-    # to $ECON_DATA_ROOT and rewrites both Gold datasets from whatever Silver it
-    # finds.
-    #
     # Pure recomputation over the shared volume — no network, no model calls —
     # so a retry here is always safe and never billable.
     - name: aggregate

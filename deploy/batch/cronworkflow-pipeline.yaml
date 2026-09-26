@@ -1,10 +1,5 @@
-# AC2.1~2.6 — 실분석 스케줄 배선. Runs the full cycle: ingest -> analyze.
-#
-# This supersedes `econ-ingestion-hourly`: the `pipeline` entrypoint runs the
-# very same `ingest` template first, then hands its Bronze to the real
-# chat-completions analyzer. The two CronWorkflows are therefore **mutually
-# exclusive** — turning this one on means suspending the other, or every hour
-# would collect twice.
+# Mutually exclusive with `econ-ingestion-hourly` — unsuspending this one
+# without suspending that one collects, and bills, twice every hour.
 #
 #   Before unsuspending, in this order:
 #     1. Confirm the `econ-llm` Secret exists in the namespace with an `api-key`
@@ -16,8 +11,6 @@
 #     3. Read the analyze step's summary line — `attempted=` / `failed=` tells
 #        you whether the model actually answered. A run where every call failed
 #        exits 3 and deliberately leaves Silver untouched.
-#     4. Suspend `econ-ingestion-hourly` (`/spec/suspend: true`), then unsuspend
-#        this one. Doing it in that order never leaves both scheduled.
 #
 #   Unsuspending starts real outbound HTTP to the model endpoint for every
 #   collected item, every hour — that is billable traffic, unlike ingestion.
@@ -27,7 +20,6 @@ metadata:
   name: econ-pipeline-hourly
 spec:
   suspend: false
-  # Same cadence as the ingestion-only schedule it replaces (PRD-1: 매시간).
   schedule: "0 * * * *"
   timezone: "Etc/UTC"
   concurrencyPolicy: Forbid
@@ -39,7 +31,6 @@ spec:
     workflowTemplateRef:
       name: econ-batch-pipeline
     entrypoint: pipeline
-    # Two stages now, and the analyze stage is bounded by the model endpoint
-    # rather than by feed fetches — but still well short of the next tick so
-    # Forbid never blocks it.
+    # Bounded by the model endpoint rather than by feed fetches, but still well
+    # short of the next tick so Forbid never blocks it.
     activeDeadlineSeconds: 3300

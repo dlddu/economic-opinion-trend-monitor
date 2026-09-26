@@ -21,11 +21,6 @@ import (
 // data mount is read-only, so nothing here touches the lake: the batch does,
 // with the parameters the operator chose, and the read side of /api/reprocess
 // shows the result the next time it is asked.
-//
-// A control is offered only when it can do something. `trigger.available`
-// is a probe, not a flag (argo.TemplateReachable, with this Pod's identity).
-// Outside a cluster, or where the probe fails, the reason is reported and the
-// screen draws no buttons.
 
 const (
 	entrypointReprocess = "reprocess"

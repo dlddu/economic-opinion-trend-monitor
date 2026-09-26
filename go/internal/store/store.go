@@ -4,11 +4,6 @@
 // this reader is the Go counterpart of econ_core.storage.LocalFsStore on the
 // Python side. Records are decoded straight into the generated contract types so the
 // schema stays the single source of truth across both runtimes.
-//
-// Most screens read Gold, which is already shaped for display. Lineage is the
-// exception: tracing a Gold number back to the article it came from means
-// reading Bronze and Silver directly, because that is where the body text and
-// the analysis verdict live (AC1.4, AC2.6).
 package store
 
 import (

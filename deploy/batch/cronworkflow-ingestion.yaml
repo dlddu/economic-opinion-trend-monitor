@@ -1,24 +1,12 @@
 # Runs one ingestion cycle per schedule tick. `econ-ingestion` derives the
 # cycle id from the current UTC hour when --cycle is omitted and is idempotent
 # per cycle, so a tick that runs late still lands in the right cycle bucket.
-#
-# The three AC1.1 obligations map onto concrete fields:
-#   * "정해진 주기로 자동 실행"  -> spec.schedule (default: hourly)
-#   * "주기를 설정으로 변경"     -> overlay patch on /spec/schedule (see
-#                                  overlays/prod/kustomization.yaml)
-#   * "실행 누락 시 재시도/보정" -> startingDeadlineSeconds (a tick missed
-#                                  because the controller was down still
-#                                  starts, up to 30m late) + the template's
-#                                  retryStrategy (per-run retries) +
-#                                  concurrencyPolicy: Forbid (a late run never
-#                                  overlaps the next)
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
   name: econ-ingestion-hourly
 spec:
   suspend: true
-  # Default cadence per PRD-1: 매시간. Override per environment with a patch.
   schedule: "0 * * * *"
   timezone: "Etc/UTC"
   concurrencyPolicy: Forbid

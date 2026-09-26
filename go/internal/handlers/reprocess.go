@@ -69,12 +69,11 @@ type versionRow struct {
 }
 
 type reprocessCompare struct {
-	Available     bool         `json:"available"`
-	Reason        string       `json:"reason"`
-	BeforeVersion string       `json:"before_version"`
-	AfterVersion  string       `json:"after_version"`
-	Rows          []compareRow `json:"rows"`
-	// UnanalyzedShare stays apart from the subject shares, as AC2.5 keeps it everywhere else.
+	Available       bool         `json:"available"`
+	Reason          string       `json:"reason"`
+	BeforeVersion   string       `json:"before_version"`
+	AfterVersion    string       `json:"after_version"`
+	Rows            []compareRow `json:"rows"`
 	UnanalyzedShare compareShare `json:"unanalyzed_share"`
 }
 
