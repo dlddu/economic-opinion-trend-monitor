@@ -1,0 +1,4 @@
+[
+  { "source_id": "e2e-links-desk", "axis": "KR", "feed_url": "http://econ-feed-double:8080/record_links_desk_cycle2.rss.xml", "limit": 100 },
+  { "source_id": "e2e-links-wire", "axis": "KR", "feed_url": "http://econ-feed-double:8080/record_links_wire_cycle2.rss.xml", "limit": 100 }
+]
