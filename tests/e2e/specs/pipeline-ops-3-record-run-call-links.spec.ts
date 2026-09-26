@@ -21,7 +21,6 @@ const BASE_VERSION = "llm-v1";
 const REPROCESS_VERSION = "llm-v2";
 const REPROCESS_RUN = "e2e-links-run-3";
 
-/** 한 행이 가리키는 호출 기록. 계약상 `call_id` 가 있으면 반드시 열려야 한다. */
 function callOf(row: AnalysisLink, byId: Map<string, LlmCall>): LlmCall {
   const id = row.call_id;
   expect(id, `${row.record_id}(${row.analyzer_version}) 에 call_id 가 없다`).not.toBeNull();
@@ -44,7 +43,6 @@ test("pipeline-ops: every silver row reaches the run that wrote it", () => {
     const run = runs.get(row.run_id);
     expect(run, `행 ${row.record_id}(${row.analyzer_version}) 의 실행 ${row.run_id} 가 없다`)
       .toBeDefined();
-    // 실행 기록이 있다는 것만으로는 부족하다 — 그 실행이 **분석을 한** 실행이어야 행을 쓸 수 있다.
     expect(run?.stages.map((stage) => stage.stage_name)).toContain("analysis");
   }
 });
@@ -61,8 +59,6 @@ test("pipeline-ops: a row either names its call or says why there was none", () 
   expect(uncalled.length).toBeGreaterThan(0);
 
   for (const row of rows) {
-    // AC4.3 의 배타: 하나는 늘 채워져 있고 둘이 동시에 채워지지는 않는다 — 어떤 행도 자기
-    // 판단이 어디서 왔는지에 대해 침묵하지 않는다.
     expect(
       (row.call_id === null) !== (row.no_call_reason === null),
       `${row.record_id}(${row.analyzer_version}) 의 call_id/no_call_reason 이 배타적이지 않다`,
@@ -94,16 +90,10 @@ test("pipeline-ops: a replayed reply reaches the call it replays", () => {
   expect(reused.length).toBeGreaterThan(0);
 
   for (const call of reused) {
-    // 행은 원 호출을 **직접** 가리키지 않는다. 한 홉(행 -> 이 실행의 재사용 기록 ->
-    // `reused_from_call_id`)을 두는 것이 AC4.3 의 설계 판단이고(analysis.avsc 의 doc 이 그
-    // 근거를 적는다), 직접 참조로 만들면 호출 기록 이전에 쌓인 캐시 항목에서 가리킬 대상이
-    // 없어 부분 함수가 된다. 그 한 홉이 실제로 닫히는지가 여기서 관측된다.
     expect(call.reused_from_call_id).not.toBeNull();
     const origin = byId.get(call.reused_from_call_id as string);
     expect(origin, `원 호출 ${call.reused_from_call_id} 가 레이크에 없다`).toBeDefined();
 
-    // 원 호출은 **다른 실행**의 것이고, 재사용이 성립한 근거인 프롬프트 동일성을 공유하며,
-    // 돌려준 응답도 같다. 셋이 함께 성립해야 "같은 답을 다시 쓴 것"이라 말할 수 있다.
     expect(origin?.run_id).not.toBe(call.run_id);
     expect(origin?.prompt_sha256).toBe(call.prompt_sha256);
     expect(origin?.response_raw).toBe(call.response_raw);
@@ -130,23 +120,18 @@ test("pipeline-ops: a run's own record and call lists match what points back at 
     accountedRows += madeRows.length;
     accountedCalls += madeCalls.length;
 
-    // 역방향 목록을 **저장된 다른 쪽 사실**과 맞춘다. 실행 레코드의 분석 단계는 자기가 쓴 행
-    // 수를 `output_count` 로 들고 있고, 행을 훑어 만든 목록은 그 수와 같아야 한다. 이 코퍼스는
-    // 재시도가 없도록 짜여 있어(wire 픽스처 머리말) 등식이 정확히 성립한다 — 재시도가 있으면
+    // 이 코퍼스는 재시도가 없도록 짜여 있어 이 등식이 **정확히** 성립한다 — 재시도가 있으면
     // 뒤 실행이 같은 (레코드, 버전) 행을 덮어써 앞 실행 쪽이 정당하게 작아진다.
     const analysis = runs.get(runId)?.stages.find((stage) => stage.stage_name === "analysis");
     expect(analysis?.output_count, `실행 ${runId} 의 분석 단계 집계와 행 수가 다르다`)
       .toBe(madeRows.length);
 
-    // 그 실행의 호출 기록은 그 실행이 쓴 행들이 가리킨 호출과 **정확히** 같다. 남는 호출이
-    // 있으면 어떤 행도 책임지지 않는 호출을 한 것이고, 모자라면 행이 남의 호출을 가리킨 것이다.
     expect(new Set(madeCalls.map((call) => call.call_id)))
       .toEqual(new Set(madeRows.map((row) => row.call_id).filter((id) => id !== null)));
   }
 
-  // 실행별 목록을 다 더하면 레이크 전체가 된다 — 어떤 행도, 어떤 호출도 실행 없이 떠 있지
-  // 않고 두 실행에 동시에 속하지도 않는다. 위 루프가 분석 실행만 훑으므로, 이 등식은 수집만
-  // 한 실행이 Silver 나 호출을 남기지 않았다는 것까지 함께 말한다.
+  // 위 루프가 분석 실행만 훑으므로, 이 등식은 수집만 한 실행이 Silver 나 호출을 남기지
+  // 않았다는 것까지 함께 말한다.
   expect(accountedRows).toBe(rows.length);
   expect(accountedCalls).toBe(calls.length);
 });
@@ -175,8 +160,7 @@ test("pipeline-ops: coexisting versions name different runs and calls, and share
     expect(callOf(base, byId).run_id).toBe(base.run_id);
     expect(callOf(next, byId).run_id).toBe(next.run_id);
 
-    // 그런데 **두 버전 모두** 같은 Bronze 관측 한 건으로 역추적된다(AC2.6). 두 판단이 같은
-    // 원문을 두고 내려진 것이 아니면 버전 비교 자체가 의미를 잃는다.
+    // 두 판단이 같은 원문을 두고 내려진 것이 아니면 버전 비교 자체가 의미를 잃는다.
     const item = items.get(recordId);
     expect(item, `레코드 ${recordId} 의 Bronze 관측이 없다`).toBeDefined();
     expect(base.source_url).toBe(item?.source_url);
@@ -184,8 +168,6 @@ test("pipeline-ops: coexisting versions name different runs and calls, and share
     expect(bodies.get(item?.body_hash ?? "")?.raw_text).toBeTruthy();
   }
 
-  // 범위 지정의 관측 지점: 범위 **밖** 소스의 레코드는 앞 버전 한 벌로만 남는다. 이 비대칭이
-  // 없으면 "범위를 지정했다"가 관측되지 않고, 전체 재처리와 구별되지 않는다.
   const scopedIds = new Set(coexisting.map(([recordId]) => recordId));
   const outside = [...items.values()].filter((item) => item.source_id !== SCOPED_SOURCE);
   expect(outside.length).toBeGreaterThan(0);

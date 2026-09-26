@@ -1,6 +1,4 @@
 # 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 1** 수집.
-#
-# desk 2건(정상·저신뢰) + wire 2건(본문 없음·다음 주기 재관측 대상)을 한 주기로 들인다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -31,9 +29,6 @@ spec:
           env:
             - name: ECON_DATA_ROOT
               value: /data/record-links
-            # 수집과 분석을 **한 실행 id** 로 묶는다 — 운영에서 Argo 가 `{{workflow.name}}` 을
-            # 모든 스텝에 넣는 그 변수다. 그래야 실행 레코드가 두 단계를 다 갖고, 시나리오 3 의
-            # 「레코드 → 실행 기록 도달」이 자동 생성 id 가 아닌 결정적 id 로 관측된다.
             - name: ECON_RUN_ID
               value: e2e-links-run-1
           resources:

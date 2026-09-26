@@ -4,11 +4,6 @@
 // 이 루트만 네 데이터셋을 **한꺼번에** 반출한다: Silver 행, 호출 기록, 실행 기록, 그리고
 // 역추적의 종점인 Bronze 관측·본문. 시나리오 3 의 단정이 전부 「한쪽에 적힌 id 가 다른 쪽에서
 // 실제로 열리는가」라서, 넷이 같은 실행에서 나온 한 벌이 아니면 그 질문 자체가 성립하지 않는다.
-//
-// 역방향(`실행 -> 레코드·호출 목록`)을 제품이 저장하지 않고 **훑어서** 만든다는 것이 AC4.3 의
-// 설계 판단이다(`econ_core.silver.records_of_run` docstring). 여기 `recordsOfRun`·`callsOfRun`
-// 은 그 판단을 spec 쪽에서 독립적으로 다시 밟는 것이지 제품 코드를 베낀 것이 아니다 —
-// 두 방향이 **같은 사실**을 양 끝에서 읽는 것인지가 시나리오의 질문이다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -29,11 +24,8 @@ export type AnalysisLink = {
   source_url: string;
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   analyzer_version: string;
-  /** 이 행을 쓴 실행. 계약상 non-null 이라 「도달」의 출발점은 늘 있다. */
   run_id: string;
-  /** 이 행을 위해 이 실행이 한 모델 호출. 호출이 없었으면 null 이다. */
   call_id: string | null;
-  /** 호출이 없었던 이유. `call_id` 와 정확히 배타적이라는 것이 AC4.3 의 단정이다. */
   no_call_reason: string | null;
 };
 
@@ -61,12 +53,10 @@ export function linkAnalyses(): AnalysisLink[] {
   return rows;
 }
 
-/** 연결 기록 루트의 호출 기록 전건. */
 export function linkCalls(): LlmCall[] {
   return llmCalls("E2E_LLM_CALL_LINKS_DIR");
 }
 
-/** 연결 기록 루트의 실행 기록 전건(`run_id` -> 레코드). */
 export function linkRuns(): Map<string, PipelineRun> {
   return pipelineRuns("E2E_RUNLOG_LINKS_DIR");
 }
@@ -77,7 +67,6 @@ export function linkItems(): Map<string, NewsItem> {
   return new Map(items.map((item) => [item.record_id, item]));
 }
 
-/** 연결 기록 루트의 Bronze 본문(`body_hash` -> 레코드). */
 export function linkBodies(): Map<string, NewsBody> {
   const bodies = newsBodies(exportedDir("E2E_BRONZE_LINKS_DIR"));
   return new Map(bodies.map((body) => [body.body_hash, body]));

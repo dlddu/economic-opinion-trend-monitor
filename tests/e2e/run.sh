@@ -320,17 +320,11 @@ chain_llm_calls() {
 }
 
 # 4f) Record <-> run <-> call links (…-test-pipeline-ops.md#시나리오 3).
-#
-# A dedicated root again, for the reason the fixtures README gives: the assertions here are
-# about *which rows a run made* and *which version a row carries*, and both are counts over
-# the whole root — another bundle's cycles landing in it would make every one of them read
-# a different corpus than the one this scenario describes.
 chain_record_links() {
   local log
 
-  # Cycle 1: the desk pair (answered / low confidence) plus the wire pair (one with no body,
-  # one that cycle 2 re-observes). Every call here succeeds — the failing branch lives in
-  # cycle 2 so that no record is left on the retry list (see the wire fixture header).
+  # Every call in cycle 1 succeeds: the failing branch must stay in the LAST cycle, or the
+  # retry list picks the record up again and a later run takes over the row it wrote.
   run_batch_job econ-e2e-ingest-links1 "$E2E_DIR/k8s/batch/ingest-job-links1.yaml" >/dev/null
   log="$(run_batch_job econ-e2e-analyze-links1 "$E2E_DIR/k8s/batch/analyze-job-links1.yaml")"
   case "$log" in
@@ -340,7 +334,6 @@ chain_record_links() {
        exit 1 ;;
   esac
 
-  # Cycle 2 re-observes the wire pair and adds the article the double has no reply for.
   # `reused=1` is load-bearing: without it the corpus has no row whose call record names an
   # *earlier* call, and "a replayed reply reaches the original call record" passes vacuously.
   # `failed=1` is equally deliberate — it is the only row that is unanalyzed *with* a call,
@@ -355,9 +348,8 @@ chain_record_links() {
        exit 1 ;;
   esac
 
-  # The scoped reprocess. `coexisting` is the word the product prints when a scope was given,
-  # and it is exactly the precondition scenario 3 names: without it the rewrite is `in place`
-  # and the llm-v1 rows are gone, leaving nothing to compare the two versions with.
+  # `coexisting` is the word the product prints when a scope was given — match the guard to
+  # the product's wording, not to a paraphrase.
   log="$(run_batch_job econ-e2e-analyze-links-v2 "$E2E_DIR/k8s/batch/analyze-job-links-v2.yaml")"
   case "$log" in
     *"(coexisting, pruned=0)"*) ;;

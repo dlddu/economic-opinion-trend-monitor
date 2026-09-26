@@ -1,8 +1,4 @@
 # 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **범위 지정 재처리**.
-#
-# desk 소스만 llm-v2 로 다시 판정한다. wire 는 범위 밖이라 llm-v1 한 벌로 남고, 그 비대칭이
-# 「범위를 지정했다」는 사실의 관측 지점이다. 범위를 주었으므로 실행 레코드의 `run_trigger` 가
-# `reprocess` 로 찍힌다(주기 실행 둘은 `scheduled`).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -25,9 +21,8 @@ spec:
           args:
             - --analyzer-version
             - llm-v2
-            # **범위 지정** 재처리다(시나리오 3 의 전제 「범위 지정 재처리로 두 로직 버전이 병존」).
-            # 범위를 주면 제품이 `coexisting` 모드로 써서 기존 버전 행이 살아남는다 — 범위 없는
-            # 전체 재처리는 `in place` 라 앞 버전을 지우므로 병존이 관측되지 않는다.
+            # `--source` 를 빼면 범위 없는 전체 재처리가 되어 앞 버전 행이 사라진다
+            # (`run.sh` 의 `coexisting` 가드가 그 자리다).
             - --source
             - e2e-links-desk
           # mock-exception: LLM-16 — 연결 기록 묶음의 chat-completions 상류를 같은 LLM 더블로 돌린다(BASE_URL·MODEL·더미 KEY 한 묶음) — docs/econ-opinion-monitor-e2e-mocking-policy.md
@@ -38,7 +33,6 @@ spec:
               value: e2e-links-run-3
             - name: ECON_LLM_BASE_URL
               value: http://econ-llm-double:8080/v1
-            # 세 분석 Job 이 같은 이름을 써야 응답 캐시 키가 맞는다(재사용 갈래가 여기 걸린다).
             - name: ECON_LLM_MODEL
               value: e2e-llm-links
             - name: ECON_LLM_API_KEY

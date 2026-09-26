@@ -1,8 +1,6 @@
 # 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 2** 수집.
 #
-# desk 는 주기 1 과 **겹치지 않는** 새 기사 한 건, wire 는 주기 1 의 두 건을 **바이트 동일하게**
-# 다시 싣고 응답 없는 기사 하나를 더한다 — 재관측분이 응답 캐시를 맞혀 `reused` 를 만들고,
-# 응답 없는 기사가 이 묶음의 유일한 `call_failed` 가 된다(픽스처 머리말 참조).
+# `--cycle` 은 주기 1 과 **달라야** 하고, wire 픽스처의 겹치는 두 건은 **바이트 동일해야** 한다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -33,9 +31,6 @@ spec:
           env:
             - name: ECON_DATA_ROOT
               value: /data/record-links
-            # 수집과 분석을 **한 실행 id** 로 묶는다 — 운영에서 Argo 가 `{{workflow.name}}` 을
-            # 모든 스텝에 넣는 그 변수다. 그래야 실행 레코드가 두 단계를 다 갖고, 시나리오 3 의
-            # 「레코드 → 실행 기록 도달」이 자동 생성 id 가 아닌 결정적 id 로 관측된다.
             - name: ECON_RUN_ID
               value: e2e-links-run-2
           resources:
