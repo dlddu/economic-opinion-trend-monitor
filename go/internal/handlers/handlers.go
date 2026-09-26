@@ -1,14 +1,4 @@
 // Package handlers exposes the serving API.
-//
-// There is one route per frontend screen (8 screens -> 8 routes) plus a health
-// check. Five of them (dashboard, compare, sentiment, fairness, trend) derive
-// their response from Gold, so the Python -> Gold -> Go path is exercised end to
-// end. trace reads further down instead — it joins Bronze and Silver directly to
-// walk an aggregate back to its article, and reprocess reads the same two layers
-// to size a re-analysis range and compare analyzer versions (reprocess.go).
-// reprocess's three POSTs are the only routes that cause work (reprocess_trigger.go).
-// debug is still a stub: the run and model-call records it will read (PRD-4
-// AC4.1–4.3) do not exist in the lake yet, so it says so instead of inventing them.
 package handlers
 
 import (
@@ -126,9 +116,9 @@ type sentimentBasis struct {
 
 // sentimentPoint is one bucket of the selected axis. The four sentiment ratios
 // are over the *analyzed* items and Unanalyzed rides alongside as its own share
-// of the whole, never folded in with them (AC3.4: 저신뢰·미분석은 비율 집계에서
-// 분리한다). AnalyzedTotal is what those ratios were taken over, so a 60% that
-// rests on five items can be told apart from one that rests on five hundred.
+// of the whole, never folded in with them (AC3.4). AnalyzedTotal is what those
+// ratios were taken over, so a 60% that rests on five items can be told apart
+// from one that rests on five hundred.
 type sentimentPoint struct {
 	TimeBucket    string                    `json:"time_bucket"`
 	Distribution  gen.SentimentDistribution `json:"distribution"`
@@ -164,8 +154,8 @@ const fairnessRowLimit = 20
 //
 // Method names the normalization the aggregation applied, so the screen can
 // print it verbatim rather than asserting "normalized" with no way to say how
-// (AC3.1: "정규화 방식은 명시되고 일관 적용된다"). RawTotal is the denominator
-// RawShare was taken over — published so the raw counts beside it add up.
+// (AC3.1). RawTotal is the denominator RawShare was taken over — published so
+// the raw counts beside it add up.
 type fairnessBasis struct {
 	BucketUnit string `json:"bucket_unit"`
 	TimeBucket string `json:"time_bucket"`
@@ -669,7 +659,7 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 }
 
 // plottedUnit picks the bucket unit the chart is drawn in: the finest one
-// present, which is the default AC3.3 names ("기본 단위는 시간").
+// present, which is the default AC3.3 names.
 //
 // Note what it does *not* do — pick the unit of the newest bucket. Bucket keys
 // are only comparable within a unit: "2026-W26" sorts above "2026-06-23T14"
