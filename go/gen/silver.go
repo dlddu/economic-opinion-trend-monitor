@@ -13,6 +13,9 @@ type Analysis struct {
 	Confidence        float64        `json:"confidence"`
 	AnalyzedAt        string         `json:"analyzed_at"`
 	AnalyzerVersion   string         `json:"analyzer_version"`
+	RunID             string         `json:"run_id"`
+	CallID            *string        `json:"call_id,omitempty"`
+	NoCallReason      *string        `json:"no_call_reason,omitempty"`
 }
 
 // LlmCallRecord One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2).

@@ -41,8 +41,11 @@ func TestDebugIsAnHonestStubUntilRunAndCallRecordsExist(t *testing.T) {
 		if missing == "llm_call_record" {
 			t.Fatalf("llm_call_record exists since AC4.2 — missing must not still claim it: %v", got.Missing)
 		}
+		if missing == "record_run_call_link" {
+			t.Fatalf("record_run_call_link exists since AC4.3 — missing must not still claim it: %v", got.Missing)
+		}
 	}
 	if len(got.Missing) == 0 {
-		t.Fatal("the stub must still name what it is waiting for (AC4.2-AC4.3)")
+		t.Fatal("the stub must still name what it is waiting for")
 	}
 }

@@ -162,6 +162,18 @@ def read_analyses(store: LakeStore) -> list[dict]:
     return store.read_partitions(domain.SILVER, domain.DS_ANALYSIS)
 
 
+def records_of_run(store: LakeStore, run_id: str) -> list[dict]:
+    """Silver rows written by one run — the reverse of a row's ``run_id`` (AC4.3).
+
+    The list is derived from the rows rather than kept on the run record, because a
+    whole-lake run touches as many records as the lake holds and each stage rewrites
+    its run record in place (:mod:`econ_core.runlog`): carrying the list there would
+    grow one object without bound and state twice a fact the rows already carry. A
+    scan is what makes the two directions the *same* fact read from two ends.
+    """
+    return [row for row in read_analyses(store) if row.get("run_id") == run_id]
+
+
 def migrate_legacy(store: LakeStore, cycles: Mapping[str, str]) -> int:
     """Move a legacy ``silver/analysis.jsonl`` into cycle partitions; orphans are dropped."""
     return store.migrate_records_to_partitions(

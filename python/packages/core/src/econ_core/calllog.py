@@ -64,3 +64,17 @@ def record_call(store: LakeStore, record: dict) -> bool:
 def read_calls(store: LakeStore) -> list[dict]:
     """Every call record in the lake — the read side of the log."""
     return store.read_objects(domain.SILVER, domain.DS_LLM_CALL)
+
+
+def read_call(store: LakeStore, call_id: str) -> dict | None:
+    """The call record a Silver row's ``call_id`` names, or None (AC4.3, forward)."""
+    return store.get_object(domain.SILVER, domain.DS_LLM_CALL, "call_id", call_id)
+
+
+def calls_of_run(store: LakeStore, run_id: str) -> list[dict]:
+    """Call records made by one run — the reverse of a call's ``run_id`` (AC4.3).
+
+    Derived by scan for the same reason :func:`econ_core.silver.records_of_run` is:
+    ``run_id`` on the call record is the single stored fact, read from either end.
+    """
+    return [call for call in read_calls(store) if call.get("run_id") == run_id]
