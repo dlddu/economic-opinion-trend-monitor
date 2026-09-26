@@ -1,8 +1,6 @@
 # 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 2 분석**.
 #
-# 여기서 wire 재관측분이 주기 1 의 응답 캐시를 맞혀 `reused` 호출 기록이 생긴다 — 그 기록의
-# `reused_from_call_id` 가 주기 1 의 호출을 가리키는 것이 시나리오 3 의 「재사용 시 원 호출
-# 기록에 도달한다」다. 주기 1 과 **같은 버전**이어야 캐시 키가 맞으므로 여기서도 버전을 주지 않는다.
+# `--analyzer-version` 을 주지 않는다 — 주기 1 과 **같은 버전**이어야 캐시 키가 맞는다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -31,7 +29,7 @@ spec:
               value: e2e-links-run-2
             - name: ECON_LLM_BASE_URL
               value: http://econ-llm-double:8080/v1
-            # 세 분석 Job 이 같은 이름을 써야 응답 캐시 키가 맞는다(재사용 갈래가 여기 걸린다).
+            # 주기 1 분석과 같은 이름이어야 한다(`analyze-job-links1.yaml` 이 근거를 적는다).
             - name: ECON_LLM_MODEL
               value: e2e-llm-links
             - name: ECON_LLM_API_KEY

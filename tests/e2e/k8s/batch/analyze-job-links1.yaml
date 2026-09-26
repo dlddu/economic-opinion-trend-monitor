@@ -1,6 +1,5 @@
 # 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 1 분석**.
 #
-# 수집과 같은 `ECON_RUN_ID` 라 실행 레코드 하나가 수집·분석 두 단계를 갖는다.
 # `--analyzer-version` 을 주지 않는다 — 기본(llm-v1)이 병존 비교의 **앞 버전**이다.
 apiVersion: batch/v1
 kind: Job

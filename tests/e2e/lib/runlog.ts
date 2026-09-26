@@ -47,9 +47,8 @@ function exportedDir(variable: string): string {
 /**
  * 반출된 실행 레코드를 `run_id` -> 레코드로. 반출이 비면 조용히 넘기지 않고 끊는다.
  *
- * 반출 지점이 둘이다 — 시나리오 1 의 pipeline-ops 루트(기본값)와 시나리오 3 의 연결 기록
- * 루트(`E2E_RUNLOG_LINKS_DIR`). 루트를 가르는 이유는 두 시나리오가 **같은 레코드를 세기**
- * 때문이다: 한 루트를 공유하면 「이 실행이 만든 행」의 집합이 옆 시나리오의 주기에 오염된다.
+ * 루트를 가르는 이유는 두 시나리오가 **같은 레코드를 세기** 때문이다: 한 루트를 공유하면
+ * 「이 실행이 만든 행」의 집합이 옆 시나리오의 주기에 오염된다.
  */
 export function pipelineRuns(variable = "E2E_RUNLOG_OPS_DIR"): Map<string, PipelineRun> {
   const target = path.join(exportedDir(variable), "pipeline_run.jsonl");

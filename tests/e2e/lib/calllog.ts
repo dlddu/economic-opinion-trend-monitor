@@ -40,8 +40,7 @@ function need(name: string): string {
 /**
  * 반출된 호출 기록 전건. 비어 있으면 조용히 빈 배열을 주지 않고 예외로 끊는다.
  *
- * 기본값은 시나리오 2 의 호출 기록 루트이고, 시나리오 3 은 자기 루트
- * (`E2E_LLM_CALL_LINKS_DIR`)를 넘긴다 — 루트를 가르는 이유는 `runlog.ts` 쪽과 같다.
+ * 루트를 가르는 이유는 `runlog.ts` 쪽과 같다.
  */
 export function llmCalls(variable = "E2E_LLM_CALL_DIR"): LlmCall[] {
   const file = path.join(need(variable), "llm_call.jsonl");
