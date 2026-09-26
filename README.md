@@ -76,7 +76,7 @@ go/          Go 모듈 (서빙)
 web/         Vite + React — 디자인 토큰(CSS) · 셸(PAT-screen-shell) · 대시보드 1화면 · API fetch 스텁
 data/        로컬 데이터 레이크 (bronze/silver/gold) — 내용은 git-ignore, 구조만 .gitkeep
 deploy/      kustomize 배포 매니페스트 (base + overlays/prod) — 외부 k8s 클러스터 배포용
-tests/       교차 언어 스모크 + kind e2e (tests/e2e: 픽스처 Gold -> 클러스터 서빙 검증)
+tests/       교차 언어 스모크 + kind e2e (tests/e2e: 배치 3단 -> 파이프라인 Gold -> 클러스터 서빙 검증)
 ```
 
 ## 사전 요구사항
@@ -98,7 +98,7 @@ make build     # 서빙 바이너리 + 웹 번들 빌드
 make test      # 3개 언어 단위 테스트 + 교차 언어 스모크
 make lint      # ruff / gofmt+vet / eslint
 make run       # 서빙 기동 (API + web/dist 정적 서빙)
-make e2e       # kind e2e: 픽스처 Gold -> 클러스터 내 서빙 -> Playwright (docker/kind/kubectl 필요)
+make e2e       # kind e2e: 배치 3단 -> 파이프라인 Gold -> 클러스터 내 서빙 -> Playwright (docker/kind/kubectl 필요)
 ```
 
 `make`(인자 없음)는 사용 가능한 타깃 목록을 출력한다.

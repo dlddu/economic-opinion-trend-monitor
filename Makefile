@@ -53,7 +53,7 @@ test-web: ## Run web (vitest) tests
 test-cross: ## Cross-language smoke: Python writes Gold -> Go serves it
 	./tests/smoke.sh
 
-e2e: ## kind e2e: fixture Gold -> in-cluster serving -> Playwright (docker/kind/kubectl)
+e2e: ## kind e2e: batch 3 stages -> pipeline Gold -> in-cluster serving -> Playwright (docker/kind/kubectl)
 	./tests/e2e/run.sh
 
 lint: lint-py lint-go lint-web lint-scenario-mapping ## Lint all languages + scenario<->e2e mapping

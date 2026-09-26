@@ -14,13 +14,29 @@
 //   4) AC3.8의 전용 표시 표면인 `fairness` 화면이 같은 두 값을 한 행 안에서
 //      **구분된 표기**로 병치하고, 세는 방식을 전환하면 표기가 실제로 바뀐다.
 //
-// 단언하지 않는 것: 정규화 계산 자체의 견고성(AC3.1)과 집계 정확성(AC3.2/3.3).
-// 이 하네스는 픽스처 Gold를 마운트하므로 집계 로직을 관측하지 못한다.
+// 단언하지 않는 것: 정규화 계산 자체의 견고성(AC3.1)과 집계 정확성(AC3.2/3.3). 서빙이 받는
+// Gold 는 이제 집계 배치가 쓴 것이지만, 그 계산이 옳은지는 원천에서 다시 센 교차표와 대조하는
+// aggregation-1·2·4 가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
 
 import { expect, test } from "@playwright/test";
 
-// tests/e2e/fixtures/gold/subject_trend.jsonl 의 KR 축 1위 행과 일치해야 한다.
-const FIXTURE_SUBJECT = "E2E 검증 서브젝트";
+/**
+ * 어느 대상 행을 볼지는 **응답이 정한다** — 상수로 박지 않는다. 서빙 입력이 커밋된 픽스처
+ * Gold 이던 동안에는 픽스처의 1위 대상 이름을 spec 에 복사해 두었지만, 이제 그 Gold 는 집계
+ * 배치가 corpus 에서 만든 것이라 이름을 베끼면 corpus 가 바뀔 때마다 테스트가 헛되이 깨진다.
+ *
+ * 1위 행을 고르는 이유: 이 spec 의 단정 중 하나가 **원시 카운트가 비율이 아니다**(> 1)이고,
+ * 집계 corpus 에서 기사 여러 건을 가진 대상이 곧 1위이기 때문이다(KR 축 1위 = 3건).
+ */
+type RankRow = { subject: string; normalized_share: number; raw_count: number };
+/** `fairness` 화면은 같은 행에 원시 기준 점유율을 하나 더 싣는다. */
+type FairRow = RankRow & { raw_share: number };
+
+function topRow<T extends RankRow>(rows: T[], where: string): T {
+  expect(rows.length, `${where} 에 대상 행이 없다 — 집계 Gold 가 이 축을 채우지 않았다`)
+    .toBeGreaterThan(0);
+  return rows[0];
+}
 
 test("api: dashboard marks the ratio as normalized and keeps raw counts alongside", async ({
   request,
@@ -33,10 +49,7 @@ test("api: dashboard marks the ratio as normalized and keeps raw counts alongsid
   expect(body.normalized).toBe(true);
 
   // (2) 정규화 비율과 원시 카운트가 별개 필드로 공존한다.
-  const row = body.top_subjects.find(
-    (r: { subject: string }) => r.subject === FIXTURE_SUBJECT,
-  );
-  expect(row, `${FIXTURE_SUBJECT} 행이 응답에 없음`).toBeTruthy();
+  const row = topRow(body.top_subjects, "/api/dashboard?axis=KR");
   expect(typeof row.normalized_share).toBe("number");
   expect(typeof row.raw_count).toBe("number");
   expect(row.normalized_share).toBeGreaterThan(0);
@@ -49,10 +62,7 @@ test("web: dashboard shows the normalized share and flags the counting basis", a
   request,
 }) => {
   const api = await (await request.get("/api/dashboard?axis=KR")).json();
-  const row = api.top_subjects.find(
-    (r: { subject: string }) => r.subject === FIXTURE_SUBJECT,
-  );
-  expect(row, `${FIXTURE_SUBJECT} 행이 응답에 없음`).toBeTruthy();
+  const row = topRow(api.top_subjects, "/api/dashboard?axis=KR");
 
   await page.goto("/");
   await expect(page).toHaveTitle(/경제 여론 추세 모니터/);
@@ -60,7 +70,7 @@ test("web: dashboard shows the normalized share and flags the counting basis", a
   await expect(page.getByText("The web build was not found")).toHaveCount(0);
   await expect(page.getByText("데이터 없음")).toHaveCount(0);
 
-  const rankRow = page.locator(".rankrow").filter({ hasText: FIXTURE_SUBJECT });
+  const rankRow = page.locator(".rankrow").filter({ hasText: row.subject });
   await expect(rankRow).toHaveCount(1);
 
   // (3a) 정규화 비율 — 집계값과 같은 값이 퍼센트로 표기된다.
@@ -78,13 +88,12 @@ test("web: the fairness screen juxtaposes both counting modes and lets the reade
 }) => {
   const api = await (await request.get("/api/fairness?axis=KR")).json();
   expect(api.basis.normalized).toBe(true);
-  const row = api.rows.find((r: { subject: string }) => r.subject === FIXTURE_SUBJECT);
-  expect(row, `${FIXTURE_SUBJECT} 행이 응답에 없음`).toBeTruthy();
+  const row = topRow<FairRow>(api.rows, "/api/fairness?axis=KR");
 
   await page.goto("/fairness");
   await expect(page.getByText("The web build was not found")).toHaveCount(0);
 
-  const tableRow = page.locator("tbody tr").filter({ hasText: FIXTURE_SUBJECT });
+  const tableRow = page.locator("tbody tr").filter({ hasText: row.subject });
   await expect(tableRow).toHaveCount(1);
 
   await expect(tableRow.locator(".meta")).toHaveText(`원시 ${row.raw_count}건`);

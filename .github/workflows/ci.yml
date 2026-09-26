@@ -56,7 +56,7 @@ jobs:
       - name: Test
         run: make test
 
-  # Serving-path e2e on a kind cluster (fixture Gold -> Go API + web render).
+  # Serving-path e2e on a kind cluster (batch-produced Gold -> Go API + web render).
   # Parallel to `build`; docker is preinstalled on the runner.
   #
   # arm64 on purpose, like image.yml's publish job: the e2e images are built from

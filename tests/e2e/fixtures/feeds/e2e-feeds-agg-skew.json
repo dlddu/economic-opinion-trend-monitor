@@ -1,5 +1,6 @@
 [
   { "source_id": "e2e-agg-kr-wire", "axis": "KR", "feed_url": "http://econ-feed-double:8080/agg_kr_wire_skew.rss.xml", "limit": 100 },
   { "source_id": "e2e-agg-kr-daily", "axis": "KR", "feed_url": "http://econ-feed-double:8080/agg_kr_daily.rss.xml", "limit": 100 },
-  { "source_id": "e2e-agg-us-desk", "axis": "US", "feed_url": "http://econ-feed-double:8080/agg_us_desk.rss.xml", "limit": 100 }
+  { "source_id": "e2e-agg-us-desk", "axis": "US", "feed_url": "http://econ-feed-double:8080/agg_us_desk.rss.xml", "limit": 100 },
+  { "source_id": "e2e-agg-global-desk", "axis": "GLOBAL", "feed_url": "http://econ-feed-double:8080/agg_global_desk.rss.xml", "limit": 100 }
 ]
