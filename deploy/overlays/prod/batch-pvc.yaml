@@ -1,6 +1,5 @@
-# The one data lake volume: the scheduled batch writes Bronze -> Silver -> Gold
-# into it and the serving Pod reads Gold out of it, so the two workloads must
-# be able to mount it at the same time from any node — hence ReadWriteMany.
+# Batch and serving mount this at the same time from any node, so the access
+# mode has to be ReadWriteMany (README 「배포」).
 # The cluster's `efs` StorageClass hands every mount the same access point
 # (fixed uid/gid), so serving reads what the batch user wrote without any
 # fsGroup dance on its side.

@@ -27,9 +27,9 @@ patches:
             claimName: econ-batch-data
 
   # Give the batch workflow the same claim in place of the emptyDir seam.
-  # /spec/volumes is template-wide, so every stage (ingest, analyze) mounts the
-  # same claim and analysis reads the Bronze ingestion just wrote — no per-stage
-  # patch needed as stages are added.
+  # /spec/volumes is template-wide, so every stage mounts the same claim and
+  # each one reads what the previous stage wrote — no per-stage patch needed as
+  # stages are added.
   - target:
       group: argoproj.io
       kind: WorkflowTemplate
@@ -41,15 +41,3 @@ patches:
           name: data
           persistentVolumeClaim:
             claimName: econ-batch-data
-
-  # AC1.1 "주기를 설정으로 변경한다" is exercised here — to run every 30 minutes
-  # instead of hourly, add a patch:
-  #     - target:
-  #         group: argoproj.io
-  #         kind: CronWorkflow
-  #         name: econ-ingestion-hourly
-  #       patch: |-
-  #         - op: replace
-  #           path: /spec/schedule
-  #           value: "*/30 * * * *"
-  # and re-apply; the change takes effect from the next tick.

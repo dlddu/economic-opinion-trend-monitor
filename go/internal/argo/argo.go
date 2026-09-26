@@ -1,7 +1,6 @@
 // Package argo submits and lists Argo Workflows through the Kubernetes API.
 //
-// It speaks to the API server directly — no client-go: two verbs on one
-// resource do not justify a dependency tree.
+// No client-go: two verbs on one resource do not justify a dependency tree.
 package argo
 
 import (

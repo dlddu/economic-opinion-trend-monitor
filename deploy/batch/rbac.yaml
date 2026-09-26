@@ -1,9 +1,3 @@
-# Argo Workflows executor RBAC for the batch workloads.
-#
-# Every workflow Pod reports step results back to the controller by
-# creating/patching `workflowtaskresults`; without this Role the very first
-# step fails with a permissions error. The cluster's other Argo users
-# (frankfurter, gha-observability) carry the identical three-object set.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

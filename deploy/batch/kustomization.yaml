@@ -1,15 +1,6 @@
-# Scheduled batch workloads (environment-agnostic). Kept OUT of deploy/base on
-# purpose: base is the *serving* stack, and the kind e2e overlay
-# (tests/e2e/k8s) inherits base wholesale — a scheduled batch there would pull
-# a batch image that `kind load` never side-loads, and the e2e cluster has no
-# Argo Workflows controller at all. Overlays that want the schedule opt in
-# explicitly (see overlays/prod).
-#
-# Requires an Argo Workflows controller watching this namespace; the cluster
-# runs one cluster-scoped, so no per-namespace install is needed here.
-#
-# Like base, the /data volume here is an emptyDir seam: an overlay replaces it
-# with a real volume.
+# Scheduled batch workloads (environment-agnostic); overlays opt in explicitly
+# (README 「배포」). A scheduled batch inherited into the kind e2e overlay would
+# pull a batch image that `kind load` never side-loads.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -19,8 +10,6 @@ resources:
   - cronworkflow-ingestion.yaml
   - cronworkflow-pipeline.yaml
 
-# Makes `images:` in any including overlay reach the WorkflowTemplate's
-# container images (see kustomizeconfig.yaml).
 configurations:
   - kustomizeconfig.yaml
 
