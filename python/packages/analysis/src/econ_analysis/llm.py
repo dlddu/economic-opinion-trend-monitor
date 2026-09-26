@@ -13,15 +13,6 @@ The transport is injected (:class:`Completer`), exactly like the ingestion feed
 path against a canned completer — the analysis logic is genuinely real, yet fully
 deterministic offline.
 
-AC coverage (PRD analysis): the model extracts content-based target countries,
-single / multi / GLOBAL (AC2.1); normalized narrative subjects with surface-variant
-unification (AC2.2); a 4-way sentiment label, positive / neutral / negative / mixed
-(AC2.3); results store to the same normalized Silver schema, multi-values preserved
-(AC2.4). When the body is missing or the model itself declines to judge, the result is
-flagged unanalyzed instead of being forced, and a label the model is unsure of is kept
-but marked low-confidence (AC2.5). Every record keeps the Bronze tracking key
-(``record_id`` / ``source_url``) so Silver stays re-traceable and re-analyzable (AC2.6).
-
 **Operator error is not an analysis outcome.** ``unanalyzed`` is a data-quality signal
 AC2.5 defines and AC3.4 consumes ("미분석 분리"), so this module refuses to spend it on
 misconfiguration or an unreachable endpoint: :func:`http_completer` raises
@@ -31,12 +22,6 @@ then abort before reading Bronze), and :func:`analyze_llm` *raises*
 replies unusably. :func:`run_llm_analysis` applies the batch policy — degrade that one
 record and count it — so the CLI can tell "the model judged nothing here" apart from
 "nobody ever answered".
-
-This analyzer is the operational default (``econ-analysis`` with no flag), mirroring the
-ingestion feed cutover; the fake analyzer stays reachable as ``--analyzer fake`` so the
-cross-language smoke and offline tests remain deterministic and network-free. Because
-the default now needs ``ECON_LLM_API_KEY``, an unconfigured run stops at
-:func:`http_completer` before reading Bronze rather than writing anything.
 """
 
 from __future__ import annotations

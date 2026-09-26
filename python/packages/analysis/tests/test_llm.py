@@ -80,12 +80,12 @@ def test_analyze_maps_full_reply() -> None:
         )
     )
     a = analyze_llm(_bronze(), "삼성전자 어닝 서프라이즈.", c)
-    assert a.sentiment == "positive"  # AC2.3
+    assert a.sentiment == "positive"
     assert a.analysis_status == "analyzed"
-    assert a.target_countries == ["KR", "US"]  # AC2.1 multi-country (AC2.4 preserved)
-    assert a.narrative_subjects == ["삼성전자"]  # AC2.2
-    assert a.record_id == "r"  # Bronze tracking key preserved (AC2.6)
-    assert a.source_url == "https://example.test/a"  # AC2.6
+    assert a.target_countries == ["KR", "US"]
+    assert a.narrative_subjects == ["삼성전자"]
+    assert a.record_id == "r"
+    assert a.source_url == "https://example.test/a"
 
 
 def test_prompt_carries_title_and_body() -> None:
@@ -114,7 +114,7 @@ def test_low_confidence_below_threshold() -> None:
     c = _completer(_reply(sentiment="mixed", confidence=0.4))
     a = analyze_llm(_bronze(), "body", c)
     assert a.sentiment == "mixed"
-    assert a.analysis_status == "low_confidence"  # AC2.5
+    assert a.analysis_status == "low_confidence"
 
 
 def test_unanalyzed_when_model_declines() -> None:
@@ -141,7 +141,7 @@ def test_invalid_sentiment_raises() -> None:
 def test_unanalyzed_when_body_missing_does_not_call_model() -> None:
     c = _completer(_reply())
     a = analyze_llm(_bronze(body_hash="", body_available=False), None, c)
-    assert a.analysis_status == "unanalyzed"  # AC2.5
+    assert a.analysis_status == "unanalyzed"
     assert c.calls == []  # model is never called without a body
 
 

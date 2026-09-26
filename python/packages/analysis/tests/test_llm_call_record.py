@@ -1,11 +1,4 @@
-"""Per-article model call records — AC4.2, test-pipeline-ops 시나리오 2.
-
-Transcribes that scenario's expected results one for one: every article that reaches the
-model leaves a call record whatever the outcome (a reply that parsed, a reply that did
-not, a request that never came back, a cached reply replayed), the stored prompt is
-byte-identical to what the transport was handed, a reuse names the call it replays, and
-reprocessing adds records without disturbing the ones already written.
-"""
+"""Per-article model call records — AC4.2, test-pipeline-ops 시나리오 2."""
 
 import json
 

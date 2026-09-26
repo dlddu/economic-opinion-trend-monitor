@@ -1,5 +1,3 @@
-"""Entry point for ``python -m econ_analysis``."""
-
 import sys
 
 from econ_analysis.cli import main

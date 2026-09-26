@@ -1,8 +1,4 @@
-"""Analysis writes its stage into the batch run record (PRD pipeline-ops, AC4.1).
-
-The interesting half is the failing run: AC4.1 requires an execution cut short to keep
-the stage record it reached, and the outcome buckets to still account for every input.
-"""
+"""Analysis writes its stage into the batch run record (PRD pipeline-ops, AC4.1)."""
 
 from pathlib import Path
 
