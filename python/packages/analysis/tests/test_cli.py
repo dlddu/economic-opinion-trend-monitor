@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 from econ_analysis import cli, llm
-from econ_core import LocalFsStore, domain
+from econ_core import LocalFsStore, calllog, domain
 
 CYCLE = "2026-06-23T14:00"
 NEXT_CYCLE = "2026-06-23T15:00"
@@ -439,3 +439,81 @@ def test_retry_list_holds_only_failed_calls_until_they_succeed(
     monkeypatch.setattr(llm, "http_completer", _canned(good))
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
     assert silver.pending_retries(store, llm.ANALYZER_VERSION) == set()
+
+
+def test_rows_written_before_run_links_are_relinked_from_the_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Production Silver kept rows from before AC4.3 with no run_id/call_id/no_call_reason
+    # and a reply cache from before AC4.2 whose entries name no call.
+    _seed_lake(tmp_path)
+    seeded = _bronze_rows(tmp_path)
+    _write_items(
+        tmp_path,
+        [*seeded, {**seeded[0], "record_id": "r3", "body_hash": "", "body_available": False}],
+    )
+    reply = json.dumps(
+        {
+            "sentiment": "negative",
+            "analyzable": True,
+            "confidence": 0.9,
+            "narrative_subjects": ["한국은행"],
+        }
+    )
+    monkeypatch.setattr(llm, "http_completer", _canned(reply))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    capsys.readouterr()
+
+    store = LocalFsStore(tmp_path)
+    link_fields = ("run_id", "call_id", "no_call_reason")
+    before = _silver_rows(tmp_path)
+    store.write_partition(
+        "silver",
+        "analysis",
+        domain.cycle_partition(CYCLE),
+        [{k: v for k, v in r.items() if k not in link_fields} for r in before],
+    )
+    cache_path = tmp_path / "silver" / "analysis_cache.jsonl"
+    _write_jsonl(
+        cache_path,
+        [
+            {k: v for k, v in json.loads(line).items() if k != "call_id"}
+            for line in cache_path.read_text().splitlines()
+        ],
+    )
+
+    def _no_model(*_args, **_kwargs):
+        def _complete(_system: str, _user: str) -> str:
+            raise AssertionError("relinking must replay the cache, not call the model")
+
+        return _complete
+
+    monkeypatch.setattr(llm, "http_completer", _no_model)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm", "--run-id", "relink"]) == 0
+    out = capsys.readouterr().out
+    assert "attempted=0 failed=0 reused=2" in out
+    assert "relinked_unlinked_rows=3" in out
+
+    after = {r["record_id"]: r for r in _silver_rows(tmp_path)}
+    labels = (
+        "analysis_status",
+        "sentiment",
+        "target_countries",
+        "narrative_subjects",
+        "confidence",
+    )
+    for row in before:
+        assert {k: after[row["record_id"]][k] for k in labels} == {k: row[k] for k in labels}
+    assert {r["run_id"] for r in after.values()} == {"relink"}
+    assert after["r3"]["no_call_reason"] == "body_unavailable"
+    assert after["r3"]["call_id"] is None
+    for rid in ("r1", "r2"):
+        call = calllog.read_call(store, after[rid]["call_id"])
+        assert call["call_outcome"] == "reused"
+        assert call["run_id"] == "relink"
+        assert call["reused_from_call_id"] is None
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 0 silver records" in out
+    assert "relinked_unlinked_rows" not in out
