@@ -3,7 +3,7 @@
      의 "한 소스의 수집량만 인위적으로 크게 늘린다"가 이 파일이고, 기준 상태는 원본 쪽이다.
 
      세 가지를 **의도적으로 고정**한다 — 그래야 두 상태의 차이가 오직 수집량 차이로 읽힌다:
-       · 앞의 네 기사는 원본과 **바이트 동일**(같은 링크·같은 본문).
+       · 앞의 다섯 기사는 원본과 **바이트 동일**(같은 링크·같은 본문).
        · 늘리는 것은 `삼성전자` 한 대상뿐이고, 다른 대상(`한국은행 기준금리`)의 건수는 그대로다.
        · 같은 축의 다른 소스(`agg_kr_daily`)와 US 축은 두 상태에서 동일하다.
 
@@ -40,6 +40,11 @@
       <title>본문 없는 속보</title>
       <link>https://agg.e2e.invalid/kr-wire/headline-only</link>
       <views>9500</views>
+    </item>
+    <item>
+      <title>지표 일정 안내</title>
+      <link>https://agg.e2e.invalid/kr-wire/calendar-notice</link>
+      <views>9400</views>
     </item>
     <item>
       <title>삼성전자 증설 후속 1보</title>
