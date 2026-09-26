@@ -1,6 +1,3 @@
-// 배치가 레이크에 쓴 실행·단계 기록(`silver/pipeline_run`)을 읽는다. run.sh 가 이 루트의 Job 을
-// **지운 뒤** PVC 에서 꺼내 $E2E_RUNLOG_OPS_DIR 에 놓고, 여기서 JSONL 을 파싱해 spec 에 넘긴다.
-//
 // 계약의 SSOT 는 `contracts/silver/pipeline_run.avsc` 다. 여기 타입은 그 일부를 spec 이 읽기
 // 쉬운 모양으로 옮긴 것이고, 계약이 바뀌면 이 파일이 아니라 그쪽이 먼저 바뀐다.
 

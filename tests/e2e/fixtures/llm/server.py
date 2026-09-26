@@ -116,7 +116,6 @@ def received_digest(payload: dict) -> str:
 class DoubleHandler(BaseHTTPRequestHandler):
     """chat-completions 한 경로와 헬스 체크만 있는 최소 핸들러."""
 
-    # 메서드 이름은 BaseHTTPRequestHandler 의 디스패치 규약(do_<METHOD>)이 정한다.
     def do_GET(self) -> None:
         if self.path == HEALTH_PATH:
             self._json(200, {"ok": True, "models": sorted(MODELS)})
@@ -209,13 +208,10 @@ class DoubleHandler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def _fail(self, status: int, message: str, why: str) -> None:
-        # 상태 줄(message)은 ASCII 만 쓴다 — HTTP 상태 줄은 latin-1 로 인코딩되므로 한글을 넣으면
-        # 응답을 쓰다 예외가 나고 연결이 그냥 끊긴다(클라이언트는 상태 코드가 아니라 전송 실패를
-        # 본다). 한글 설명은 본문(explain)으로 내린다. 피드 더블과 같은 규약이다.
+        # 상태 줄·본문 규약은 피드 더블(`fixtures/feeds/server.py`)과 같다.
         self.send_error(status, message, why)
 
     def log_message(self, fmt: str, *args) -> None:
-        # 기본 구현은 stderr 로 간다. Job 로그와 섞이지 않게 같은 스트림을 쓰되 접두사를 단다.
         sys.stderr.write("[llm-double] " + (fmt % args) + "\n")
 
 

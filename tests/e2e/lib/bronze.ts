@@ -1,10 +1,5 @@
-// 수집 배치가 클러스터 안에서 쓴 Bronze를 읽는다. run.sh가 Job 완료 후 PVC에서 꺼내
-// $E2E_BRONZE_DIR 에 놓고, 여기서 JSONL을 파싱해 spec에 넘긴다.
-//
-// 반출 지점은 넷이다 — 정상 1주기($E2E_BRONZE_DIR), 고장 주입 주기($E2E_BRONZE_FAULTS_DIR),
-// 3주기 연속 실행($E2E_BRONZE_CYCLES_DIR/cycleN), 분석 묶음의 입력 주기
-// ($E2E_BRONZE_ANALYSIS_DIR). 넷을 한 루트에 섞지 않는 이유는 각자의 단정이 서로의 레코드에
-// 오염되기 때문이다(정상 주기의 소스별 건수 단정이 대표적이다).
+// 주기별 반출 루트를 하나로 합치지 않는다 — 각자의 단정이 서로의 레코드에 오염된다
+// (정상 주기의 소스별 건수 단정이 대표적이다).
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
