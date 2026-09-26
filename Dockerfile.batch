@@ -1,10 +1,5 @@
-# Batch image: the Python uv workspace (ingestion -> analysis -> aggregation).
 # The scheduled ingestion CronWorkflow (AC1.1, deploy/batch/) runs this image; the
 # data lake is provided at runtime by mounting it at ECON_DATA_ROOT.
-#
-#   docker build -f Dockerfile.batch -t econ-monitor-batch:dev .
-#   docker run -v "$PWD/data:/data" econ-monitor-batch:dev --cycle 2026-06-23T14:00
-#
 # Single stage on the uv image on purpose: `uv sync` bakes absolute interpreter
 # paths into the venv's console scripts, so copying .venv into a second stage
 # would depend on reproducing that exact path. The batch runs on a schedule,
@@ -22,6 +17,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     ECON_DATA_ROOT=/data \
     PYTHONUNBUFFERED=1
 
-# `econ-ingestion` is the console script declared by packages/ingestion.
-# Args (e.g. --cycle, --source, --feeds) come from the workflow template's `args`.
 ENTRYPOINT ["econ-ingestion"]

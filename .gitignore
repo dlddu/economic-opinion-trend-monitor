@@ -1,4 +1,3 @@
-# ---- Python ----
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,19 +8,16 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
-# ---- Go ----
 /go/bin/
 *.test
 *.out
 
-# ---- Web (Node / Vite) ----
 node_modules/
 /web/dist/
 /web/.vite/
 *.tsbuildinfo
 npm-debug.log*
 
-# ---- Data lake (local) — keep the layer dirs, ignore their contents ----
 /data/bronze/*
 /data/silver/*
 /data/gold/*
@@ -29,13 +25,10 @@ npm-debug.log*
 !/data/silver/.gitkeep
 !/data/gold/.gitkeep
 
-# ---- e2e (Playwright) ----
 /tests/e2e/playwright-report/
 /tests/e2e/test-results/
-# Bronze pulled out of the cluster by run.sh for the ingestion specs to read.
 /tests/e2e/.artifacts/
 
-# ---- Editor / OS ----
 .DS_Store
 .idea/
 .vscode/
