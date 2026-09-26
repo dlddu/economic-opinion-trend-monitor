@@ -1,28 +1,4 @@
-"""Batch run and stage records — the lake-side execution log (PRD pipeline-ops, AC4.1).
-
-One :class:`~econ_core.models.PipelineRun` per execution, stored under its ``run_id``
-in the ``silver/pipeline_run`` object dataset, carrying one nested ``RunStage`` per
-stage the run reached.
-
-**Why the lake and not the scheduler.** The hourly pipeline's three stages are three
-Argo steps, i.e. three Pods; the scheduler keeps only the last few runs
-(``successfulJobsHistoryLimit``) and Pod logs age out with the node. AC4.1 asks for a
-record that outlives both, so each stage folds its own report into the run record on
-the shared data volume.
-
-**Why read-modify-write and not append-only rows.** The stages of one run are strictly
-sequential — ``ingest -> analyze -> aggregate`` steps of the ``pipeline`` template — so
-the only writer of a given run record at a given moment is the stage that is running.
-Re-running a stage (Argo ``retryStrategy``) replaces that stage's record rather than
-doubling it, which is what keeps the counts readable. Records of *different* runs never
-share a file, because the ``run_id`` is the object key.
-
-**The counts are an invariant, not a convention.** AC4.1 requires the per-outcome counts
-of a stage to sum to its input count, so :func:`run_stage` enforces it instead of leaving
-it to a test: a succeeded stage whose buckets do not add up raises, and a failed stage
-that stopped part-way gets the remainder booked as ``not_reached`` so the sum still holds
-and the record says plainly how far it got.
-"""
+"""Batch run and stage records — the lake-side execution log (PRD pipeline-ops, AC4.1)."""
 
 from __future__ import annotations
 
@@ -63,11 +39,7 @@ def _now() -> str:
 
 
 def resolve_run_id(explicit: str | None = None) -> str:
-    """The run this process belongs to: ``--run-id`` > ``$ECON_RUN_ID`` > a fresh id.
-
-    A stage run outside any pipeline (a one-off CLI invocation) still gets a record —
-    it is its own single-stage run rather than an execution nobody wrote down.
-    """
+    """The run this process belongs to: ``--run-id`` > ``$ECON_RUN_ID`` > a fresh id."""
     for candidate in (explicit, os.environ.get(ENV_RUN_ID)):
         if candidate and candidate.strip():
             return candidate.strip()
@@ -76,11 +48,7 @@ def resolve_run_id(explicit: str | None = None) -> str:
 
 @dataclass
 class StageReport:
-    """What a stage tells the run record about itself.
-
-    ``outcomes`` buckets must be disjoint — every input unit falls into exactly one —
-    because AC4.1 reads their sum against ``input_count``.
-    """
+    """What a stage tells the run record about itself."""
 
     input_count: int = 0
     output_count: int = 0
@@ -142,12 +110,7 @@ def _merge_stage(run: dict, stage: dict) -> dict:
 
 
 def open_run(store: LakeStore, run_id: str, trigger: str = SCHEDULED) -> dict:
-    """Return the run record for ``run_id``, creating it (``running``) if it is new.
-
-    The trigger is set by whichever stage opens the run and never rewritten: for the
-    hourly pipeline that is ingestion (``scheduled``), for an operator reprocess the
-    analysis or aggregation CLI that starts it (``reprocess``).
-    """
+    """Return the run record for ``run_id``, creating it (``running``) if it is new."""
     stored = store.get_object(domain.SILVER, domain.DS_PIPELINE_RUN, "run_id", run_id)
     if stored is not None:
         return stored
@@ -167,13 +130,7 @@ def open_run(store: LakeStore, run_id: str, trigger: str = SCHEDULED) -> dict:
 def run_stage(
     store: LakeStore, run_id: str, stage: str, *, trigger: str = SCHEDULED
 ) -> Iterator[StageReport]:
-    """Record one stage of ``run_id`` — on the way out, whatever happened.
-
-    Yields a :class:`StageReport` the stage fills as it works. The record is written
-    when the block leaves, so a stage that raises, or one that calls
-    :meth:`StageReport.fail` before returning its exit code, still lands the counts it
-    reached (AC4.1: 「중간에 실패·중단된 실행도 그 시점까지의 단계 기록을 남긴다」).
-    """
+    """Record one stage of ``run_id`` — on the way out, whatever happened."""
     open_run(store, run_id, trigger)
     report = StageReport()
     started_at = _now()

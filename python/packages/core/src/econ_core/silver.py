@@ -1,31 +1,4 @@
-"""Silver version coexistence and the serving-version choice (JRN-logic-backfill).
-
-Silver holds one ``Analysis`` row per ``(record_id, analyzer_version)``. Two kinds of
-run write it, and they differ in what happens to a record's *other* versions:
-
-- a **scoped reprocess** (JRN-logic-backfill: a range, a sample) adds its rows beside
-  the ones already there — 「로직 버전을 붙여 병존시키고 Gold 에서 어느 버전을 서빙할지
-  선택」 (``STP-run-reprocess``). Coexistence is what the before/after comparison and
-  a rollback read.
-- a **whole-lake run** (the hourly pipeline) is AC2.6's 「재분석 = Silver 갱신」: the
-  records it analyzes end up with that run's row and the versions it supersedes are
-  retired — except the version a recorded decision currently serves, which stays so
-  Gold keeps serving what was published until someone rolls it back.
-
-Two rules hold for both: a row is replaced, not duplicated, when the same record is
-analyzed again at the same version (a resumed run never double-counts), and rows
-whose ``record_id`` Bronze no longer holds are dropped (:func:`prune_orphans`) —
-every Silver row stays traceable to its Bronze observation (AC2.6 추적 키 보존율 100%).
-
-Silver is partitioned like Bronze, by the collection cycle of the observation a row
-analyzes (:func:`econ_core.domain.cycle_partition`), so a write rewrites only the
-cycles it touched.
-
-Which version reaches Gold is a recorded decision (``reprocess_decision``): the last
-``publish``/``rollback`` names the serving version, and aggregation takes that
-version's row for every record that has one, falling back to the record's newest
-row otherwise so a partially reprocessed range never disappears from the charts.
-"""
+"""Silver version coexistence and the serving-version choice (JRN-logic-backfill)."""
 
 from __future__ import annotations
 
@@ -59,18 +32,7 @@ def store_analyses(
     coexist: bool = True,
     keep_versions: Iterable[str] = (),
 ) -> tuple[int, int]:
-    """Upsert ``rows`` into Silver by ``(record_id, analyzer_version)``.
-
-    ``cycles`` is :func:`cycles_of` the current Bronze. Only the partitions of the
-    rows' cycles are read and rewritten.
-
-    With ``coexist`` (a scoped reprocess) every other version of a record survives.
-    Without it (a whole-lake run) the records in ``rows`` keep only the version just
-    written — plus any version in ``keep_versions`` (the serving version).
-
-    Returns ``(rows now in the touched partitions, rows pruned)``; pruned counts rows
-    dropped because their Bronze record is gone or their version was retired.
-    """
+    """Upsert ``rows`` into Silver by ``(record_id, analyzer_version)``."""
     protected = set(keep_versions)
     by_partition: dict[tuple[tuple[str, str], ...], list[dict]] = {}
     for row in rows:
@@ -100,11 +62,7 @@ def store_analyses(
 
 
 def prune_orphans(store: LakeStore, cycles: Mapping[str, str]) -> tuple[int, int]:
-    """Drop Silver rows whose record Bronze no longer holds in the same cycle.
-
-    Reads every partition but rewrites only those that lose rows. Returns
-    ``(rows now in Silver, rows pruned)``.
-    """
+    """Drop Silver rows whose record Bronze no longer holds in the same cycle."""
     total = pruned = 0
     for partition in store.partitions(domain.SILVER, domain.DS_ANALYSIS):
         rows = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
@@ -121,13 +79,7 @@ def prune_orphans(store: LakeStore, cycles: Mapping[str, str]) -> tuple[int, int
 
 
 def pending_retries(store: LakeStore, version: str) -> set[str]:
-    """Records whose row at ``version`` is unanalyzed because the model call failed.
-
-    An ``unanalyzed`` row alone cannot say why: no body, the model declined the
-    article, and an unreachable model all read the same (AC2.5). Only the last is an
-    outage worth another attempt, and only the analyzer knows which it was, so it
-    names those records here; every other row at the version is settled.
-    """
+    """Records whose row at ``version`` is unanalyzed because the model call failed."""
     return {
         row["record_id"]
         for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)

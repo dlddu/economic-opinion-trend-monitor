@@ -1,9 +1,4 @@
-"""Run/stage record behaviour (PRD pipeline-ops, AC4.1).
-
-The three stages of one pipeline are three processes, so what is pinned here is what
-holds them together: one record per run, one stage entry per stage, a retry that
-replaces rather than doubles, and per-outcome counts that always add up to the input.
-"""
+"""Run/stage record behaviour (PRD pipeline-ops, AC4.1)."""
 
 from pathlib import Path
 
@@ -134,7 +129,6 @@ def test_source_failures_are_recorded_per_source(tmp_path: Path) -> None:
 
 
 def test_run_records_outlive_the_process_that_wrote_them(tmp_path: Path) -> None:
-    """AC4.1's point: the record is in the lake, not in scheduler history."""
     store = _store(tmp_path)
     with runlog.run_stage(store, "run-9", runlog.INGESTION) as stage:
         stage.input_count = 0

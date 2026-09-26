@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 """시나리오 ↔ e2e spec 1:1 매칭 검사기 (reconciler 모델 tbm_econ-opinion-monitor-scenario-e2e).
 
-세 곳의 실측을 대조한다.
-
-  * **시나리오 전집** — ``docs/econ-opinion-monitor-test-*.md`` 의 ``### 시나리오 N:`` 헤딩
-  * **spec 선언**   — ``tests/e2e/specs/`` 최상위 ``*.spec.ts`` 헤더의 ``// 검증 시나리오:`` 한 줄
-  * **등재·집계**   — ``docs/econ-opinion-monitor-doc-tracker.md`` 의 ``## e2e 매핑`` 절
-
 판정 단위는 **시나리오**(``<문서 파일명>#시나리오 <N>``)다. AC 는 이 검사기의 축이 아니다 —
 어떤 시나리오가 어떤 AC 를 검증하는지는 테스트 문서가 스스로 적지만, 그 연결의 완전성은
 문서 체계(doc-tracker 앞부분)가 보고 이 게이트는 보지 않는다.
@@ -24,20 +18,10 @@
   규칙6 구현 대기 등재가 실재 시나리오를 가리키고, 예외·매칭과 겹치지 않으며, 각 행의
         **해제 신호**(파일 ∋ 문자열)가 아직 살아 있다.
 
-**해제 신호가 왜 필요한가**: 이 모델의 as-is 는 ``tests/e2e`` 트리, to-be 는 테스트 문서와 이
-문서다. 구현이 ``go/``·``python/``·``web/`` 에 착지해도 **어느 쪽 버전도 바뀌지 않아** 재감지가
-뜨지 않고, "미구현이라 관측 대상이 없다"는 등재가 조용히 낡는다. 그래서 미구현임을 보여 주는
-좌표 문자열을 등재에 적어 두고 매 CI 에서 생존을 확인한다. 문자열이 사라지면 이 검사기가
-빨개지고 그 행을 다시 판정하도록 강제된다. 완전한 판별자가 아니라 **조기 경보**다 — 신호가
-살아 있다고 미구현이 증명되지는 않지만, 사라지면 반드시 재판정한다.
-
 강제하지 **않는** 것: "공백 0". 21개 시나리오 중 다수가 배치 3단(수집·분석·집계)을 e2e 에
 들이는 하네스를 선행으로 요구하므로 공백은 존재하는 것이 정상이고, 이 검사기는 공백을
 **세어서 문서가 사실대로 적고 있는지**만 본다. 즉 게이트는 "격차가 없다"가 아니라 "문서가
 격차를 정직하게 말한다"를 지킨다.
-
-표준 라이브러리만 쓴다(레포가 이미 ``python3 contracts/codegen.py`` 를 bare python3 로 부른다).
-사용법: ``python3 tests/e2e/check_scenario_mapping.py``
 """
 
 from __future__ import annotations
@@ -168,7 +152,7 @@ def table_rows(section: list[str]) -> list[list[str]]:
         if not stripped.startswith("|"):
             continue
         cells = [c.strip() for c in stripped.strip("|").split("|")]
-        if all(set(c) <= set("-: ") for c in cells):  # 구분선
+        if all(set(c) <= set("-: ") for c in cells):
             continue
         rows.append(cells)
     return rows[1:] if rows else []

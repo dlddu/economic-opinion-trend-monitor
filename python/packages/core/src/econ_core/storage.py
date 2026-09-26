@@ -1,20 +1,5 @@
 """Storage abstraction over the medallion data lake.
 
-The skeleton ships a local-filesystem implementation with three dataset shapes:
-
-- **record datasets** — one JSONL file per dataset (one JSON object per line),
-  read and replaced/merged as a whole;
-- **partitioned datasets** — one ``data.jsonl`` per Hive-style ``key=value``
-  partition directory, each replaced on its own, so writing one slice (a
-  collection cycle) leaves every other slice untouched;
-- **object datasets** — one file per record, addressed by a key field and laid
-  out in Hive-style partitions on the key's first characters, so a record is
-  written, checked and read without touching the rest of the dataset.
-
-This is the single seam where a remote store (e.g. S3) would later plug in;
-remote implementations are out of scope for the bootstrap (see README — only
-the interface + local FS exist).
-
 Records cross this boundary as plain JSON-able ``dict``s. Producers convert
 generated dataclasses with ``dataclasses.asdict`` before writing; consumers read
 ``dict``s and rebuild typed models with ``Model.from_dict``.
@@ -49,11 +34,7 @@ class LakeStore(ABC):
     def merge_records(
         self, layer: str, dataset: str, key_field: str, records: Iterable[dict]
     ) -> int:
-        """Append only records whose ``key_field`` value is not already stored.
-
-        Idempotent by key: re-merging a stored key is a no-op, a new key appends
-        without touching existing records. Returns the count actually appended.
-        """
+        """Append only records whose ``key_field`` value is not already stored."""
         raise NotImplementedError
 
     @abstractmethod
@@ -88,21 +69,12 @@ class LakeStore(ABC):
         dataset: str,
         locate: Callable[[dict], Mapping[str, str] | None],
     ) -> int:
-        """Move a legacy record dataset of the same name into partitions.
-
-        ``locate`` maps a record to its partition, or None to drop it. A no-op once
-        migrated. Returns the count of records moved.
-        """
+        """Move a legacy record dataset of the same name into partitions."""
         raise NotImplementedError
 
     @abstractmethod
     def put_object(self, layer: str, dataset: str, key_field: str, record: dict) -> bool:
-        """Store ``record`` under ``record[key_field]`` unless that key already exists.
-
-        Returns True if written, False if the key was already stored — the stored
-        record is never replaced, which is what keeps a content-addressed dataset
-        (``bronze/news_body``) immutable per version (AC1.7).
-        """
+        """Store ``record`` under ``record[key_field]`` unless that key already exists."""
         raise NotImplementedError
 
     @abstractmethod
@@ -129,10 +101,7 @@ class LakeStore(ABC):
 
     @abstractmethod
     def migrate_records_to_objects(self, layer: str, dataset: str, key_field: str) -> int:
-        """Move a legacy record dataset of the same name into the object layout.
-
-        A no-op once migrated. Returns the count of objects written.
-        """
+        """Move a legacy record dataset of the same name into the object layout."""
         raise NotImplementedError
 
     @abstractmethod
@@ -147,12 +116,7 @@ def _check_key(key: str) -> None:
 
 
 class LocalFsStore(LakeStore):
-    """Local-filesystem implementation.
-
-    Record datasets live at ``<root>/<layer>/<dataset>.jsonl``; object datasets at
-    ``<root>/<layer>/<dataset>/<key_field>_prefix=<key[:1]>/<key>.json``, each file
-    a single JSON line.
-    """
+    """Local-filesystem implementation."""
 
     def __init__(self, root: Path | str) -> None:
         self.root = Path(root)
