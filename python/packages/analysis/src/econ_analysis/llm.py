@@ -339,8 +339,6 @@ def analyze_llm(
 
     parsed = parse_response(completer(_SYSTEM_PROMPT, build_prompt(item, body)))
     if parsed.get("analyzable") is False:
-        # A model that declined *was* called, so this row points at that call record,
-        # not at a no-call reason — the caller stamps the id (AC4.3).
         return _unanalyzed(item, analyzer_version, run_id)
 
     sentiment = parsed.get("sentiment")
@@ -569,8 +567,6 @@ def run_llm_analysis(
                         "call_id": call["call_id"],
                     }
                 )
-        # Failed or parsed, a request went out and left a record — the row points at it,
-        # so an unanalyzed row that is an outage still reaches its call (AC4.3).
         row = asdict(analysis)
         row["call_id"] = call["call_id"]
         analyses.append(row)

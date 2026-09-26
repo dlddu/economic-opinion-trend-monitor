@@ -211,7 +211,6 @@ def test_an_article_that_never_reached_the_model_has_no_call_record():
     assert rows[0]["analysis_status"] == "unanalyzed"
     assert calls == []
     assert completer.seen == []
-    # The record AC4.2 does not write is answered by AC4.3 on the row itself.
     assert rows[0]["call_id"] is None
     assert rows[0]["no_call_reason"] == "body_unavailable"
 
