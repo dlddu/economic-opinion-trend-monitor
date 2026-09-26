@@ -8,7 +8,7 @@ GEN_PATHS  := go/gen python/packages/core/src/econ_core/models
 .PHONY: help setup gen gen-check \
         build build-go build-web \
         test test-py test-go test-web test-cross e2e \
-        lint lint-py lint-go lint-web lint-scenario-mapping \
+        lint lint-py lint-go lint-web lint-scenario-mapping lint-comment-ledger \
         fmt run clean
 
 help: ## Show this help
@@ -56,7 +56,7 @@ test-cross: ## Cross-language smoke: Python writes Gold -> Go serves it
 e2e: ## kind e2e: batch 3 stages -> pipeline Gold -> in-cluster serving -> Playwright (docker/kind/kubectl)
 	./tests/e2e/run.sh
 
-lint: lint-py lint-go lint-web lint-scenario-mapping ## Lint all languages + scenario<->e2e mapping
+lint: lint-py lint-go lint-web lint-scenario-mapping lint-comment-ledger ## Lint all languages + scenario<->e2e mapping + comment ledger
 
 lint-py: ## ruff check + format check
 	cd $(PYTHON_DIR) && uv run ruff check . && uv run ruff format --check .
@@ -70,6 +70,9 @@ lint-web: ## eslint
 
 lint-scenario-mapping: ## test-scenario <-> e2e spec 1:1 mapping vs doc-tracker "e2e 매핑" section
 	python3 tests/e2e/check_scenario_mapping.py
+
+lint-comment-ledger: ## comment ledger invariants (docs/comment-policy/ledger.md) + judged/open tally
+	python3 scripts/check-comment-ledger.py
 
 fmt: ## Auto-format Python + Go
 	cd $(PYTHON_DIR) && uv run ruff format . && uv run ruff check --fix .
