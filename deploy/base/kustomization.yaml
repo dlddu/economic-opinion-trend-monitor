@@ -1,6 +1,6 @@
 # Deployable serving stack (environment-agnostic): the Go API binary with the
 # web bundle baked in, reading Gold from an emptyDir at /data. Overlays swap
-# the data volume (prod: PVC, preview/e2e: fixture Gold ConfigMap).
+# the data volume (prod: PVC, preview/e2e: the e2e batch claim).
 #
 # No `images:` transformer here on purpose. The single source of the tag is
 # the `image:` line in deployment.yaml; consumers that need another tag retag

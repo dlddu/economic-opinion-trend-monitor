@@ -241,6 +241,27 @@
           "sentiment": "positive",
           "analyzable": true,
           "confidence": 0.86
+        },
+        "글로벌 공급망 재편 가속": {
+          "target_countries": ["세계"],
+          "narrative_subjects": ["글로벌 공급망"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.9
+        },
+        "IMF 세계 성장 전망 하향": {
+          "target_countries": ["세계"],
+          "narrative_subjects": ["IMF 전망"],
+          "sentiment": "negative",
+          "analyzable": true,
+          "confidence": 0.88
+        },
+        "글로벌 공급망 물류비 하락": {
+          "target_countries": ["세계"],
+          "narrative_subjects": ["글로벌 공급망"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.87
         }
       }
     },

@@ -1,6 +1,0 @@
-{"axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","distribution":{"positive":0.4,"neutral":0.3,"negative":0.2,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":40}
-{"axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T14","distribution":{"positive":0.25,"neutral":0.35,"negative":0.3,"mixed":0.1,"unanalyzed":0.4},"analyzed_total":12}
-{"axis":"GLOBAL","bucket_unit":"hour","time_bucket":"2026-06-23T14","distribution":{"positive":0.3,"neutral":0.4,"negative":0.2,"mixed":0.1,"unanalyzed":0.1},"analyzed_total":27}
-{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.4,"neutral":0.3,"negative":0.2,"mixed":0.1,"unanalyzed":0.2},"analyzed_total":40}
-{"axis":"US","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.25,"neutral":0.35,"negative":0.3,"mixed":0.1,"unanalyzed":0.4},"analyzed_total":12}
-{"axis":"GLOBAL","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.3,"neutral":0.4,"negative":0.2,"mixed":0.1,"unanalyzed":0.1},"analyzed_total":27}

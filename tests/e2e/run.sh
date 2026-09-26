@@ -167,9 +167,10 @@ if [ -n "$KIND_PID" ]; then
 fi
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
-# 2) Fixture Gold as a ConfigMap + the serving stack and the batch harness (e2e overlay of deploy/base).
-# mock-exception: GOLD-01 — 집계 배치는 e2e 안에 섰지만(run_aggregation_stack) 서빙 입력을 아직 그 파이프라인 Gold로 잇지 않아(원장 R3) 커밋된 픽스처로 채움 — docs/econ-opinion-monitor-e2e-mocking-policy.md
-kubectl --context "$CTX" create configmap gold-fixtures --from-file="$E2E_DIR/fixtures/gold"
+# 2) Upstream-double fixtures as ConfigMaps + the serving stack and the batch harness
+# (e2e overlay of deploy/base). Serving has no fixture data of its own: it reads the Gold
+# the aggregation Job writes on the batch claim (k8s/e2e-patch.yaml), so the only thing
+# mounted here is what the *upstream* doubles serve.
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
 # 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
@@ -179,8 +180,10 @@ kubectl --context "$CTX" create configmap llm-fixtures --from-file="$E2E_DIR/fix
 # 4f 의 롤업 체인이 쓰는 하네스 스크립트. 체인들이 동시에 돌므로 여기서 미리 만든다.
 kubectl --context "$CTX" create configmap rollup-timeshift \
   --from-file="$E2E_DIR/tools/timeshift_bronze.py"
-kubectl --context "$CTX" apply -k "$E2E_DIR/k8s"
+# The batch resources go first: the serving Deployment mounts their PVC, so creating the
+# claim afterwards would leave the serving Pod unschedulable until it appears.
 kubectl --context "$CTX" apply -k "$E2E_DIR/k8s/batch"
+kubectl --context "$CTX" apply -k "$E2E_DIR/k8s"
 
 if ! kubectl --context "$CTX" rollout status deployment/econ-serving --timeout=120s; then
   echo "[e2e] FAIL: serving rollout not ready — pod state follows" >&2
@@ -545,7 +548,7 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_LLM_DOUBLE_LOG="$LLM_DOUBLE_LOG" \
   npx playwright test
 
-echo "[e2e] OK: fixture Gold -> in-cluster serving -> API + browser"
+echo "[e2e] OK: pipeline Gold (aggregation root) -> in-cluster serving -> API + browser"
 echo "[e2e] OK: feed double -> in-cluster ingestion batch -> Bronze"
 echo "[e2e] OK: fault injection + 3 sequential cycles -> Bronze + Job logs"
 echo "[e2e] OK: llm double -> in-cluster analysis batch -> Silver (+ re-analysis)"

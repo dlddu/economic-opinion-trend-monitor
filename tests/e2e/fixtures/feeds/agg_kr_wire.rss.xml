@@ -8,9 +8,18 @@
      더블이 아니라 제품 코드(`normalize_subject`)의 일이고, 시나리오 2 의 "동일 대상이 하나의
      키로 모인다"가 그것을 본다.
 
-     마지막 기사에는 `<description>` 이 **없다**. 본문이 잡히지 않은 관측이고, 제품 경로는 그런
+     마지막 두 기사에는 `<description>` 이 **없다**. 본문이 잡히지 않은 관측이고, 제품 경로는 그런
      레코드를 모델에 보내지 않고 `unanalyzed` 로 남긴다(`analyze_llm`: body 가 없으면 즉시 반환).
-     시나리오 5 의 "본문이 부족한 기사"가 이 자리다 — 더블에 응답을 넣지 않는 것이 정상이다. -->
+     시나리오 5 의 "본문이 부족한 기사"가 이 자리다 — 더블에 응답을 넣지 않는 것이 정상이다.
+
+     두 건인 이유는 KR 축의 **분모**다. 분위기 스택바는 4분류를 분석 완료분으로 스케일해 그리고
+     미분석을 그 위에 얹으므로(`web/src/screens/Sentiment.tsx`: `segments()`), 다섯 세그먼트의 폭이
+     소수 첫째 자리로 각각 반올림된 뒤 100 을 이뤄야 한다(`ac3-6-sentiment-ratio-viz.spec.ts` 의 (3)).
+     그 합은 미분석 비율 `미분석/전체` 가 소수 첫째 자리에서 정확히 떨어질 때만 100 이 된다 — KR 축
+     전체 8건 중 미분석 3건이면 0.375 로 떨어지고, 7건 중 2건(0.2857…)이면 세그먼트마다 올림이 쌓여
+     합이 100.1 이 된다. **이 축의 기사 수를 바꿀 때는 그 등식을 다시 확인할 것.** 미분석 레코드는
+     서술 대상을 남기지 않으므로(`narrative_subjects` 가 없다) 이 한 건은 `subject_trend` 를 건드리지
+     않는다 — 정규화 단정(시나리오 1)의 값이 그대로 유지되는 이유다. -->
 <rss version="2.0">
   <channel>
     <title>E2E Aggregation — KR Wire</title>
@@ -37,6 +46,11 @@
       <title>본문 없는 속보</title>
       <link>https://agg.e2e.invalid/kr-wire/headline-only</link>
       <views>9500</views>
+    </item>
+    <item>
+      <title>지표 일정 안내</title>
+      <link>https://agg.e2e.invalid/kr-wire/calendar-notice</link>
+      <views>9400</views>
     </item>
   </channel>
 </rss>
