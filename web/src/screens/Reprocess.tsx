@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { Axis, ReprocessCompareRow, ReprocessResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
+import { useTopbar } from "../shell/topbarSlot";
 import { ReprocessTrigger } from "./ReprocessTrigger";
 
 // 재처리 콘솔(`JRN-logic-backfill`)의 읽는 둘 — `STP-scope-range`·`STP-compare-before-after`. 일으키는 셋은
@@ -69,6 +70,11 @@ export function Reprocess() {
   const rows = compare?.available ? sortRows(compare.rows, sortBy) : [];
   const over = rows.filter((r) => Math.abs(r.delta) * 100 >= threshold);
   const largest = compare?.available && compare.rows.length ? compare.rows[0] : null;
+
+  useTopbar(
+    undefined,
+    scope && (scope.total ? `${axisDef.label} · ${rangeDef.label} · ${scope.total}건` : "범위 미확정"),
+  );
 
   return (
     <>

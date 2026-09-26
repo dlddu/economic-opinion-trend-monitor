@@ -1,6 +1,8 @@
-import { afterEach, expect, it, vi } from "vitest";
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { Reprocess } from "./Reprocess";
+import { AppShell } from "../shell/AppShell";
 import type { ReprocessResponse, ReprocessRun } from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -331,4 +333,40 @@ it("records a decision with its reason, or says what is missing", async () => {
   fireEvent.click(decide);
   await waitFor(() => expect(container.querySelector(".rp-recorded")).not.toBeNull());
   expect(container.querySelector(".rp-recorded")?.textContent).toContain("이전 버전(v2)으로 롤백");
+});
+
+describe("Reprocess — 셸 토프바", () => {
+  afterEach(cleanup);
+
+  function renderInShell() {
+    return render(
+      <MemoryRouter initialEntries={["/reprocess"]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/reprocess" element={<Reprocess />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it("pills the chosen scope as axis · range · count, under the route title", async () => {
+    const body = single();
+    stub(body);
+    const { container } = renderInShell();
+
+    await waitFor(() =>
+      expect(container.querySelector(".topbar .pill-ctl")?.textContent).toBe(
+        `한국 · 지난 7일 · ${body.scope.total}건`,
+      ),
+    );
+    expect(container.querySelector(".topbar h2")?.textContent).toBe("재처리 콘솔");
+  });
+
+  it("pills an empty range as 범위 미확정", async () => {
+    stub(empty());
+    const { container } = renderInShell();
+
+    await waitFor(() => expect(container.querySelector(".topbar .pill-ctl")?.textContent).toBe("범위 미확정"));
+  });
 });
