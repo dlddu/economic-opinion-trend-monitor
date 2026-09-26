@@ -22,9 +22,6 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
   R11 설계 트래커 「문서 목록」의 mockup 파일 등재 ↔ 실파일 양방향 일치
   R12 **현재형 서술이 가리키는 mockup 파일이 실재한다** (규칙 7 의 기계화 — R10 의 파일 참조판)
   R13 **좌측 네비에 관한 산문 주장이 실측과 같다** (규칙 7 의 기계화 — R10 의 정성 서술판).
-      네비 항목 자체(id·라벨·순서)가 구현 `nav.ts` 와 맞는지는 이 검사기의 몫이 아니다 —
-      `scripts/check-mockup-render.py` R4 가 그 축(목업 ↔ 구현)을 갖는다. 여기서 대조하는
-      쌍은 **문서 산문 ↔ 목업 네비 실측**이다.
 """
 import os, re, sys, html
 

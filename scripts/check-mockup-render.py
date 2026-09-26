@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""목업 ↔ 구현 렌더링 정합성 검사기 — 규칙 3·5 (stdlib 전용).
+"""목업 ↔ 구현 렌더링 정합성 검사기 — 규칙 3·4(네비)·5 (stdlib 전용).
 
 `tbm_econ-opinion-monitor-mockup-render` 모델의 판정 규칙 중 **기계로 재현할 수 있는
-두 축**을 매 PR 재실행한다.
+세 축**을 매 PR 재실행한다.
 
   R3  컴포넌트·패턴 이름 대조
       디자인 시스템이 정의한 `CMP-*`/`PAT-*` 가, 그 항목을 쓴다고 mockup 인덱스가
@@ -16,22 +16,8 @@
       in-scope 목업의 인라인 `<style>` 과 `web/src/tokens/tokens.css` 가 **공통으로
       선언한 선택자**의 선언값이 일치하는가. 양쪽 다 CSS 라 환산 없이 직접 댄다.
 
-왜 게이트가 필요한가 — 이 두 축은 이 모델 등록 이래 사이클마다 사람이 새로 세었고
-셀 때마다 수가 달라졌다(같은 tip 에서 마커가 12종으로도 15종으로도 세어졌다: `tokens.css`
-만 보면 12, 셸 TSX 주석까지 보면 15). 판정면이 사람마다 다르면 수렴 여부를 말할 수 없다.
-게다가 잔여를 적어 두는 `docs/econ-opinion-monitor-design-tracker.md` 는 모델의 양 side
-버전 범위 **밖**이라(`docs/` 루트) 그 파일이 바뀌어도 재감지가 걸리지 않는다 — 기계가
-없으면 잔여는 다음 트리거가 우연히 올 때까지 미판정으로 남는다.
-
 **기대값은 언제나 SSOT 에서 파싱한다.**
-  정의       docs/design-system/econ-opinion-monitor-design-system.md
-  사용처     docs/mockups/econ-opinion-monitor-mockup-index.md
-  판정 대상  web/src/App.tsx 의 `BUILT`
-  매핑       web/src/shell/nav.ts 의 `SCREENS` (R4-nav 의 대조군)
-  허용목록   docs/econ-opinion-monitor-design-tracker.md 의 「규칙 3·4(네비)·5 기계 판정」 절
 구현 소스에서 기대값을 읽으면 자기참조라 어떤 이탈도 통과한다.
-
-허용목록은 **래칫**이다 — 실측이 상한을 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
 
   python3 scripts/check-mockup-render.py [repo-root]
 """
@@ -84,14 +70,7 @@ def screen_files():
 
 
 def absorbed_screens():
-    """여정 식별자 -> 흡수한 화면 id **집합** (「여정 페이지」 표).
-
-    한 여정 페이지는 화면을 **여럿** 흡수한다(`JRN-daily-scan` ∋ `dash`·`trend`,
-    `JRN-spike-verification` ∋ `fairness`·`trace`). 이전 판은 「흡수한 화면」 칸의 첫 id
-    하나만 집어 둘째 화면을 조용히 버렸고, 그 화면이 `BUILT` 에 들어오는 순간
-    `items_by_screen()` 이 키를 만들지 못해 「인덱스에 디자인 시스템 항목 절이 없다」로
-    떨어졌다 — 인덱스는 그 화면의 행도 항목 절도 갖고 있는데도. 칸 전체에서 읽는다.
-    """
+    """여정 식별자 -> 흡수한 화면 id **집합** (「여정 페이지」 표)."""
     out = {}
     for line in read(IDX).splitlines():
         m = re.match(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|\s*`[^`]+`\s*\|([^|]*)\|", line)
@@ -134,11 +113,7 @@ def built_screens():
 
 
 def markers():
-    """web/src 의 주석에 마킹된 CMP-*/PAT-* 이름 집합.
-
-    CSS 구획 주석과 TS/TSX 줄 주석을 모두 본다 — 셸 컴포넌트는 CSS 가 아니라 TSX 에서
-    이름을 갖는다. `CMP-a / b` 형태의 결합 마커는 이름별로 분해해 센다.
-    """
+    """web/src 의 주석에 마킹된 CMP-*/PAT-* 이름 집합."""
     found = set()
     for base, _dirs, files in os.walk(WEBSRC):
         for name in sorted(files):
