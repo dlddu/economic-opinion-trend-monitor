@@ -7,6 +7,10 @@
 
 ## 읽는 법
 
+- **표면이 셋이고 표도 셋이다.** 지문은 `L` 줄머리 주석 · `D` Python docstring 본문 ·
+  `E` 코드 뒤에 오는 줄 끝·줄 중간 주석을 각각 뽑는다. 한 표는 한 표면을 세고, 같은 파일이
+  표면마다 다른 행을 갖는다(그 표면의 주석이 0줄이면 그 표에는 행이 없다). 아래 규칙은
+  **표마다 따로** 성립한다.
 - **한 행 = 판정 범위 하나**다. 판정 대상 주석 줄을 가진 파일은 **정확히 한 행**에 속하고(행 사이
   파일 집합은 서로소, 합집합 = 실측 파일 집합), **현재 주석 줄 수**와 **지문**은 실측값이다.
 - **판정 축**은 그 행의 **현재 지문**에 대해 판정을 마친 복원 경로다 — `①` 코드 자체 · `②` 저장소
@@ -26,7 +30,7 @@
   재측정 기록, 인계 문단은 이 원장에 두지 않는다.
 - 결과 칸 머리의 `(판정 전 N · 제거 M)` 은 그 행을 마지막으로 판정한 패스 시점의 델타 기록이다.
 
-## 파일별 원장
+## 파일별 원장 — L (줄머리 주석)
 
 | 판정일 | 범위 | 현재 주석 줄 수 | 지문 | 판정 축 | 결과 |
 |---|---|---:|---|---|---|
@@ -223,3 +227,85 @@
 | 2026-09-18 | `web/src/shell/nav.ts` | 2 | `8b7d3a0474cc` | — | (판정 전 4 · 제거 2) 수정 — 첫 줄의 '어느 화면이 구현됐는가' 절 2줄 제거(App.tsx가 복원하며 스스로 그렇게 말함), 목업 인덱스 출처 표기는 유지 |
 | 2026-09-24 | `web/src/shell/topbarSlot.ts` | 2 | `0815e9b3bfa9` | ①② | (판정 전 4 · 제거 2) **dash-rebuild-pass — 첫 판정**(#117 신설). 제거 2 — 머리 3→1: 「셸은 라우트에서 유도한 제목을 기본값으로 두고, 화면이 자기 제목·pill 을 올리면 그것을 그린다」는 `Topbar.tsx` 의 `override?.title ?? screen?.label ?? …`(①), 「목업의 토프바는 여정 페이지마다 제목과 조건 pill 이 다르다」는 설계 트래커 「축 세그·정규화 토글의 배치면이 다름」 해소 행의 「셸이 화면별 토프바 슬롯(`shell/topbarSlot.ts` 의 `useTopbar`)을 갖게 돼 `dash` 가 제목 `아침 정기 스캔` 과 `.ctl` 의 `pill-ctl`(`{축} · {기간} · {단위}`)을 올린다」가 축자(②). 유지 2 — `CMP-topbar` 앵커 1 · `useTopbar` export JSDoc 요약 1. **앵커의 이름은 지우지 않는다** — `check-mockup-render.py` 의 `markers()` 가 `web/src` 주석에서 `CMP-*`/`PAT-*` 를 읽어 R3 모집단을 만들므로 마커를 지우면 게이트가 깨진다 |
 | 2026-09-25 | `web/src/tokens/tokens.css` | 62 | `74a769602133` | ① | (판정 전 68 · 제거 5) **residual-close-pass** — #126·#128·#117 계열이 들인 증분 6줄 재판정(그 아래 62줄은 phone-media-pass 등 판정 그대로). 제거 5 — **바로 아래 선택자가 그대로 적는 목업 매핑**이라 선언 재진술이다(①): `/* note 머리의 안내 아이콘 — 목업 `.note .ic` 그대로 */` ↔ `.note .ic {`, `/* 토프바 조건 슬롯 … (목업 `.ctl` · `.pill-ctl`) */` ↔ `.ctl {`(「화면이 `useTopbar` 로 올린」도 그 훅이 복원), `/* 여정 문서 정보 — 목업의 접힌 메타 레이어(`details.meta`) 그대로 */` ↔ `details.meta {`, 빈 창 배너 2줄(물리 2)은 「값은 목업 `.banner`·`.banner.warn`·`.banner b` 그대로이고 선택자만 `.dash-` 로 접두한다」인데 그 등식이 바로 `check-mockup-render.py` **R5 가 매 실행 대조하는 규약**이라 주석이 게이트를 되풀이하고(①), 네비 아이콘 1줄(「1180px 이하에서는 라벨이 숨고 이것만 남는다」)은 같은 파일의 `≤1180px` `@media` 블록이 말한다(①) — 같은 문장이 `Sidebar.tsx` 에도 한 벌 더 있어 **한 사실이 두 파일에 사본으로** 있었고 이 패스가 둘 다 걷었다. 유지 1 — `.rankrow .dlt` 머리 「순위 행의 변화량은 배경 없는 색 글자다 — `.delta` 칩(배경 pill)을 쓰지 않는다」: **부정 진술**이라 선택자·선언 어디에도 없다(쓰지 않기로 한 것은 코드에 자국을 남기지 않는다). 블록 다섯 자리 모두 `CMP-*`/`PAT-*` 마커가 없어 `check-mockup-render.py` 의 R3 모집단(`markers()` `:136`)과 무관하다 — 편집 전후 마커 집합 **28종 동일**로 확인 |
+
+## 파일별 원장 — D (docstring 본문)
+
+| 판정일 | 범위 | 현재 주석 줄 수 | 지문 | 판정 축 | 결과 |
+|---|---|---:|---|---|---|
+| 2026-09-26 | `contracts/codegen.py` | 16 | `23ade1b494e8` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/src/econ_aggregation/__init__.py` | 4 | `9228cfed27a9` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/src/econ_aggregation/__main__.py` | 1 | `26b2638211b2` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/src/econ_aggregation/aggregate.py` | 34 | `7da535a4fe12` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/src/econ_aggregation/cli.py` | 7 | `ca4cea90220d` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/tests/test_aggregate.py` | 2 | `56244c81a7fe` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/tests/test_aggregation_run_record.py` | 3 | `1f9cc81869c8` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/tests/test_serving_version.py` | 1 | `44563584ad53` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/__init__.py` | 8 | `76bb47337179` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/__main__.py` | 1 | `3b22e5aae4b6` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/cli.py` | 38 | `0aec121e3b24` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/fake_llm.py` | 18 | `9ceb51b75c89` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/llm.py` | 106 | `8361fa70fdb1` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_analysis_run_record.py` | 3 | `9d6613f9e164` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_cli.py` | 14 | `a6e8676e501f` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_llm.py` | 8 | `bfe32bef75c0` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_llm_call_record.py` | 14 | `fc34cd4e0a9d` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_record_run_call_link.py` | 13 | `3521f059f8c2` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/__init__.py` | 4 | `696a77eee962` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/calllog.py` | 35 | `6db5147cacaa` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/domain.py` | 22 | `21140aa453bd` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/runlog.py` | 39 | `a0967ff5c559` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/silver.py` | 51 | `3e8d98029a4e` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/storage.py` | 48 | `26b2077cc3a6` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/tests/test_runlog.py` | 5 | `31a074d6c6a8` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/tests/test_silver.py` | 1 | `ec46790d8bdf` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/tests/test_storage.py` | 4 | `f8e6e55d3303` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/__init__.py` | 8 | `954cd069af08` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/__main__.py` | 1 | `020ae0dc0c9c` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/cli.py` | 14 | `8b50c1f51030` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/feeds.py` | 71 | `cddb95020077` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/sources.py` | 17 | `4689671a32b0` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/tests/test_default_feeds.py` | 6 | `add095b36fa3` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/tests/test_feeds.py` | 7 | `a886b9b5a5f0` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/tests/test_ingestion_run_record.py` | 2 | `cd2820db7036` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-comment-ledger.py` | 25 | `2ce84de17cef` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-data-format-change.py` | 29 | `16f4bd7fccc4` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-journey-mockup.py` | 25 | `02ef64216321` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-mockup-render.py` | 58 | `a0ccb5d15a46` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/check_scenario_mapping.py` | 41 | `4bb1a00212ca` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/fixtures/feeds/server.py` | 24 | `f79d330e7919` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/fixtures/llm/server.py` | 32 | `41e6dd6389d1` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/tools/timeshift_bronze.py` | 26 | `2d9e58cbb220` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 D 표면 첫 등재. |
+
+## 파일별 원장 — E (줄 끝·줄 중간 주석)
+
+| 판정일 | 범위 | 현재 주석 줄 수 | 지문 | 판정 축 | 결과 |
+|---|---|---:|---|---|---|
+| 2026-09-26 | `contracts/codegen.py` | 3 | `f300310e78d6` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `go/internal/handlers/dashboard.go` | 1 | `7fe0f1b2a5b9` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `go/internal/handlers/handlers.go` | 11 | `0358d8239835` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `go/internal/static/static.go` | 1 | `e7e1733af9c5` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/aggregation/tests/test_aggregate.py` | 2 | `3a9233100455` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/src/econ_analysis/llm.py` | 4 | `fe86e91b9673` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_fake_llm.py` | 7 | `a13d9c8922a0` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_llm.py` | 11 | `1f8a8f2df2c2` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/analysis/tests/test_llm_call_record.py` | 1 | `4700d10975d2` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/src/econ_core/domain.py` | 10 | `55c6aa0fef64` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/core/tests/test_silver.py` | 1 | `e317fcebe060` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/feeds.py` | 1 | `121625e276c4` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/src/econ_ingestion/sources.py` | 7 | `7444ffed9bd2` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `python/packages/ingestion/tests/test_default_feeds.py` | 1 | `8d6a8eabc37b` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-comment-ledger.py` | 1 | `190cd5d89443` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-journey-mockup.py` | 9 | `9e3f0019e222` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `scripts/check-mockup-render.py` | 2 | `bebefe7eba19` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/check_scenario_mapping.py` | 1 | `5614760fb25d` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/fixtures/llm/server.py` | 2 | `7e71adee6bda` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/lib/gold.ts` | 1 | `9df6f0b1c395` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/run.sh` | 2 | `de59056500e3` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/ac3-8-normalized-ratio.spec.ts` | 2 | `e384865e47b4` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/aggregation-4-sentiment-ratio-integrity.spec.ts` | 1 | `c96e4b93e980` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/analysis-2-subject-normalization.spec.ts` | 1 | `d5a5c78dc686` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/ingestion-2-top-n-cap.spec.ts` | 4 | `1b8b2b417fa1` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/ingestion-4-link-and-body.spec.ts` | 2 | `c2ecbba7849f` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/ingestion-6-failure-isolation.spec.ts` | 1 | `661d26c3405f` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `tests/e2e/specs/ingestion-7-body-dedup-versioning.spec.ts` | 2 | `da76f0d725f1` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
+| 2026-09-26 | `web/src/screens/Compare.tsx` | 1 | `8b0a0562ae12` | — | 미판정 — 2026-09-26 지문 표면 개정(L + D·E)이 들인 E 표면 첫 등재. |
