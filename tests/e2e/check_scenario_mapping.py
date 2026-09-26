@@ -230,7 +230,6 @@ def main() -> int:
             print(f"  - 규칙5: `### {name}` 없음", file=sys.stderr)
         return 1
 
-    # 등재 내용
     registered_exceptions = [first_ref(r[0]) for r in table_rows(sections[EXCEPTION_SECTION])]
     pending_rows = table_rows(sections[PENDING_SECTION])
     registered_pending = [first_ref(r[0]) for r in pending_rows]
@@ -249,7 +248,6 @@ def main() -> int:
     # 시나리오를 언급해도("시나리오 2와 동일") 판정 대상으로 오인하지 않기 위해서다.
     not_excepted = [first_ref(r[0]) for r in table_rows(sections[NOT_EXCEPT_SECTION]) if r]
 
-    # 규칙2/4/6 — 등재·선언이 가리키는 시나리오가 실재하는가
     for sid in registered_exceptions:
         if sid not in scenarios:
             problems.append(f"규칙4: 예외 목록이 존재하지 않는 시나리오 `{sid}` 를 등재하고 있다")
@@ -263,7 +261,6 @@ def main() -> int:
         if sid != NO_SCENARIO and sid not in scenarios:
             problems.append(f"규칙2: {spec} 이 존재하지 않는 시나리오 `{sid}` 를 선언한다")
 
-    # 규칙4 — "예외로 빼지 않는다"는 판정이 조용히 회귀하지 않는다
     for sid in not_excepted:
         if sid not in scenarios:
             problems.append(f"규칙4: 미등재 판정 표가 존재하지 않는 시나리오 `{sid}` 를 등재하고 있다")
@@ -274,7 +271,6 @@ def main() -> int:
                 f"명시적 변경이 필요하다"
             )
 
-    # 규칙3 — 시나리오를 선언하지 않는 파일은 비-시나리오 등재가 있어야 고아가 아니다
     measured_smoke = sorted(f for f, v in declarations.items() if v == NO_SCENARIO)
     for spec in measured_smoke:
         if spec not in registered_smoke:
@@ -287,7 +283,6 @@ def main() -> int:
                 f"규칙3: 비-시나리오 등재 표의 `{spec}` 이 실제로는 없거나 시나리오를 선언한다"
             )
 
-    # 규칙1 — 한 시나리오를 두 파일이 선언하지 않는다
     by_scenario: dict[str, list[str]] = {}
     for spec, sid in declarations.items():
         if sid != NO_SCENARIO:
@@ -299,7 +294,6 @@ def main() -> int:
                 f"— 전용 파일 1개로 병합할 것"
             )
 
-    # 규칙4/6 — 면제 등재와 실제 파일이 동시에 있을 수 없다
     for sid in registered_exceptions:
         if sid in by_scenario:
             problems.append(
@@ -318,7 +312,6 @@ def main() -> int:
                 f"— 영구 면제와 임시 보류를 겸할 수 없다"
             )
 
-    # 규칙6 — 구현 대기의 해제 신호가 아직 살아 있는가
     for row in pending_rows:
         sid = first_ref(row[0])
         signals = SIGNAL.findall(" | ".join(row))
@@ -340,7 +333,6 @@ def main() -> int:
                     f"(`{rel}` 에 `{needle}` 없음) — 구현이 착지했을 수 있으니 재판정할 것"
                 )
 
-    # 규칙5 — 문서의 매핑·공백·집계가 실측과 일치하는가
     measured_mapping = {sid: specs[0] for sid, specs in by_scenario.items()}
     if registered_mapping != measured_mapping:
         problems.append(
@@ -359,7 +351,6 @@ def main() -> int:
             f"      실측({len(measured_gaps)}): {', '.join(measured_gaps) or '(없음)'}"
         )
 
-    # 규칙5 — 네 통이 전집을 빠짐없이 겹치지 않게 덮는가(회계가 닫히는가)
     # 공백은 **등재된** 목록을 쓴다: 실측 공백을 쓰면 "어느 통에도 없는 시나리오"가 자동으로
     # 공백에 떨어져 이 검사가 겹침만 보게 된다. 문서가 어디에도 적지 않은 시나리오를 "0개 통"
     # 으로 잡아내는 것이 이 규칙의 존재 이유다.

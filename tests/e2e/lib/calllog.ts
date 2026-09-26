@@ -1,7 +1,3 @@
-// 분석 배치가 레이크에 적재한 **기사별 모델 호출 기록**(`silver/llm_call`)을 읽는다.
-// run.sh 가 객체 데이터셋을 JSONL 한 벌로 반출하고($E2E_LLM_CALL_DIR), 더블이 stderr 에
-// 남긴 수신 요청 digest 를 함께 반출한다($E2E_LLM_DOUBLE_LOG).
-
 import { readFileSync } from "node:fs";
 import path from "node:path";
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # Playwright setup for the e2e specs: npm ci + the Chromium build pinned by
-# package-lock.json. Needs neither the images nor the cluster, so callers run it
-# in the background — run.sh from its first line, the CI e2e job from the top of
-# the job (and hands run.sh the result through E2E_PLAYWRIGHT_SETUP_RC).
+# package-lock.json.
 #
 # The browser's OS packages (`--with-deps`, needs sudo) are only installed when
 # CI=true: in the background there is no terminal to answer a sudo prompt. Run
