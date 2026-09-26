@@ -12,8 +12,8 @@ import { expect, test } from "@playwright/test";
 import { itemsBySource, newsItems } from "../lib/bronze";
 import { feedConfig, providedEntries, topByViews } from "../lib/feeds";
 
-const CAPPED = "e2e-kr-wire"; // 제공분 > 상한 — 절단이 일어나는 쪽
-const SHORT = "e2e-us-markets"; // 제공분 < 상한 — 채워 넣기가 없어야 하는 쪽
+const CAPPED = "e2e-kr-wire";
+const SHORT = "e2e-us-markets";
 
 test("ingestion: a source that offers more than its cap is truncated to the top N", () => {
   const config = feedConfig(CAPPED);

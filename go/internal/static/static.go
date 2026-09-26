@@ -27,7 +27,7 @@ func Handler(dir string) http.Handler {
 			fileServer.ServeHTTP(w, r)
 			return
 		}
-		http.ServeFile(w, r, index) // SPA fallback
+		http.ServeFile(w, r, index)
 	})
 }
 

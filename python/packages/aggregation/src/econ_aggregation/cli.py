@@ -1,11 +1,7 @@
 """``econ-aggregation`` CLI — build the Gold serving datasets from Silver.
 
-Silver may hold several analyzer versions of the same record (:mod:`econ_core.silver`).
-Gold is built from exactly one row per record: the *serving version* — the version the
-last recorded ``publish``/``rollback`` decision names — where the record has it, and
-the record's newest row otherwise. ``--decision`` records such a decision first and
-then aggregates with it, which is the ``STP-publish`` step of JRN-logic-backfill run
-as a batch: publishing is a pointer move, and a rollback is the same move back.
+``--decision`` records a publish/rollback before aggregating: the decision is a
+pointer move, and a rollback is the same move back — neither re-analyzes.
 """
 
 from __future__ import annotations

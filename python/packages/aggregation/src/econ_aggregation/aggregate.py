@@ -1,33 +1,12 @@
 """Normalize/aggregate Silver into Gold.
 
-Silver carries only the analysis plus the Bronze tracking key, so this step
-joins back to Bronze on ``record_id`` (exercising V5/AC2.6) to recover axis,
-source, and collection time. It then emits two Gold datasets:
+A subject's first bucket has nothing to compare against, so it reports
+``delta = 0.0`` and a single-point spark — the degenerate case is the honest
+answer, not a placeholder to synthesize over.
 
-  - ``SubjectTrend``   per (subject, axis, bucket): raw_count + normalized_share
-  - ``AxisSentiment``  per (axis, bucket): sentiment distribution
-
-Normalization (AC3.1): each subject's share is computed *within each source*
-first, then averaged across the sources present in an axis, so a high-volume
-source cannot dominate; the averaged values are renormalized to sum to 1 across
-subjects. This is a deliberately simple placeholder — the real formula is
-follow-up work.
-
-``delta`` and ``spark`` are read off the subject's *own* bucket history rather
-than synthesized: shares are computed for every bucket first, then each row
-looks back along the same (axis, subject) series. A subject's first bucket has
-nothing to compare against, so it reports ``delta = 0.0`` and a single-point
-spark — that degenerate case is the honest answer, not a placeholder.
-
-Rollups (AC3.3): the hour is the default unit, and the longer units are the
-*same* aggregation run again over a coarser cut of the same source records —
-not a second pass that sums Gold rows. That is what keeps the rollup consistent
-by construction: a day's ``raw_count`` is the count of the records that fall in
-that day, which is exactly the sum of its hours' counts. ``normalized_share``
-is deliberately *not* summed. It is a share of its own bucket, so adding hourly
-shares would produce a number that is no longer a distribution; recomputing the
-AC3.1 normalization inside the wider bucket keeps every unit's shares summing
-to 1 across subjects, which is what makes the units comparable at all.
+``normalized_share`` is deliberately *not* summed across the finer buckets: it
+is a share of its own bucket, so adding hourly shares stops being a
+distribution. The wider bucket recomputes the normalization instead.
 """
 
 from __future__ import annotations
@@ -48,12 +27,11 @@ SPARK_WINDOW = 6
 def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
     """Cut a collection timestamp down to its bucket label in ``unit`` (AC3.3).
 
-    ``2026-06-23T14:00:00+00:00`` -> ``2026-06-23T14`` / ``2026-06-23`` /
-    ``2026-W26``. Every label is zero-padded, so lexical order is chronological
-    order *within* a unit — the assumption both the serving layer and the
-    delta/spark history below are built on. Across units it does not hold
-    (``2026-W26`` sorts above ``2026-06-23T14``), which is why consumers settle
-    on one unit before they compare buckets.
+    Every label is zero-padded, so lexical order is chronological order *within*
+    a unit — the assumption both the serving layer and the delta/spark history
+    below are built on. Across units it does not hold (``2026-W26`` sorts above
+    ``2026-06-23T14``), which is why consumers settle on one unit before they
+    compare buckets.
     """
     if unit == "hour":
         return collected_at[:13]
@@ -188,12 +166,10 @@ def build_axis_sentiment(
 def build_subject_trends_all_units(
     bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
 ) -> list[dict]:
-    """``build_subject_trends`` once per unit, finest first (AC3.3 rollups)."""
     return [row for unit in units for row in build_subject_trends(bronze, silver, unit)]
 
 
 def build_axis_sentiment_all_units(
     bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
 ) -> list[dict]:
-    """``build_axis_sentiment`` once per unit, finest first (AC3.3 rollups)."""
     return [row for unit in units for row in build_axis_sentiment(bronze, silver, unit)]

@@ -204,7 +204,7 @@ export function rollupItems(): NewsItem[] {
 export function isoWeekLabel(isoDay: string): string {
   const [year, month, day] = isoDay.split("-").map(Number);
   const at = new Date(Date.UTC(year, month - 1, day));
-  const mondayBased = (at.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  const mondayBased = (at.getUTCDay() + 6) % 7;
   const thursday = new Date(at);
   thursday.setUTCDate(at.getUTCDate() - mondayBased + 3);
   const weekYear = thursday.getUTCFullYear();
