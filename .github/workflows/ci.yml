@@ -1,5 +1,3 @@
-# Called from checks.yml — PR/main triggers and the single required
-# status check (`required`) live there.
 name: CI
 
 on:
@@ -73,15 +71,6 @@ jobs:
   # the same Dockerfiles with the same buildx gha cache scopes (`serving`,
   # `batch`), and those scopes hold arm64 layers — main pushes keep them warm, so
   # even a PR's first run starts from cache instead of a plain `docker build`.
-  #
-  # Order is chosen so the slow, independent parts overlap: the kind cluster
-  # and the Playwright setup both start in the background at the top of the
-  # job, the images build meanwhile, and run.sh waits for each only where it
-  # needs it (the cluster before deploying, Playwright before the specs).
-  # The Playwright browsers are deliberately not cached: started this early the
-  # download has ~100s to finish off the critical path, while restoring a cache
-  # (~15s) is a sequential step. Started from run.sh instead (after the builds
-  # and the cluster), it outlasted the batch Jobs by ~4s without a cache.
   e2e:
     if: inputs.code
     runs-on: ubuntu-24.04-arm
@@ -102,12 +91,6 @@ jobs:
       # Survives past this step. The subshell's stdio is cut, otherwise the
       # runner waits for the step's output to close. The exit code lands in
       # an .rc file that "Wait for kind cluster" picks up.
-      #
-      # No `--wait`: kind returns once kubeadm init is done and the API server
-      # answers; the node turning Ready (CNI up, ~20s) then overlaps with
-      # `kind load` and the applies in run.sh, whose `rollout status` waits for
-      # the pods anyway. Every output line is stamped with the time so the log
-      # shows how long each phase (node image, boot, control plane) took.
       - name: Start kind cluster in background
         run: |
           mkdir -p /tmp/bg
@@ -125,9 +108,6 @@ jobs:
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
 
-      # Same pattern as the kind cluster above; run.sh waits on the .rc file
-      # right before the specs (E2E_PLAYWRIGHT_SETUP_RC) instead of starting
-      # its own setup. CI=true, so the browser's OS packages are installed too.
       - name: Start Playwright setup in background
         run: |
           ( bash tests/e2e/playwright-setup.sh \
@@ -176,9 +156,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # Same Dockerfiles and cache scopes as image.yml. Read-only here: the
-      # publish job of this very run writes the same layers, so a second export
-      # would only add upload time to the critical path. `load: true` puts the
-      # image in the local docker store for `kind load` (run.sh, SKIP_BUILD=1).
       - name: Build serving image (econ-monitor:e2e)
         uses: docker/build-push-action@v6
         with:
