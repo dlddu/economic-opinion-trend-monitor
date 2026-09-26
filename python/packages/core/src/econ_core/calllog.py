@@ -1,29 +1,4 @@
-"""Per-article model call records — the lake-side judgement log (PRD pipeline-ops, AC4.2).
-
-One :class:`~econ_core.models.LlmCallRecord` per model call the analysis stage makes,
-stored under its ``call_id`` in the ``silver/llm_call`` object dataset and carrying the
-request as transmitted, the reply as received, and how the call ended.
-
-**Why every outcome is written, not just the useful ones.** The reply cache
-(``silver/analysis_cache``) keeps only replies that produced a record, because its job is
-to spare a re-call. AC4.2 asks the opposite question — "why did this judgement come
-out?" — and a parse failure or an unreachable endpoint is exactly the case somebody
-reads back later, so a call that produced nothing still gets a record here.
-
-**Why put_object and not write_object.** AC4.2 makes the call log append-only:
-reprocessing adds records and never overwrites one. :meth:`LakeStore.put_object` refuses
-to replace an existing key, so that rule is a property of the storage call rather than a
-convention a future caller can forget. The run records of AC4.1 went the other way
-(:meth:`write_object`, replacement allowed) because each stage folds its own report into
-one run record — a difference in what the two logs *are*, not an inconsistency.
-
-**Why the prompt is stored verbatim.** AC4.2 allows either storing the transmitted
-prompt or reconstructing it from the pieces already kept, the latter only if a digest
-proves the reconstruction. Storing it verbatim makes "the record equals what was sent"
-true by construction instead of true if a reassembler is correct. :func:`prompt_digest`
-is recorded anyway, so a later move to reconstruction is checkable against records
-written today.
-"""
+"""Per-article model call records — the lake-side judgement log (PRD pipeline-ops, AC4.2)."""
 
 from __future__ import annotations
 

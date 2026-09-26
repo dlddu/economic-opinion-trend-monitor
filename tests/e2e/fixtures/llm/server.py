@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """e2e LLM 더블 — chat-completions 상류를 대신한다.
 
-분석 배치가 상류로 삼는 OpenAI 호환 `/chat/completions` 엔드포인트를 대신한다. 피드 더블
-(`../feeds/server.py`)과 같은 자리이고 같은 원칙을 지킨다: **상류 한 겹만** 대체하고 제품
-경로는 그대로 돈다. 프롬프트 조립·응답 파싱·서술 대상 정규화·저신뢰 판정·Silver 적재는
-전부 `econ_analysis` 가 하고, 더블이 정하는 것은 "모델이 무엇이라 답하는가" 하나다.
+피드 더블(`../feeds/server.py`)과 같은 자리이고, 두 더블이 공유하는 규약은 그 파일이 주인이다.
 
   POST /v1/chat/completions   요청 본문의 마지막 user 메시지 첫 줄(`TITLE: …`)로 기사를
                               특정하고, `model` 이 고른 응답 묶음에서 그 제목의 응답을
@@ -23,9 +20,6 @@
 초록으로 지나간다. 404 는 제품 경로에서 `CompletionError` → 그 레코드만 unanalyzed + `failed`
 카운트로 드러나고, run.sh 가 그 카운트를 가드로 잡는다. 즉 픽스처 누락이 **조용한 통과**가 아니라
 **시끄러운 실패**가 되게 하는 장치다.
-
-표준 라이브러리만 쓴다 — 배치 이미지에 이미 있는 python 으로 돌아야 하고(새 이미지를 끌어오지
-않는다), 더블이 제품 코드를 흉내내기 시작하면 같은 착각을 상류·하류 양쪽에서 반복하게 된다.
 """
 
 from __future__ import annotations
@@ -109,7 +103,7 @@ def received_digest(payload: dict) -> str:
         if message.get("role") == "system" and not system:
             system = message["content"]
         elif message.get("role") == "user":
-            user = message["content"]  # last user message is the one build_prompt rendered
+            user = message["content"]
     return hashlib.sha256(system.encode("utf-8") + b"\0" + user.encode("utf-8")).hexdigest()
 
 
