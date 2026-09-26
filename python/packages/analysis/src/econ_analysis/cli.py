@@ -4,8 +4,7 @@ Two analyzers share the identical Silver output path (``analysis``): the real ``
 analyzer (the operational default) that sends each item to a chat-completions model,
 with endpoint/model/key read from the ``ECON_LLM_*`` environment, and the deterministic
 ``fake`` keyword stand-in (``--analyzer fake``) that keeps the cross-language smoke and
-offline tests network-free. The default was cut over to the real model once the
-analyzer had landed and been exercised, mirroring the ingestion feed cutover.
+offline tests network-free.
 
 Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`).
 A whole-lake run — no scope arguments, the hourly pipeline — analyzes every Bronze

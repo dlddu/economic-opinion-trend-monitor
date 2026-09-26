@@ -18,15 +18,6 @@ store (:class:`~econ_core.models.NewsBody`). This module mirrors
 alternative that produces the identical ``(news_item, news_body, stats)`` output
 — unchanged bodies (same hash, across cycles or cross-source reprints) store
 once and edited bodies version as new keys.
-
-AC coverage (PRD ingestion): each source declares its axis (AC1.3) and top-N cap
-(AC1.2); every observation preserves the original link plus a body-capture flag
-and content hash — link always stored, empty hash when the body is not captured
-(AC1.4) — with full provenance metadata (AC1.5); runs de-duplicate by URL,
-isolate per-source failures, and retry transient fetch errors (AC1.6); bodies are
-content-addressed so identical text collapses to one stored version (AC1.7).
-Wiring the collection *cadence* (AC1.1) to a scheduler is left to deployment; the
-cycle id is threaded through here so scheduled runs land in the right time bucket.
 """
 
 from __future__ import annotations

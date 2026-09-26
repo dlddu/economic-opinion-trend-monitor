@@ -1,12 +1,4 @@
-"""Record ↔ run ↔ call links — AC4.3, test-pipeline-ops 시나리오 3.
-
-Transcribes that scenario's expected results one for one: every Silver row reaches the
-run that wrote it; a row the model was called for reaches its call record (and, for a
-replayed reply, the original call through it); a row no call was made for carries the
-reason instead; the lists read from the run's end match the rows that named it; and two
-coexisting analyzer versions of one record name different runs and different calls while
-both keep the AC2.6 Bronze tracking key.
-"""
+"""Record ↔ run ↔ call links — AC4.3, test-pipeline-ops 시나리오 3."""
 
 import json
 
@@ -73,7 +65,6 @@ def _by_record(rows: list[dict]) -> dict[str, dict]:
 
 
 def test_every_row_reaches_its_run_and_either_a_call_or_a_reason():
-    """(1) 각 유형의 레코드에서 호출 기록과 실행 기록으로 이동한다."""
     items = [
         _bronze(record_id="analyzed", title="정상"),
         _bronze(record_id="low", title="애매"),
@@ -189,7 +180,6 @@ def test_the_offline_analyzer_states_why_it_called_nothing():
 
 
 def test_the_run_reaches_back_to_its_records_and_calls(tmp_path):
-    """(2) 실행 기록에서 출발한 목록이 그 실행을 가리킨 레코드 집합과 일치한다."""
     store = LocalFsStore(tmp_path)
     items = [
         _bronze(record_id="a", title="정상"),
@@ -224,7 +214,6 @@ def test_the_run_reaches_back_to_its_records_and_calls(tmp_path):
 
 
 def test_coexisting_versions_name_different_runs_and_calls(tmp_path):
-    """(3) 병존하는 두 버전은 서로 다른 실행·호출을 가리키고 둘 다 Bronze 로 역추적된다."""
     store = LocalFsStore(tmp_path)
     item = _bronze(record_id="a", title="정상")
     completer = _completer({"정상": GOOD})

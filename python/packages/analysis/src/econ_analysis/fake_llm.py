@@ -1,13 +1,6 @@
 """A deterministic stand-in for the LLM analysis step.
 
-Instead of calling a model, it keyword-matches the Bronze title/body. This is
-enough to exercise the Silver schema and the downstream aggregation:
-
-  - target-country extraction, single / multi / GLOBAL  (AC2.1)
-  - narrative-subject extraction with variant unification (AC2.2)
-  - sentiment 4-way classification                       (AC2.3)
-  - low-confidence / unanalyzed handling                 (AC2.5)
-  - Bronze tracking key preserved for reprocessing       (AC2.6)
+Instead of calling a model, it keyword-matches the Bronze title/body.
 
 Every row it writes carries ``no_call_reason="keyword_analyzer"``: this analyzer
 reaches no model at all, so AC4.3's "호출하지 않은 사유" is a property of the analyzer

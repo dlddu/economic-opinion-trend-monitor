@@ -24,30 +24,30 @@ BODY = "삼성전자. tone=positive. 대상국=KR,US."
 
 def test_analyze_extracts_sentiment_subjects_countries() -> None:
     a = analyze(_bronze(), BODY)
-    assert a.sentiment == "positive"  # AC2.3
+    assert a.sentiment == "positive"
     assert a.analysis_status == "analyzed"
-    assert a.narrative_subjects == ["삼성전자"]  # AC2.2
-    assert a.target_countries == ["KR", "US"]  # AC2.1 (multi-country)
-    assert a.record_id == "r"  # Bronze tracking key preserved (AC2.6)
+    assert a.narrative_subjects == ["삼성전자"]
+    assert a.target_countries == ["KR", "US"]
+    assert a.record_id == "r"
 
 
 def test_unanalyzed_when_body_missing() -> None:
     a = analyze(_bronze(body_hash="", body_available=False), None)
     assert a.sentiment is None
-    assert a.analysis_status == "unanalyzed"  # AC2.5
+    assert a.analysis_status == "unanalyzed"
 
 
 def test_unanalyzed_when_body_hash_dangles() -> None:
     # body_available says captured but the hash resolves to nothing -> unanalyzed, not a crash.
     a = analyze(_bronze(), None)
     assert a.sentiment is None
-    assert a.analysis_status == "unanalyzed"  # AC2.5
+    assert a.analysis_status == "unanalyzed"
 
 
 def test_low_confidence_on_mixed_tone() -> None:
     a = analyze(_bronze(title="[전기요금] x"), "x. tone=mixed. 대상국=KR.")
     assert a.sentiment == "mixed"
-    assert a.analysis_status == "low_confidence"  # AC2.5
+    assert a.analysis_status == "low_confidence"
 
 
 def test_alias_unification() -> None:
