@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# kind-based e2e: the serving stack plus the ingestion, analysis and aggregation
-# batches, all in one throwaway kind cluster, with the Playwright specs at the end.
-#
-# Local `make e2e` and the CI e2e job both run exactly this script.
-# Requires docker, kind, kubectl and node/npm — it fails fast if one is
-# missing and never installs tools itself. Set KEEP_CLUSTER=1 to keep the
-# cluster around for debugging.
+# This script installs nothing: a missing tool is a fail-fast, never an install.
 set -euo pipefail
 
 E2E_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -168,9 +162,7 @@ fi
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
 # 2) Upstream-double fixtures as ConfigMaps + the serving stack and the batch harness
-# (e2e overlay of deploy/base). Serving has no fixture data of its own: it reads the Gold
-# the aggregation Job writes on the batch claim (k8s/e2e-patch.yaml), so the only thing
-# mounted here is what the *upstream* doubles serve.
+# (e2e overlay of deploy/base).
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
 # 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에

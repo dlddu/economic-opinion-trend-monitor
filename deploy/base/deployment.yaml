@@ -1,9 +1,5 @@
-# One serving Pod: API + static web at :8080. The store reads
-# <ECON_DATA_ROOT>/gold/*.jsonl and treats missing files as empty datasets,
-# so the base runs (empty dashboard) even before any pipeline writes Gold.
-# The `data` emptyDir is the overlay seam — prod replaces it with a PVC, and
-# the kind e2e leaves it in place and points ECON_DATA_ROOT at the batch claim
-# it mounts beside it.
+# The `data` emptyDir is the overlay seam — do not remove it. Overlays fill it (prod)
+# or leave it in place and point `ECON_DATA_ROOT` elsewhere (the kind e2e).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
