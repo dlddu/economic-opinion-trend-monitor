@@ -16,7 +16,10 @@ cycle, so "settled" is what keeps the hourly run proportional to the new cycle r
 than to the whole history: every row at the target version is settled — including an
 ``unanalyzed`` one, since no body or a declining model is the verdict — except the rows
 a failed model call left behind (:func:`econ_core.silver.pending_retries`), which are
-retried next run. Re-analysing history is therefore a version bump, never a prompt or
+retried next run, and the rows written before AC4.3 that name no ``run_id``, which are
+analyzed again so they gain their run and call links — through the reply cache, so while
+the prompt is unchanged this replays the stored reply rather than calling the model.
+Re-analysing history is therefore a version bump, never a prompt or
 model change alone.
 
 A *scoped* run (``--since``/``--axis``/``--source``/``--sample``) is the reprocess
@@ -206,11 +209,9 @@ def _analyze(
 
     scoped = _scoped(args)
     retry = silver.pending_retries(store, version)
-    done = {
-        row["record_id"]
-        for row in silver.read_analyses(store)
-        if row["analyzer_version"] == version and row["record_id"] not in retry
-    }
+    at_version = [r for r in silver.read_analyses(store) if r["analyzer_version"] == version]
+    unlinked = {r["record_id"] for r in at_version if not r.get("run_id")}
+    done = {r["record_id"] for r in at_version} - retry - unlinked
     todo = _select_scope(bronze, args) if scoped else list(bronze)
     selected = len(todo)
     todo = [item for item in todo if item["record_id"] not in done]
@@ -315,6 +316,9 @@ def _analyze(
     )
     if not scoped:
         print(f"  settled_already_at_version={skipped}")
+    relinked = len(unlinked & {a["record_id"] for a in analyses})
+    if relinked:
+        print(f"  relinked_unlinked_rows={relinked}")
     if scoped:
         print(
             f"  scope: since={args.since or '-'} axis={args.axis or '-'} "

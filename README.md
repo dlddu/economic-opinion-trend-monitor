@@ -46,7 +46,8 @@
     쓰기는 건드린 주기의 파티션만 다시 쓴다. 이전 `silver/analysis.jsonl`은 다음 분석 실행이 옮긴다
     (Bronze에 없는 레코드의 행은 버린다).
   - 매시간 분석은 **그 버전으로 아직 확정되지 않은 레코드만** 본다 — 새 주기의 관측과, 모델 호출이 실패해
-    `unanalyzed`로 남은 레코드(`silver/analysis_retry.jsonl`, 계약 아님 — 다음 실행에서 재시도). 본문이 없거나
+    `unanalyzed`로 남은 레코드(`silver/analysis_retry.jsonl`, 계약 아님 — 다음 실행에서 재시도), 그리고 AC4.3 이전에
+    쓰여 `run_id`가 없는 행(다시 분석해 실행·호출 연결을 얻는다 — 프롬프트가 같으면 캐시 응답을 재생할 뿐 모델을 부르지 않는다). 본문이 없거나
     모델이 판단을 거부한 `unanalyzed`는 그 자체가 결과라 다시 보지 않는다. Bronze가 전 주기를 보존하므로 이력 전체를 다시 분석하려면
     `--analyzer-version`을 올린다(AC2.6). 프롬프트·모델만 바꾸면 이후 주기에만 반영된다.
   - 운영 캐시 `silver/analysis_cache.jsonl`(계약 아님): 모델 응답을 (analyzer_version, 모델, 프롬프트) 해시로 보관해,
