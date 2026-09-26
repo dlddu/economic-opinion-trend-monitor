@@ -21,15 +21,13 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * 어느 대상 행을 볼지는 **응답이 정한다** — 상수로 박지 않는다. 서빙 입력이 커밋된 픽스처
- * Gold 이던 동안에는 픽스처의 1위 대상 이름을 spec 에 복사해 두었지만, 이제 그 Gold 는 집계
- * 배치가 corpus 에서 만든 것이라 이름을 베끼면 corpus 가 바뀔 때마다 테스트가 헛되이 깨진다.
+ * 어느 대상 행을 볼지는 **응답이 정한다** — 이름을 상수로 박으면 corpus 가 바뀔 때마다
+ * 테스트가 헛되이 깨진다.
  *
  * 1위 행을 고르는 이유: 이 spec 의 단정 중 하나가 **원시 카운트가 비율이 아니다**(> 1)이고,
- * 집계 corpus 에서 기사 여러 건을 가진 대상이 곧 1위이기 때문이다(KR 축 1위 = 3건).
+ * 집계 corpus 에서 기사 여러 건을 가진 대상이 곧 1위이기 때문이다.
  */
 type RankRow = { subject: string; normalized_share: number; raw_count: number };
-/** `fairness` 화면은 같은 행에 원시 기준 점유율을 하나 더 싣는다. */
 type FairRow = RankRow & { raw_share: number };
 
 function topRow<T extends RankRow>(rows: T[], where: string): T {

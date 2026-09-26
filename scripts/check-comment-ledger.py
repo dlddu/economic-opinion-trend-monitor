@@ -67,8 +67,6 @@ ALLOWED_SECTIONS = ["읽는 법", "파일별 원장"]
 FINGERPRINT_LEN = 12
 
 
-# ── 범위 추출 (as-is versionScript와 같은 규칙) ────────────────────────────────
-
 def repo_exclude(root: str) -> str:
     path = os.path.join(root, POLICY_README)
     if not os.path.exists(path):
@@ -164,8 +162,6 @@ def fingerprint(hits: list[str]) -> str:
     return hashlib.sha256(body.encode()).hexdigest()[:FINGERPRINT_LEN]
 
 
-# ── 원장 파싱 ────────────────────────────────────────────────────────────────
-
 class Row:
     def __init__(self, lineno: int, cells: list[str]):
         self.lineno = lineno
@@ -207,8 +203,6 @@ def parse(root: str) -> tuple[list[Row], list[str], list[tuple[int, str]]]:
     return rows, sections, stray
 
 
-# ── 검사 ────────────────────────────────────────────────────────────────────
-
 def axis_valid(value: str) -> bool:
     if value == AXIS_UNJUDGED:
         return True
@@ -228,7 +222,6 @@ def main() -> int:
         print(f"ERROR: {LEDGER} 에서 원장 표를 찾지 못했다 (헤더: {' | '.join(HEADER)})")
         return 1
 
-    # R1 절 구성 — 표와 「읽는 법」만.
     unexpected = [s for s in sections if s not in ALLOWED_SECTIONS]
     if unexpected:
         fail.append(
@@ -236,7 +229,6 @@ def main() -> int:
             f"— 경위·재측정 기록·인계 문단은 passes/ 나 PR 본문으로 옮긴다"
         )
 
-    # R2 표 밖 산문 금지 — 첫 절 앞의 머리말과 「읽는 법」 절 안은 허용한다.
     allowed_lines = set()
     in_allowed = True  # 첫 `## ` 앞은 머리말
     for idx, raw in enumerate(read_lines(os.path.join(root, LEDGER)), start=1):
@@ -253,7 +245,6 @@ def main() -> int:
             + (" …" if len(outside) > 6 else "")
         )
 
-    # R3 집계 행(범위 칸에 파일 경로가 없는 행) 금지.
     for row in rows:
         if not row.paths:
             fail.append(
@@ -261,12 +252,10 @@ def main() -> int:
                 f"손으로 적은 합계·잔량 행은 두지 않는다(집계는 이 게이트가 출력한다): {row.scope[:60]}"
             )
 
-    # R4 판정일 형식.
     for row in rows:
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row.date):
             fail.append(f"R4 {LEDGER}:{row.lineno} 판정일이 YYYY-MM-DD 가 아니다: {row.date!r}")
 
-    # R5 판정 축 표기.
     for row in rows:
         if not axis_valid(row.axis):
             fail.append(
@@ -274,7 +263,6 @@ def main() -> int:
                 f"— {AXIS_UNJUDGED} 또는 {AXES} 의 부분집합(원래 순서)"
             )
 
-    # R6 파일 소속 유일 · 전수.
     owner: dict[str, Row] = {}
     for row in rows:
         for p in row.paths:
@@ -302,7 +290,6 @@ def main() -> int:
             + (" …" if len(extra) > 8 else "")
         )
 
-    # R7 줄 수 · 지문 실측 일치.
     for row in rows:
         hits: list[str] = []
         for p in row.paths:
@@ -326,7 +313,6 @@ def main() -> int:
                 f"(범위 {', '.join('`'+p+'`' for p in row.paths)})"
             )
 
-    # R8 행 정렬 — 범위 첫 파일 경로 사전순.
     keys = [row.paths[0] for row in rows if row.paths]
     if keys != sorted(keys):
         for a, b, row in zip(keys, keys[1:], [r for r in rows if r.paths][1:]):
@@ -335,7 +321,6 @@ def main() -> int:
                     f"R8 {LEDGER}:{row.lineno} 행 순서가 사전순이 아니다: `{b}` 가 `{a}` 뒤에 있다"
                 )
 
-    # R9 미분류 파일 — 범위가 레포 성장을 따라가지 못한 신호.
     if unclassified:
         fail.append(
             f"R9 어느 언어군에도 들지 않는 텍스트 파일 {len(unclassified)}개 "
@@ -343,7 +328,6 @@ def main() -> int:
             + ", ".join(f"`{p}`" for p in unclassified[:8])
         )
 
-    # ── 집계 출력 ──
     judged_rows = [r for r in rows if r.axis != AXIS_UNJUDGED]
     full_rows = [r for r in rows if r.axis == AXES]
     open_rows = [r for r in rows if r.axis == AXIS_UNJUDGED]

@@ -1,9 +1,5 @@
-# e2e overlay of deploy/base: the image is built locally and side-loaded with
-# `kind load docker-image` (imagePullPolicy: Never — no registry involved),
-# and the serving store is pointed at the aggregation batch's data root on the
-# batch claim (e2e-patch.yaml) — serving reads the Gold the pipeline wrote, not
-# a fixture of its own. Applying this overlay in CI also keeps the deployable
-# base honest.
+# Overlay deploy/base here rather than standing up an e2e copy of it — applying the
+# deployable base in CI is what keeps it honest.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
