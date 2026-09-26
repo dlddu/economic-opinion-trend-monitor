@@ -97,14 +97,11 @@ def test_every_row_reaches_its_run_and_either_a_call_or_a_reason():
     by_record = _by_record(rows)
     by_call = {c["call_id"]: c for c in calls}
 
-    # Every row — whatever its status — leads back to the execution that wrote it.
     assert {r["run_id"] for r in rows} == {"run-42"}
 
-    # A row is never silent about where its judgement came from: exactly one of the two.
     for row in rows:
         assert (row["call_id"] is None) != (row["no_call_reason"] is None), row
 
-    # 분석 완료 · 저신뢰 · 미분석(모델이 거절) · 미분석(호출 실패) — 넷 다 호출 기록에 닿는다.
     assert by_record["analyzed"]["analysis_status"] == "analyzed"
     assert by_record["low"]["analysis_status"] == "low_confidence"
     assert by_record["declined"]["analysis_status"] == "unanalyzed"
@@ -120,7 +117,6 @@ def test_every_row_reaches_its_run_and_either_a_call_or_a_reason():
         assert call["record_id"] == name
         assert call["run_id"] == "run-42"
 
-    # 본문 미확보 레코드만 호출이 없고, 그 자리를 미호출 사유가 채운다.
     nobody = by_record["nobody"]
     assert nobody["analysis_status"] == "unanalyzed"
     assert nobody["call_id"] is None
@@ -155,8 +151,6 @@ def test_a_reused_reply_reaches_the_original_call_through_its_own_record():
 
     row = second_rows[0]
     assert row["run_id"] == "run-2"
-    # The row names the record this run wrote — that record is the reuse, and the call
-    # AC4.3 asks for is one hop further on `reused_from_call_id`.
     reuse = {c["call_id"]: c for c in second_calls}[row["call_id"]]
     assert reuse["call_outcome"] == "reused"
     assert reuse["reused_from_call_id"] == origin
@@ -182,8 +176,6 @@ def test_a_reuse_of_a_pre_call_record_cache_still_reaches_a_call_record():
     assert stats.reused == 1
     row = rows[0]
     assert row["no_call_reason"] is None
-    # Pointing the row straight at the original would have had nothing to point at here;
-    # pointing it at this run's record keeps the link total (AC4.3).
     assert row["call_id"] == calls[0]["call_id"]
     assert calls[0]["reused_from_call_id"] is None
 
@@ -214,7 +206,6 @@ def test_the_run_reaches_back_to_its_records_and_calls(tmp_path):
     for call in calls:
         calllog.record_call(store, call)
 
-    # Another run's rows must not leak into the lists read from run-42's end.
     other = [_bronze(record_id="z", title="정상", collection_cycle="2026-06-23T15:00")]
     other_rows, _, _ = run_llm_analysis(other, {"h": "본문"}, completer, "llm-v1", run_id="run-99")
     silver.store_analyses(store, silver.cycles_of(other), other_rows)
@@ -224,8 +215,6 @@ def test_the_run_reaches_back_to_its_records_and_calls(tmp_path):
     assert {r["record_id"] for r in silver.records_of_run(store, "run-42")} == forward
     assert {r["record_id"] for r in silver.records_of_run(store, "run-99")} == {"z"}
 
-    # The call list is the same fact read from the other end, and a row's call_id
-    # resolves inside it.
     assert {c["call_id"] for c in calllog.calls_of_run(store, "run-42")} == {
         c["call_id"] for c in calls
     }
@@ -258,6 +247,5 @@ def test_coexisting_versions_name_different_runs_and_calls(tmp_path):
         call = calllog.read_call(store, row["call_id"])
         assert call["run_id"] == row["run_id"]
         assert call["analyzer_version"] == row["analyzer_version"]
-        # AC2.6 원문 추적은 두 버전 모두에서 그대로다.
         assert row["record_id"] == item["record_id"]
         assert row["source_url"] == item["source_url"]
