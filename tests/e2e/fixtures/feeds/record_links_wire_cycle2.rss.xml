@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- e2e 연결 기록 픽스처 — **wire 소스, 주기 2**: 주기 1 의 두 건을 **바이트 동일하게** 다시
+     싣고(재관측이 응답 캐시를 맞혀 `reused` 를 만든다 — 제목·본문이 한 글자도 달라선 안 된다)
+     응답 없는 기사 하나를 더한다.
+
+       * 002 응답 표에 없다 -> 더블이 404, 제품은 `call_failed` 로 기록한다. 미분석인데
+                             **호출 기록은 있는** 쪽이라, `call_id`↔`no_call_reason` 배타
+                             단정이 한 방향으로만 공허해지지 않는다. 이 묶음의 **마지막**
+                             주기라 재시도가 뒤따르지 않는다(주기 1 파일 머리말 참조). -->
+<rss version="2.0">
+  <channel>
+    <title>E2E Record Links Wire</title>
+    <link>https://links.e2e.invalid/wire</link>
+
+    <item>
+      <title>속보: 본문 없는 단신 — 연결 기록 묶음</title>
+      <link>https://links.e2e.invalid/wire/001</link>
+      <views>7700</views>
+    </item>
+
+    <item>
+      <title>응답 없는 기사 — 연결 기록 묶음</title>
+      <link>https://links.e2e.invalid/wire/002</link>
+      <description>이 기사의 제목은 더블의 응답 표에 없다. 더블이 404로 끊고 제품 경로는 호출 실패로 기록한다.</description>
+      <views>7200</views>
+    </item>
+
+    <item>
+      <title>두 주기에 걸친 속보 — 연결 기록 묶음</title>
+      <link>https://links.e2e.invalid/wire/003</link>
+      <description>같은 주소로 두 주기에 걸쳐 관측된다. 두 번째 주기의 프롬프트가 첫 주기와 바이트 동일해 응답 캐시를 맞힌다.</description>
+      <views>6800</views>
+    </item>
+  </channel>
+</rss>

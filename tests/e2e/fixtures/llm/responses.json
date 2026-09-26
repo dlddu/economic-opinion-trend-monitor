@@ -262,6 +262,38 @@
         },
         "원화 약세에 수출업계 촉각 — 형식이 깨진 응답": "모델이 JSON 대신 설명 문장만 돌려준 응답"
       }
+    },
+    "e2e-llm-links": {
+      "responses": {
+        "금리 동결과 가계 부담 — 연결 기록 묶음": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["기준금리"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.9
+        },
+        "엇갈린 지표에 시장 관망 — 연결 기록 묶음": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["경기지표"],
+          "sentiment": "mixed",
+          "analyzable": true,
+          "confidence": 0.4
+        },
+        "신규 관측 기사 — 연결 기록 묶음": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["기준금리"],
+          "sentiment": "positive",
+          "analyzable": true,
+          "confidence": 0.88
+        },
+        "두 주기에 걸친 속보 — 연결 기록 묶음": {
+          "target_countries": ["대한민국"],
+          "narrative_subjects": ["경기지표"],
+          "sentiment": "neutral",
+          "analyzable": true,
+          "confidence": 0.83
+        }
+      }
     }
   }
 }

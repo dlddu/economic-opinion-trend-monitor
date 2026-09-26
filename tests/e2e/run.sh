@@ -35,6 +35,10 @@ LLM_DOUBLE_LOG="$E2E_DIR/.artifacts/llm-double.log"
 PW_SETUP_LOG="$E2E_DIR/.artifacts/playwright-setup.log"
 KIND_CREATE_LOG="$E2E_DIR/.artifacts/kind-create.log"
 RUNLOG_OPS_DIR="$E2E_DIR/.artifacts/runlog-ops"
+LINKS_BRONZE_DIR="$E2E_DIR/.artifacts/bronze-links"
+LINKS_SILVER_DIR="$E2E_DIR/.artifacts/silver-links"
+LINKS_CALL_DIR="$E2E_DIR/.artifacts/llm-calls-links"
+LINKS_RUNLOG_DIR="$E2E_DIR/.artifacts/runlog-links"
 PF=""
 BG_PIDS=()
 
@@ -315,6 +319,61 @@ chain_llm_calls() {
   echo "[e2e] llm call log exported -> $LLM_CALL_DIR"
 }
 
+# 4f) Record <-> run <-> call links (…-test-pipeline-ops.md#시나리오 3).
+#
+# A dedicated root again, for the reason the fixtures README gives: the assertions here are
+# about *which rows a run made* and *which version a row carries*, and both are counts over
+# the whole root — another bundle's cycles landing in it would make every one of them read
+# a different corpus than the one this scenario describes.
+chain_record_links() {
+  local log
+
+  # Cycle 1: the desk pair (answered / low confidence) plus the wire pair (one with no body,
+  # one that cycle 2 re-observes). Every call here succeeds — the failing branch lives in
+  # cycle 2 so that no record is left on the retry list (see the wire fixture header).
+  run_batch_job econ-e2e-ingest-links1 "$E2E_DIR/k8s/batch/ingest-job-links1.yaml" >/dev/null
+  log="$(run_batch_job econ-e2e-analyze-links1 "$E2E_DIR/k8s/batch/analyze-job-links1.yaml")"
+  case "$log" in
+    *"low_confidence=1 unanalyzed=1"*) ;;
+    *) echo "[e2e] FAIL: cycle 1 did not produce one low-confidence and one unanalyzed row —" \
+            "the response table drifted from the cycle-1 desk/wire fixtures" >&2
+       exit 1 ;;
+  esac
+
+  # Cycle 2 re-observes the wire pair and adds the article the double has no reply for.
+  # `reused=1` is load-bearing: without it the corpus has no row whose call record names an
+  # *earlier* call, and "a replayed reply reaches the original call record" passes vacuously.
+  # `failed=1` is equally deliberate — it is the only row that is unanalyzed *with* a call,
+  # which is what keeps the call_id/no_call_reason exclusion from being one-sided.
+  run_batch_job econ-e2e-ingest-links2 "$E2E_DIR/k8s/batch/ingest-job-links2.yaml" >/dev/null
+  log="$(run_batch_job econ-e2e-analyze-links2 "$E2E_DIR/k8s/batch/analyze-job-links2.yaml")"
+  case "$log" in
+    *"failed=1 reused=1"*) ;;
+    *) echo "[e2e] FAIL: cycle 2 did not produce exactly one failed and one replayed call —" \
+            "either the two wire fixtures' shared articles drifted apart (no cache hit) or" \
+            "the double grew a reply for the article that is supposed to 404" >&2
+       exit 1 ;;
+  esac
+
+  # The scoped reprocess. `coexisting` is the word the product prints when a scope was given,
+  # and it is exactly the precondition scenario 3 names: without it the rewrite is `in place`
+  # and the llm-v1 rows are gone, leaving nothing to compare the two versions with.
+  log="$(run_batch_job econ-e2e-analyze-links-v2 "$E2E_DIR/k8s/batch/analyze-job-links-v2.yaml")"
+  case "$log" in
+    *"(coexisting, pruned=0)"*) ;;
+    *) echo "[e2e] FAIL: the scoped reprocess did not write coexisting rows — the earlier" \
+            "analyzer version was overwritten and the two-version comparison has one side" >&2
+       exit 1 ;;
+  esac
+
+  export_news_item /data/record-links "$LINKS_BRONZE_DIR"
+  export_news_body /data/record-links "$LINKS_BRONZE_DIR"
+  export_analysis /data/record-links "$LINKS_SILVER_DIR"
+  export_llm_call /data/record-links "$LINKS_CALL_DIR"
+  export_pipeline_run /data/record-links "$LINKS_RUNLOG_DIR"
+  echo "[e2e] record-link corpus exported -> $LINKS_SILVER_DIR"
+}
+
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
 # …-test-aggregation-viz.md#시나리오 1·2·4).
 run_aggregation_stack() {
@@ -381,7 +440,7 @@ chain_aggregation_skew() {
 }
 
 mkdir -p "$CHAIN_LOG_DIR"
-CHAINS=(ingest faults cycles analysis llm_calls aggregation aggregation_skew)
+CHAINS=(ingest faults cycles analysis llm_calls record_links aggregation aggregation_skew)
 CHAIN_PIDS=()  # same index as CHAINS — no associative arrays, bash 3.2 has none
 for chain in "${CHAINS[@]}"; do
   ( "chain_$chain" ) </dev/null >"$CHAIN_LOG_DIR/$chain.log" 2>&1 &
@@ -487,6 +546,10 @@ BASE_URL="http://127.0.0.1:$PORT" \
   E2E_INGEST_LOG_DIR="$LOG_DIR" \
   E2E_RUNLOG_OPS_DIR="$RUNLOG_OPS_DIR" \
   E2E_LLM_CALL_DIR="$LLM_CALL_DIR" \
+  E2E_BRONZE_LINKS_DIR="$LINKS_BRONZE_DIR" \
+  E2E_SILVER_LINKS_DIR="$LINKS_SILVER_DIR" \
+  E2E_LLM_CALL_LINKS_DIR="$LINKS_CALL_DIR" \
+  E2E_RUNLOG_LINKS_DIR="$LINKS_RUNLOG_DIR" \
   E2E_LLM_DOUBLE_LOG="$LLM_DOUBLE_LOG" \
   npx playwright test
 
@@ -498,3 +561,4 @@ echo "[e2e] OK: aggregation batch -> pipeline-produced Gold (baseline + skewed v
 echo "[e2e] OK: two collection cycles + a version bump -> per-article model call log"
 echo "[e2e] OK: re-stamped collection times -> aggregation -> multi-bucket Gold (hour/day/week)"
 echo "[e2e] OK: two pipeline runs (one whole, one stopped in analysis) -> pipeline_run records"
+echo "[e2e] OK: two cycles + a scoped reprocess -> rows, runs and calls that name each other"
