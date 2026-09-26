@@ -2,8 +2,7 @@ package handlers
 
 import "net/http"
 
-// debugResponse is the stub the judgment-debug screen reads until the lake
-// carries the records it is built on.
+// debugResponse is the stub the judgment-debug screen reads.
 type debugResponse struct {
 	Stub      string   `json:"stub"`
 	Available bool     `json:"available"`
