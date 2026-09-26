@@ -17,6 +17,12 @@
 - 각 행은 그 파일을 **마지막으로 판정한 패스** 기준이며, initial-pass가 아니면 판정 칸 머리에 패스 이름을 적는다.
 - 「패스 이력」의 줄 수는 **레포 전체 지문** 값이다. 표적 패스(일부 파일만 재판정)가 실제로 어떤 파일을
   판정했는지는 그 패스 문서에 있다 — 판정하지 않은 파일은 이 원장에 행을 만들지 않는다.
+- **말미 요약은 보관 기록이 아니라 「현재 진술」이다.** 잔여·표의 행 수·지문 파일 집합은 패스마다
+  자기 판정 트리 기준으로 **전진시킨다**(기준 트리를 함께 적는다). 반대로 한 패스의 근거·검증값·
+  전방 인계와 **정책 규칙**은 말미에 두지 않는다 — 각각 `passes/<판정일>-<slug>.md` 와 `README.md` 가
+  자리다. 그것을 말미에 두면 그 패스 시점에 참이던 문장이 다음 패스에서 **자동으로 거짓**이 되고,
+  이 축을 보는 기계가 없어 거짓인 채로 남는다(2026-09-26 실측: 「잔여 11줄 · ⑴ 은 사람 몫」이
+  판정 완료된 파일을 두 패스 동안 다시 사람 몫으로 지시했다).
 
 ## 패스 이력
 
@@ -690,16 +696,19 @@ pin-guard-pass는 전수가 아니라 **3파일 표적 재판정**이다(핀 메
 | `web/src/tokens/tokens.css` | 68 | 5 | 63 | **residual-close-pass** — #126·#128·#117 계열이 들인 증분 6줄 재판정(그 아래 62줄은 phone-media-pass 등 판정 그대로). 제거 5 — **바로 아래 선택자가 그대로 적는 목업 매핑**이라 선언 재진술이다(①): `/* note 머리의 안내 아이콘 — 목업 `.note .ic` 그대로 */` ↔ `.note .ic {`, `/* 토프바 조건 슬롯 … (목업 `.ctl` · `.pill-ctl`) */` ↔ `.ctl {`(「화면이 `useTopbar` 로 올린」도 그 훅이 복원), `/* 여정 문서 정보 — 목업의 접힌 메타 레이어(`details.meta`) 그대로 */` ↔ `details.meta {`, 빈 창 배너 2줄(물리 2)은 「값은 목업 `.banner`·`.banner.warn`·`.banner b` 그대로이고 선택자만 `.dash-` 로 접두한다」인데 그 등식이 바로 `check-mockup-render.py` **R5 가 매 실행 대조하는 규약**이라 주석이 게이트를 되풀이하고(①), 네비 아이콘 1줄(「1180px 이하에서는 라벨이 숨고 이것만 남는다」)은 같은 파일의 `≤1180px` `@media` 블록이 말한다(①) — 같은 문장이 `Sidebar.tsx` 에도 한 벌 더 있어 **한 사실이 두 파일에 사본으로** 있었고 이 패스가 둘 다 걷었다. 유지 1 — `.rankrow .dlt` 머리 「순위 행의 변화량은 배경 없는 색 글자다 — `.delta` 칩(배경 pill)을 쓰지 않는다」: **부정 진술**이라 선택자·선언 어디에도 없다(쓰지 않기로 한 것은 코드에 자국을 남기지 않는다). 블록 다섯 자리 모두 `CMP-*`/`PAT-*` 마커가 없어 `check-mockup-render.py` 의 R3 모집단(`markers()` `:136`)과 무관하다 — 편집 전후 마커 집합 **28종 동일**로 확인 |
 | **record-run-call-link-pass 기준 · 레포 전체** | **2686** | **20** | **2666** | 지문 값(판정 트리 `fafceb8` = #137 착지 tip = main). 편집 전 `lines=2686 files=160` / `b75e96ab…1d17f1`(모델 `lastObservedVersion` 과 바이트 일치), 편집 후 `lines=2666 files=159` / `d52b64d7…55cc34`. **완료 기준은 절대값이 아니라 부모 대비 델타 −20 · 파일 −1** 이다. 이 패스는 **#137 이 들인 26줄 전량**을 판정했다 — 제거 20 · 유지 6(그중 판단 분기 5). 표면의 저작은 하나다: **#137**(AC4.3 레코드↔실행↔호출 연결). **이 패스로 미판정 잔여가 다시 0 이 된다** — ⑴ 행 없는 파일 0(신설 파일에 행을 세웠다) · ⑵ 행보다 자란 파일 0(네 행의 기준을 live 로 전진시켰다). 잔여는 손으로 세지 않고 **원장 전 행 파싱(`|` split) + tip 실측 대조**로 냈고(정규식 금지), 계수기 공전은 **음성 프로브 두 방향**으로 실측했다 — `deploy/base/deployment.yaml` 행(live 10 = 남음 10)의 「남음」을 −5 하면 ⑵ 가 5줄을, 행을 통째로 지우면 ⑴ 이 10줄을 잡는다. **다음 선은 `main` 안에 없다** — 판정 시점 대상 레포에 열린 PR 이 0건이라 예고할 창이 없고, 다음 주석 변경이 재감지로 새 task 를 연다 |
 
-**이 패스가 세운 판정 규칙 — 「서사는 ③ 로 닫고, 편집 지점 가드는 남긴다」.** 같은 명제가 저작 PR 본문에 있으면 경로 ③ 으로 닫되, 그 줄이 미래 편집자에게 「이 값이 무엇과 같아야 하는가 / 무엇을 넣지 말라 / 이 순서를 바꾸면 무엇이 조용히 깨지는가」를 말하면 남긴다. PR 본문은 편집 지점에서 읽히지 않으므로 그 경우의 비용은 비대칭이고, 이것이 README「편집 지점에서만 효과가 있는 가드」 조항이 보호하는 것이다. 규칙을 세운 덕에 같은 창 안에서 판정이 갈리지 않았다 — 이 패스가 유지한 46줄 중 이 창의 몫 14줄은 **전부** 가드 형태이고(캐시 키가 같아야 재사용이 일어난다 · `args` 에 `--analyzer-version` 을 넣지 말라 · `--cycle` 은 달라야 하고 겹치는 세 건은 같아야 한다 · `failed=2`/`reused=1` 가드의 근거 · 모델 이름으로 걸러야 건수 단정이 성립한다 · 로그 줄이 canned 조회보다 앞이어야 한다), 제거한 114줄 중 서사가 아닌 것은 없다.
+**미판정 잔여는 124줄이다** — 기준 트리 `fdfb1cb`(= #150 착지 tip = `main`), 지문
+`lines=2790 files=166` / `a6d13cca…703c741`. ⑴ 행이 없는 파일 **7개 98줄**:
+`tests/e2e/specs/pipeline-ops-3-record-run-call-links.spec.ts` 35 · `tests/e2e/lib/recordlinks.ts` 29 ·
+`tests/e2e/k8s/batch/analyze-job-links-v2.yaml` 9 · `tests/e2e/k8s/batch/ingest-job-links2.yaml` 8 ·
+`tests/e2e/k8s/batch/analyze-job-links2.yaml` 6 · `tests/e2e/k8s/batch/ingest-job-links1.yaml` 6 ·
+`tests/e2e/k8s/batch/analyze-job-links1.yaml` 5. ⑵ 행이 있으나 자란 파일 **3개 26줄**:
+`tests/e2e/run.sh` +17(남음 42 → live 59) · `tests/e2e/lib/runlog.ts` +5(12 → 17) ·
+`tests/e2e/lib/calllog.ts` +4(13 → 17). **전량 #150**(pipeline-ops 시나리오 3 spec) 착지분이고
+**판정은 다음 패스 몫**이다 — record-run-call-link-pass 는 자기 창(#137 유래 26줄)만 판정했다.
 
-**같은 명제의 사본은 주인 하나만 남겼다.** 바이트 동일 사본을 먼저 셌다 — `ECON_LLM_API_KEY` 3줄 × **3벌** · `ECON_RUN_ID` 2줄 × **3벌**. 둘 다 원장이 이미 주인과 대조군을 지목해 둔 자리라 판정이 자동으로 정해졌다: `analyze-job.yaml` 이 `ECON_LLM_*` 계약 설명의 주인이고 `analyze-job-v2.yaml` 이 사본을 안 든 대조군, `ingest-job-ops.yaml` 이 `ECON_RUN_ID` 배선의 주인이고 `analyze-job-ops-stopped.yaml` 이 대조군, `ingest-job-cycle2/3.yaml` 이 「주인 지목 포인터」의 올바른 해소 형태다. **한 파일만 고치면 첫 위반이 되는 구조였으므로 세 벌을 한 패스에서 함께 지웠다.**
-
-**미판정 잔여는 11줄**(⑴ 행이 없는 파일 **1개 11줄** = `scripts/check-data-format-change.py`, ⑵ 행이 있으나 자란 파일 **0개**). ⑵ 를 0 으로 만든 것이 이 패스의 구조적 산출이다 — 세 행(`run.sh`·`lib/llmdouble.ts`·`fixtures/llm/server.py`)의 기준을 **창 종료 시점 값에서 live 값으로 옮겼다.** `run.sh` 가 그 실패형의 표본이다: 직전 행 `남음 32` 는 `78e32da` 에서 센 값인데 판정 트리는 `22464d6`(105줄)이어서, 원장만 읽는 다음 패스에게 45줄이 보이지 않았다. 잔여는 손으로 세지 않고 **원장 전 행 파싱(`|` split) + tip 실측 대조**로 냈다(정규식 금지 — 백틱 정규식은 서술 안의 경로까지 긁는다). 검산: 172(이 패스 착수 시점 실측) − 161(범위) = **11**.
-
-**⑴ 의 11줄은 여전히 사람 몫이다** — `main` ruleset 이 `review/manual-approval` 을 필수 status 로 요구하고 그 status 는 `scripts/check-data-format-change.py` 가 `format_changed=false` 일 때만 붙는데, 그 스크립트의 `SENSITIVE_PATHS`(`:43-49`, #127 이후 5항)에 **스크립트 자신**이 등재돼 있어 주석만 고쳐도 PR 이 사람 리뷰 뒤로 간다(게이트 소스 직접 확인). 무인 몫 161 과 한 덩어리로 묶으면 가벼운 쪽이 사람 일정에 묶여 영구 이월되므로 **벽 종류로 갈라** 이 패스는 무인 몫만 집었다.
-
-**e2e 무영향을 클러스터 없이 닫았다.** 10파일 전건에 대해 주석·`*/` 줄을 걷어낸 본문의 md5 가 부모와 **바이트 동일**하고, diff 의 삭제 줄 119개 중 비주석은 **0개**이며 추가 4줄은 전부 주석의 재작성이다(시나리오 포인터 압축 1 · 가드 단독화 1 · JSDoc 요약화 1 · 구역 표지 유지 1). 기계 판독 선언도 부모와 동수다 — `검증 시나리오:` 27 · `mock-exception:` 45줄/44코드 · `shellcheck disable` 2.
-
-**행 수와 지문 파일 집합의 차이**: 이 표는 **165개 파일 행**을 갖고 지문은 159파일이다. 행이 있으나 지문에 없는 **6**(남음 0 인 `Makefile`·`scripts/check-mockup-render.py`·`web/src/screens/Compare.test.tsx`·`go/internal/handlers/debug_test.go`·`python/packages/ingestion/src/econ_ingestion/cli.py`, #92 로 파일이 소멸한 `deploy/overlays/prod/pvc.yaml`) ↔ 아직 행이 없는 파일 **0**. 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다.
-
-**잔여에 들어가지 않는 재판정 후보**(감소라 계수 밖): `handlers.go` 233 · `handlers_test.go` 112 · `batch-pvc.yaml` 7 · `ac3-8` 25 · `Dashboard.test.tsx` 6. **이 패스가 남긴 새 관측 둘**: ⒜ `# shellcheck disable=` 2줄은 린터 지시자라 정책의 유지 대상인데 모델 정의의 DIRECTIVE 정규식에 `shellcheck` 가 없어 판정 집합에 들어온다 — `tokens.css` 오탐과 같은 종류이고 해소는 `versionScript` 개정(tobe-modeler 소관). ⒝ `lib/llmdouble.ts` 의 `rawReplyValue`·`hasCannedReply` 는 **미사용 export** 다(import 0건) — 죽은 코드는 이 모델의 판정 표면이 아니라 손대지 않았다. **여전히 유효한 관측**: `econ_core/calllog.py` 66줄 전량 docstring(지문 사각지대) · mockup 인덱스 `:150` 이 R10 스캔 대상에서 README 를 빠뜨림 · 트래커 `:25` 「정적 R1~R11」이 R12 를 빠뜨림 |
+**행 수와 지문 파일 집합의 차이**: 이 표는 **166개 파일 행**을 갖고 지문은 **166파일**이다. 행이 있으나
+지문에 없는 **7**(남음 0 인 `Makefile`·`scripts/check-mockup-render.py`·`web/src/screens/Compare.test.tsx`·
+`go/internal/handlers/debug_test.go`·`python/packages/ingestion/src/econ_ingestion/cli.py`·
+`python/packages/analysis/tests/test_record_run_call_link.py`, #92 로 파일이 소멸한
+`deploy/overlays/prod/pvc.yaml`) ↔ 아직 행이 없는 파일 **7**(위 ⑴). 두 수가 같은 것은 우연이고 집합은
+겹치지 않는다. 행마다 기준 패스가 다르므로 위 열의 단순 합과는 다르다.
