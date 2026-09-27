@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { Axis, ContributionsResponse, FairnessResponse, FairnessRow } from "../api/types";
+import type {
+  Axis,
+  ContributionsResponse,
+  FairnessResponse,
+  FairnessRow,
+  SourceContributionsResponse,
+} from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
 // 급등 검증의 첫 갈래: 이 급등은 관심이 몰린 것인가, 한 수집원이 쏟아낸 것인가.
@@ -19,14 +25,14 @@ import { MapStrip } from "../shell/MapStrip";
 // 카드 머리에 나란히 적는 것이 이 목록의 정직성 조건이다 — 수를 설명하지 못하는
 // 목록은 다른 수를 설명하는 목록이다.
 //
-// 목업이 그리는 여섯 단계 중 이 화면이 아직 열지 못하는 것은 하나뿐이고,
-// **데이터가 없어서** 열지 않는다(허위 컨트롤 금지 — 슬라이스 5·6 의 선례):
-// `STP-inspect-sources` 소스별 기여 분해. Gold 의 키는
-// (subject, axis, bucket_unit, time_bucket) 라 **수집원 차원 자체가 없다** —
-// 지어내면 그 순간 화면이 거짓을 말한다.
+// 편중 의심의 **어디서**에 답하는 것이 소스별 기여 분해다(AC3.9): 고른 값에
+// 수집원마다 원시 건수·원시 기여 비중·정규화 후 기여를 적는다. 그 수는 화면이
+// 새로 계산한 것이 아니라 집계가 정규화를 내며 접어 두었던 항 그대로다 — 두 번째
+// 계산법을 쓰면 자기가 설명한다는 값과 조용히 어긋나는 분해가 된다.
 //
-// 링크도 버튼도 두지 않고, 왜 없는지를 화면 안 note 로 밝힌다 — 빈 화면으로
-// 보내는 동선보다 없는 이유를 읽히는 쪽이 낫다.
+// 그래서 카드 머리에 「합 = 값」 두 등식을 그 값의 Gold 수치와 나란히 적는다.
+// 어긋나면 어긋났다고 적는다. 부분이 전체와 맞지 않는 분해는 급등을 확인하러
+// 온 독자가 쓸 수 없고, 수를 맞추려고 부분을 깎는 것은 더 나쁘다.
 
 const AXES: { id: Axis; label: string; pill: string }[] = [
   { id: "KR", label: "한국", pill: "ax-kr" },
@@ -72,6 +78,8 @@ export function Fairness() {
   const [dupOnly, setDupOnly] = useState(false);
   const [contrib, setContrib] = useState<ContributionsResponse | null>(null);
   const [contribError, setContribError] = useState<string | null>(null);
+  const [split, setSplit] = useState<SourceContributionsResponse | null>(null);
+  const [splitError, setSplitError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -120,6 +128,25 @@ export function Fairness() {
       active = false;
     };
   }, [axis, subject, bucket, bucketUnit, source]);
+
+  useEffect(() => {
+    if (!subject || !bucket) return;
+    let active = true;
+    setSplit(null);
+    setSplitError(null);
+    api
+      .sourceContributions(axis, subject, bucketUnit, bucket)
+      .then((d) => active && setSplit(d))
+      .catch((e: unknown) => active && setSplitError(String(e)));
+    return () => {
+      active = false;
+    };
+  }, [axis, subject, bucket, bucketUnit]);
+
+  // AC3.9 의 두 합 등식. 화면이 판정하는 것이 아니라 서빙이 실측한 네 수치를
+  // 대조하는 것이다 — 그래서 어긋남이 관측 가능하다.
+  const rawAdds = Boolean(split) && split?.basis.raw_total === split?.basis.raw_count;
+  const normAdds = Boolean(split) && split?.basis.normalized_total === split?.basis.normalized_share;
 
   const articles = (contrib?.rows ?? []).filter((row) => !dupOnly || row.body_duplicate);
   const sources = contrib?.sources ?? [];
@@ -309,13 +336,100 @@ export function Fairness() {
                 </div>
               </div>
 
-              {/* CMP-note — 열지 못한 한 단계의 사유. 링크를 달지 않는다. */}
-              <div className="note">
-                <div>
-                  <b>소스별 기여 분해</b>는 아직 열 수 없습니다. Gold 레코드의 키가{" "}
-                  <span className="mono">(대상 · 축 · 버킷)</span> 이라 <b>수집원 차원이 없고</b>,
-                  수집원별 원시 건수·정규화 후 기여를 내려면 집계 산출에 차원을 하나 더해야 합니다.
-                  없는 분해를 지어내는 대신 없다고 적습니다.
+              {/* CMP-ranklist — 소스별 기여. 고른 값을 수집원으로 가른다(AC3.9). */}
+              <div className="card src-card">
+                <div className="card-h">
+                  <h3>소스별 기여</h3>
+                  <span className="sub">이 대상의 언급이 어디서 왔는가 · {subject}</span>
+                  <div className="r">
+                    <span className="tag src-sums">
+                      {split
+                        ? `합 ${split.basis.raw_total}건 · 원시 카운트 ${split.basis.raw_count}건`
+                        : "불러오는 중…"}
+                    </span>
+                  </div>
+                </div>
+                <div className="card-b">
+                  {splitError && (
+                    <div className="note">
+                      <div>
+                        <b>API 오류:</b> {splitError}
+                      </div>
+                    </div>
+                  )}
+                  {!split && !splitError && <div className="placeholder-note">불러오는 중…</div>}
+
+                  {split && split.rows.length === 0 && (
+                    <div className="placeholder-note" data-testid="src-empty">
+                      이 값에는 분해된 수집원이 없습니다. 집계가 이 버킷의 소스 차원을 쓰기 전이라면{" "}
+                      <b>0으로 그리지 않습니다</b> — 기여가 없는 것과 아직 없는 것은 다릅니다.
+                    </div>
+                  )}
+
+                  {split && split.rows.length > 0 && (
+                    <>
+                      <div className="src-list">
+                        <div className="src-row src-hd">
+                          <span>수집원</span>
+                          <span>원시 건수</span>
+                          <span>기여 비중</span>
+                          <span>정규화 후</span>
+                        </div>
+                        {split.rows.map((row) => (
+                          <div
+                            className="src-row"
+                            key={row.source_id}
+                            data-testid={`src-row-${row.source_id}`}
+                          >
+                            <span className="mono">{row.source_id}</span>
+                            <span className="mono">{row.raw_count}건</span>
+                            <span className="mono src-raw">{pct(row.raw_share)}</span>
+                            <span className="mono src-norm">{pct(row.normalized_contribution)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="src-conc">
+                        <div className="kv">
+                          <span className="k">최다 기여</span>
+                          <span className="v mono">{split.concentration.top_source_id}</span>
+                        </div>
+                        <div className="kv">
+                          <span className="k">그 소스 비중</span>
+                          <span className="v mono">{pct(split.concentration.top_share)}</span>
+                        </div>
+                        <div className="kv">
+                          <span className="k">기여 소스 수</span>
+                          <span className="v mono">{split.concentration.source_count}개</span>
+                        </div>
+                      </div>
+
+                      <div className="note src-identity" data-testid="src-identity">
+                        <div>
+                          {rawAdds && normAdds ? (
+                            <>
+                              <b>부분이 전체와 맞습니다.</b> 수집원별 원시 건수의 합{" "}
+                              <span className="mono">{split.basis.raw_total}건</span> 이 이 값의 원시
+                              카운트와 같고, 정규화 후 기여의 합{" "}
+                              <span className="mono">{pct(split.basis.normalized_total, 2)}</span> 이
+                              정규화 비율과 같습니다 — 분해는 {split.basis.method} 계산에서 그대로
+                              나온 것입니다.
+                            </>
+                          ) : (
+                            <>
+                              <b>부분이 전체와 갈립니다.</b> 원시 건수 합{" "}
+                              <span className="mono">{split.basis.raw_total}건</span> ↔ 원시 카운트{" "}
+                              <span className="mono">{split.basis.raw_count}건</span>, 정규화 후 기여 합{" "}
+                              <span className="mono">{pct(split.basis.normalized_total, 2)}</span> ↔
+                              정규화 비율{" "}
+                              <span className="mono">{pct(split.basis.normalized_share, 2)}</span>.
+                              수를 맞추려고 분해를 깎지 않고 갈렸다고 적습니다.
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

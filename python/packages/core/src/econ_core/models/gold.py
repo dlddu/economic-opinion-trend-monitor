@@ -51,6 +51,33 @@ class SentimentDistribution:
 
 
 @dataclass(kw_only=True)
+class SubjectSourceContribution:
+    """Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC3.9). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend."""
+
+    subject: str
+    axis: Axis
+    bucket_unit: BucketUnit
+    time_bucket: str
+    source_id: str
+    raw_count: int
+    raw_share: float
+    normalized_contribution: float
+
+    @classmethod
+    def from_dict(cls, d: dict) -> SubjectSourceContribution:
+        return cls(
+            subject=d["subject"],
+            axis=d["axis"],
+            bucket_unit=d["bucket_unit"],
+            time_bucket=d["time_bucket"],
+            source_id=d["source_id"],
+            raw_count=d["raw_count"],
+            raw_share=d["raw_share"],
+            normalized_contribution=d["normalized_contribution"],
+        )
+
+
+@dataclass(kw_only=True)
 class SubjectTrend:
     """Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8)."""
 

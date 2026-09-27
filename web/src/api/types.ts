@@ -184,6 +184,33 @@ export interface ContributionsResponse {
   rows: ContributionRow[];
 }
 
+export interface SourceContributionRow {
+  source_id: string;
+  raw_count: number;
+  raw_share: number;
+  normalized_contribution: number;
+}
+
+export interface SourceContributionsResponse {
+  basis: {
+    axis: Axis;
+    subject: string;
+    bucket_unit: string;
+    time_bucket: string;
+    raw_count: number;
+    normalized_share: number;
+    raw_total: number;
+    normalized_total: number;
+    method: string;
+  };
+  concentration: {
+    top_source_id: string;
+    top_share: number;
+    source_count: number;
+  };
+  rows: SourceContributionRow[];
+}
+
 export interface CompareResponse {
   basis: {
     time_bucket: string;

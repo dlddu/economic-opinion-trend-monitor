@@ -1503,6 +1503,50 @@ tr.fair-picked td {
   flex-wrap: wrap;
 }
 
+.src-card {
+  margin-top: 12px;
+}
+
+.src-sums {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.src-list {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.src-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.src-row > span:not(:first-child) {
+  text-align: right;
+  min-width: 64px;
+}
+
+.src-hd {
+  color: var(--ink-3);
+  font-size: 11px;
+  text-transform: none;
+}
+
+.src-conc {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.src-identity {
+  margin: 0;
+}
+
 /* PAT-lineage — 원문 계보 추적.
    선택자를 전부 `.trace-` 로 접두한다: 목업과 이름을 공유하면 규칙 5가 선언 단위로
    대조하는데, 이 화면의 조회 폼·계보 스트립은 목업이 인라인 스크립트로 조립하는

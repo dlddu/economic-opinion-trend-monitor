@@ -17,6 +17,7 @@ from econ_aggregation.aggregate import (
     build_axis_sentiment_all_units,
     build_subject_trends_all_units,
 )
+from econ_aggregation.contributions import build_subject_source_contributions_all_units
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -90,12 +91,17 @@ def _aggregate(
     # apart; readers that draw one chart settle on a single unit first.
     trends = build_subject_trends_all_units(bronze, chosen)
     sentiment = build_axis_sentiment_all_units(bronze, chosen)
+    contributions = build_subject_source_contributions_all_units(bronze, chosen)
     n_trend = store.write_records(domain.GOLD, domain.DS_SUBJECT_TREND, trends)
     n_sent = store.write_records(domain.GOLD, domain.DS_AXIS_SENTIMENT, sentiment)
+    n_contrib = store.write_records(
+        domain.GOLD, domain.DS_SUBJECT_SOURCE_CONTRIBUTION, contributions
+    )
 
     print(
         f"aggregation: read {len(chosen)} silver (joined to {len(bronze)} bronze), "
-        f"wrote {n_trend} subject_trend + {n_sent} axis_sentiment gold records "
+        f"wrote {n_trend} subject_trend + {n_sent} axis_sentiment "
+        f"+ {n_contrib} subject_source_contribution gold records "
         f"across {len(BUCKET_UNITS)} bucket units ({', '.join(BUCKET_UNITS)})"
     )
     print(
@@ -104,9 +110,10 @@ def _aggregate(
     )
     print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_TREND)}")
     print(f"  -> {store.path(domain.GOLD, domain.DS_AXIS_SENTIMENT)}")
+    print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_SOURCE_CONTRIBUTION)}")
 
     stage.input_count = len(all_silver)
-    stage.output_count = n_trend + n_sent
+    stage.output_count = n_trend + n_sent + n_contrib
     stage.count("served", len(chosen))
     stage.count("superseded", len(all_silver) - len(chosen))
     print(f"  run={run_id} stage=aggregation")

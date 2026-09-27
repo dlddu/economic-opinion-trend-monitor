@@ -41,6 +41,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/sentiment", h.sentiment)
 	mux.HandleFunc("GET /api/fairness", h.fairness)
 	mux.HandleFunc("GET /api/contributions", h.contributions)
+	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
 	mux.HandleFunc("GET /api/trace", h.trace)
 	mux.HandleFunc("GET /api/reprocess", h.reprocess)
 	mux.HandleFunc("GET /api/debug", h.debug)
