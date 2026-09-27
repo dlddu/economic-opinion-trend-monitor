@@ -21,7 +21,6 @@ ANALYZER_VERSION = "fake-v1"
 #: reaches no model, so there is no call record to point at.
 NO_CALL_KEYWORD_ANALYZER = "keyword_analyzer"
 
-# Canonical narrative-subject keys the fake "model" knows about.
 KNOWN_SUBJECTS = [
     "한국은행 기준금리",
     "삼성전자",
@@ -40,7 +39,6 @@ KNOWN_SUBJECTS = [
     "글로벌 공급망",
 ]
 
-# Surface-form variants unified to one key (AC2.2).
 ALIASES = {
     "samsung": "삼성전자",
     "삼성": "삼성전자",
@@ -114,7 +112,6 @@ def analyze(
 
     body = body or ""
     if not item.get("body_available") or not body:
-        # No body -> cannot judge sentiment; flag unanalyzed (AC2.5).
         return Analysis(
             target_countries=[],
             sentiment=None,
@@ -134,7 +131,6 @@ def analyze(
             **base,
         )
 
-    # A genuinely "mixed" signal is the ambiguous case -> low confidence (AC2.5).
     confidence = 0.55 if tone == "mixed" else 0.92
     status = "analyzed" if confidence >= _LOW_CONFIDENCE else "low_confidence"
     return Analysis(

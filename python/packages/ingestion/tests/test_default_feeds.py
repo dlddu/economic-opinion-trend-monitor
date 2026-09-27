@@ -13,7 +13,6 @@ from econ_ingestion.feeds import FeedConfig, default_feeds_path, load_feed_confi
 
 
 def test_cli_defaults_to_the_real_feed_source() -> None:
-    # Operational cutover: bare invocation now collects from real feeds, not fake.
     args = _build_parser().parse_args([])
     assert args.source == "feed"
     assert args.feeds is None  # resolves to the packaged default at runtime
@@ -36,7 +35,6 @@ def test_packaged_default_feed_config_resolves_and_is_valid() -> None:
         assert c.feed_url.startswith(("http://", "https://"))
         assert c.limit >= 1
 
-    # All three axes (KR/US/GLOBAL) represented so the monitor covers each one.
     assert {c.axis for c in configs} == set(AXIS_VALUES)
 
     # source_ids are unique — the collection stats key failures/dupes by source.

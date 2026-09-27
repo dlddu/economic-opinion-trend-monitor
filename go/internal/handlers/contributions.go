@@ -30,27 +30,20 @@ type contributionRow struct {
 	BodyShares    int    `json:"body_shares"`
 }
 
-// contributionSource is one collector's share of the list, published so the
-// narrowed view can be checked against the whole (AC3.10's second sum identity).
+// contributionSource is one collector's share of the list.
 type contributionSource struct {
 	SourceID string `json:"source_id"`
 	Listed   int    `json:"listed"`
 }
 
-// contributionsBasis states the value the list was taken under, and the two
-// numbers the list has to agree with.
+// contributionsBasis states the value the list was taken under.
 //
-// RawCount is read from Gold, not counted here: the whole point of the list is
-// that it reconciles with the aggregate a reader arrived from, so the aggregate
-// side must come from the aggregate. Total is this endpoint's own count before
-// the source filter, and Listed is what survived it — printing all three lets
-// the screen (and the tests) assert `Total == RawCount` and
-// `sum(Sources.Listed) == Total` instead of trusting them.
+// RawCount must come from Gold, never from this endpoint's own count, and Total
+// must stay the pre-filter count: `Total == RawCount` and
+// `sum(Sources.Listed) == Total` are only checks while the two sides are.
 //
 // AnalyzerVersion names which Silver rows were counted. Empty means "newest per
-// record", which is what the aggregation does when no publish decision has been
-// recorded — saying so is how the reader can tell a reprocessed lake apart from
-// a fresh one.
+// record", which is what the aggregation does with no publish decision recorded.
 type contributionsBasis struct {
 	Axis            string `json:"axis"`
 	Subject         string `json:"subject"`
@@ -69,20 +62,10 @@ type contributionsResponse struct {
 	Rows    []contributionRow    `json:"rows"`
 }
 
-// contributions lists the individual articles behind one (subject, axis,
-// bucket) Gold value (AC3.10).
+// contributions lists the individual articles behind one Gold value (AC3.10).
 //
-// It is the list counterpart of /api/trace: trace walks one record the caller
-// already names, this one answers "which records are they" for a number on the
-// screen. Neither could stand in for the other — a reader who only has a bar
-// chart has no record id to hand trace.
-//
-// The join is deliberately the *same calculation* the aggregation runs
-// (build_subject_trends): serving version per record, Bronze collected_at cut to
-// the bucket, subject read off Silver narrative_subjects. Recomputing it a
-// second way here would produce a list that quietly disagrees with the number it
-// claims to explain, which is exactly the failure the sum identities exist to
-// catch.
+// The join must stay the *same calculation* build_subject_trends runs — a second
+// way of computing it here disagrees with the number the list explains.
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	trends, _ := h.lake.SubjectTrends()
@@ -146,8 +129,7 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 			BodyShares:    n,
 		})
 	}
-	// Newest first: the reader came here from a spike, and the observations that
-	// made it are the recent ones.
+	// Newest first because the reader came here from a spike.
 	sort.SliceStable(all, func(i, j int) bool {
 		if all[i].CollectedAt != all[j].CollectedAt {
 			return all[i].CollectedAt > all[j].CollectedAt
@@ -179,11 +161,8 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// pickContributionSubject honours the requested subject even when the bucket
-// holds no row for it — an empty list under the name the caller asked for is the
-// honest answer, and silently substituting the leading subject would hand the
-// reader someone else's articles. Only an *absent* subject falls back, the way
-// /api/trend does, so the screen can open before it knows a name.
+// pickContributionSubject falls back to the leading subject only for an *absent*
+// request — never for one the bucket holds no row for.
 func pickContributionSubject(inBucket []gen.SubjectTrend, requested string) string {
 	if requested != "" {
 		return requested
@@ -198,8 +177,7 @@ func pickContributionSubject(inBucket []gen.SubjectTrend, requested string) stri
 	return subject
 }
 
-// servingVersion is the Go counterpart of econ_core.silver.serving_version: the
-// last decision recorded names the version Gold serves.
+// servingVersion is the Go counterpart of econ_core.silver.serving_version.
 func servingVersion(decisions []store.ReprocessDecision) string {
 	if len(decisions) == 0 {
 		return ""
@@ -207,14 +185,7 @@ func servingVersion(decisions []store.ReprocessDecision) string {
 	return decisions[len(decisions)-1].AnalyzerVersion
 }
 
-// selectServing mirrors econ_core.silver.select_serving — one Silver row per
-// record: the serving version's when present, else the newest by
-// (analyzed_at, analyzer_version).
-//
-// This is what keeps a reprocessed record from being counted twice. Silver holds
-// one row per (record_id, analyzer_version), so iterating it raw would list the
-// same article once per logic version it has been through, and the list would
-// overshoot the Gold count by exactly the reprocessed rows.
+// selectServing mirrors econ_core.silver.select_serving.
 func selectServing(analyses []gen.Analysis, version string) []gen.Analysis {
 	order := make([]string, 0, len(analyses))
 	byRecord := map[string][]gen.Analysis{}
@@ -252,8 +223,7 @@ func selectServing(analyses []gen.Analysis, version string) []gen.Analysis {
 
 // bucketLabel cuts a collection timestamp down to its bucket label, the forward
 // direction of bucketStart and a transcription of the aggregation's `_bucket`.
-// An unparseable timestamp yields "", which matches no bucket — a record whose
-// time cannot be read is left out rather than filed under a guess.
+// An unreadable timestamp matches no bucket: the record is left out, not guessed at.
 func bucketLabel(collectedAt string, unit gen.BucketUnit) string {
 	switch unit {
 	case gen.BucketUnitHour:
@@ -280,9 +250,7 @@ func bucketLabel(collectedAt string, unit gen.BucketUnit) string {
 	return ""
 }
 
-// bodyShares counts how many observations carry each body hash. Records with no
-// body are not compared: an empty hash is "no text kept", not a text they all
-// share.
+// bodyShares: an empty body hash is "no text kept", not a text they all share.
 func bodyShares(items []gen.NewsItem) map[string]int {
 	out := map[string]int{}
 	for _, it := range items {
@@ -294,8 +262,7 @@ func bodyShares(items []gen.NewsItem) map[string]int {
 	return out
 }
 
-// sourceTally is the per-collector breakdown of the unfiltered list, ordered by
-// size then name so the screen's filter reads the same way twice.
+// sourceTally is the per-collector breakdown of the *unfiltered* list.
 func sourceTally(rows []contributionRow) []contributionSource {
 	counts := map[string]int{}
 	for _, row := range rows {
