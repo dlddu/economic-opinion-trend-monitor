@@ -390,6 +390,7 @@ export function Fairness() {
                       </div>
 
                       <div className="src-conc">
+                        <h4 className="src-conc-h">한 곳에서 다 나왔나</h4>
                         <div className="kv">
                           <span className="k">최다 기여</span>
                           <span className="v mono">{split.concentration.top_source_id}</span>
@@ -402,6 +403,9 @@ export function Fairness() {
                           <span className="k">기여 소스 수</span>
                           <span className="v mono">{split.concentration.source_count}개</span>
                         </div>
+                        <p className="src-lede" data-testid="src-lede">
+                          한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.
+                        </p>
                       </div>
 
                       <div className="note src-identity" data-testid="src-identity">

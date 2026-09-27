@@ -283,6 +283,20 @@ it("says so when the decomposition does not add up to the value", async () => {
 });
 
 // 분해가 없는 버킷은 0% 로 그리지 않는다 — 기여가 없는 것과 아직 없는 것은 다르다.
+it("heads the concentration block as the mockup card does and carries its one-source caution", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  const conc = await testid(container, "src-lede");
+  expect(container.querySelector(".src-conc .src-conc-h")?.textContent).toBe(
+    "한 곳에서 다 나왔나",
+  );
+  expect(conc.textContent?.trim()).toBe(
+    "한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.",
+  );
+  expect(container.querySelector(".src-conc")?.contains(conc)).toBe(true);
+});
+
 it("draws nothing rather than zeroes when the value has no decomposition", async () => {
   stubFairness(response(), undefined, sourceContributions([]));
   const { container } = renderFairness();
