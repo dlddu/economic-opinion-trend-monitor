@@ -20,7 +20,6 @@ from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
 DEFAULT_BUCKET_UNIT = "hour"
 BUCKET_UNITS = ("hour", "day", "week")
 
-# How many trailing buckets the sparkline carries, the current one included.
 SPARK_WINDOW = 6
 
 

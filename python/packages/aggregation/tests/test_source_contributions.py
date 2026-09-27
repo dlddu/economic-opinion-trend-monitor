@@ -32,12 +32,8 @@ def _silver(rid: str, subjects: list[str]) -> dict:
 
 
 def _corpus(daily_extra: int = 0) -> tuple[list[dict], list[dict]]:
-    """One axis, two collectors, a subject carried by both — plus ``daily_extra``.
-
-    ``kr-daily`` gets the extra observations of ``삼성전자``, which is the one
-    source whose volume the AC3.9 verification asks to move on its own. A second
-    subject on each source keeps both source totals above their ``삼성전자``
-    count, so the naive share and the normalized share do not coincide.
+    """A second subject on each source keeps both source totals above their
+    ``삼성전자`` count, so the naive share and the normalized share do not coincide.
     """
     bronze = [
         _bronze("w1", "KR", "kr-wire"),
@@ -146,7 +142,6 @@ def test_the_collector_that_carried_the_value_is_listed_first() -> None:
 
 
 def test_one_sources_volume_moves_raw_share_far_more_than_normalized() -> None:
-    """The AC3.9 skew check: raise one collector's volume and nothing else."""
     base = _by_value(build_subject_source_contributions(*_corpus()))
     skew = _by_value(build_subject_source_contributions(*_corpus(daily_extra=6)))
 
