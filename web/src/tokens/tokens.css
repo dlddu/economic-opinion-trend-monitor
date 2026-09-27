@@ -1543,6 +1543,20 @@ tr.fair-picked td {
   margin-bottom: 10px;
 }
 
+.src-conc-h {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.src-lede {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
 .src-identity {
   margin: 0;
 }
