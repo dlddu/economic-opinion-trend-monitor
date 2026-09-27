@@ -44,8 +44,7 @@ export function Reprocess() {
   const [axis, setAxis] = useState<Axis>("KR");
   const [source, setSource] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("delta");
-  // 주목 임계(%p). 여정이 「임계 초과를 배지 표시」로 요구한 값이고, 임계 자체는
-  // 제품 결정이 아니라 운영자 입력이라 화면 상태로 둔다.
+  // 주목 임계(%p) — 제품 결정이 아니라 운영자 입력이라 화면 상태로 둔다.
   const [threshold, setThreshold] = useState(2);
   const [data, setData] = useState<ReprocessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +136,6 @@ export function Reprocess() {
 
       {data && scope && (
         <>
-          {/* ---- STP-scope-range — 재처리 범위 ---- */}
           <div className="grid g-12 rp-block">
             <div className="card col-7">
               <div className="card-h">
@@ -228,8 +226,6 @@ export function Reprocess() {
                 </div>
                 <div className="kv">
                   <span className="k">예상 소요</span>
-                  {/* 예상은 Silver 가 목표 버전을 찍은 속도(analyzed_at 분포)에서
-                      읽는다. 읽을 관측이 없으면 숫자를 지어내지 않는다. */}
                   <span className="v rp-eta">
                     {scope.eta_minutes === null
                       ? "— (관측된 처리 속도 없음)"
@@ -263,7 +259,6 @@ export function Reprocess() {
             </div>
           )}
 
-          {/* ---- STP-compare-before-after — 재처리 전후 비교 ---- */}
           <div className="grid g-12 rp-block">
             <div className="card col-7">
               <div className="card-h">

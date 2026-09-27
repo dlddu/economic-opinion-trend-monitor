@@ -4,10 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
 
-/**
- * 화면이 진입 쿼리를 읽으므로 라우터 안에서 렌더한다. `entry` 가 곧 `Dashboard` 가
- * `navigate()` 로 밀어 넣는 주소다 — 기본값은 쿼리 없는 직접 진입(네비게이션 바).
- */
 function renderTrend(entry = "/trend") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -18,9 +14,7 @@ function renderTrend(entry = "/trend") {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  // 화면이 마지막 조회 조건을 남긴다(여정 §4 의 중도 이탈 분기). 지우지 않으면 앞 테스트가
-  // 고른 축·대상이 다음 테스트의 첫 질의로 새어 나간다. 수명이 **날을 넘도록** 바뀐 뒤로는
-  // `localStorage` 가 그 자리라 둘 다 비운다(옛 자리에 남은 값이 되살아나지 않게).
+  // 저장소도 테스트 사이에 살아남는다 — 지우지 않으면 앞 테스트가 남긴 조건이 다음 테스트의 진입 조건이 된다.
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -96,7 +90,6 @@ describe("Trend", () => {
     const ys = lead.split(" ").map((p) => Number.parseFloat(p.split(",")[1]));
 
     expect(xs).toHaveLength(BUCKETS.length);
-    // Left to right, evenly spaced across the plot area.
     expect(xs[0]).toBeLessThan(xs[1]);
     expect(xs[1]).toBeLessThan(xs[2]);
     // The lead series rises 0.2 -> 0.3 -> 0.5, and SVG y grows downward, so a
@@ -209,9 +202,6 @@ describe("Trend", () => {
     const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
-    // Every button on the screen must do something: only the axis segment (3)
-    // is a button — subject selection rides on the comparison table's rows. A
-    // 시간/일/주 switch has nothing behind it, so it must not be drawn.
     const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent ?? "");
     expect(labels.filter((l) => ["시간", "일", "주"].includes(l.trim()))).toHaveLength(0);
     expect(container.querySelectorAll(".seg button")).toHaveLength(3);
@@ -226,7 +216,6 @@ describe("Trend", () => {
     const boxes = Array.from(
       container.querySelectorAll<HTMLInputElement>(".trend-sl-cand input"),
     );
-    // 후보는 이미 받은 비교 대상이다 — 서빙에 새로 묻는 것이 없다는 사실이 여기서 보인다.
     expect(boxes.map((b) => b.value)).toEqual(["기준금리", "삼성전자"]);
     expect(boxes.map((b) => b.checked)).toEqual([true, false]);
     expect(container.querySelector(".trend-sl-count")?.textContent).toBe("1개 선택");
@@ -242,13 +231,11 @@ describe("Trend", () => {
     const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
     expect(err.hidden).toBe(true);
 
-    // 후보는 골라져 있고 메모만 비었다 — 배너는 그 쪽을 지목해야 한다.
     fireEvent.submit(form);
     expect(err.hidden).toBe(false);
     expect(err.textContent).toContain("왜 오늘 이것을 챙기는지 한 줄이라도");
     expect(good.hidden).toBe(true);
 
-    // 반대로 메모만 채우고 후보를 전부 풀면 다른 쪽을 지목한다.
     fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
       target: { value: "금리 결정 주간이라 하루 더 본다" },
     });
@@ -275,7 +262,6 @@ describe("Trend", () => {
     expect(good.hidden).toBe(false);
     expect(good.textContent).toContain("오늘 볼 대상을 추렸습니다.");
     expect(good.textContent).toContain("기준금리 · 삼성전자 — 2개를 오늘 볼 대상으로 남겼습니다.");
-    // 배너가 경계를 직접 말해야, 화면이 하지 않는 일을 한다고 읽히지 않는다.
     expect(good.textContent).toContain("이 세션 안에서만");
     expect(good.textContent).toContain("워치리스트는 아직 없습니다");
     expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
@@ -318,13 +304,11 @@ describe("Trend", () => {
     const err = card.querySelector(".trend-sl-banner.err") as HTMLElement;
     const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
 
-    // 아무것도 고르지 않고 제출 — 결론 쪽을 지목한다.
     fireEvent.submit(form);
     expect(err.hidden).toBe(false);
     expect(err.textContent).toBe("결론을 하나 고르세요.");
     expect(good.hidden).toBe(true);
 
-    // 결론만 고르고 메모는 공백 — 메모 쪽을 지목한다(공백만 있는 메모는 비어 있는 것이다).
     fireEvent.click(card.querySelectorAll(".trend-vd-radio input")[0]);
     fireEvent.change(card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement, {
       target: { value: "   " },
@@ -355,7 +339,6 @@ describe("Trend", () => {
 
     const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
     expect(good.hidden).toBe(false);
-    // 배너 문장은 목업 `submitVerdict()` 가 조립하는 그대로다 — 조사까지 목업의 것이다.
     expect(good.textContent).toContain("온도차를 기록했습니다.");
     expect(good.textContent).toContain("이번 구간만의 격차으로 판별했습니다.");
     expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
@@ -374,8 +357,6 @@ describe("Trend", () => {
     await waitFor(() => expect(urls).toHaveLength(2));
     first.unmount();
 
-    // 다시 진입 — 「닫을 때의 조건이 다음 진입에 복원됩니다」가 사실이려면 첫 질의가
-    // 기본값이 아니라 두고 간 대상이어야 한다.
     const again = renderTrend();
     await waitFor(() => expect(urls).toHaveLength(3));
     expect(urls[2]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
