@@ -88,7 +88,7 @@
 |---|---|---|
 | `STP-notice-spike` | `dash` | 급등 인지. 이 단계는 `dash`(순위 목록)와 `trend`(라인 차트) 두 화면에 걸치므로 아래 규약대로 **더 앞선 화면**인 `dash`에 귀속시킨다. `trend`로 넘어갈 때 **의심 대상과 비교 구간을 그대로 승계**하는 것은 `dash`가 넘겨줘야 하는 계약이다. |
 | `STP-check-normalized` | `fairness` | 원시↔정규화 전환과 대비 표기 |
-| `STP-inspect-sources` | `fairness` | 소스별 기여 분해 · 저신뢰 분리 표기 |
+| `STP-inspect-sources` | `fairness` | 소스별 기여 분해 · 저신뢰 분리 표기. 이 단계는 `#178`(2026-09-27, AC3.9)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render` 의 「등재된 편차」 허용목록이 대조한다**(`STP-drilldown-articles`·`STP-verify-in-trend` 행과 같은 규약) |
 | `STP-drilldown-articles` | `fairness` | 기여 뉴스 목록 (소스·수집 시각·본문 중복 표기). 이 단계는 `#174`(2026-09-27, AC3.10)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(`STP-verify-in-trend`·`STP-backfill` 행과 같은 규약) |
 | `STP-open-origin` | `trace` | 원문 역추적 · 보존 원문 · 링크 상태 배지 |
 | `STP-judge` | `trace` | 판정과 종료. 여정 문서가 이 단계의 터치포인트를 「`trace.html` / 제품 외부(리포트·메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 판정 화면으로 흡수했다. 판정 결과의 **영속화(검증 이력·플래그)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다. |
