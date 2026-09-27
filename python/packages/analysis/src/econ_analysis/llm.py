@@ -339,9 +339,9 @@ def analyze_llm(
     subjects = [canonical_subject(s) for s in _clean_list(parsed.get("narrative_subjects"))]
     status = "analyzed" if confidence >= _LOW_CONFIDENCE else "low_confidence"
     return Analysis(
-        target_countries=_clean_list(parsed.get("target_countries")),  # AC2.1, multi (AC2.4)
+        target_countries=_clean_list(parsed.get("target_countries")),
         narrative_subjects=subjects,
-        sentiment=sentiment,  # AC2.3
+        sentiment=sentiment,
         analysis_status=status,
         confidence=confidence,
         **_tracking_key(item, analyzer_version, run_id),
