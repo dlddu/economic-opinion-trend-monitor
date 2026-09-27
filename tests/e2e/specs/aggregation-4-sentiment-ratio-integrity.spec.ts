@@ -6,11 +6,7 @@
 // 건수 대비로 합이 1이 되고, 미분석은 **전체 대비 별도 항목**(`distribution.unanalyzed`)으로
 // 남는다. 이 spec 이 그 두 성질을 각각 단정한다.
 //
-// **저신뢰의 자리를 밝혀 둔다**: 오늘 Gold 계약에는 저신뢰 축이 없어(`AxisSentiment` 는
-// `unanalyzed` 만 싣는다) 저신뢰 레코드는 라벨을 유지한 채 분석분에 포함된다. 기대 결과의
-// "분리되거나 별도 항목으로 표시"는 **미분석**에 대해 성립하며, 저신뢰가 표시되는 자리는
-// Silver 의 `analysis_status` 다(`…-test-analysis.md#시나리오 5` 가 그쪽을 본다). 저신뢰를
-// 집계에서도 가르는 것은 제품 계약의 변경이라 이 루프의 산출물 경계 밖이다.
+// 저신뢰가 분석분에 남는 경계는 `analysis-5-low-confidence-separation.spec.ts` 머리가 설명한다.
 
 import { expect, test } from "@playwright/test";
 
