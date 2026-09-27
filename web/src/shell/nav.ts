@@ -1,4 +1,4 @@
-// The 8 screens (mockup index) -> client routes.
+// The screens (mockup index) -> client routes.
 
 export interface ScreenDef {
   id: string;
@@ -6,7 +6,6 @@ export interface ScreenDef {
   label: string;
   journey: string;
   group: "observer" | "operator";
-  /** Serving API endpoint backing this screen. */
   api: string;
 }
 

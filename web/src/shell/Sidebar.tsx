@@ -76,7 +76,6 @@ function NavGroup({
   screens,
 }: {
   label: string;
-  /** Persona the group serves (mockup shows it as a right-aligned tag). */
   persona: string;
   screens: ScreenDef[];
 }) {

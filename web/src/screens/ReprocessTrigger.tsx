@@ -159,7 +159,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
         </div>
       )}
 
-      {/* ---- STP-dry-run — 표본 재분석으로 영향 가늠 ---- */}
       <div className="grid g-12 rp-block">
         <div className="card col-7">
           <div className="card-h">
@@ -250,7 +249,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
         </div>
       </div>
 
-      {/* ---- STP-run-reprocess — 전량 재분석 실행 ---- */}
       <div className="grid g-12 rp-block">
         <div className="card col-7">
           <div className="card-h">
@@ -335,7 +333,6 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
         </div>
       </div>
 
-      {/* ---- STP-publish — 반영 또는 롤백 결정 ---- */}
       <div className="grid g-12 rp-block">
         <div className="card col-7">
           <div className="card-h">

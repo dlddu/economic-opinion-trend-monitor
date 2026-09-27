@@ -10,7 +10,6 @@ import { Trace } from "./screens/Trace";
 import { Trend } from "./screens/Trend";
 import { SCREENS } from "./shell/nav";
 
-// Screens that have landed as real views; the rest still render Placeholder.
 const BUILT = new Set(["dash", "compare", "trend", "sentiment", "fairness", "trace", "reprocess"]);
 
 export default function App() {

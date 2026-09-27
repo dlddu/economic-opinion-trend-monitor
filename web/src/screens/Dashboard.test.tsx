@@ -92,7 +92,6 @@ function stubDashboard(body: DashboardResponse) {
   return fetch;
 }
 
-/** 라우트가 실제로 어디로 갔는지 읽는다 — 링크 문자열이 아니라 도착 주소를 단정한다. */
 function Landing() {
   const { pathname, search } = useLocation();
   return <div data-testid="landed">{`${pathname}${search}`}</div>;
@@ -238,7 +237,6 @@ describe("Dashboard — 상위 서술 대상", () => {
     const meta = [...container.querySelectorAll(".rankrow")].map(
       (r) => r.querySelector(".meta")?.textContent ?? null,
     );
-    // 기준금리 raw 2위 ↔ 1위, 삼성전자 raw 3위 ↔ 2위: 한 칸 차이는 적지 않는다.
     expect(meta).toEqual([null, null, "· 원시 카운트 1위 → 정규화 3위", "· 밤사이 새로 진입"]);
   });
 
@@ -454,7 +452,6 @@ describe("Dashboard — 셸 토프바", () => {
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
     const items = [...container.querySelectorAll(".nav-item")];
-    // 관찰 6 + 운영 2(재처리 콘솔 · 판단 디버깅) — 목업 좌측 네비와 같은 수·순서.
     expect(items).toHaveLength(8);
     for (const item of items) {
       expect(item.querySelector("svg.ic path, svg.ic circle")).not.toBeNull();
