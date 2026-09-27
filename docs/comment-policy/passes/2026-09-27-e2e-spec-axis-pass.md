@@ -221,14 +221,24 @@ npx playwright test --list (22 spec)               변경 전후 같은 테스�
 | `web/src/**` | 25행 / 452줄 | 예산 400 을 넘으므로 한 패스에 들어가지 않는다. `tokens.css` 62줄은 줄머리 `#`·`*` 오탐을 포함하고(원장 「읽는 법」), 일곱 행은 ④ 만 비어 있다 |
 | `python/packages/{aggregation,analysis,ingestion}` | 18행 / 116줄 | 생산자 glob 이지만 줄머리 주석은 `COMMENT_LINE` 이 건너뛰어 무인이다 |
 
-⚠️ **`web/src` 쪽 수치는 착지 전에 움직인다.** 이 패스를 여는 시점에 열린 자매 PR
+🔴 **위 표는 이 패스의 판정 기준(`232fd66`)에서 잰 값이고, 판정 중에 이미 움직였다.** 자매 PR
 [#174](https://github.com/dlddu/economic-opinion-trend-monitor/pull/174)
-(`tbm_econ-opinion-monitor-docs-impl`, AC3.10)가 `Fairness.tsx`·`Fairness.test.tsx`·
-`api/client.ts`·`api/types.ts`·`tokens.css` 다섯 파일과 원장을 고치고 있다 — 그 넷은 위 25행에
-들어 있는 행들이다. `merge-tree` 로 이 PR 과의 겹침은 **0건**(클린)이라 착지 순서는 자유롭지만,
-다음 패스는 인계 표의 수치를 믿지 말고 **게이트 출력으로 다시 재야** 한다(이 패스가 인계 표의
-`web/src` 행 수를 실측으로 바로잡은 것과 같은 이유다).
+(`tbm_econ-opinion-monitor-docs-impl`, AC3.10)가 이 패스를 만드는 동안 `31d74a0` 으로 착지했다.
+`merge-tree` 로 이 패스와의 겹침은 **0건**(클린)이고 머지 트리에서 게이트가 rc=0 이지만, 잔여
+모집단은 두 자리에서 커졌다 — **다음 패스는 인계 표 대신 게이트 출력을 직접 읽어야 한다.**
 
-두 덩어리를 합치면 568줄로 예산을 넘으므로 **다음 패스는 둘 중 하나**다. `web/src` 를 집으면 그
+머지 트리(`이 패스 ∪ 31d74a0`) 실측 잔여 — **45행 695줄** (게이트 출력 「일부 축만 21행 343줄
++ 미판정 24행 352줄」):
+
+| 덩어리 | 행 / 줄 | 비고 |
+|---|---:|---|
+| `web/src/**` | 25행 / 471줄 | #174 가 네 파일의 주석을 19줄 늘렸다(행 수는 불변) |
+| `python/packages/{aggregation,analysis,ingestion}` | 18행 / 116줄 | 불변 |
+| `go/internal/handlers/contributions.go` | 1행 / 64줄 | **#174 가 새로 들인 파일** — 판정 축 `—` |
+| `go/internal/handlers/contributions_test.go` | 1행 / 44줄 | 같음 |
+
+새 Go 두 행(108줄)은 같은 PR 이 한 자리에 들인 한 덩어리이므로 파일 공유로 묶이지 않아도 함께
+집는 것이 자연스럽고, `python/packages` 116줄과 합치면 224줄로 예산 안에 든다. `web/src` 471줄은
+여전히 예산을 넘어 그 안에서 다시 끊어야 한다(화면 단위로 갈리는 자리가 있다). `web/src` 를 집으면 그
 안에서 다시 400 으로 끊어야 하고(화면 단위로 갈리는 자리가 있다), `python/packages` 는 116줄이라
 한 패스에 통째로 들어가고 남는 예산으로 `web/src` 의 작은 행을 끌어올 수 있다.
