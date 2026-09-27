@@ -22,6 +22,7 @@ DS_REPROCESS_DECISION = "reprocess_decision"  # not a contract
 DS_PIPELINE_RUN = "pipeline_run"
 DS_LLM_CALL = "llm_call"
 DS_SUBJECT_TREND = "subject_trend"
+DS_SUBJECT_SOURCE_CONTRIBUTION = "subject_source_contribution"
 DS_AXIS_SENTIMENT = "axis_sentiment"
 
 #: Collection cycle id format — one cycle per UTC hour.

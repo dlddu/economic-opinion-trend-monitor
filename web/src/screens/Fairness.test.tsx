@@ -2,7 +2,11 @@ import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Fairness } from "./Fairness";
-import type { ContributionsResponse, FairnessResponse } from "../api/types";
+import type {
+  ContributionsResponse,
+  FairnessResponse,
+  SourceContributionsResponse,
+} from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -90,10 +94,46 @@ function contributions(source = ""): ContributionsResponse {
   };
 }
 
+// 소스별 기여 스텁도 SKEWED 에서 파생한다 — 부분을 손으로 쓰면 「합 = 값」이
+// 이 파일 안에서만 참인 등식이 된다. kr_wire 가 원시 60%의 절대 다수를 쥐지만
+// 정규화 후 기여는 SKEWED.normalized_share 의 일부일 뿐인 것이 이 카드의 논지다.
+const SPLIT_WIRE = { source_id: "kr_wire", raw_count: 45, raw_share: 0.75, normalized_contribution: 0.1 };
+const SPLIT_DAILY = {
+  source_id: "kr_daily",
+  raw_count: SKEWED.raw_count - 45,
+  raw_share: 0.25,
+  normalized_contribution: SKEWED.normalized_share - 0.1,
+};
+
+function sourceContributions(rows = [SPLIT_WIRE, SPLIT_DAILY]): SourceContributionsResponse {
+  return {
+    basis: {
+      axis: "KR",
+      subject: SKEWED.subject,
+      bucket_unit: "hour",
+      time_bucket: "2026-06-23T14",
+      raw_count: SKEWED.raw_count,
+      normalized_share: SKEWED.normalized_share,
+      raw_total: rows.reduce((n, r) => n + r.raw_count, 0),
+      normalized_total: Number(
+        rows.reduce((n, r) => n + r.normalized_contribution, 0).toFixed(4),
+      ),
+      method: "소스 내 점유율",
+    },
+    concentration: {
+      top_source_id: rows[0]?.source_id ?? "",
+      top_share: rows[0]?.raw_share ?? 0,
+      source_count: rows.length,
+    },
+    rows,
+  };
+}
+
 function stubFairness(
   body: FairnessResponse = response(),
   articles: (url: string) => ContributionsResponse = (url) =>
     contributions(new URL(url, "http://x").searchParams.get("source") ?? ""),
+  split: SourceContributionsResponse = sourceContributions(),
 ) {
   vi.stubGlobal(
     "fetch",
@@ -101,7 +141,13 @@ function stubFairness(
       ok: true,
       status: 200,
       statusText: "OK",
-      json: async () => (url.includes("/contributions") ? articles(url) : body),
+      json: async () => {
+        // `/source-contributions` 가 `/contributions` 를 부분 문자열로 포함하므로
+        // 이 분기 순서가 곧 라우팅이다 — 뒤집으면 소스 카드가 기사 응답을 읽는다.
+        if (url.includes("/source-contributions")) return split;
+        if (url.includes("/contributions")) return articles(url);
+        return body;
+      },
     })),
   );
 }
@@ -112,6 +158,15 @@ function renderFairness() {
       <Fairness />
     </MemoryRouter>,
   );
+}
+
+async function testid(container: HTMLElement, id: string): Promise<HTMLElement> {
+  let found: HTMLElement | null = null;
+  await waitFor(() => {
+    found = container.querySelector(`[data-testid="${id}"]`);
+    expect(found, `no [data-testid="${id}"] in this render`).toBeTruthy();
+  });
+  return found as unknown as HTMLElement;
 }
 
 function rowFor(container: HTMLElement, subject: string): HTMLElement {
@@ -180,20 +235,70 @@ it("re-ranks and moves the emphasis when the counting mode is switched", async (
   expect(container.querySelector(".raw-flag")?.textContent).toContain("원시");
 });
 
-// The two steps this screen cannot open are named with their reason instead of
-// being linked to an empty view (허위 컨트롤 금지).
-it("states why the source breakdown is missing and offers no control for it", async () => {
+// AC3.9: every collector that made the value gets a row, with the raw count and
+// the normalized contribution kept apart the way AC3.8 asks of the table above.
+it("decomposes the chosen value by collection source", async () => {
   stubFairness();
   const { container } = renderFairness();
 
-  await waitFor(() => expect(container.querySelectorAll("tbody tr").length).toBe(2));
-
-  const note = [...container.querySelectorAll(".note")].find((n) =>
-    n.textContent?.includes("소스별 기여 분해"),
+  // 이 파일에는 자동 cleanup 이 없어 document 전역 조회는 앞 테스트가 그린 화면까지
+  // 집는다 — 조회는 이 render 의 container 안으로만 한다.
+  const wire = await testid(container, `src-row-${SPLIT_WIRE.source_id}`);
+  expect(wire.textContent).toContain(`${SPLIT_WIRE.raw_count}건`);
+  expect(wire.querySelector(".src-raw")?.textContent).toBe(
+    `${(SPLIT_WIRE.raw_share * 100).toFixed(1)}%`,
   );
-  expect(note, "소스 분해 부재 사유가 화면에 없다").toBeTruthy();
-  expect(note?.textContent).toContain("수집원 차원이 없");
-  expect(note?.querySelectorAll("a, button").length).toBe(0);
+  expect(wire.querySelector(".src-norm")?.textContent).toBe(
+    `${(SPLIT_WIRE.normalized_contribution * 100).toFixed(1)}%`,
+  );
+  // 같은 수집원의 두 수치가 갈리는 것이 이 카드의 논지다.
+  expect(wire.querySelector(".src-raw")?.textContent).not.toBe(
+    wire.querySelector(".src-norm")?.textContent,
+  );
+
+  expect(await testid(container, `src-row-${SPLIT_DAILY.source_id}`)).toBeTruthy();
+  expect(container.querySelectorAll(".src-list .src-row:not(.src-hd)").length).toBe(2);
+  expect(container.querySelector(".src-conc")?.textContent).toContain(SPLIT_WIRE.source_id);
+});
+
+// AC3.9 의 두 합 등식. 화면은 그것을 주장하지 않고 **적는다** — 서빙이 내려준 네
+// 수치를 나란히 놓고, 맞으면 맞다고 갈리면 갈렸다고.
+it("writes the two sum identities next to the value they have to match", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  const identity = await testid(container, "src-identity");
+  expect(identity.textContent).toContain("부분이 전체와 맞습니다");
+  expect(container.querySelector(".src-sums")?.textContent).toBe(
+    `합 ${SKEWED.raw_count}건 · 원시 카운트 ${SKEWED.raw_count}건`,
+  );
+});
+
+// 수를 맞추려고 분해를 깎지 않는다: 부분과 전체가 갈린 레이크는 갈렸다고 적힌다.
+// 이 단정이 없으면 위 등식 단정은 화면이 값을 베껴 쓰기만 해도 통과한다.
+it("says so when the decomposition does not add up to the value", async () => {
+  const short = sourceContributions([SPLIT_WIRE]);
+  stubFairness(response(), undefined, short);
+  const { container } = renderFairness();
+
+  const identity = await testid(container, "src-identity");
+  expect(identity.textContent).toContain("부분이 전체와 갈립니다");
+  expect(identity.textContent).toContain(`${SPLIT_WIRE.raw_count}건`);
+  expect(identity.textContent).toContain(`${SKEWED.raw_count}건`);
+  // 카드 머리의 「합」은 서빙이 센 값이라 Gold 카운트와 갈린 채로 적힌다 — 두
+  // 자리가 같은 수를 두 번 베끼면 등식 표기가 아무것도 말하지 않는다.
+  expect(container.querySelector(".src-sums")?.textContent).toBe(
+    `합 ${SPLIT_WIRE.raw_count}건 · 원시 카운트 ${SKEWED.raw_count}건`,
+  );
+});
+
+// 분해가 없는 버킷은 0% 로 그리지 않는다 — 기여가 없는 것과 아직 없는 것은 다르다.
+it("draws nothing rather than zeroes when the value has no decomposition", async () => {
+  stubFairness(response(), undefined, sourceContributions([]));
+  const { container } = renderFairness();
+
+  const empty = await testid(container, "src-empty");
+  expect(empty.textContent).toContain("0으로 그리지 않습니다");
 });
 
 it("states the notation principle, and states it before any data arrives", () => {

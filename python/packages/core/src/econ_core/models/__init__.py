@@ -20,7 +20,12 @@ from econ_core.models.enums import (
     RunTrigger,
     Sentiment,
 )
-from econ_core.models.gold import AxisSentiment, SentimentDistribution, SubjectTrend
+from econ_core.models.gold import (
+    AxisSentiment,
+    SentimentDistribution,
+    SubjectSourceContribution,
+    SubjectTrend,
+)
 from econ_core.models.silver import (
     Analysis,
     LlmCallRecord,
@@ -57,5 +62,6 @@ __all__ = [
     "SentimentDistribution",
     "SourceFailure",
     "StageOutcome",
+    "SubjectSourceContribution",
     "SubjectTrend",
 ]

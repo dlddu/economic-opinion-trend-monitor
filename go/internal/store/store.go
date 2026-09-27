@@ -49,6 +49,10 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
 }
 
+func (l *Lake) SubjectSourceContributions() ([]gen.SubjectSourceContribution, error) {
+	return readJSONL[gen.SubjectSourceContribution](l.path("gold", "subject_source_contribution"))
+}
+
 // AxisSentiments reads the Gold axis_sentiment dataset (empty if absent).
 func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 	return readJSONL[gen.AxisSentiment](l.path("gold", "axis_sentiment"))

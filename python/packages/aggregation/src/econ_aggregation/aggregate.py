@@ -45,9 +45,9 @@ def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
     raise ValueError(f"unknown bucket unit {unit!r} — expected one of {BUCKET_UNITS}")
 
 
-def build_subject_trends(
+def count_by_source(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
-) -> list[dict]:
+) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
     by_id = {b["record_id"]: b for b in bronze}
     # counts[axis][bucket][source][subject] -> n
     counts: dict[str, dict[str, dict[str, dict[str, int]]]] = defaultdict(
@@ -61,25 +61,42 @@ def build_subject_trends(
         bucket = _bucket(item["collected_at"], unit)
         for subject in analysis["narrative_subjects"]:
             counts[axis][bucket][source][subject] += 1
+    return counts
+
+
+def fold_bucket(
+    sources: dict[str, dict[str, int]],
+) -> tuple[dict[str, tuple[float, int]], dict[str, dict[str, tuple[float, int]]], float]:
+    averaged: dict[str, float] = defaultdict(float)
+    raw_total: dict[str, int] = defaultdict(int)
+    terms: dict[str, dict[str, tuple[float, int]]] = defaultdict(dict)
+    n_sources = len(sources)
+    for source, subject_counts in sources.items():
+        source_total = sum(subject_counts.values()) or 1
+        for subject, n in subject_counts.items():
+            term = (n / source_total) / n_sources
+            averaged[subject] += term
+            raw_total[subject] += n
+            terms[subject][source] = (term, n)
+    denom = sum(averaged.values()) or 1.0
+    folded = {
+        subject: (round(share / denom, 4), raw_total[subject])
+        for subject, share in averaged.items()
+    }
+    return folded, terms, denom
+
+
+def build_subject_trends(
+    bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
+) -> list[dict]:
+    counts = count_by_source(bronze, silver, unit)
 
     # shares[axis][bucket][subject] -> (normalized_share, raw_count). Built in
     # full before any row is emitted: delta/spark need the neighbouring buckets.
     shares: dict[str, dict[str, dict[str, tuple[float, int]]]] = defaultdict(dict)
     for axis, buckets in counts.items():
         for bucket, sources in buckets.items():
-            averaged: dict[str, float] = defaultdict(float)
-            raw_total: dict[str, int] = defaultdict(int)
-            n_sources = len(sources)
-            for subject_counts in sources.values():
-                source_total = sum(subject_counts.values()) or 1
-                for subject, n in subject_counts.items():
-                    averaged[subject] += (n / source_total) / n_sources
-                    raw_total[subject] += n
-            denom = sum(averaged.values()) or 1.0
-            shares[axis][bucket] = {
-                subject: (round(share / denom, 4), raw_total[subject])
-                for subject, share in averaged.items()
-            }
+            shares[axis][bucket] = fold_bucket(sources)[0]
 
     trends: list[dict] = []
     for axis, buckets in shares.items():

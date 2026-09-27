@@ -20,6 +20,18 @@ type SentimentDistribution struct {
 	Unanalyzed float64 `json:"unanalyzed"`
 }
 
+// SubjectSourceContribution Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC3.9). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend.
+type SubjectSourceContribution struct {
+	Subject                string     `json:"subject"`
+	Axis                   Axis       `json:"axis"`
+	BucketUnit             BucketUnit `json:"bucket_unit"`
+	TimeBucket             string     `json:"time_bucket"`
+	SourceID               string     `json:"source_id"`
+	RawCount               int64      `json:"raw_count"`
+	RawShare               float64    `json:"raw_share"`
+	NormalizedContribution float64    `json:"normalized_contribution"`
+}
+
 // SubjectTrend Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8).
 type SubjectTrend struct {
 	Subject         string     `json:"subject"`

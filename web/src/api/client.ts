@@ -7,6 +7,7 @@ import type {
   BucketUnit,
   CompareResponse,
   ContributionsResponse,
+  SourceContributionsResponse,
   DashboardResponse,
   DashRange,
   FairnessResponse,
@@ -71,6 +72,13 @@ export const api = {
         (unit ? `&unit=${encodeURIComponent(unit)}` : "") +
         (timeBucket ? `&time_bucket=${encodeURIComponent(timeBucket)}` : "") +
         (source ? `&source=${encodeURIComponent(source)}` : ""),
+    ),
+  sourceContributions: (axis: Axis = "KR", subject = "", unit = "", timeBucket = "") =>
+    getJSON<SourceContributionsResponse>(
+      `/source-contributions?axis=${axis}` +
+        (subject ? `&subject=${encodeURIComponent(subject)}` : "") +
+        (unit ? `&unit=${encodeURIComponent(unit)}` : "") +
+        (timeBucket ? `&time_bucket=${encodeURIComponent(timeBucket)}` : ""),
     ),
   // record_id is optional for the same reason subject is on trend: the screen
   // has to be able to open before it knows one.
