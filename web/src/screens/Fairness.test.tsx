@@ -94,9 +94,6 @@ function contributions(source = ""): ContributionsResponse {
   };
 }
 
-// 소스별 기여 스텁도 SKEWED 에서 파생한다 — 부분을 손으로 쓰면 「합 = 값」이
-// 이 파일 안에서만 참인 등식이 된다. kr_wire 가 원시 60%의 절대 다수를 쥐지만
-// 정규화 후 기여는 SKEWED.normalized_share 의 일부일 뿐인 것이 이 카드의 논지다.
 const SPLIT_WIRE = { source_id: "kr_wire", raw_count: 45, raw_share: 0.75, normalized_contribution: 0.1 };
 const SPLIT_DAILY = {
   source_id: "kr_daily",
@@ -235,8 +232,6 @@ it("re-ranks and moves the emphasis when the counting mode is switched", async (
   expect(container.querySelector(".raw-flag")?.textContent).toContain("원시");
 });
 
-// AC3.9: every collector that made the value gets a row, with the raw count and
-// the normalized contribution kept apart the way AC3.8 asks of the table above.
 it("decomposes the chosen value by collection source", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -251,7 +246,6 @@ it("decomposes the chosen value by collection source", async () => {
   expect(wire.querySelector(".src-norm")?.textContent).toBe(
     `${(SPLIT_WIRE.normalized_contribution * 100).toFixed(1)}%`,
   );
-  // 같은 수집원의 두 수치가 갈리는 것이 이 카드의 논지다.
   expect(wire.querySelector(".src-raw")?.textContent).not.toBe(
     wire.querySelector(".src-norm")?.textContent,
   );
@@ -261,8 +255,6 @@ it("decomposes the chosen value by collection source", async () => {
   expect(container.querySelector(".src-conc")?.textContent).toContain(SPLIT_WIRE.source_id);
 });
 
-// AC3.9 의 두 합 등식. 화면은 그것을 주장하지 않고 **적는다** — 서빙이 내려준 네
-// 수치를 나란히 놓고, 맞으면 맞다고 갈리면 갈렸다고.
 it("writes the two sum identities next to the value they have to match", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -285,8 +277,6 @@ it("says so when the decomposition does not add up to the value", async () => {
   expect(identity.textContent).toContain("부분이 전체와 갈립니다");
   expect(identity.textContent).toContain(`${SPLIT_WIRE.raw_count}건`);
   expect(identity.textContent).toContain(`${SKEWED.raw_count}건`);
-  // 카드 머리의 「합」은 서빙이 센 값이라 Gold 카운트와 갈린 채로 적힌다 — 두
-  // 자리가 같은 수를 두 번 베끼면 등식 표기가 아무것도 말하지 않는다.
   expect(container.querySelector(".src-sums")?.textContent).toBe(
     `합 ${SPLIT_WIRE.raw_count}건 · 원시 카운트 ${SKEWED.raw_count}건`,
   );
@@ -320,8 +310,6 @@ it("states the notation principle, and states it before any data arrives", () =>
   );
 });
 
-// AC3.10: 목록이 그 값을 설명한다는 주장은 건수 등식으로만 선다. 화면은 두 수를
-// 같은 자리에 적고, 갈리면 갈렸다고 말한다(수를 맞춰 보이려고 깎지 않는다).
 it("lists the contributing articles and prints the count beside the raw count", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -333,8 +321,6 @@ it("lists the contributing articles and prints the count beside the raw count", 
   expect(tag?.textContent).toContain(`원시 카운트 ${ARTICLES.length}건`);
   expect(container.querySelector(".art-mismatch")).toBeNull();
 
-  // 각 행이 AC3.10 이 요구하는 세 값(수집원·수집 시각·본문 중복 여부)과 두 도달
-  // 경로(원문 링크·원문 역추적)를 담는다.
   const first = container.querySelector(".art-row") as HTMLElement;
   expect(first.textContent).toContain(`수집원 ${ARTICLES[0].source_id}`);
   expect(first.textContent).toContain(ARTICLES[0].collected_at);
@@ -359,8 +345,6 @@ it("says so when the list does not reconcile with the raw count", async () => {
   expect(container.querySelector(".art-mismatch")?.textContent).toContain("원시 카운트와 다릅니다");
 });
 
-// AC3.10: 수집원으로 좁히면 좁혀 조회한다 — 클라이언트 필터가 아니라 같은 라우트를
-// 다시 물어야 「좁힌 건수의 합 = 전체」를 서빙이 책임진다.
 it("narrows the list by collector with a fresh request", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -383,7 +367,6 @@ it("narrows the list by collector with a fresh request", async () => {
   expect(container.querySelector(".art-count")?.textContent).toContain(`목록 ${ARTICLES.length}건`);
 });
 
-// 본문 중복 필터는 목업의 컨트롤이고, 켜면 실제로 목록이 줄어야 허위 컨트롤이 아니다.
 it("keeps only the duplicated-body rows when that filter is on", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -400,8 +383,6 @@ it("keeps only the duplicated-body rows when that filter is on", async () => {
   expect(duplicated.length).toBeLessThan(ARTICLES.length);
 });
 
-// 표에서 대상을 고르는 것이 목록의 축이다. 고르지 않았으면 지금 세는 방식의 1위가
-// 열리고, 고르면 그 대상으로 옮겨 간다.
 it("opens the list on the leading subject and follows the picked one", async () => {
   stubFairness();
   const { container } = renderFairness();

@@ -19,12 +19,6 @@ import (
 // Pairing it with contribGold (the subject_trend output of the *same* input) is
 // what makes the identity assertions below a real check: if this handler summed
 // differently from the batch, no literal here could hide it.
-//
-// The KR / hour / 2026-06-23T14 삼성전자 value is the discriminating one — kr_wire
-// holds 0.75 of the raw count but only 0.5 of the normalized share, which is the
-// source-volume deviation the whole screen exists to show. The other rows carry
-// the filters that must not leak: an earlier bucket, the US axis, and the day and
-// week rollups of the same records.
 const contribSourceGold = `{"subject": "삼성전자", "axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "source_id": "kr_wire", "raw_count": 3, "raw_share": 0.75, "normalized_contribution": 0.5}
 {"subject": "삼성전자", "axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "source_id": "kr_daily", "raw_count": 1, "raw_share": 0.25, "normalized_contribution": 0.1667}
 {"subject": "환율", "axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "source_id": "kr_daily", "raw_count": 2, "raw_share": 1.0, "normalized_contribution": 0.3333}
@@ -77,7 +71,6 @@ func getSourceContributions(t *testing.T, dir, query string) sourceContributions
 	return s
 }
 
-// AC3.9's first identity: the per-source raw counts add up to the value's own.
 func TestSourceContributionsRawCountsSumToTheGoldRawCount(t *testing.T) {
 	dir := t.TempDir()
 	writeSourceContributionGold(t, dir)
@@ -95,8 +88,6 @@ func TestSourceContributionsRawCountsSumToTheGoldRawCount(t *testing.T) {
 	}
 }
 
-// AC3.9's second identity: the per-source normalized contributions add up to the
-// value's normalized share, on the same 4-decimal grid Gold publishes.
 func TestSourceContributionsNormalizedContributionsSumToTheShare(t *testing.T) {
 	dir := t.TempDir()
 	writeSourceContributionGold(t, dir)
@@ -108,9 +99,6 @@ func TestSourceContributionsNormalizedContributionsSumToTheShare(t *testing.T) {
 	}
 }
 
-// The reason the decomposition is worth showing: one collector's raw share and
-// its normalized contribution disagree. If they always matched, normalization
-// would be correcting nothing.
 func TestSourceContributionsKeepRawAndNormalizedApart(t *testing.T) {
 	dir := t.TempDir()
 	writeSourceContributionGold(t, dir)
@@ -145,8 +133,6 @@ func TestSourceContributionsReportConcentration(t *testing.T) {
 	}
 }
 
-// The axis, bucket unit and bucket filters each have a row in the fixture that
-// would show up if they leaked.
 func TestSourceContributionsSettleOneAxisUnitAndBucket(t *testing.T) {
 	dir := t.TempDir()
 	writeSourceContributionGold(t, dir)
@@ -176,9 +162,6 @@ func TestSourceContributionsSurviveEmptyGold(t *testing.T) {
 	}
 }
 
-// A subject the caller names but the bucket has no row for answers empty under
-// that name — the same contract /api/contributions settled on. Substituting the
-// leading subject would hand the reader someone else's decomposition.
 func TestSourceContributionsHonourARequestedSubjectWithNoRows(t *testing.T) {
 	dir := t.TempDir()
 	writeSourceContributionGold(t, dir)
