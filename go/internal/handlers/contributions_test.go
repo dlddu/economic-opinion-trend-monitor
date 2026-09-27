@@ -12,13 +12,9 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// The fixture below is the aggregation's *own* output, not a hand-made Gold: the
-// Bronze and Silver rows were fed through
-// econ_aggregation.aggregate.build_subject_trends_all_units (after
-// econ_core.silver.select_serving) and the result pasted in. That is what makes
-// the sum identities below a real check — if this handler counted differently
-// from the batch, the numbers would not line up, and no literal in this file
-// could paper over it.
+// The Gold below is the aggregation's own output — Bronze/Silver fed through
+// econ_core.silver.select_serving + build_subject_trends_all_units, pasted in.
+// Hand-fitting it to this handler would make the sum identities prove nothing.
 //
 // What the rows are arranged to hold, for KR / hour / 2026-06-23T14:
 //
@@ -67,8 +63,7 @@ const (
 	contribBucket  = "2026-06-23T14"
 )
 
-// writeContributionLake lays the three layers down the way the batch writes
-// them: Gold as one JSONL, Bronze/Silver as Hive partitions.
+// writeContributionLake lays the three layers down the way the batch writes them.
 func writeContributionLake(t *testing.T, dir string) {
 	t.Helper()
 	gold := filepath.Join(dir, "gold")
@@ -126,9 +121,6 @@ func rowByRecord(t *testing.T, rows []contributionRow, id string) contributionRo
 }
 
 // AC3.10, first sum identity: the list's length is the same value's raw count.
-// The assertion is deliberately against the Gold number carried in the response
-// rather than against a literal — a list that agrees with a number this file
-// made up would prove nothing.
 func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -148,8 +140,6 @@ func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 		t.Fatalf("unfiltered total/listed disagree with the rows: %+v", got.Basis)
 	}
 
-	// Every row carries what AC3.10 asks a row to carry, and the record id is
-	// what makes /api/trace reachable from here (AC2.6 -> AC1.4).
 	row := rowByRecord(t, got.Rows, "r2")
 	if row.SourceID != "kr_wire" || row.CollectedAt == "" || row.SourceURL == "" || row.Title == "" {
 		t.Fatalf("row is missing the collector, the collection time or the link: %+v", row)
@@ -177,8 +167,6 @@ func TestContributionsNarrowedBySourceSumsToTheWhole(t *testing.T) {
 		if narrowed.Basis.Listed != src.Listed || len(narrowed.Rows) != src.Listed {
 			t.Fatalf("%s: listed %d rows, tally says %d", src.SourceID, len(narrowed.Rows), src.Listed)
 		}
-		// The unfiltered total rides along so the screen can say "3 of 4" without
-		// a second request.
 		if narrowed.Basis.Total != whole.Basis.Total {
 			t.Fatalf("%s: total moved with the filter (%d != %d)", src.SourceID, narrowed.Basis.Total, whole.Basis.Total)
 		}
@@ -194,9 +182,6 @@ func TestContributionsNarrowedBySourceSumsToTheWhole(t *testing.T) {
 	}
 }
 
-// A reprocessed record has one Silver row per analyzer version. Listing Silver
-// raw would count it once per version and overshoot the Gold count — the list
-// would then claim more articles than the number it explains.
 func TestContributionsCountsAReanalyzedRecordOnce(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -212,16 +197,11 @@ func TestContributionsCountsAReanalyzedRecordOnce(t *testing.T) {
 	if seen != 1 {
 		t.Fatalf("the twice-analyzed record appears %d times", seen)
 	}
-	// No publish decision is recorded in this lake, so the newest row per record
-	// is what Gold was built from — the response says so rather than leaving the
-	// reader to assume it.
 	if got.Basis.AnalyzerVersion != "" {
 		t.Fatalf("analyzer version = %q, want empty for newest-per-record", got.Basis.AnalyzerVersion)
 	}
 }
 
-// AC1.7: the same body text reaching the list twice is exactly what "the spike
-// is one story, carried twice" looks like, so the row says so.
 func TestContributionsMarksSharedBodiesAsDuplicates(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -242,8 +222,6 @@ func TestContributionsMarksSharedBodiesAsDuplicates(t *testing.T) {
 	}
 }
 
-// The bucket a list is taken under is the caller's to choose, and the identity
-// has to hold at every unit — a day holds articles an hour does not.
 func TestContributionsHonoursTheRequestedUnitAndBucket(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -274,9 +252,6 @@ func TestContributionsHonoursTheRequestedUnitAndBucket(t *testing.T) {
 	}
 }
 
-// A subject with no row in the bucket is answered with an empty list under the
-// name that was asked for. Substituting the leading subject would hand the
-// reader someone else's articles under their own heading.
 func TestContributionsAnswersAnUnknownSubjectWithAnEmptyList(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)

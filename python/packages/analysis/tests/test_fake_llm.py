@@ -38,7 +38,6 @@ def test_unanalyzed_when_body_missing() -> None:
 
 
 def test_unanalyzed_when_body_hash_dangles() -> None:
-    # body_available says captured but the hash resolves to nothing -> unanalyzed, not a crash.
     a = analyze(_bronze(), None)
     assert a.sentiment is None
     assert a.analysis_status == "unanalyzed"
@@ -51,6 +50,5 @@ def test_low_confidence_on_mixed_tone() -> None:
 
 
 def test_alias_unification() -> None:
-    # Surface variants collapse to one canonical key (AC2.2).
     assert normalize_subject("Samsung rallies on chips") == "삼성전자"
     assert normalize_subject("the Fed holds rates") == "Federal Reserve"

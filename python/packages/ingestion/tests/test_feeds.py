@@ -74,9 +74,7 @@ def test_axis_tagging_and_metadata_completeness() -> None:
         "collection_cycle",
     )
     for item in items:
-        # Every item is axis-tagged (AC1.3).
         assert item["axis"] in {"KR", "US", "GLOBAL"}
-        # Required provenance/metadata fields are populated (AC1.5).
         for field in required:
             assert item[field], f"missing {field} in {item}"
         assert item["rank"] >= 1
@@ -84,11 +82,9 @@ def test_axis_tagging_and_metadata_completeness() -> None:
 
 
 def test_top_n_cap_ranks_by_views() -> None:
-    # kr-wire offers 3 articles but the source caps at top-2 (AC1.2).
     config = FeedConfig("kr-wire", "KR", KR_URL, limit=2)
     items = [item for item, _ in collect_feed(config, _fetcher(), CYCLE, COLLECTED_AT)]
     assert len(items) == 2
-    # Ranked by view count descending: 48210 then 41880; the 33240 item is dropped.
     assert [i.rank for i in items] == [1, 2]
     assert items[0].view_count == 48210
     assert items[1].view_count == 41880
@@ -96,17 +92,13 @@ def test_top_n_cap_ranks_by_views() -> None:
 
 
 def test_link_and_body_separation() -> None:
-    # The observation carries only the body's content address; the body text is
-    # yielded separately so it can land in the content-addressed store (AC1.4).
     pairs = list(collect_feed(FeedConfig("kr-wire", "KR", KR_URL), _fetcher(), CYCLE, COLLECTED_AT))
     by_url = {item.source_url: (item, body) for item, body in pairs}
-    # Body captured -> non-empty hash that content-addresses the yielded body (AC1.4).
     rate_item, rate_body = by_url["https://news.example/kr/rate"]
     assert rate_item.body_available is True
     assert rate_item.body_hash != ""
     assert rate_body
     assert hashlib.sha256(rate_body.encode()).hexdigest() == rate_item.body_hash
-    # Body unavailable -> link still stored, empty hash, no body, flag cleared (AC1.4).
     fx_item, fx_body = by_url["https://news.example/kr/fx"]
     assert fx_item.body_available is False
     assert fx_item.body_hash == ""
@@ -117,7 +109,6 @@ def test_link_and_body_separation() -> None:
 def test_atom_link_href_parsing() -> None:
     config = FeedConfig("us-markets", "US", US_URL)
     urls = {item.source_url for item, _ in collect_feed(config, _fetcher(), CYCLE, COLLECTED_AT)}
-    # Atom <link href="..."> is resolved to the article URL (AC1.4).
     assert "https://news.example/us/fed" in urls
 
 
@@ -126,23 +117,18 @@ def test_body_store_is_content_addressed() -> None:
         _all_configs(), CYCLE, COLLECTED_AT, _fetcher((FLAKY_URL,))
     )
     by_hash = {b["body_hash"]: b["raw_text"] for b in bodies}
-    # Bodies are unique by content hash within a run (AC1.7).
     assert len(bodies) == len(by_hash) > 0
     for item in items:
         if item["body_available"]:
-            # Every captured observation resolves to its exact body version (AC1.4).
             assert (
                 hashlib.sha256(by_hash[item["body_hash"]].encode()).hexdigest() == item["body_hash"]
             )
         else:
-            # Uncaptured bodies keep the link but reference nothing (AC1.4).
             assert item["body_hash"] == ""
     assert all(b["first_seen_cycle"] == CYCLE for b in bodies)
 
 
 def test_cross_source_reprint_body_deduplicates() -> None:
-    # Same body reached through two different links (a reprint) -> the observation
-    # store keeps both links, but the body store holds exactly one copy (AC1.7).
     raw = b"""<?xml version="1.0"?>
 <rss version="2.0"><channel>
   <item>
@@ -158,17 +144,13 @@ def test_cross_source_reprint_body_deduplicates() -> None:
     items, bodies, _ = run_feed_ingestion(
         [FeedConfig("s", "KR", KR_URL)], CYCLE, COLLECTED_AT, fetcher
     )
-    # Two distinct observations (different URLs, not URL-deduped)...
     assert len(items) == 2
     assert len({i["source_url"] for i in items}) == 2
-    # ...but one content-addressed body shared by both (AC1.7).
     assert len(bodies) == 1
     assert items[0]["body_hash"] == items[1]["body_hash"] == bodies[0]["body_hash"]
 
 
 def test_edited_body_becomes_a_new_version_key() -> None:
-    # Same article URL whose body is edited between cycles -> a new content key,
-    # so the store would append the new version beside the old one (AC1.7).
     def feed(body: str) -> bytes:
         return (
             '<?xml version="1.0"?>'
@@ -193,7 +175,6 @@ def test_edited_body_becomes_a_new_version_key() -> None:
 def test_dedup_failure_isolation_and_retry() -> None:
     fetcher = _fetcher((FLAKY_URL,))
     items, _, stats = run_feed_ingestion(_all_configs(), CYCLE, COLLECTED_AT, fetcher)
-    # The broken source is isolated; the others still produce records (AC1.6).
     assert stats.failed_sources == ["kr-flaky"]
     assert "boom" in stats.failure_reasons["kr-flaky"]
     # The /kr/fx URL appears in both feeds -> de-duplicated once (AC1.6).

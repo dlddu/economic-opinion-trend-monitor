@@ -95,7 +95,6 @@ def test_llm_is_the_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     """The operational default is the real model — an unconfigured run must not write."""
     _seed_lake(tmp_path)
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
-    # No --analyzer: this now selects llm, which refuses to run without its key.
     assert cli.main(["--data", str(tmp_path)]) == cli.EXIT_CONFIG
     assert not _silver(tmp_path).exists()
 
@@ -116,7 +115,6 @@ def test_llm_without_api_key_writes_nothing(
     _seed_lake(tmp_path)
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == cli.EXIT_CONFIG
-    # Aborted before the lake was touched — not even an empty Silver dataset appeared.
     assert not _silver(tmp_path).exists()
 
 
@@ -124,7 +122,6 @@ def test_llm_total_failure_preserves_existing_silver(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _seed_lake(tmp_path)
-    # A good fake run lands first (explicit now that llm is the default).
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     before = _silver(tmp_path).read_bytes()
 
@@ -137,7 +134,6 @@ def test_llm_total_failure_preserves_existing_silver(
     monkeypatch.setattr(llm, "http_completer", _unreachable)
     code = cli.main(["--data", str(tmp_path), "--analyzer", "llm"])
     assert code == cli.EXIT_ALL_CALLS_FAILED
-    # The outage did not replace real analyses with an all-unanalyzed batch.
     assert _silver(tmp_path).read_bytes() == before
 
 
@@ -318,7 +314,6 @@ def test_failed_batch_keeps_the_checkpoint_of_earlier_batches(
         ["--data", str(tmp_path), "--analyzer", "llm", "--axis", "KR", "--batch-size", "1"]
     )
     assert code == cli.EXIT_ALL_CALLS_FAILED
-    # The first batch's row survived the second batch's outage.
     assert [r["record_id"] for r in _silver_rows(tmp_path)] == ["r1"]
 
 
@@ -406,8 +401,6 @@ def test_legacy_silver_file_is_migrated_and_orphans_dropped(tmp_path: Path) -> N
 def test_a_declined_article_is_settled_not_revisited(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # A model that declines (analyzable: false) has judged the article; only an outage
-    # is worth another hour.
     _seed_lake(tmp_path)
     declined = json.dumps({"analyzable": False})
     monkeypatch.setattr(llm, "http_completer", _canned(declined))
@@ -444,8 +437,6 @@ def test_retry_list_holds_only_failed_calls_until_they_succeed(
 def test_rows_written_before_run_links_are_relinked_from_the_cache(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Production Silver kept rows from before AC4.3 with no run_id/call_id/no_call_reason
-    # and a reply cache from before AC4.2 whose entries name no call.
     _seed_lake(tmp_path)
     seeded = _bronze_rows(tmp_path)
     _write_items(
