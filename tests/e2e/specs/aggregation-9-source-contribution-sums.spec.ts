@@ -1,17 +1,9 @@
 // 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 9
 //
-// 두 합 등식(원시·정규화)은 집계 **안에서는 구성상 참**이다 — `contributions.py` 가
-// `build_subject_trends` 의 `fold_bucket` 항을 합이 버려지기 **전에** 가져가고, 정규화 몫은
-// 최대 잔여법으로 그리드에 정확히 맞춘다. 그래서 등식만 재는 단정은 「집계가 자기를 증명」하는
-// 자리이고, 회귀(두 산출이 서로 다른 계산으로 갈리는 것)만 잡는다.
+// 등식은 원천 재계수 위에 얹는 교차 데이터셋 가드다 — 어느 쪽이 무엇을 잡는지 헷갈리면 등식만
+// 남기고 재계수를 지우는 개편이 통과하면서 조용히 공허해진다.
 //
-// 검출력은 **원천 재계수**가 낸다: 수집원별 원시 건수를 Bronze+Silver 에서 다시 세어 분해와
-// 대조하고, 소스를 지운 재계수(`crossTab`)로 대상 단위 값이 분해 도입에 흔들리지 않았음을 본다.
-// 등식은 그 위에 얹는 교차 데이터셋 가드다 — 어느 쪽이 무엇을 잡는지 헷갈리면 등식만 남기고
-// 재계수를 지우는 개편이 통과하면서 조용히 공허해진다.
-//
-// 비교 상태(부풀린 루트)는 Bronze·Silver 를 반출하지 않으므로(`run.sh: chain_aggregation_skew`)
-// 그쪽 독립 기준은 **상류 픽스처**가 준다 — 두 소스 설정을 직접 읽어 「한 소스만 늘었다」를 먼저
+// 비교 상태(부풀린 루트)는 Bronze·Silver 를 반출하지 않아 그쪽 독립 기준을 상류 픽스처에서
 // 세운다. 그 단정이 없으면 아래 두 상태 비교가 전부 공허해질 수 있다.
 
 import { expect, test } from "@playwright/test";
@@ -45,10 +37,7 @@ const SKEW_FEEDS = "e2e-feeds-agg-skew.json";
 const GRID = 10_000;
 const onGrid = (value: number): number => Math.round(value * GRID);
 
-/**
- * 상류에서 **수집량을 늘린 소스**를 두 설정의 차이로 찾는다. 이름을 상수로 박지 않는 이유는
- * 픽스처가 다른 소스를 부풀리도록 바뀌면 이 spec 이 조용히 엉뚱한 소스를 보게 되기 때문이다.
- */
+/** 이름을 상수로 박지 않는 이유: 픽스처가 다른 소스를 부풀리면 조용히 엉뚱한 소스를 본다. */
 function inflatedSource(): string {
   const base = feedConfigs(BASE_FEEDS);
   const skew = feedConfigs(SKEW_FEEDS);
@@ -78,7 +67,6 @@ function recountBySource(subject: string, bucket: string): Map<string, number> {
   return counts;
 }
 
-/** 한 대상·버킷의 분해 행. 단위는 `subjectSourceContributions` 가 이미 하나로 골라 준다. */
 function decompositionOf(subject: string, bucket: string, dir?: string) {
   return subjectSourceContributions(dir).filter(
     (row) => row.axis === AXIS && row.subject === subject && row.time_bucket === bucket,
@@ -122,7 +110,6 @@ test("분해가 실제로 수집한 수집원 구성과 일치한다", () => {
     const rows = decompositionOf(trend.subject, trend.time_bucket);
     const recounted = recountBySource(trend.subject, trend.time_bucket);
 
-    // 검출 지점: 분해가 든 수집원 집합과 원천이 말하는 집합이 같아야 한다.
     expect(
       new Set(rows.map((row) => row.source_id)),
       `${trend.subject} 의 수집원 집합이 원천과 다르다`,
@@ -181,7 +168,6 @@ test("원시 기여 비중은 늘린 수집원만 오른다", () => {
     if (source === inflated) {
       expect(after.get(source), `${source} 의 원시 비중이 오르지 않았다`).toBeGreaterThan(share);
     } else {
-      // 기대 결과의 「늘린 소스의 원시 비중**만** 오른다」 — 나머지는 밀려 내려가야 한다.
       expect(after.get(source), `${source} 의 원시 비중이 함께 올랐다`).toBeLessThan(share);
     }
   }
@@ -202,10 +188,8 @@ test("정규화 후 기여는 원시 증가에 비례해 흔들리지 않는다"
   const rawRatio = after!.raw_count / before!.raw_count;
   const contributionRatio = after!.normalized_contribution / before!.normalized_contribution;
 
-  // `aggregation-1` 이 대상 단위에서 세운 것과 같은 잣대를 분해 단위에 적용한다: 비례가
-  // 끊어졌다고 말하려면 비율이 수집량 증가의 절반에도 못 미쳐야 한다.
+  // 비례가 끊어졌다는 판정의 잣대는 대상 단위의 `aggregation-1` 이 세운 것과 같다.
   expect(contributionRatio).toBeLessThan(rawRatio / 2);
-  // 그렇다고 정규화가 변화를 통째로 지우는 것도 아니다 — 늘어난 쪽은 늘어난다.
   expect(contributionRatio).toBeGreaterThan(1);
 });
 
@@ -213,8 +197,6 @@ test("대상 단위 집계 값은 분해가 없던 때와 같다", () => {
   const counts = crossTab();
 
   for (const trend of trendsOfAxis(subjectTrends(), AXIS)) {
-    // 소스 축을 **지운** 재계수다. 분해가 도입되며 대상 단위 행이 수집원마다 쪼개졌거나
-    // 이중 계상됐다면 여기서 갈린다 — 계약이 분해를 별 데이터셋에 둔 이유가 그것이다.
     expect(
       counts.get(cellKey(AXIS, trend.time_bucket, trend.subject)),
       `${trend.subject} 의 대상 단위 원시 카운트가 소스 무관 재계수와 다르다`,
@@ -229,7 +211,6 @@ test("대상 단위 집계 값은 분해가 없던 때와 같다", () => {
     expect(shares, `${dir === undefined ? "baseline" : "skewed"} 축 ${AXIS}`).toBeCloseTo(1, 3);
   }
 
-  // 부풀리지 않은 소스만 다루는 대상은 두 상태에서 값이 같다.
   const base = trendOf(subjectTrends(), AXIS, UNTOUCHED);
   const skewed = trendOf(subjectTrends(goldSkewDir()), AXIS, UNTOUCHED);
   expect(skewed.raw_count).toBe(base.raw_count);
@@ -253,7 +234,6 @@ test("서빙이 기준 상태의 분해를 그대로 조회에 내보낸다", as
     new Map(served.rows.map((row) => [row.source_id, row.raw_count])),
     "서빙이 반출 Gold 와 다른 분해를 냈다",
   ).toEqual(new Map(rows.map((row) => [row.source_id, row.raw_count])));
-  // 집중도는 정렬된 첫 행에서 읽히므로, 조회가 가장 많이 실은 수집원을 앞에 둔다.
   expect(served.concentration.source_count).toBe(rows.length);
   expect(served.concentration.top_source_id).toBe(served.rows[0].source_id);
 });
