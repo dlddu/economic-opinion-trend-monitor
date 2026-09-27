@@ -17,6 +17,10 @@
         대기·공백)이 시나리오 전집을 **빠짐없이 겹치지 않게** 덮는다.
   규칙6 구현 대기 등재가 실재 시나리오를 가리키고, 예외·매칭과 겹치지 않으며, 각 행의
         **해제 신호**(파일 ∋ 문자열)가 아직 살아 있다.
+  규칙7 공백 목록의 모든 시나리오가 doc-tracker "공백 선행" 표에 **선행 인프라 · 해소 방향 ·
+        재검토 시점** 세 칸을 가진 행을 정확히 하나 갖는다. 재검토 시점은 기계로 읽을 수 있어야
+        하고(``YYYY-MM-DD`` 또는 ``사건: <관측 가능한 사건>``), 날짜면 오늘부터 최장 90일이다 —
+        지나거나 넘으면 빨개져 재판정을 강제한다. 매칭·예외로 옮겨간 시나리오의 행은 남지 않는다.
 
 강제하지 **않는** 것: "공백 0". 21개 시나리오 중 다수가 배치 3단(수집·분석·집계)을 e2e 에
 들이는 하네스를 선행으로 요구하므로 공백은 존재하는 것이 정상이고, 이 검사기는 공백을
@@ -28,6 +32,7 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +56,13 @@ PENDING_SECTION = "구현 대기 (미구현이라 관측 대상 없음)"
 SMOKE_SECTION = "비-시나리오(스모크·인프라) 등재"
 GAP_SECTION = "공백 (1:1 대상 중 파일 없음)"
 NOT_EXCEPT_SECTION = "예외 후보 중 미등재 (공백으로 계수)"
+GAP_PREREQ_SECTION = "공백 선행 (규칙 7)"
+
+PREREQ_CELLS = ((1, "선행 인프라"), (2, "해소 방향"), (3, "재검토 시점"))
+PREREQ_BLANK = {"", "—", "-", "–", "tbd", "todo", "미정", "없음", "해당 없음"}
+REVIEW_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+REVIEW_EVENT = re.compile(r"^사건:\s*\S")
+MAX_REVIEW_DAYS = 90
 
 
 def scenario_id(doc: str, ordinal: int | str) -> str:
@@ -168,6 +180,85 @@ def first_ref(cell: str) -> str:
     return refs[0] if refs else strip_code(cell)
 
 
+def plain(cell: str) -> str:
+    return cell.replace("**", "").replace("`", "").strip()
+
+
+def is_blank_cell(cell: str) -> bool:
+    return plain(cell).lower() in PREREQ_BLANK
+
+
+def review_point_problems(sid: str, cell: str, today: date) -> list[str]:
+    text = plain(cell)
+    if REVIEW_EVENT.match(text):
+        return []
+    if not REVIEW_DATE.match(text):
+        return [
+            f"규칙7: 공백 선행 `{sid}` 의 재검토 시점 `{text}` 을 기계로 읽을 수 없다 "
+            f"— `YYYY-MM-DD` 또는 `사건: <관측 가능한 사건>` 이어야 한다"
+        ]
+    try:
+        due = date.fromisoformat(text)
+    except ValueError:
+        return [f"규칙7: 공백 선행 `{sid}` 의 재검토 시점 `{text}` 이 달력에 없는 날짜다"]
+    if due < today:
+        return [
+            f"규칙7: 공백 선행 `{sid}` 의 재검토 시점 {text} 이 지났다 "
+            f"— 선행·해소 방향을 다시 판정해 행을 갱신할 것"
+        ]
+    if (due - today).days > MAX_REVIEW_DAYS:
+        return [
+            f"규칙7: 공백 선행 `{sid}` 의 재검토 시점 {text} 이 오늘부터 "
+            f"{(due - today).days}일 뒤다 — 모델 규칙 7 은 날짜면 최장 {MAX_REVIEW_DAYS}일 이다"
+        ]
+    return []
+
+
+def gap_prereq_problems(
+    rows: list[list[str]],
+    scenarios: list[str],
+    registered_gaps: list[str],
+    registered_pending: list[str],
+    today: date,
+) -> tuple[dict[str, list[str]], list[str]]:
+    problems: list[str] = []
+    by_sid: dict[str, list[str]] = {}
+    for row in rows:
+        if len(row) < 4:
+            problems.append(
+                f"규칙7: 공백 선행 표의 행 `{' | '.join(row)}` 에 칸이 {len(row)}개다 "
+                f"— 시나리오·선행 인프라·해소 방향·재검토 시점 네 칸이어야 한다"
+            )
+            continue
+        sid = first_ref(row[0])
+        if sid in by_sid:
+            problems.append(f"규칙7: 공백 선행 표에 `{sid}` 행이 두 번 이상 있다 — 정확히 하나여야 한다")
+            continue
+        by_sid[sid] = row
+        if sid not in scenarios:
+            problems.append(f"규칙7: 공백 선행 표가 존재하지 않는 시나리오 `{sid}` 를 등재하고 있다")
+            continue
+        if sid not in registered_gaps and sid not in registered_pending:
+            problems.append(
+                f"규칙7: 공백 선행 표의 `{sid}` 가 공백도 구현 대기도 아니다 "
+                f"— 매칭·예외로 옮겨간 시나리오의 행은 지울 것"
+            )
+        for index, label in PREREQ_CELLS:
+            if is_blank_cell(row[index]):
+                problems.append(
+                    f"규칙7: 공백 선행 `{sid}` 행의 `{label}` 칸이 비어 있다 "
+                    f"— 선행이 없다면 `없음 — <왜 없는지>` 로 근거까지 적을 것"
+                )
+        problems.extend(review_point_problems(sid, row[3], today))
+    for sid in registered_gaps:
+        if sid not in by_sid:
+            problems.append(
+                f"규칙7: 공백 `{sid}` 에 선행 행이 없다 — `### {GAP_PREREQ_SECTION}` 표에 "
+                f"선행 인프라·해소 방향·재검토 시점을 적어 다음 감지가 잇게 할 것"
+            )
+    return by_sid, problems
+
+
 def marked_block(section: list[str], marker: str, section_name: str) -> tuple[str, str | None]:
     """``<!-- <marker>:begin -->`` ~ ``:end`` 사이만 돌려준다.
 
@@ -205,6 +296,7 @@ def main() -> int:
             SMOKE_SECTION,
             GAP_SECTION,
             NOT_EXCEPT_SECTION,
+            GAP_PREREQ_SECTION,
         )
         if name not in sections
     ]
@@ -358,6 +450,15 @@ def main() -> int:
     for sid in sorted(set(covered) - set(scenarios), key=scenario_sort_key):
         problems.append(f"규칙5: `{sid}` 가 등재돼 있으나 테스트 문서에 없는 시나리오다")
 
+    gap_prereq, prereq_problems = gap_prereq_problems(
+        table_rows(sections[GAP_PREREQ_SECTION]),
+        scenarios,
+        registered_gaps,
+        registered_pending,
+        date.today(),
+    )
+    problems.extend(prereq_problems)
+
     expected_counts = {
         "시나리오 전집": len(scenarios),
         "예외 등재": len(registered_exceptions),
@@ -382,6 +483,11 @@ def main() -> int:
         print("  공백 목록")
         for sid in measured_gaps:
             print(f"    - {sid}")
+    print(f"  {'공백 선행 등재':<34} {len(gap_prereq)}")
+    for sid in sorted(gap_prereq, key=scenario_sort_key):
+        row = gap_prereq[sid]
+        state = "공백" if sid in registered_gaps else "구현 대기(예고)"
+        print(f"    - {sid} · {state} · 재검토 {plain(row[3])}")
 
     if problems:
         print(f"\nFAIL: {len(problems)}건", file=sys.stderr)
@@ -389,7 +495,8 @@ def main() -> int:
             print(f"  - {p}", file=sys.stderr)
         return 1
     print(
-        "\nOK: 규칙 1·2·3·4·5·6 위반 없음 — 공백은 위 집계대로 문서에 기록돼 있다\n"
+        "\nOK: 규칙 1·2·3·4·5·6·7 위반 없음 — 공백은 위 집계대로 문서에 기록돼 있고\n"
+        "    공백마다 선행 인프라·해소 방향·재검토 시점이 등재돼 있다\n"
         "    (모델 불변식 「1:1 대상 = 매칭 파일」은 공백이 0이 되는 날 성립한다)"
     )
     return 0
