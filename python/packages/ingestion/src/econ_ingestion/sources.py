@@ -89,7 +89,6 @@ CATALOG: list[FakeSource] = [
             FakeArticle("글로벌 공급망", "neutral", ["GLOBAL"], 16700, body_available=False),
         ],
     ),
-    # Source that fails on collection; the run isolates it and keeps going (AC1.6).
     FakeSource(source_id="kr-flaky", axis="KR", limit=20, available=5, broken=True),
 ]
 

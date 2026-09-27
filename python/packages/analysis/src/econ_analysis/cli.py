@@ -176,8 +176,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.analyzer == "llm":
         version = args.analyzer_version or llm.ANALYZER_VERSION
         try:
-            # Build the transport first: a missing key is an operator error, not an
-            # analysis outcome, so fail before touching the lake.
             completer = llm.http_completer()
         except llm.ConfigError as exc:
             print(f"analysis[llm]: {exc}", file=sys.stderr)

@@ -68,7 +68,6 @@ def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
     assert rows[("A", "2026-06-23T14")]["delta"] == 0.0
     assert rows[("A", "2026-06-23T14")]["spark"] == [0.5]
 
-    # The second reads its own previous bucket, in percentage points (AC3.3).
     assert rows[("A", "2026-06-23T15")]["delta"] == 25.0
     assert rows[("A", "2026-06-23T15")]["spark"] == [0.5, 0.75]
     assert rows[("B", "2026-06-23T15")]["delta"] == -25.0
@@ -93,7 +92,6 @@ def test_axis_sentiment_separates_unanalyzed() -> None:
     ]
     kr = next(r for r in build_axis_sentiment(bronze, silver) if r["axis"] == "KR")
     assert kr["analyzed_total"] == 1
-    # Unanalyzed is separated out; sentiment ratios are over analyzed only (AC3.4).
     assert kr["distribution"]["unanalyzed"] == 0.5
     assert kr["distribution"]["positive"] == 1.0
 

@@ -157,7 +157,6 @@ def test_a_reuse_from_a_pre_call_record_cache_is_still_recorded():
     """호출 기록 이전에 쌓인 캐시 항목을 재사용해도 기록은 남고, 원 호출만 null 이다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
-    # A cache populated before call records existed: a reply, but no call_id anywhere.
     cache: dict[str, str] = {}
     run_llm_analysis([item], {"h": "본문"}, completer, reply_cache=cache)
 

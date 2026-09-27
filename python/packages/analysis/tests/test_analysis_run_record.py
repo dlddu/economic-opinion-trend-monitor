@@ -102,8 +102,6 @@ def test_a_run_whose_model_never_answered_keeps_its_partial_stage(
     assert stage["stage_status"] == runlog.FAILED
     assert "model calls failed" in stage["failure_reason"]
     assert counts["call_failed"] == 1
-    # The two records the run never reached are booked, so the buckets still account
-    # for the whole input and the record says where it stopped (AC4.1).
     assert counts[runlog.NOT_REACHED] == 2
     assert sum(counts.values()) == stage["input_count"] == 3
     assert run["run_status"] == runlog.FAILED

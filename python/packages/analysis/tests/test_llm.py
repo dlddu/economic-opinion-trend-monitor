@@ -169,7 +169,6 @@ def test_parse_response_rejects_non_json() -> None:
 
 
 def test_http_completer_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    # A missing key is an operator error: it surfaces at construction, before any read.
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     with pytest.raises(ConfigError):
         http_completer()
