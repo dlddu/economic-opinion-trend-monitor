@@ -3,9 +3,6 @@ import { api } from "../api/client";
 import { MapStrip } from "../shell/MapStrip";
 import type { ScreenDef } from "../shell/nav";
 
-// Stand-in for the screens that have not been built yet: proves routing + the
-// API fetch layer by showing the screen's stub endpoint response. Each real
-// screen replaces its placeholder as its AC lands.
 export function Placeholder({ screen }: { screen: ScreenDef }) {
   const [raw, setRaw] = useState<string>("불러오는 중…");
 

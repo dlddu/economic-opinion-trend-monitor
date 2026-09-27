@@ -9,13 +9,6 @@ import { MapStrip } from "../shell/MapStrip";
 // `fairness` 가 「정규화하면 순위가 뒤집힌다」까지 보여 줘도 그것만으로는 판정이
 // 서지 않는다 — 편중을 의심할 근거일 뿐이고, 근거를 확인하려면 실제로 무엇이
 // 쓰였는지 읽어야 한다. 그 내려가는 길이 이 화면이다.
-//
-// **이 화면의 설계 원칙은 「모자란 것을 뭉치지 않는다」이다.** 셋은 서로 다른 뜻이고
-// 독자에게 다른 행동을 시킨다:
-//
-//   - `found=false` — 수집된 적이 없다. 추적이 시작조차 못 한다.
-//   - `bronze.body_preserved=false` — 관측은 있는데 본문이 없다.
-//   - `silver=null` — 수집됐지만 아직 분석되지 않았다(파이프라인이 거기까지 안 갔다).
 
 function openableUrl(url: string | null | undefined): string | null {
   return url && /^https?:\/\//i.test(url) ? url : null;

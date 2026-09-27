@@ -9,9 +9,7 @@ afterEach(() => vi.unstubAllGlobals());
 const BUCKETS = ["2026-06-23T13", "2026-06-23T14"];
 
 // Expected values are never written as constants: every assertion below is
-// derived from this stub, the way `ac3-6-sentiment-ratio-viz.spec.ts` derives
-// its expectations from the serving response. Change the numbers here and the
-// tests stay correct; they break only when the drawing stops matching the data.
+// derived from this stub.
 function response(axis: SentimentResponse["axis"] = "KR"): SentimentResponse {
   const early = { positive: 0.5, neutral: 0.3, negative: 0.1, mixed: 0.1, unanalyzed: 0.05 };
   const late = { positive: 0.2, neutral: 0.3, negative: 0.4, mixed: 0.1, unanalyzed: 0.25 };
@@ -31,7 +29,6 @@ function response(axis: SentimentResponse["axis"] = "KR"): SentimentResponse {
     by_axis: [
       { axis: "KR", distribution: late, analyzed_total: 12, present: true },
       { axis: "US", distribution: early, analyzed_total: 8, present: true },
-      // GLOBAL was not aggregated for this bucket — not "all zero".
       {
         axis: "GLOBAL",
         distribution: { positive: 0, neutral: 0, negative: 0, mixed: 0, unanalyzed: 0 },
@@ -132,7 +129,6 @@ describe("Sentiment", () => {
     // the rows earlier cases left behind.
     expect(absent.textContent).toContain("집계 없음");
 
-    // The axes that do have rows are still drawn.
     expect(container.querySelector('[data-axis="KR"] .sentbar')).not.toBeNull();
   });
 
@@ -149,8 +145,6 @@ describe("Sentiment", () => {
     expect(buttons).toHaveLength(3);
     fireEvent.click(buttons[1]);
 
-    // The comparison bucket is chosen over all axes, so the axis cannot be a
-    // client-side filter — a new request is the only correct behaviour.
     await waitFor(() => expect(urls.length).toBeGreaterThan(1));
     expect(urls[urls.length - 1]).toContain("axis=US");
   });

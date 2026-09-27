@@ -1,8 +1,6 @@
 /*
  * Design system — single source of truth for tokens + component styles.
  * Ported from docs/design-system + docs/mockups (which inline this per page).
- * Token groups: TKN-surface, TKN-ink, TKN-line, TKN-brand, TKN-sentiment,
- * TKN-axis, TKN-type, TKN-radius, TKN-shadow.
  */
 
 :root {
