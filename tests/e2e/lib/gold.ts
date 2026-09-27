@@ -33,6 +33,17 @@ export type SubjectTrend = {
 };
 
 /** Gold `axis_sentiment` 레코드 — contracts/gold/axis_sentiment.avsc 가 계약의 SSOT다. */
+export type SubjectSourceContribution = {
+  subject: string;
+  axis: string;
+  bucket_unit: string;
+  time_bucket: string;
+  source_id: string;
+  raw_count: number;
+  raw_share: number;
+  normalized_contribution: number;
+};
+
 export type AxisSentiment = {
   axis: string;
   bucket_unit: string;
@@ -126,6 +137,18 @@ export function subjectTrendsAllUnits(dir: string = goldDir()): SubjectTrend[] {
 
 export function axisSentimentsAllUnits(dir: string = goldDir()): AxisSentiment[] {
   return readJsonlFrom<AxisSentiment>(dir, "axis_sentiment");
+}
+
+export function subjectSourceContributionsAllUnits(
+  dir: string = goldDir(),
+): SubjectSourceContribution[] {
+  return readJsonlFrom<SubjectSourceContribution>(dir, "subject_source_contribution");
+}
+
+export function subjectSourceContributions(
+  dir: string = goldDir(),
+): SubjectSourceContribution[] {
+  return inFinestUnit(subjectSourceContributionsAllUnits(dir));
 }
 
 /** 집계 묶음의 입력이 된 주기의 Bronze 관측. 교차표 재계산의 축·수집 시각이 여기서 온다. */

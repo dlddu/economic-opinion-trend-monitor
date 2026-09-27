@@ -402,7 +402,8 @@ chain_aggregation() {
   run_aggregation_stack "" /data/aggregation baseline
   export_news_item /data/aggregation "$AGG_BRONZE_DIR"
   export_analysis /data/aggregation "$AGG_SILVER_DIR"
-  export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment
+  export_lake /data/aggregation gold "$GOLD_DIR" subject_trend axis_sentiment \
+    subject_source_contribution
   echo "[e2e] gold exported -> $GOLD_DIR"
 
   local log
@@ -422,7 +423,8 @@ chain_aggregation() {
 
 chain_aggregation_skew() {
   run_aggregation_stack "-skew" /data/aggregation-skew skewed
-  export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment
+  export_lake /data/aggregation-skew gold "$GOLD_SKEW_DIR" subject_trend axis_sentiment \
+    subject_source_contribution
   echo "[e2e] gold (skewed volume) exported -> $GOLD_SKEW_DIR"
 }
 
