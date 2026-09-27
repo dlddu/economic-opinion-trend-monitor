@@ -1438,6 +1438,73 @@ button.norm-toggle {
   font-size: 24px;
 }
 
+.art-pick {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px dashed var(--ink-4);
+}
+
+.art-pick.on {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+tr.fair-picked td {
+  background: var(--panel-2);
+}
+
+.art-card {
+  margin-top: 12px;
+}
+
+.art-filters {
+  margin-bottom: 10px;
+}
+
+.art-count {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.art-list {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.art-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.art-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.art-title {
+  font-weight: 600;
+}
+
+.art-meta,
+.art-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* PAT-lineage — 원문 계보 추적.
    선택자를 전부 `.trace-` 로 접두한다: 목업과 이름을 공유하면 규칙 5가 선언 단위로
    대조하는데, 이 화면의 조회 폼·계보 스트립은 목업이 인라인 스크립트로 조립하는

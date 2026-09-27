@@ -6,6 +6,7 @@ import type {
   Axis,
   BucketUnit,
   CompareResponse,
+  ContributionsResponse,
   DashboardResponse,
   DashRange,
   FairnessResponse,
@@ -63,6 +64,14 @@ export const api = {
   // bucket is chosen over all axes, so the server has to see them all.
   sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
   fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
+  contributions: (axis: Axis = "KR", subject = "", unit = "", timeBucket = "", source = "") =>
+    getJSON<ContributionsResponse>(
+      `/contributions?axis=${axis}` +
+        (subject ? `&subject=${encodeURIComponent(subject)}` : "") +
+        (unit ? `&unit=${encodeURIComponent(unit)}` : "") +
+        (timeBucket ? `&time_bucket=${encodeURIComponent(timeBucket)}` : "") +
+        (source ? `&source=${encodeURIComponent(source)}` : ""),
+    ),
   // record_id is optional for the same reason subject is on trend: the screen
   // has to be able to open before it knows one.
   trace: (recordId?: string) =>

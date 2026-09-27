@@ -151,6 +151,39 @@ export interface FairnessResponse {
   rows: FairnessRow[];
 }
 
+export interface ContributionRow {
+  record_id: string;
+  source_id: string;
+  title: string;
+  source_url: string;
+  collected_at: string;
+  body_hash: string;
+  body_available: boolean;
+  body_duplicate: boolean;
+  body_shares: number;
+}
+
+export interface ContributionSource {
+  source_id: string;
+  listed: number;
+}
+
+export interface ContributionsResponse {
+  basis: {
+    axis: Axis;
+    subject: string;
+    bucket_unit: string;
+    time_bucket: string;
+    source: string;
+    raw_count: number;
+    total: number;
+    listed: number;
+    analyzer_version: string;
+  };
+  sources: ContributionSource[];
+  rows: ContributionRow[];
+}
+
 export interface CompareResponse {
   basis: {
     time_bucket: string;
