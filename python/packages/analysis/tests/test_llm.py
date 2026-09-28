@@ -354,3 +354,34 @@ def test_subject_containing_an_alias_is_not_folded(subject: str) -> None:
     # Substring folding would merge these into 한국은행 기준금리 / 원/달러 환율 / 삼성전자.
     c = _completer(_reply(narrative_subjects=[subject]))
     assert analyze_llm(_bronze(), "body", c).narrative_subjects == [subject]
+
+
+@pytest.mark.parametrize(
+    ("surface", "canonical"),
+    [
+        ("국제통화기금(IMF)", "국제통화기금"),
+        ("IMF", "국제통화기금"),
+        ("국제금융공사 (IFC)", "국제금융공사"),
+        ("포괄적·점진적 환태평양경제동반자협정(CPTPP)", "포괄적·점진적 환태평양경제동반자협정"),
+        ("세계은행그룹", "세계은행"),
+        ("중동전쟁", "중동 전쟁"),
+        ("S&P500", "S&P 500"),
+        ("한국  조선해양", "한국 조선해양"),
+    ],
+)
+def test_production_variants_fold_to_one_key(surface: str, canonical: str) -> None:
+    c = _completer(_reply(narrative_subjects=[surface]))
+    assert analyze_llm(_bronze(), "body", c).narrative_subjects == [canonical]
+
+
+def test_gloss_that_is_not_an_acronym_is_kept() -> None:
+    c = _completer(_reply(narrative_subjects=["삼성전자(우)"]))
+    assert analyze_llm(_bronze(), "body", c).narrative_subjects == ["삼성전자(우)"]
+
+
+def test_variants_folding_together_leave_one_subject() -> None:
+    # One article naming both 세계은행 and 세계은행그룹 is one mention of one subject.
+    c = _completer(
+        _reply(narrative_subjects=["세계은행", "세계은행그룹", "IMF", "국제통화기금(IMF)"])
+    )
+    assert analyze_llm(_bronze(), "body", c).narrative_subjects == ["세계은행", "국제통화기금"]

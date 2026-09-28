@@ -269,3 +269,48 @@ func TestContributionsAnswersAnUnknownSubjectWithAnEmptyList(t *testing.T) {
 		t.Fatalf("sources = %+v, want an empty list", got.Sources)
 	}
 }
+
+// One article (https://wire.example/a) observed in two hourly cycles, its body
+// edited and re-analysed in between, next to article b observed once. The Gold
+// is build_subject_trends_all_units' output for this lake, day unit, pasted in.
+func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *testing.T) {
+	dir := t.TempDir()
+	bronze := `{"record_id": "a13", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 1보", "source_url": "https://wire.example/a", "body_hash": "ha1", "body_available": true, "collected_at": "2026-06-23T13:00:00Z", "collection_cycle": "2026-06-23T13"}
+{"record_id": "a14", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 2보", "source_url": "https://wire.example/a", "body_hash": "ha2", "body_available": true, "collected_at": "2026-06-23T14:00:00Z", "collection_cycle": "2026-06-23T14"}
+{"record_id": "b13", "source_id": "kr_wire", "axis": "KR", "rank": 2, "view_count": 1, "title": "환율", "source_url": "https://wire.example/b", "body_hash": "hb", "body_available": true, "collected_at": "2026-06-23T13:00:00Z", "collection_cycle": "2026-06-23T13"}
+{"record_id": "b14", "source_id": "kr_wire", "axis": "KR", "rank": 2, "view_count": 1, "title": "환율", "source_url": "https://wire.example/b", "body_hash": "hb", "body_available": true, "collected_at": "2026-06-23T14:00:00Z", "collection_cycle": "2026-06-23T14"}`
+	silver := `{"record_id": "a13", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["삼성전자", "환율"], "confidence": 0.9, "analyzed_at": "2026-06-23T13:10:00Z", "analyzer_version": "v1"}
+{"record_id": "a14", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["삼성전자"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v1"}
+{"record_id": "b13", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["환율"], "confidence": 0.9, "analyzed_at": "2026-06-23T13:10:00Z", "analyzer_version": "v1"}
+{"record_id": "b14", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["환율"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v1"}`
+	gold := `{"subject": "삼성전자", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}
+{"subject": "환율", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}`
+	for path, content := range map[string]string{
+		"gold/subject_trend.jsonl":             gold,
+		"bronze/news_item/hour=all/data.jsonl": bronze,
+		"silver/analysis/hour=all/data.jsonl":  silver,
+	} {
+		full := filepath.Join(dir, path)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	samsung := getContributions(t, dir, "?unit=day&time_bucket=2026-06-23&subject="+url.QueryEscape("삼성전자"))
+	if samsung.Basis.Total != int(samsung.Basis.RawCount) || len(samsung.Rows) != 1 || samsung.Rows[0].RecordID != "a14" {
+		t.Fatalf("삼성전자: want the one article through a14, total == raw_count 1; got %+v", samsung)
+	}
+
+	// a13 named 환율 but a14 — the article as it last read — does not: only b counts.
+	fx := getContributions(t, dir, "?unit=day&time_bucket=2026-06-23&subject="+url.QueryEscape("환율"))
+	if fx.Basis.Total != int(fx.Basis.RawCount) || len(fx.Rows) != 1 || fx.Rows[0].RecordID != "b14" {
+		t.Fatalf("환율: want b14 alone, total == raw_count 1; got %+v", fx)
+	}
+	// hb is carried by one article observed twice — that is not a shared body.
+	if fx.Rows[0].BodyDuplicate || fx.Rows[0].BodyShares != 1 {
+		t.Fatalf("re-observation counted as body reuse: %+v", fx.Rows[0])
+	}
+}

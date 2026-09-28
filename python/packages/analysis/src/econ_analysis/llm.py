@@ -29,6 +29,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -83,11 +84,29 @@ _EXTRA_ALIASES = {
     "미국 연방준비제도": "연준",
     "미국 cpi": "미국 소비자물가지수",
     "미국 소비자물가": "미국 소비자물가지수",
+    # Variants seen side by side in production Silver (2026-09-28): one subject was
+    # counted under two keys, often both extracted from one article.
+    "world bank": "세계은행",
+    "세계은행그룹": "세계은행",
+    "world bank group": "세계은행",
+    "imf": "국제통화기금",
+    "ifc": "국제금융공사",
+    "ida": "국제개발협회",
+    "ibrd": "국제부흥개발은행",
+    "miga": "다자간투자보증기구",
+    "imfc": "국제통화금융위원회",
+    # The lookup ignores spacing, so these name the spelling the unspaced form folds to.
+    "중동 전쟁": "중동 전쟁",
+    "이란 전쟁": "이란 전쟁",
 }
+
+#: A trailing Latin acronym gloss, as in 국제통화기금(IMF): the name before it is the key.
+_ACRONYM_GLOSS = re.compile(r"\s*[(（]\s*[A-Za-z][A-Za-z0-9&.\- ]*\s*[)）]\s*$")
 
 
 def _fold(text: str) -> str:
-    return " ".join(text.split()).casefold()
+    # Spacing is not identity in Korean press names: 중동전쟁 and 중동 전쟁 are one subject.
+    return "".join(text.split()).casefold()
 
 
 def _build_canonical() -> dict[str, str]:
@@ -110,9 +129,18 @@ def canonical_subject(text: str) -> str:
     """Fold a model-supplied subject onto its catalog key when it *is* a known variant.
 
     Whole-name match only: a substring match would fold 미국 기준금리 into 한국은행
-    기준금리 or 삼성SDI into 삼성전자. Unknown subjects are returned unchanged (AC2.2).
+    기준금리 or 삼성SDI into 삼성전자. Before the lookup a trailing acronym gloss is
+    dropped (국제통화기금(IMF) is 국제통화기금) and runs of whitespace close up to one
+    space; beyond that an unknown subject is returned as named (AC2.2).
     """
-    return _CANONICAL.get(_fold(text), text)
+    name = " ".join(text.split())
+    bare = _ACRONYM_GLOSS.sub("", name) or name
+    return _CANONICAL.get(_fold(name)) or _CANONICAL.get(_fold(bare), bare)
+
+
+def canonical_subjects(names: list[str]) -> list[str]:
+    """Canonicalize each subject, keeping the first of any that fold together."""
+    return list(dict.fromkeys(canonical_subject(name) for name in names))
 
 
 class Completer(Protocol):
@@ -336,7 +364,7 @@ def analyze_llm(
         confidence = 0.0
     confidence = min(1.0, max(0.0, confidence))
 
-    subjects = [canonical_subject(s) for s in _clean_list(parsed.get("narrative_subjects"))]
+    subjects = canonical_subjects(_clean_list(parsed.get("narrative_subjects")))
     status = "analyzed" if confidence >= _LOW_CONFIDENCE else "low_confidence"
     return Analysis(
         target_countries=_clean_list(parsed.get("target_countries")),

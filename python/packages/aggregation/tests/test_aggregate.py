@@ -191,3 +191,55 @@ def test_default_unit_is_the_hour_so_existing_callers_are_unchanged() -> None:
     bronze, silver = _span_bronze(), _span_silver()
     assert build_subject_trends(bronze, silver) == build_subject_trends(bronze, silver, "hour")
     assert build_axis_sentiment(bronze, silver) == build_axis_sentiment(bronze, silver, "hour")
+
+
+def _observed(rid: str, url: str, hour: int, source: str = "src") -> dict:
+    return {**_bronze(rid, "KR", source, hour=hour), "source_url": url}
+
+
+def test_day_bucket_counts_an_article_once_however_often_it_was_observed() -> None:
+    # Article a stays on the feed for three hourly cycles, b for one: two articles.
+    bronze = [
+        _observed("a14", "https://n.test/a", 14),
+        _observed("a15", "https://n.test/a", 15),
+        _observed("a16", "https://n.test/a", 16),
+        _observed("b14", "https://n.test/b", 14),
+    ]
+    silver = [
+        _silver("a14", ["A"], "positive", "analyzed"),
+        _silver("a15", ["A"], "positive", "analyzed"),
+        _silver("a16", ["A"], "positive", "analyzed"),
+        _silver("b14", ["B"], "neutral", "analyzed"),
+    ]
+    day = {t["subject"]: t for t in build_subject_trends(bronze, silver, "day")}
+    assert day["A"]["raw_count"] == 1
+    assert day["A"]["normalized_share"] == 0.5
+    assert day["B"]["normalized_share"] == 0.5
+
+    # Each hour holds one observation per article, so the hour buckets are unchanged.
+    hour = [t for t in build_subject_trends(bronze, silver, "hour") if t["subject"] == "A"]
+    assert [t["raw_count"] for t in hour] == [1, 1, 1]
+
+    sentiment = build_axis_sentiment(bronze, silver, "day")
+    assert sentiment[0]["analyzed_total"] == 2
+    assert sentiment[0]["distribution"]["positive"] == 0.5
+
+
+def test_article_is_read_through_its_latest_observation_in_the_bucket() -> None:
+    # The body was edited between cycles and re-analysed: the day counts what it says now.
+    bronze = [_observed("a14", "https://n.test/a", 14), _observed("a15", "https://n.test/a", 15)]
+    silver = [
+        _silver("a15", ["new"], "negative", "analyzed"),
+        _silver("a14", ["old"], "positive", "analyzed"),
+    ]
+    day = build_subject_trends(bronze, silver, "day")
+    assert [t["subject"] for t in day] == ["new"]
+    assert build_axis_sentiment(bronze, silver, "day")[0]["distribution"]["negative"] == 1.0
+
+
+def test_subject_repeated_within_one_analysis_counts_once() -> None:
+    bronze = [_observed("1", "https://n.test/a", 14)]
+    silver = [_silver("1", ["A", "A", "B"], "neutral", "analyzed")]
+    rows = {t["subject"]: t for t in build_subject_trends(bronze, silver)}
+    assert rows["A"]["raw_count"] == 1
+    assert rows["A"]["normalized_share"] == 0.5

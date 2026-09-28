@@ -104,7 +104,14 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		byID[it.RecordID] = it
 	}
 
-	all := make([]contributionRow, 0, len(served))
+	// One row per article, through its latest observation in the bucket — the
+	// pick econ_aggregation.aggregate.bucket_articles makes before it counts, so
+	// the subject filter runs on the same analysis the Gold count read.
+	type observed struct {
+		item     gen.NewsItem
+		analysis gen.Analysis
+	}
+	latest := map[string]observed{}
 	for _, a := range served {
 		item, ok := byID[a.RecordID]
 		if !ok || string(item.Axis) != axis {
@@ -113,7 +120,18 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		if bucketLabel(item.CollectedAt, unit) != bucket {
 			continue
 		}
-		if !contains(a.NarrativeSubjects, subject) {
+		key := articleKey(item)
+		seen, ok := latest[key]
+		if !ok || item.CollectedAt > seen.item.CollectedAt ||
+			(item.CollectedAt == seen.item.CollectedAt && item.RecordID > seen.item.RecordID) {
+			latest[key] = observed{item, a}
+		}
+	}
+
+	all := make([]contributionRow, 0, len(latest))
+	for _, o := range latest {
+		item := o.item
+		if !contains(o.analysis.NarrativeSubjects, subject) {
 			continue
 		}
 		n := shares[item.BodyHash]
@@ -250,14 +268,32 @@ func bucketLabel(collectedAt string, unit gen.BucketUnit) string {
 	return ""
 }
 
-// bodyShares: an empty body hash is "no text kept", not a text they all share.
+// articleKey mirrors econ_aggregation.aggregate.article_key: an observation's
+// article is its link, or the record itself when it has none.
+func articleKey(item gen.NewsItem) string {
+	if item.SourceURL != "" {
+		return item.SourceURL
+	}
+	return item.RecordID
+}
+
+// bodyShares counts the articles carrying each body, not the observations: the
+// hourly re-collection observes one article many times, and that is not reuse.
+// An empty body hash is "no text kept", not a text they all share.
 func bodyShares(items []gen.NewsItem) map[string]int {
-	out := map[string]int{}
+	articles := map[string]map[string]bool{}
 	for _, it := range items {
 		if it.BodyHash == "" {
 			continue
 		}
-		out[it.BodyHash]++
+		if articles[it.BodyHash] == nil {
+			articles[it.BodyHash] = map[string]bool{}
+		}
+		articles[it.BodyHash][articleKey(it)] = true
+	}
+	out := make(map[string]int, len(articles))
+	for hash, keys := range articles {
+		out[hash] = len(keys)
 	}
 	return out
 }
