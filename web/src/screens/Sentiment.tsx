@@ -25,13 +25,13 @@ import { MapStrip } from "../shell/MapStrip";
 // Two things the mockup draws that are deliberately *not* here, following the
 // precedent slice 5 set for 허위 컨트롤 (a control with nothing behind it):
 //
-//   - A 기간/단위(시간·일·주) form. Gold holds day and week rows now (AC3.3),
+//   - A 기간/단위(시간·일·주) form. Gold holds day and week rows now (AC5.2),
 //     but /api/sentiment takes neither a unit nor a period parameter, so the
 //     form would have nothing to submit. The unit reflects the basis instead.
 //   - A 서술 대상 picker with a per-subject donut. Gold's sentiment record is
 //     keyed by (axis, bucket) — there is no per-subject distribution to show,
 //     and inventing one by reusing the axis's would be a fabricated number.
-//     AC3.6 reads "서술 대상 **또는 축** 단위", so the axis is the honest unit
+//     AC5.5 reads "서술 대상 **또는 축** 단위", so the axis is the honest unit
 //     here; the per-subject view waits for a per-subject aggregate.
 
 const AXES: { id: Axis; label: string; pill: string }[] = [
@@ -74,7 +74,7 @@ function bucketTick(bucket: string, unit: string): string {
  *
  * The four class ratios are scaled by the analyzed share so that classes and
  * 미분석 together make one bar of 100% — the same scaling the dashboard bar
- * uses, and the reason `ac3-6-sentiment-ratio-viz.spec.ts` compares proportions
+ * uses, and the reason `interest-trends-5-sentiment-ratio-viz.spec.ts` compares proportions
  * between classes rather than absolute widths.
  */
 function segments(dist: SentimentDistribution): { cls: string; label: string; color: string; share: number }[] {
@@ -277,7 +277,7 @@ export function Sentiment() {
                   <div>
                     이 막대는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
                     서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.{" "}
-                    <span className="mono trend-ac">AC3.3</span>
+                    <span className="mono trend-ac">AC5.2</span>
                   </div>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export function Sentiment() {
               { value: "J3", text: "단계 1 분포 열기" },
               { value: "J3", text: "단계 2 미분석 비중 확인" },
               { value: "V3", text: "분위기 분포 파악", kind: "v" },
-              { text: "AC3.4 · AC3.6 · AC2.5" },
+              { text: "AC5.3 · AC5.5 · AC2.5" },
             ]}
           />
         </>

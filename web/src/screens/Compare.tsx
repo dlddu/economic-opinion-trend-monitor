@@ -131,7 +131,7 @@ export function Compare() {
             chips={[
               { value: "J2", text: "3축 비교 뷰" },
               { value: "V2", text: "지역 축 간 비교", kind: "v" },
-              { text: "AC3.7" },
+              { text: "AC5.6" },
             ]}
           />
         </>

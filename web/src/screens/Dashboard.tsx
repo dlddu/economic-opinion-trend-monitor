@@ -283,7 +283,7 @@ export function Dashboard() {
               { value: "JRN-daily-scan", text: "여정" },
               { value: "STP-open-brief", text: "단계" },
               { value: "V1", text: "시계열 추세 가시화", kind: "v" },
-              { text: "AC3.2 · AC3.5" },
+              { text: "AC5.1 · AC5.4" },
             ]}
           />
         </div>
