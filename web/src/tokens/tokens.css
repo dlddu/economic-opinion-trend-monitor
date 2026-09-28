@@ -82,8 +82,6 @@ button {
   color: inherit;
 }
 
-/* 목업의 여정 레이어가 두는 규칙 그대로다. 이것이 없으면 `display` 를 스스로 선언한 요소
-   (`.trend-sl-banner` 등)가 UA 의 `[hidden]{display:none}` 을 이겨, 숨긴 배너가 제출 전부터 보인다. */
 [hidden] {
   display: none !important;
 }
@@ -1073,10 +1071,7 @@ a {
   align-content: start;
 }
 
-/* 1180px 이하에서 공용 반 폭 규칙(`.col-3`·`.col-5` → span 6)은 차트(`.col-9` → span 12)
-   옆에 남던 칸을 반 폭으로 두어 오른쪽을 비운다. 추세 화면에서는 옆 칸이 한 줄을 다 쓰며
-   지표 카드와 안내문을 나란히 놓고, 스캔 요약도 한 줄을 다 쓴다(720px 이하는 아래에서 쌓는다).
-   `.col-*` 와 겹쳐 적는 것은 파일 뒤쪽의 공용 규칙보다 우선하기 위해서다. */
+/* `.col-*` 와 겹쳐 적는 것은 파일 뒤쪽의 공용 `1180px` 규칙보다 우선하기 위해서다. */
 @media (max-width: 1180px) {
   .col-3.trend-side,
   .col-5.trend-summary {

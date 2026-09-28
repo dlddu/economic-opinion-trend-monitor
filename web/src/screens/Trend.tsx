@@ -36,8 +36,7 @@ const PLOT_L = 56;
 const PLOT_R = 716;
 const PLOT_TOP = 20;
 const BASELINE = 220;
-// 세로 눈금은 이 칸 수 안팎으로, 가로 눈금은 이 개수 이하로 찍는다 — 버킷이 수십~수백 개인
-// 시간 단위에서 버킷마다 라벨을 찍으면 글자가 겹쳐 읽을 수 없다.
+// 시간 단위는 버킷이 수십~수백 개라 버킷마다 라벨을 찍으면 글자가 겹쳐 읽을 수 없다.
 const GRID_ROWS = 5;
 const MAX_X_TICKS = 7;
 
@@ -64,8 +63,7 @@ function deltaLabel(delta: number): string {
   return "–";
 }
 
-/** Bucket keys are ISO prefixes; the axis only needs the part that varies —
- *  the hour alone within one day, the date as well once the window spans days. */
+/** Bucket keys are ISO prefixes; the axis only needs the part that varies. */
 function bucketTick(bucket: string, unit: string, multiDay: boolean): string {
   if (unit === "hour") {
     if (bucket.length < 13) return bucket;
@@ -75,13 +73,11 @@ function bucketTick(bucket: string, unit: string, multiDay: boolean): string {
   return bucket.slice(5) || bucket;
 }
 
-/** Evenly spaced bucket indices, both ends included, at most `max` of them. */
 function tickIndices(count: number, max: number): number[] {
   if (count <= max) return Array.from({ length: count }, (_, i) => i);
   return Array.from({ length: max }, (_, i) => Math.round((i * (count - 1)) / (max - 1)));
 }
 
-/** A 1·2·2.5·5 × 10ⁿ step (in %p) that splits `peakPct` into about `rows` rows. */
 function niceStep(peakPct: number, rows: number): number {
   const raw = peakPct / rows;
   const magnitude = 10 ** Math.floor(Math.log10(raw));
@@ -89,7 +85,6 @@ function niceStep(peakPct: number, rows: number): number {
   return factor * magnitude;
 }
 
-/** Decimal places that print every multiple of `stepPct` exactly (0.5 → 1, 0.25 → 2). */
 function stepDecimals(stepPct: number): number {
   for (let d = 0; d < 6; d += 1) {
     const scaled = stepPct * 10 ** d;
