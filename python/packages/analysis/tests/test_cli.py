@@ -1,7 +1,7 @@
 """CLI tests — analyzer selection and the two guards that keep Silver honest.
 
 ``LocalFsStore.write_records`` *replaces* the Silver dataset, and ``unanalyzed`` is the
-data-quality signal AC2.5 defines and aggregation separates on (AC5.3). So a run that
+data-quality signal AC2.5 defines and aggregation separates on (AC3.4). So a run that
 never reached the model must not write: these tests pin the exit codes and, more
 importantly, that the previous Silver survives.
 """

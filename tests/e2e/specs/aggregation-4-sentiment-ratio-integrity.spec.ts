@@ -1,4 +1,4 @@
-// 검증 시나리오: econ-opinion-monitor-test-interest-trends.md#시나리오 3
+// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 4
 //
 // 비율의 정합성은 두 가지를 함께 요구한다 — 네 분위기가 하나의 분포를 이루는가(합 1), 그리고 그
 // 분포가 **무엇을 분모로 쓰는가**. 미분석을 분모에 섞으면 합은 1보다 작아지고, 반대로 미분석을

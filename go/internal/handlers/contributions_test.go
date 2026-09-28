@@ -120,7 +120,7 @@ func rowByRecord(t *testing.T, rows []contributionRow, id string) contributionRo
 	return contributionRow{}
 }
 
-// AC6.4, first sum identity: the list's length is the same value's raw count.
+// AC3.10, first sum identity: the list's length is the same value's raw count.
 func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -146,7 +146,7 @@ func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 	}
 }
 
-// AC6.4, second sum identity: narrowing by collector partitions the list.
+// AC3.10, second sum identity: narrowing by collector partitions the list.
 func TestContributionsNarrowedBySourceSumsToTheWhole(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)

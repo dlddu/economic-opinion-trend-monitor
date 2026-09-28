@@ -118,7 +118,7 @@
     },
     "e2e-llm-agg": {
       "_doc": [
-        "집계 묶음(`…-test-analysis.md#시나리오 4·5`, `…-test-fairness.md#시나리오 1·2·4`)",
+        "집계 묶음(`…-test-analysis.md#시나리오 4·5`, `…-test-aggregation-viz.md#시나리오 1·2·4`)",
         "전용 응답. v1 을 `extends` 하지 **않는다** — 두 묶음은 기사 집합이 겹치지 않고, 물려받으면",
         "어느 값이 실제로 쓰이는지 읽는 사람이 두 곳을 봐야 한다.",
         "",

@@ -1,4 +1,4 @@
-// 검증 시나리오: econ-opinion-monitor-test-fairness.md#시나리오 3
+// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 9
 //
 // 등식은 원천 재계수 위에 얹는 교차 데이터셋 가드다 — 어느 쪽이 무엇을 잡는지 헷갈리면 등식만
 // 남기고 재계수를 지우는 개편이 통과하면서 조용히 공허해진다.
@@ -188,7 +188,7 @@ test("정규화 후 기여는 원시 증가에 비례해 흔들리지 않는다"
   const rawRatio = after!.raw_count / before!.raw_count;
   const contributionRatio = after!.normalized_contribution / before!.normalized_contribution;
 
-  // 비례가 끊어졌다는 판정의 잣대는 대상 단위의 `fairness-1` 이 세운 것과 같다.
+  // 비례가 끊어졌다는 판정의 잣대는 대상 단위의 `aggregation-1` 이 세운 것과 같다.
   expect(contributionRatio).toBeLessThan(rawRatio / 2);
   expect(contributionRatio).toBeGreaterThan(1);
 });

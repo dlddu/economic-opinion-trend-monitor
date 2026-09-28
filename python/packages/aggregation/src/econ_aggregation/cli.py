@@ -86,7 +86,7 @@ def _aggregate(
     serving = silver.serving_version(store)
     chosen = silver.select_serving(all_silver, serving)
 
-    # Every run emits all three bucket units (AC5.2). They share one dataset
+    # Every run emits all three bucket units (AC3.3). They share one dataset
     # because ``bucket_unit`` is what the contract gives readers to tell them
     # apart; readers that draw one chart settle on a single unit first.
     trends = build_subject_trends_all_units(bronze, chosen)

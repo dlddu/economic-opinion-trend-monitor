@@ -30,7 +30,7 @@ checkpoint instead of starting over.
 
 The real analyzer never lets an operator error masquerade as analysis output, because
 ``unanalyzed`` is a data-quality signal downstream aggregation separates on (AC2.5,
-AC5.3). Two guards, two exit codes: an incomplete ``ECON_LLM_*`` environment aborts
+AC3.4). Two guards, two exit codes: an incomplete ``ECON_LLM_*`` environment aborts
 before Bronze is even read (:data:`EXIT_CONFIG`), and a batch whose every model call
 failed is not written and stops the run (:data:`EXIT_ALL_CALLS_FAILED`), leaving the
 Silver written so far intact.

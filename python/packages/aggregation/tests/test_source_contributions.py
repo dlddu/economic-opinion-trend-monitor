@@ -1,4 +1,4 @@
-"""AC6.3 — the source decomposition and the two sum identities it must satisfy.
+"""AC3.9 — the source decomposition and the two sum identities it must satisfy.
 
 Every case runs the decomposition and ``build_subject_trends`` over the *same*
 input, because the claim under test is that the two agree, not that either one

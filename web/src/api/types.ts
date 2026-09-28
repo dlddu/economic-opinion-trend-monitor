@@ -64,14 +64,14 @@ export interface DashboardResponse {
   top_subjects: DashRow[];
 }
 
-/** One axis column of the 3-axis comparison (AC5.6). */
+/** One axis column of the 3-axis comparison (AC3.7). */
 export interface AxisColumn {
   axis: Axis;
   top_subjects: RankRow[];
   sentiment: SentimentDistribution;
 }
 
-/** One point of a subject's time series (AC5.4). */
+/** One point of a subject's time series (AC3.5). */
 export interface TrendPoint {
   time_bucket: string;
   normalized_share: number;
@@ -100,7 +100,7 @@ export interface TrendResponse {
   series: TrendSeries[];
 }
 
-/** One bucket of one axis's sentiment composition (AC5.3, AC5.5). */
+/** One bucket of one axis's sentiment composition (AC3.4, AC3.6). */
 export interface SentimentPoint {
   time_bucket: string;
   distribution: SentimentDistribution;
@@ -128,7 +128,7 @@ export interface SentimentResponse {
   by_axis: SentimentAxisRow[];
 }
 
-/** One subject counted two ways at the same bucket (AC6.1, AC6.2). */
+/** One subject counted two ways at the same bucket (AC3.1, AC3.8). */
 export interface FairnessRow {
   rank: number;
   subject: string;

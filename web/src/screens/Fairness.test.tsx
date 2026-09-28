@@ -179,7 +179,7 @@ function shareCells(row: HTMLElement): HTMLElement[] {
   return [...row.querySelectorAll(".share")] as HTMLElement[];
 }
 
-// AC6.2: the two values are present *at once* and told apart, rather than one
+// AC3.8: the two values are present *at once* and told apart, rather than one
 // standing in for the other.
 it("shows the raw count and the normalized share as distinct values in one row", async () => {
   stubFairness();

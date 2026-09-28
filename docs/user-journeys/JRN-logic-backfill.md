@@ -10,7 +10,7 @@
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
 | 최종 수정일 | 2026-08-29 |
 | 달성 가치 | `V5` 원문 추적성과 재처리 가능성 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-analysis.md` (AC2.2·AC2.3·AC2.4·AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · `econ-opinion-monitor-prd-interest-trends.md` (AC5.1·AC5.2) · mockup 여정 페이지 `docs/mockups/JRN-logic-backfill.html` (구 `reprocess` 화면을 흡수) |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-analysis.md` (AC2.2·AC2.3·AC2.4·AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.2·AC3.3) · mockup 여정 페이지 `docs/mockups/JRN-logic-backfill.html` (구 `reprocess` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -62,7 +62,7 @@ Bronze 원문을 새 로직으로 재분석해 Silver/Gold를 갱신하되, 원�
 
 ### `STP-compare-before-after` 전후 집계 비교
 
-- **사용자 행동**: 재처리 전후 서술 대상 집계·시계열을 나란히 비교해 차이를 검토한다 (AC5.1, AC5.2)
+- **사용자 행동**: 재처리 전후 서술 대상 집계·시계열을 나란히 비교해 차이를 검토한다 (AC3.2, AC3.3)
 - **터치포인트**: `JRN-logic-backfill.html` 전후 비교 패턴(`PAT-before-after`), 테이블(`CMP-table`)
 - **생각·감정**: "이 정도 차이는 의도한 개선이고… 이건 왜 이렇게 벌어졌지?"
 - **페인포인트 / 이탈 위험**: 차이가 큰 항목이 자동으로 부각되지 않으면 눈으로 표를 훑어야 한다 → 변화량 상위 항목을 우선 정렬하고 임계 초과를 배지 표시

@@ -62,7 +62,7 @@ type contributionsResponse struct {
 	Rows    []contributionRow    `json:"rows"`
 }
 
-// contributions lists the individual articles behind one Gold value (AC6.4).
+// contributions lists the individual articles behind one Gold value (AC3.10).
 //
 // The join must stay the *same calculation* build_subject_trends runs — a second
 // way of computing it here disagrees with the number the list explains.

@@ -2,7 +2,7 @@
 
 package gen
 
-// AxisSentiment Gold record — per (axis, time bucket) sentiment distribution (AC5.3, AC5.5).
+// AxisSentiment Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6).
 type AxisSentiment struct {
 	Axis          Axis                  `json:"axis"`
 	BucketUnit    BucketUnit            `json:"bucket_unit"`
@@ -11,7 +11,7 @@ type AxisSentiment struct {
 	AnalyzedTotal int64                 `json:"analyzed_total"`
 }
 
-// SentimentDistribution Sentiment ratios for analyzed items; unanalyzed kept separate (AC5.3, AC5.5).
+// SentimentDistribution Sentiment ratios for analyzed items; unanalyzed kept separate (AC3.4, AC3.6).
 type SentimentDistribution struct {
 	Positive   float64 `json:"positive"`
 	Neutral    float64 `json:"neutral"`
@@ -20,7 +20,7 @@ type SentimentDistribution struct {
 	Unanalyzed float64 `json:"unanalyzed"`
 }
 
-// SubjectSourceContribution Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC6.3). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend.
+// SubjectSourceContribution Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC3.9). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend.
 type SubjectSourceContribution struct {
 	Subject                string     `json:"subject"`
 	Axis                   Axis       `json:"axis"`
@@ -32,7 +32,7 @@ type SubjectSourceContribution struct {
 	NormalizedContribution float64    `json:"normalized_contribution"`
 }
 
-// SubjectTrend Gold record — per (subject, axis, time bucket) trend aggregation (AC6.1-AC5.2, AC5.4, AC6.2).
+// SubjectTrend Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8).
 type SubjectTrend struct {
 	Subject         string     `json:"subject"`
 	Axis            Axis       `json:"axis"`

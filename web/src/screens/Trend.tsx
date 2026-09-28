@@ -6,7 +6,7 @@ import { MapStrip } from "../shell/MapStrip";
 
 // Two things are deliberately *not* here:
 //
-//   - A 시간/일/주 switch. Gold carries all three units now (AC5.2), but
+//   - A 시간/일/주 switch. Gold carries all three units now (AC3.3), but
 //     /api/trend settles on one itself and takes no ?unit= parameter, so the
 //     control would have nothing to switch with. The design tracker calls a
 //     switch with nothing behind it a 허위 컨트롤 (the normalization toggle is
@@ -272,13 +272,13 @@ export function Trend() {
                 <div>
                   이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
                   서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.{" "}
-                  <span className="mono trend-ac">AC5.2</span>
+                  <span className="mono trend-ac">AC3.3</span>
                 </div>
               </div>
             </div>
 
             {/* 상위 대상 비교 — 목업 `STP-drill-trend` 의 「상위 대상 비교」 표.
-                행 클릭이 대상 선택이라 별도 picker 를 두지 않는다 (AC5.4 대상 선택). */}
+                행 클릭이 대상 선택이라 별도 picker 를 두지 않는다 (AC3.5 대상 선택). */}
             <div className="card col-12">
               <div className="card-h">
                 <h3>상위 대상 비교</h3>
@@ -352,7 +352,7 @@ export function Trend() {
               { value: "J1", text: "단계 3 대상 선택" },
               { value: "J1", text: "단계 4 상위 대상 비교" },
               { value: "V1", text: "시계열 추세 가시화", kind: "v" },
-              { text: "AC5.4 · AC5.1" },
+              { text: "AC3.5 · AC3.2" },
             ]}
           />
         </>
