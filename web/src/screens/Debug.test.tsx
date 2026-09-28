@@ -93,7 +93,7 @@ const INPUT: DebugInput = {
       body_hash: "hash-v1",
       first_seen_at: "2026-09-24T01:12:00Z",
       first_seen_cycle: "2026-09-24T01:00",
-      raw_text: "한국은행은 기준금리를 동결했다.",
+      raw_text: "한국은행은 기준금리를 연 3.50%로 동결했다. 금융통화위원회는 물가 상승률이 목표 수준으로 내려오고 있다고 봤다.",
       analyzed: true,
       latest: false,
     },
@@ -101,7 +101,7 @@ const INPUT: DebugInput = {
       body_hash: "hash-v2",
       first_seen_at: "2026-09-24T01:40:00Z",
       first_seen_cycle: "2026-09-24T01:00",
-      raw_text: "한국은행은 기준금리를 동결했다. 다만 가계부채 우려를 덧붙였다.",
+      raw_text: "한국은행은 기준금리를 연 3.50%로 동결했다. 금융통화위원회는 물가 상승률이 목표 수준으로 내려오고 있다고 봤다. 다만 가계부채 우려를 덧붙였다.",
       analyzed: false,
       latest: true,
     },
@@ -363,8 +363,11 @@ it("says nothing matched instead of drawing an empty result table", async () => 
   stub(response(), records({ rows: [], total: 3, matched: 0 }));
   const { container } = renderDebug();
 
-  await waitFor(() => expect(container.querySelector(".emptybox")).toBeTruthy());
-  expect(container.querySelector(".emptybox")?.textContent).toContain("찾는 분석 결과가 없습니다");
+  await waitFor(() => expect(container.querySelector(".dbg-emptybox")).toBeTruthy());
+  const empty = container.querySelector(".dbg-emptybox")?.textContent ?? "";
+  expect(empty).toContain("찾는 분석 결과가 없습니다");
+  expect(empty).toContain("record_id=");
+  expect(empty).not.toContain("R-");
 });
 
 it("keeps the search table reachable when the requested record is missing", async () => {
@@ -435,4 +438,42 @@ it("claims no empty body when the collection record itself is missing", async ()
   await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
   expect(container.textContent).toContain("비교할 원문이 없습니다");
   expect(container.textContent).not.toContain("본문이 사실상 비어 있습니다.");
+});
+
+it("says the archived body is only a notice when it is too short to judge", async () => {
+  const notice = {
+    ...INPUT.versions[0],
+    raw_text: "이 기사는 구독자 전용입니다. 무단 전재·재배포 금지.",
+    latest: true,
+  };
+  stub(response({ input: { ...INPUT, versions: [notice] } }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  expect(container.textContent).toContain("본문이 사실상 비어 있습니다.");
+  expect(container.textContent).toContain("보관된 본문이 구독·저작권 안내 문구뿐입니다.");
+});
+
+it("raises no empty-body warning for a full archived body", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  expect(container.textContent).not.toContain("본문이 사실상 비어 있습니다.");
+});
+
+it("lets the picked result open its source and names the keys it carries", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("고른 결과"));
+  const picked = cardTitled(container, "고른 결과") as HTMLElement;
+  expect(picked.textContent).toContain("원문 주소");
+  expect(picked.textContent).toContain(INPUT.source_url);
+  expect(picked.textContent).toContain(
+    "결과마다 그것을 만든 실행과 모델 호출이 붙어 있습니다. 원문으로 되짚는 키도 그대로입니다.",
+  );
+  const open = picked.querySelector(`a[href="${INPUT.source_url}"]`);
+  expect(open?.textContent).toContain("원문 열기");
+  expect(open?.getAttribute("target")).toBe("_blank");
 });
