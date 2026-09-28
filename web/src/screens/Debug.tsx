@@ -121,6 +121,7 @@ export function Debug() {
   const [cause, setCause] = useState("");
   const [memo, setMemo] = useState("");
   const [recorded, setRecorded] = useState<string | null>(null);
+  const [bodyVer, setBodyVer] = useState("");
 
   useEffect(() => {
     setRecordId(query);
@@ -157,6 +158,7 @@ export function Debug() {
     setData(null);
     setError(null);
     setRecorded(null);
+    setBodyVer("");
     api
       .debug(query || undefined)
       .then((d) => active && setData(d))
@@ -179,6 +181,20 @@ export function Debug() {
   const mismatched = rows.filter((r) => !r.agrees);
   const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
+  const input = data?.input ?? null;
+  const bodies = input?.versions ?? [];
+  const latestBody = bodies.find((b) => b.latest) ?? null;
+  const shownBody = bodies.find((b) => b.body_hash === bodyVer) ?? latestBody;
+  const bodyLabel = (hash: string) => {
+    const at = bodies.findIndex((b) => b.body_hash === hash);
+    return at < 0 ? hash.slice(0, 12) : `v${at + 1}`;
+  };
+  const sentKnown = exchange?.state === "call" && !!input && input.body_hash !== "";
+  const sentBody = bodies.find((b) => b.analyzed) ?? null;
+  const staleBy =
+    sentKnown && sentBody && latestBody && !sentBody.latest
+      ? bodies.indexOf(latestBody) - bodies.indexOf(sentBody)
+      : 0;
 
   return (
     <>
@@ -633,6 +649,112 @@ export function Debug() {
               </div>
             </div>
           )}
+
+          <div className="grid g-12">
+            <div className="card col-6">
+              <div className="card-h">
+                <h3>모델이 받은 입력</h3>
+                <span className="sub">
+                  {sentKnown && input
+                    ? `요청의 제목·본문 · 본문 ${bodyLabel(input.body_hash)}`
+                    : "재구성할 요청이 없습니다"}
+                </span>
+              </div>
+              <div className="card-b">
+                <pre className="code">
+                  {exchange.state === "no-call"
+                    ? "(모델에 보내지 않음)"
+                    : exchange.state === "call" && call
+                      ? call.prompt_user
+                      : "(호출 기록이 없어 모델이 받은 입력을 재구성할 수 없습니다)"}
+                </pre>
+              </div>
+            </div>
+            <div className="card col-6">
+              <div className="card-h">
+                <h3>보관된 원문</h3>
+                <span className="sub">수정될 때마다 새 버전으로 쌓입니다</span>
+              </div>
+              <div className="card-b">
+                <div className="formrow">
+                  <label className="fld">
+                    <span className="fl">원문 버전</span>
+                    <select
+                      value={shownBody?.body_hash ?? ""}
+                      onChange={(e) => setBodyVer(e.target.value)}
+                    >
+                      {bodies.length ? (
+                        bodies.map((b) => (
+                          <option key={b.body_hash} value={b.body_hash}>
+                            {bodyLabel(b.body_hash)} · {b.first_seen_at}
+                            {b.analyzed && sentKnown ? " · 분석에 쓴 버전" : ""}
+                            {b.latest ? " · 최신" : ""}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">보관된 본문 없음</option>
+                      )}
+                    </select>
+                  </label>
+                </div>
+                <pre className="code">
+                  {shownBody && input
+                    ? `TITLE: ${input.title}\n\nBODY:\n${shownBody.raw_text}`
+                    : "(본문 없음 — 원문 링크만 보관)"}
+                </pre>
+                <div className="dbg-actions">
+                  {input?.source_url && (
+                    <a className="btn sm" href={input.source_url} target="_blank" rel="noreferrer">
+                      원문 열기 ↗
+                    </a>
+                  )}
+                  <a className="btn sm" href={`/trace?record_id=${encodeURIComponent(data.record_id)}`}>
+                    원문 추적 상세에서 전체 보기 →
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="card col-12">
+              <div className="card-b">
+                <p>
+                  <b>
+                    {!shownBody
+                      ? "비교할 원문이 없습니다"
+                      : !sentKnown || !input
+                        ? "모델이 받은 입력을 알 수 없어 원문만 보여 줍니다"
+                        : shownBody.analyzed
+                          ? "고른 원문 버전이 모델이 받은 본문과 같습니다"
+                          : `고른 원문 버전이 모델이 받은 본문과 다릅니다 (${bodyLabel(input.body_hash)} ↔ ${bodyLabel(shownBody.body_hash)})`}
+                  </b>
+                </p>
+                <p className="meta">
+                  {bodies.length && latestBody
+                    ? `보관 버전 ${bodies.length}개 · 분석에 쓴 버전 ${
+                        sentKnown && input ? bodyLabel(input.body_hash) : "알 수 없음"
+                      } · 최신 ${bodyLabel(latestBody.body_hash)}`
+                    : "보관 버전 0개"}
+                </p>
+                {staleBy > 0 && (
+                  <div className="note">
+                    <div>
+                      <b>분석에 쓴 본문과 지금 보관된 최신 본문이 다릅니다.</b> 기사가 분석 뒤에{" "}
+                      {staleBy}번 수정됐습니다. 판단은 당시 본문 기준으로는 맞았을 수 있습니다 — 이
+                      경우 고칠 곳은 모델이 아니라 수정본을 다시 분석하는 흐름입니다.
+                    </div>
+                  </div>
+                )}
+                {input && bodies.length === 0 && (
+                  <div className="note">
+                    <div>
+                      <b>본문이 사실상 비어 있습니다.</b> 원문 링크만 있고 본문이 수집되지
+                      않았습니다. 이 입력으로는 어떤 모델도 판단할 수 없습니다 — 수집 쪽을 먼저
+                      봐야 합니다.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* CMP-table + CMP-metric. 수집 단계의 구간별 집계 패널은 다른 여정
               (JRN-ingestion-recovery)의 것이라 여기서 세우지 않는다. */}

@@ -13,6 +13,7 @@ type debugResponse struct {
 	Found     bool           `json:"found"`
 	Versions  []debugVersion `json:"versions"`
 	Run       *debugRun      `json:"run"`
+	Input     *debugInput    `json:"input"`
 }
 
 type debugVersion struct {
@@ -116,6 +117,7 @@ func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 		Found:     true,
 		Versions:  rows,
 		Run:       debugRunOf(run, analyses, calls),
+		Input:     h.debugInputOf(recordID),
 	})
 }
 

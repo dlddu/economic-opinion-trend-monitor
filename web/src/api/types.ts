@@ -459,6 +459,24 @@ export interface DebugResponse {
   found: boolean;
   versions: DebugVersion[];
   run: DebugRun | null;
+  input: DebugInput | null;
+}
+
+export interface DebugBodyVersion {
+  body_hash: string;
+  first_seen_at: string;
+  first_seen_cycle: string;
+  raw_text: string;
+  analyzed: boolean;
+  latest: boolean;
+}
+
+export interface DebugInput {
+  title: string;
+  source_url: string;
+  body_available: boolean;
+  body_hash: string;
+  versions: DebugBodyVersion[];
 }
 
 export interface DebugRecordRow {
