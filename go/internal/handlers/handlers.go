@@ -290,16 +290,22 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
-	trends, _ := h.lake.SubjectTrends()
-	rows := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if string(t.Axis) == axis {
-			rows = append(rows, t)
+	// Filter while reading rather than after: only this axis's rows in the
+	// finest unit seen so far are kept, so the other axes and the coarser
+	// units never sit in memory at once.
+	var finest gen.BucketUnit
+	rows, _ := h.lake.SubjectTrendsWhere(func(t *gen.SubjectTrend) bool {
+		if string(t.Axis) != axis {
+			return false
 		}
-	}
+		if finest == "" || unitRank(t.BucketUnit) < unitRank(finest) {
+			finest = t.BucketUnit
+		}
+		return t.BucketUnit == finest
+	})
 
 	unit := plottedUnit(rows)
-	inUnit := rows[:0:0]
+	inUnit := rows[:0]
 	for _, t := range rows {
 		if t.BucketUnit == unit {
 			inUnit = append(inUnit, t)
@@ -677,6 +683,17 @@ func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
 		present[t.BucketUnit] = true
 	}
 	return finestUnit(present)
+}
+
+// unitRank orders the units finest first, the same order finestUnit walks; an
+// unknown unit ranks after all of them.
+func unitRank(u gen.BucketUnit) int {
+	for i, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
+		if u == unit {
+			return i
+		}
+	}
+	return 3
 }
 
 // finestUnit ranks the units rather than the bucket keys — the one comparison

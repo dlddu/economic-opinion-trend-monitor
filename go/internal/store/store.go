@@ -54,6 +54,14 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
 }
 
+// SubjectTrendsWhere streams the Gold subject_trend dataset and keeps only the
+// rows keep accepts. The whole dataset is never held at once: each line is
+// decoded, offered to keep, and dropped if refused — Gold grows every batch
+// run, and a handler that wants one axis should not pay for all of them.
+func (l *Lake) SubjectTrendsWhere(keep func(*gen.SubjectTrend) bool) ([]gen.SubjectTrend, error) {
+	return scanJSONL(l.path("gold", "subject_trend"), keep)
+}
+
 func (l *Lake) SubjectSourceContributions() ([]gen.SubjectSourceContribution, error) {
 	return readJSONL[gen.SubjectSourceContribution](l.path("gold", "subject_source_contribution"))
 }
@@ -212,6 +220,12 @@ func readPartitions[T any](root string) ([]T, error) {
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an
 // error — it yields an empty slice, matching the Python reader's behavior.
 func readJSONL[T any](path string) ([]T, error) {
+	return scanJSONL[T](path, nil)
+}
+
+// scanJSONL is readJSONL with a per-record filter applied while decoding; a nil
+// keep keeps every record.
+func scanJSONL[T any](path string, keep func(*T) bool) ([]T, error) {
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -232,6 +246,9 @@ func readJSONL[T any](path string) ([]T, error) {
 		var rec T
 		if err := json.Unmarshal(line, &rec); err != nil {
 			return nil, err
+		}
+		if keep != nil && !keep(&rec) {
+			continue
 		}
 		out = append(out, rec)
 	}
