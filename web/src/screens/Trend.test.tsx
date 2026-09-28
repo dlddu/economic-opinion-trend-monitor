@@ -23,7 +23,6 @@ afterEach(() => {
 
 const BUCKETS = ["2026-06-23T12", "2026-06-23T13", "2026-06-23T14"];
 
-/** One subject over `buckets`, for the axis tests that only care about the scale. */
 function seriesResponse(buckets: string[], shares: number[]): TrendResponse {
   return {
     axis: "KR",
@@ -132,7 +131,6 @@ describe("Trend", () => {
   });
 
   it("labels at most seven buckets, dated once the window spans days", async () => {
-    // 100 hourly buckets from 2026-09-24 02시 — the window crosses into 09-28.
     const start = Date.UTC(2026, 8, 24, 2);
     const buckets = Array.from({ length: 100 }, (_, i) =>
       new Date(start + i * 3_600_000).toISOString().slice(0, 13),
