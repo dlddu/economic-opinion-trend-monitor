@@ -15,6 +15,14 @@ def analysis_key(row: dict) -> tuple[str, str]:
     return (row["record_id"], row["analyzer_version"])
 
 
+def grouping_keys(row: dict) -> list[str]:
+    """The keys aggregation counts an analysis under: its categories, or — for a row
+    with no category judgement — its narrative subjects. Serving's ``groupingKeys``
+    mirrors this; the two must agree or a Gold row's articles cannot be found again."""
+    categories = row.get("subject_categories")
+    return categories if categories is not None else row["narrative_subjects"]
+
+
 def _partition_of(cycles: Mapping[str, str], record_id: str) -> dict[str, str]:
     return domain.cycle_partition(cycles[record_id])
 

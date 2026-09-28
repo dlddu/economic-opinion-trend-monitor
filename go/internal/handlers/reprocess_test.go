@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -257,5 +258,24 @@ func TestReprocessComparesTwoCoexistingVersions(t *testing.T) {
 	unseen := getReprocess(t, dir, "?range=7d&axis=KR&version=v9")
 	if unseen.Compare.Available || unseen.Compare.Reason != "single-version" || unseen.Scope.Todo != 4 {
 		t.Errorf("unseen target: compare = %+v todo = %d, want unavailable / 4", unseen.Compare, unseen.Scope.Todo)
+	}
+}
+
+// A version that files articles under categories is compared on its categories —
+// what Gold will count once it is published — and one without them on its subjects.
+func TestMentionSharesCountsCategoriesWhenAVersionHasThem(t *testing.T) {
+	categories := []string{"반도체", "기업 경영·실적"}
+	silver := []gen.Analysis{
+		{RecordID: "k1", AnalyzerVersion: "v2", AnalysisStatus: gen.AnalysisStatusAnalyzed, NarrativeSubjects: []string{"삼성전자"}},
+		{RecordID: "k1", AnalyzerVersion: "v3", AnalysisStatus: gen.AnalysisStatusAnalyzed, NarrativeSubjects: []string{"삼성전자"}, SubjectCategories: &categories},
+	}
+
+	before, _ := mentionShares(silver, "v2")
+	if len(before) != 1 || before["삼성전자"] != 1 {
+		t.Errorf("v2 shares = %v, want 삼성전자 alone", before)
+	}
+	after, _ := mentionShares(silver, "v3")
+	if len(after) != 2 || after["반도체"] != 0.5 || after["기업 경영·실적"] != 0.5 {
+		t.Errorf("v3 shares = %v, want its two categories at half each", after)
 	}
 }

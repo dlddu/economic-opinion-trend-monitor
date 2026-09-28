@@ -41,6 +41,10 @@
   - 이전 통파일(`bronze/news_item.jsonl`, `bronze/news_body.jsonl`)은 다음 수집 실행이 새 레이아웃으로
     옮기고 `*.jsonl.migrated`로 이름을 바꾼다.
 - **Silver** (LLM 분석): 대상 국가 · 핵심 서술 대상 · 분위기 — `contracts/silver/*.avsc` (Avro)
+  - `subject_categories`: 기사를 고정 카테고리(`econ_core.domain.SUBJECT_CATEGORIES`, 25개) 1~2개로 분류한 값.
+    자유 서술 대상은 하루 수백 개로 갈려 점유율이 의미를 잃으므로, Gold 집계는 이 값으로 묶는다. 값이 null인 행
+    (카테고리 도입 전에 쓰인 행 등)은 `narrative_subjects`로 묶는다. 프롬프트 변경이므로 새 주기부터 채워지고,
+    과거 주기는 새 `--analyzer-version`으로 재처리한 뒤 게시해야 카테고리 기준이 된다.
   - `analysis`는 Bronze와 같은 파티션에 둔다: `silver/analysis/year=<YYYY>/month=<MM>/day=<DD>/hour=<HH>/data.jsonl`.
     기준은 분석한 시각이 아니라 **분석 대상 관측의 수집 주기**다 — 한 주기의 Bronze·Silver가 나란히 있고,
     쓰기는 건드린 주기의 파티션만 다시 쓴다. 이전 `silver/analysis.jsonl`은 다음 분석 실행이 옮긴다

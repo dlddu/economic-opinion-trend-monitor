@@ -8,6 +8,7 @@ type Analysis struct {
 	SourceURL         string         `json:"source_url"`
 	TargetCountries   []string       `json:"target_countries"`
 	NarrativeSubjects []string       `json:"narrative_subjects"`
+	SubjectCategories *[]string      `json:"subject_categories,omitempty"`
 	Sentiment         *Sentiment     `json:"sentiment,omitempty"`
 	AnalysisStatus    AnalysisStatus `json:"analysis_status"`
 	Confidence        float64        `json:"confidence"`

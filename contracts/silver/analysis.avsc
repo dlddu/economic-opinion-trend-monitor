@@ -23,7 +23,13 @@
     {
       "name": "narrative_subjects",
       "type": { "type": "array", "items": "string" },
-      "doc": "Normalized narrative subject keys; aggregation groups on these (AC2.2)."
+      "doc": "Normalized narrative subject keys, free-form as the model names them (AC2.2). Aggregation groups on these only for rows whose subject_categories is null."
+    },
+    {
+      "name": "subject_categories",
+      "type": ["null", { "type": "array", "items": "string" }],
+      "default": null,
+      "doc": "Categories from the fixed list econ_core.domain.SUBJECT_CATEGORIES that the article's narrative subjects fall under; aggregation groups on these when present, so shares are taken over a bounded set instead of an open one. Null when no category judgement exists (rows written before categories, unanalyzed rows, a reply that omitted the field); aggregation then falls back to narrative_subjects."
     },
     {
       "name": "sentiment",

@@ -23,6 +23,7 @@ class Analysis:
     source_url: str
     target_countries: list[str] = field(default_factory=list)
     narrative_subjects: list[str] = field(default_factory=list)
+    subject_categories: list[str] | None = None
     sentiment: Sentiment | None = None
     analysis_status: AnalysisStatus
     confidence: float
@@ -39,6 +40,7 @@ class Analysis:
             source_url=d["source_url"],
             target_countries=list(d.get("target_countries", [])),
             narrative_subjects=list(d.get("narrative_subjects", [])),
+            subject_categories=d.get("subject_categories"),
             sentiment=d.get("sentiment"),
             analysis_status=d["analysis_status"],
             confidence=d["confidence"],

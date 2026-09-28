@@ -311,3 +311,49 @@ func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *
 		t.Fatalf("re-observation counted as body reuse: %+v", fx.Rows[0])
 	}
 }
+
+// The Gold is build_subject_trends' output for this lake, day unit, pasted in. c1
+// and c2 carry categories, c3 was written before categories existed.
+func TestContributionsFindsArticlesByTheKeysGoldCountedThemUnder(t *testing.T) {
+	dir := t.TempDir()
+	bronze := `{"record_id": "c1", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 HBM 증설", "source_url": "https://wire.example/c1", "body_hash": "hc1", "body_available": true, "collected_at": "2026-06-23T14:00:00Z", "collection_cycle": "2026-06-23T14"}
+{"record_id": "c2", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "SK하이닉스 수출", "source_url": "https://wire.example/c2", "body_hash": "hc2", "body_available": true, "collected_at": "2026-06-23T14:00:00Z", "collection_cycle": "2026-06-23T14"}
+{"record_id": "c3", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 노사", "source_url": "https://wire.example/c3", "body_hash": "hc3", "body_available": true, "collected_at": "2026-06-23T14:00:00Z", "collection_cycle": "2026-06-23T14"}`
+	silver := `{"record_id": "c1", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["삼성전자"], "subject_categories": ["반도체", "기업 경영·실적"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v3"}
+{"record_id": "c2", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["SK하이닉스"], "subject_categories": ["반도체"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v3"}
+{"record_id": "c3", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["삼성전자"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v1"}`
+	gold := `{"subject": "반도체", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 2, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}
+{"subject": "기업 경영·실적", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.25, "delta": 0.0, "spark": [0.25]}
+{"subject": "삼성전자", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.25, "delta": 0.0, "spark": [0.25]}`
+	for path, content := range map[string]string{
+		"gold/subject_trend.jsonl":             gold,
+		"bronze/news_item/hour=all/data.jsonl": bronze,
+		"silver/analysis/hour=all/data.jsonl":  silver,
+	} {
+		full := filepath.Join(dir, path)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, tc := range []struct {
+		subject string
+		want    []string
+	}{
+		{"반도체", []string{"c1", "c2"}},
+		{"기업 경영·실적", []string{"c1"}},
+		// c1 names 삼성전자 too, but Gold counted c1 under its categories.
+		{"삼성전자", []string{"c3"}},
+	} {
+		got := getContributions(t, dir, "?unit=day&time_bucket=2026-06-23&subject="+url.QueryEscape(tc.subject))
+		if got.Basis.Total != int(got.Basis.RawCount) || len(got.Rows) != len(tc.want) {
+			t.Fatalf("%s: want %v, total == raw_count; got %+v", tc.subject, tc.want, got)
+		}
+		for _, id := range tc.want {
+			rowByRecord(t, got.Rows, id)
+		}
+	}
+}

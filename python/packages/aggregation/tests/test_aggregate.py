@@ -240,3 +240,18 @@ def test_subject_repeated_within_one_analysis_counts_once() -> None:
     rows = {t["subject"]: t for t in build_subject_trends(bronze, silver)}
     assert rows["A"]["raw_count"] == 1
     assert rows["A"]["normalized_share"] == 0.5
+
+
+def test_subject_trend_counts_categories_and_falls_back_to_subjects_without_them() -> None:
+    bronze = [_bronze("1", "KR", "src"), _bronze("2", "KR", "src"), _bronze("3", "KR", "src")]
+    silver = [
+        {**_silver("1", ["삼성전자"], "positive", "analyzed"), "subject_categories": ["반도체"]},
+        {
+            **_silver("2", ["SK하이닉스"], "neutral", "analyzed"),
+            "subject_categories": ["반도체", "주식시장"],
+        },
+        # Written before categories existed: counted under its subjects.
+        {**_silver("3", ["삼성전자"], "neutral", "analyzed"), "subject_categories": None},
+    ]
+    rows = {t["subject"]: t["raw_count"] for t in build_subject_trends(bronze, silver)}
+    assert rows == {"반도체": 2, "주식시장": 1, "삼성전자": 1}
