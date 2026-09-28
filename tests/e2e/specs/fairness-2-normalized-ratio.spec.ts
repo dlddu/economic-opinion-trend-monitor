@@ -1,6 +1,6 @@
-// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 8
+// 검증 시나리오: econ-opinion-monitor-test-fairness.md#시나리오 2
 //
-// AC3.8 "정규화된 비율 표시 (원시 카운트와 구분)" — docs/econ-opinion-monitor-prd-aggregation-viz.md
+// AC6.2 "정규화된 비율 표시 (원시 카운트와 구분)" — docs/econ-opinion-monitor-prd-fairness.md
 // 검증 방법(AC 본문): "정규화 비율과 원시 카운트가 구분 표기되고, 정규화 적용
 // 여부가 드러나는지 확인한다."
 //
@@ -11,12 +11,12 @@
 //   3) 대시보드가 정규화 비율을 그리고, 지금 보고 있는 값이 정규화된 값이라는
 //      플래그를 노출한다. 대시보드는 목업(`JRN-daily-scan` 화면 1)대로 원시 건수를
 //      행마다 적지 않는다 — 원시 순위가 정규화 순위와 갈릴 때만 그 사실을 적는다.
-//   4) AC3.8의 전용 표시 표면인 `fairness` 화면이 같은 두 값을 한 행 안에서
+//   4) AC6.2의 전용 표시 표면인 `fairness` 화면이 같은 두 값을 한 행 안에서
 //      **구분된 표기**로 병치하고, 세는 방식을 전환하면 표기가 실제로 바뀐다.
 //
-// 단언하지 않는 것: 정규화 계산 자체의 견고성(AC3.1)과 집계 정확성(AC3.2/3.3). 서빙이 받는
+// 단언하지 않는 것: 정규화 계산 자체의 견고성(AC6.1)과 집계 정확성(AC5.1/5.2). 서빙이 받는
 // Gold 는 이제 집계 배치가 쓴 것이지만, 그 계산이 옳은지는 원천에서 다시 센 교차표와 대조하는
-// aggregation-1·2·4 가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
+// fairness-1·interest-trends-1·3 가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
 
 import { expect, test } from "@playwright/test";
 

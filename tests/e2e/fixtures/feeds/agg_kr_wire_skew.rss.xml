@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- `agg_kr_wire.rss.xml` 의 **수집량만 부풀린** 변형. `…-test-aggregation-viz.md#시나리오 1`
+<!-- `agg_kr_wire.rss.xml` 의 **수집량만 부풀린** 변형. `…-test-fairness.md#시나리오 1`
      의 "한 소스의 수집량만 인위적으로 크게 늘린다"가 이 파일이고, 기준 상태는 원본 쪽이다.
 
      세 가지를 **의도적으로 고정**한다 — 그래야 두 상태의 차이가 오직 수집량 차이로 읽힌다:

@@ -1,4 +1,4 @@
-// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 1
+// 검증 시나리오: econ-opinion-monitor-test-fairness.md#시나리오 1
 //
 // 두 상태의 차이는 오직 수집량이다 — 그래야 두 Gold 의 차이를 수집량 차이로 읽을 수 있다.
 

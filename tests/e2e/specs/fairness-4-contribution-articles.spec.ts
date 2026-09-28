@@ -1,4 +1,4 @@
-// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 10
+// 검증 시나리오: econ-opinion-monitor-test-fairness.md#시나리오 4
 //
 // 기대값을 상수로 박지 않는다 — 축(KR)만 고정하고 나머지는 응답과 반출 산출물에서 끌어온다.
 //
