@@ -127,6 +127,12 @@ a {
   overflow: hidden;
 }
 
+/* 사이드바는 `100vh` 로 붙어 있으므로 그 아래 칸은 이 레일이 칠한다. 전체 페이지 캡처처럼
+   스티키가 따라오지 않는 렌더에서 첫 화면 높이 아래 남색이 끊기지 않게 하는 자리다. */
+.sidebar-rail {
+  background: var(--primary);
+}
+
 .brand {
   padding: 22px 22px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
