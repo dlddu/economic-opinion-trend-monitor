@@ -380,6 +380,7 @@ export function Debug() {
                 </div>
               </div>
               <div className="card-b">
+                {input?.title && <p className="dbg-verdict">{input.title}</p>}
                 {data.selection === "auto" && (
                   <div className="note">
                     <div>

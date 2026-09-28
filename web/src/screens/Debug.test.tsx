@@ -468,6 +468,7 @@ it("lets the picked result open its source and names the keys it carries", async
 
   await waitFor(() => expect(container.textContent).toContain("고른 결과"));
   const picked = cardTitled(container, "고른 결과") as HTMLElement;
+  expect(picked.querySelector(".dbg-verdict")?.textContent).toBe(INPUT.title);
   expect(picked.textContent).toContain("원문 주소");
   expect(picked.textContent).toContain(INPUT.source_url);
   expect(picked.textContent).toContain(
