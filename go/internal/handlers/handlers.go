@@ -45,6 +45,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/trace", h.trace)
 	mux.HandleFunc("GET /api/reprocess", h.reprocess)
 	mux.HandleFunc("GET /api/debug", h.debug)
+	mux.HandleFunc("GET /api/debug/records", h.debugRecords)
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)

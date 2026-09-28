@@ -527,6 +527,9 @@ export function Fairness() {
                       <Link className="btn sm" to={`/trace?record_id=${encodeURIComponent(row.record_id)}`}>
                         원문 역추적 →
                       </Link>
+                      <Link className="btn sm" to={`/debug?record_id=${encodeURIComponent(row.record_id)}`}>
+                        판단 되짚기 →
+                      </Link>
                       {!row.body_available && <span className="meta">수집 시점 본문 미확보</span>}
                     </div>
                   </div>

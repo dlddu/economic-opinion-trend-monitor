@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Debug } from "./Debug";
-import type { DebugCall, DebugResponse, DebugVersion } from "../api/types";
+import type { DebugCall, DebugRecordsResponse, DebugResponse, DebugVersion } from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -88,11 +88,47 @@ function response(over: Partial<DebugResponse> = {}): DebugResponse {
   };
 }
 
-function stub(body: DebugResponse) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => body })),
-  );
+const LIST_ROW: DebugRecordsResponse["rows"][number] = {
+  record_id: "r-1",
+  title: "기준금리 동결",
+  source_id: "src-a",
+  collected_at: "2026-09-24T02:50:00Z",
+  analysis_status: "analyzed",
+  sentiment: "positive",
+  confidence: 0.7,
+  analyzer_version: "v3",
+  analyzed_at: "2026-09-24T03:10:02Z",
+  run_id: "run-1",
+  versions: 1,
+  exchange_state: "call",
+  call_outcome: "parsed",
+  no_call_reason: null,
+};
+
+function records(over: Partial<DebugRecordsResponse> = {}): DebugRecordsResponse {
+  const rows = over.rows ?? [LIST_ROW];
+  return {
+    query: "",
+    run_id: "",
+    symptom: "",
+    total: rows.length,
+    matched: rows.length,
+    limit: 50,
+    truncated: false,
+    ...over,
+    rows,
+  };
+}
+
+function stub(body: DebugResponse, list: DebugRecordsResponse = records()) {
+  const fetchMock = vi.fn(async (url: unknown) => ({
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    json: async () => (String(url).includes("/debug/records") ? list : body),
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
 }
 
 function renderDebug(entry = "/debug?record_id=r-1") {
@@ -212,8 +248,9 @@ it("records a cause and says the verdict does not outlive the screen", async () 
   const { container } = renderDebug();
 
   await waitFor(() => expect(container.textContent).toContain("원인 판정"));
-  fireEvent.click(container.querySelector('input[value="parse"]') as HTMLInputElement);
-  fireEvent.submit(container.querySelector("form:not(.dbg-lookup)") as HTMLFormElement);
+  const causeInput = container.querySelector('input[value="parse"]') as HTMLInputElement;
+  fireEvent.click(causeInput);
+  fireEvent.submit(causeInput.closest("form") as HTMLFormElement);
 
   expect(container.textContent).toContain("이 화면 안에서만");
 });
@@ -240,4 +277,62 @@ it("draws no comparison table when there is no raw reply", async () => {
   const headings = [...container.querySelectorAll(".card-h h3")].map((h) => h.textContent);
   expect(headings).not.toContain("응답 ↔ 저장값");
   expect(container.textContent).toContain("대조할 응답 원문이 없음");
+});
+
+it("lists the records that match the search and opens the one the operator picks", async () => {
+  const fetchMock = stub(response());
+  const { container } = renderDebug("/debug?record_id=r-1&q=%EA%B8%B0%EC%A4%80%EA%B8%88%EB%A6%AC");
+
+  await waitFor(() => expect(container.textContent).toContain(LIST_ROW.title));
+
+  const listCall = fetchMock.mock.calls.map((c) => String(c[0])).find((u) => u.includes("/debug/records"));
+  expect(listCall).toContain(`q=${encodeURIComponent("기준금리")}`);
+
+  const row = container.querySelector(`input[aria-label="${LIST_ROW.record_id} 고르기"]`);
+  expect(row).toBeTruthy();
+  expect((row as HTMLInputElement).checked).toBe(true);
+});
+
+it("drills from a run symptom down to the records that show it", async () => {
+  const fetchMock = stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("증상이 몰렸나"));
+
+  const unanalyzed = RUN.symptoms.analysis_status[1];
+  const drill = Array.from(container.querySelectorAll("button")).find((b) =>
+    (b.textContent ?? "").startsWith(`${unanalyzed.count}건`),
+  );
+  expect(drill).toBeTruthy();
+  fireEvent.click(drill as HTMLButtonElement);
+
+  await waitFor(() =>
+    expect(
+      fetchMock.mock.calls
+        .map((c) => String(c[0]))
+        .some(
+          (u) =>
+            u.includes(`symptom=${encodeURIComponent(`analysis_status:${unanalyzed.name}`)}`) &&
+            u.includes(`run_id=${RUN.run_id}`),
+        ),
+    ).toBe(true),
+  );
+  expect(container.textContent).toContain("전체 실행으로 넓히기");
+});
+
+it("says nothing matched instead of drawing an empty result table", async () => {
+  stub(response(), records({ rows: [], total: 3, matched: 0 }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.querySelector(".emptybox")).toBeTruthy());
+  expect(container.querySelector(".emptybox")?.textContent).toContain("찾는 분석 결과가 없습니다");
+});
+
+it("keeps the search table reachable when the requested record is missing", async () => {
+  stub(response({ found: false, selection: "requested-missing", versions: [], run: null }));
+  const { container } = renderDebug("/debug?record_id=nope");
+
+  await waitFor(() => expect(container.textContent).toContain("되짚을 판단이"));
+  expect(container.textContent).toContain(LIST_ROW.title);
+  expect(container.querySelector(`input[aria-label="${LIST_ROW.record_id} 고르기"]`)).toBeTruthy();
 });
