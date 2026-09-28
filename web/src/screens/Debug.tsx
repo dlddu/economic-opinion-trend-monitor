@@ -713,7 +713,7 @@ export function Debug() {
                   <span className="sub">이 결과 하나인지, 실행 전체인지</span>
                 </div>
                 <div className="card-b">
-                  <div className="metric">
+                  <div className="metric dbg-metric">
                     <div className="ml">이 실행이 건드린 결과</div>
                     <div className="mv">
                       {run.symptoms.records}

@@ -36,7 +36,10 @@ const PLOT_L = 56;
 const PLOT_R = 716;
 const PLOT_TOP = 20;
 const BASELINE = 220;
+// 세로 눈금은 이 칸 수 안팎으로, 가로 눈금은 이 개수 이하로 찍는다 — 버킷이 수십~수백 개인
+// 시간 단위에서 버킷마다 라벨을 찍으면 글자가 겹쳐 읽을 수 없다.
 const GRID_ROWS = 5;
+const MAX_X_TICKS = 7;
 
 function pct(x: number): string {
   return `${(x * 100).toFixed(1)}%`;
@@ -61,10 +64,38 @@ function deltaLabel(delta: number): string {
   return "–";
 }
 
-/** Bucket keys are ISO prefixes; the axis only needs the part that varies. */
-function bucketTick(bucket: string, unit: string): string {
-  if (unit === "hour") return bucket.length >= 13 ? `${bucket.slice(11, 13)}시` : bucket;
+/** Bucket keys are ISO prefixes; the axis only needs the part that varies —
+ *  the hour alone within one day, the date as well once the window spans days. */
+function bucketTick(bucket: string, unit: string, multiDay: boolean): string {
+  if (unit === "hour") {
+    if (bucket.length < 13) return bucket;
+    const hour = `${bucket.slice(11, 13)}시`;
+    return multiDay ? `${bucket.slice(5, 10)} ${hour}` : hour;
+  }
   return bucket.slice(5) || bucket;
+}
+
+/** Evenly spaced bucket indices, both ends included, at most `max` of them. */
+function tickIndices(count: number, max: number): number[] {
+  if (count <= max) return Array.from({ length: count }, (_, i) => i);
+  return Array.from({ length: max }, (_, i) => Math.round((i * (count - 1)) / (max - 1)));
+}
+
+/** A 1·2·2.5·5 × 10ⁿ step (in %p) that splits `peakPct` into about `rows` rows. */
+function niceStep(peakPct: number, rows: number): number {
+  const raw = peakPct / rows;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const factor = [1, 2, 2.5, 5, 10].find((f) => f * magnitude >= raw - 1e-9) ?? 10;
+  return factor * magnitude;
+}
+
+/** Decimal places that print every multiple of `stepPct` exactly (0.5 → 1, 0.25 → 2). */
+function stepDecimals(stepPct: number): number {
+  for (let d = 0; d < 6; d += 1) {
+    const scaled = stepPct * 10 ** d;
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-6) return d;
+  }
+  return 6;
 }
 
 function strokeFor(series: TrendSeries, compareIndex: number): string {
@@ -487,7 +518,7 @@ function Shortlist({
         </div>
       </div>
 
-      <div className="card col-5">
+      <div className="card col-5 trend-summary">
         <div className="card-h">
           <h3>이번 스캔 요약</h3>
           <span className="sub">닫을 때의 조건이 다음 진입에 복원됩니다</span>
@@ -649,10 +680,14 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
   const buckets = data.basis.buckets;
   // 세로 스케일은 **응답 전체**에서 잡는다 — 겹쳐 보기를 켜고 끌 때 같은 대상의 선이
   // 오르내리면 토글이 값의 변화처럼 읽힌다. 눈금은 고정하고 선만 늘고 준다.
-  const peak = Math.max(...data.series.flatMap((s) => s.points.map((p) => p.normalized_share)), 0.01);
-  // Round the ceiling up to a whole percentage point so the gridline labels are
-  // readable numbers instead of whatever the maximum happened to be.
-  const top = Math.ceil(peak * 100) / 100;
+  const peak = Math.max(...data.series.flatMap((s) => s.points.map((p) => p.normalized_share)), 0);
+  // 천장을 정수 %p 로 올리고 칸을 고르게 나누면 간격이 0.4%p 처럼 떨어져 반올림한 라벨이
+  // 겹친다(「2% 2% 1% 1% 0%」). 간격부터 1·2·2.5·5 단위로 잡고 천장을 그 배수로 올린다.
+  const peakPct = peak > 0 ? peak * 100 : 1;
+  const stepPct = niceStep(peakPct, GRID_ROWS);
+  const rowCount = Math.max(1, Math.ceil(peakPct / stepPct - 1e-9));
+  const top = (rowCount * stepPct) / 100;
+  const decimals = stepDecimals(stepPct);
 
   const x = (i: number) =>
     buckets.length > 1
@@ -660,10 +695,15 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
       : (PLOT_L + PLOT_R) / 2;
   const y = (share: number) => BASELINE - (share / top) * (BASELINE - PLOT_TOP);
 
-  const rows = Array.from({ length: GRID_ROWS + 1 }, (_, i) => {
-    const share = (top * (GRID_ROWS - i)) / GRID_ROWS;
-    return { share, y: y(share), zero: i === GRID_ROWS };
+  const rows = Array.from({ length: rowCount + 1 }, (_, i) => {
+    const pctValue = stepPct * (rowCount - i);
+    return { share: pctValue / 100, label: `${pctValue.toFixed(decimals)}%`, zero: i === rowCount };
   });
+
+  const unit = data.basis.bucket_unit;
+  const multiDay =
+    unit === "hour" && buckets.length > 0 && buckets[0].slice(0, 10) !== buckets[buckets.length - 1].slice(0, 10);
+  const ticks = tickIndices(buckets.length, MAX_X_TICKS);
 
   return (
     <svg
@@ -675,18 +715,25 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
     >
       <g>
         {rows.map((r) => (
-          <g key={r.share}>
-            <line className={`gridline${r.zero ? " zero" : ""}`} x1={PLOT_L} y1={r.y} x2={PLOT_R} y2={r.y} />
-            <text className="axlab" x={PLOT_L - 8} y={r.y + 4} textAnchor="end">
-              {r.zero ? "0" : `${(r.share * 100).toFixed(0)}%`}
+          <g key={r.label}>
+            <line className={`gridline${r.zero ? " zero" : ""}`} x1={PLOT_L} y1={y(r.share)} x2={PLOT_R} y2={y(r.share)} />
+            <text className="axlab" x={PLOT_L - 8} y={y(r.share) + 4} textAnchor="end">
+              {r.zero ? "0" : r.label}
             </text>
           </g>
         ))}
       </g>
       <g>
-        {buckets.map((b, i) => (
-          <text key={b} className="axlab" x={x(i)} y={BASELINE + 20} textAnchor="middle">
-            {bucketTick(b, data.basis.bucket_unit)}
+        {ticks.map((i) => (
+          <text
+            key={buckets[i]}
+            className="axlab"
+            x={x(i)}
+            y={BASELINE + 20}
+            // 날짜가 붙은 마지막 라벨은 가운데 정렬이면 도화지 오른쪽 밖으로 잘린다.
+            textAnchor={multiDay && i === buckets.length - 1 && i > 0 ? "end" : "middle"}
+          >
+            {bucketTick(buckets[i], unit, multiDay)}
           </text>
         ))}
       </g>
