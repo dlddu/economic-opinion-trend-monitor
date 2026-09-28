@@ -84,8 +84,6 @@ _EXTRA_ALIASES = {
     "미국 연방준비제도": "연준",
     "미국 cpi": "미국 소비자물가지수",
     "미국 소비자물가": "미국 소비자물가지수",
-    # Variants seen side by side in production Silver (2026-09-28): one subject was
-    # counted under two keys, often both extracted from one article.
     "world bank": "세계은행",
     "세계은행그룹": "세계은행",
     "world bank group": "세계은행",

@@ -54,13 +54,7 @@ def bucket_articles(
 ) -> list[tuple[str, str, dict, dict]]:
     """One ``(axis, bucket, item, analysis)`` per article per bucket.
 
-    Ingestion re-collects the top-N every hour, so an article that stays on a feed
-    for a day is ~24 observations of one article (PRD ingestion, 저장 구조). Counting
-    observations would weigh a subject by how long its articles stayed listed rather
-    than by how many articles told it, so a bucket counts each article once, through
-    its latest observation in that bucket — the article as it last read. An hour
-    bucket holds one observation per article already, so only the day/week rollups
-    change. The serving contributions list (Go ``contributions``) mirrors this pick.
+    The serving contributions list (Go ``contributions``) mirrors this pick.
     """
     by_id = {b["record_id"]: b for b in bronze}
     latest: dict[tuple[str, str, str], tuple[dict, dict]] = {}
@@ -88,7 +82,6 @@ def count_by_source(
         lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
     for axis, bucket, item, analysis in bucket_articles(bronze, silver, unit):
-        # A subject is counted once per article even if the analysis repeats it.
         for subject in dict.fromkeys(analysis["narrative_subjects"]):
             counts[axis][bucket][item["source_id"]][subject] += 1
     return counts
