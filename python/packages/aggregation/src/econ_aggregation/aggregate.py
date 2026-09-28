@@ -44,22 +44,53 @@ def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
     raise ValueError(f"unknown bucket unit {unit!r} — expected one of {BUCKET_UNITS}")
 
 
-def count_by_source(
+def article_key(item: dict) -> str:
+    """The article an observation is of: its link, or the record itself when it has none."""
+    return item.get("source_url") or item["record_id"]
+
+
+def bucket_articles(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
-) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
+) -> list[tuple[str, str, dict, dict]]:
+    """One ``(axis, bucket, item, analysis)`` per article per bucket.
+
+    Ingestion re-collects the top-N every hour, so an article that stays on a feed
+    for a day is ~24 observations of one article (PRD ingestion, 저장 구조). Counting
+    observations would weigh a subject by how long its articles stayed listed rather
+    than by how many articles told it, so a bucket counts each article once, through
+    its latest observation in that bucket — the article as it last read. An hour
+    bucket holds one observation per article already, so only the day/week rollups
+    change. The serving contributions list (Go ``contributions``) mirrors this pick.
+    """
     by_id = {b["record_id"]: b for b in bronze}
-    # counts[axis][bucket][source][subject] -> n
-    counts: dict[str, dict[str, dict[str, dict[str, int]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-    )
+    latest: dict[tuple[str, str, str], tuple[dict, dict]] = {}
     for analysis in silver:
         item = by_id.get(analysis["record_id"])
         if item is None:
             continue
-        axis, source = item["axis"], item["source_id"]
-        bucket = _bucket(item["collected_at"], unit)
-        for subject in analysis["narrative_subjects"]:
-            counts[axis][bucket][source][subject] += 1
+        key = (item["axis"], _bucket(item["collected_at"], unit), article_key(item))
+        seen = latest.get(key)
+        if seen is None or (item["collected_at"], item["record_id"]) > (
+            seen[0]["collected_at"],
+            seen[0]["record_id"],
+        ):
+            latest[key] = (item, analysis)
+    return [
+        (axis, bucket, item, analysis) for (axis, bucket, _), (item, analysis) in latest.items()
+    ]
+
+
+def count_by_source(
+    bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
+) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
+    # counts[axis][bucket][source][subject] -> n
+    counts: dict[str, dict[str, dict[str, dict[str, int]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    )
+    for axis, bucket, item, analysis in bucket_articles(bronze, silver, unit):
+        # A subject is counted once per article even if the analysis repeats it.
+        for subject in dict.fromkeys(analysis["narrative_subjects"]):
+            counts[axis][bucket][item["source_id"]][subject] += 1
     return counts
 
 
@@ -135,16 +166,11 @@ def build_subject_trends(
 def build_axis_sentiment(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
 ) -> list[dict]:
-    by_id = {b["record_id"]: b for b in bronze}
     # tally[axis][bucket][key] -> n, where key is a sentiment, "unanalyzed", or "_total"
     tally: dict[str, dict[str, dict[str, int]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(int))
     )
-    for analysis in silver:
-        item = by_id.get(analysis["record_id"])
-        if item is None:
-            continue
-        axis, bucket = item["axis"], _bucket(item["collected_at"], unit)
+    for axis, bucket, _, analysis in bucket_articles(bronze, silver, unit):
         if analysis["analysis_status"] == "unanalyzed" or analysis["sentiment"] is None:
             tally[axis][bucket]["unanalyzed"] += 1
         else:
