@@ -54,6 +54,11 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
 }
 
+// SubjectTrendsWhere reads the Gold subject_trend dataset, keeping only the rows keep accepts.
+func (l *Lake) SubjectTrendsWhere(keep func(*gen.SubjectTrend) bool) ([]gen.SubjectTrend, error) {
+	return scanJSONL(l.path("gold", "subject_trend"), keep)
+}
+
 func (l *Lake) SubjectSourceContributions() ([]gen.SubjectSourceContribution, error) {
 	return readJSONL[gen.SubjectSourceContribution](l.path("gold", "subject_source_contribution"))
 }
@@ -212,6 +217,10 @@ func readPartitions[T any](root string) ([]T, error) {
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an
 // error — it yields an empty slice, matching the Python reader's behavior.
 func readJSONL[T any](path string) ([]T, error) {
+	return scanJSONL[T](path, nil)
+}
+
+func scanJSONL[T any](path string, keep func(*T) bool) ([]T, error) {
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -232,6 +241,9 @@ func readJSONL[T any](path string) ([]T, error) {
 		var rec T
 		if err := json.Unmarshal(line, &rec); err != nil {
 			return nil, err
+		}
+		if keep != nil && !keep(&rec) {
+			continue
 		}
 		out = append(out, rec)
 	}

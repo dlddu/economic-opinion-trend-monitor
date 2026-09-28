@@ -327,6 +327,34 @@ func TestTrendFallsBackAndSurvivesEmptyGold(t *testing.T) {
 	}
 }
 
+// The trend read filters while streaming Gold, so the finest unit is only known
+// once it has been seen. Coarser rows that come first must still lose to it.
+func TestTrendPicksFinestUnitWhenCoarserRowsComeFirst(t *testing.T) {
+	dir := t.TempDir()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rows := `{"subject":"기준금리","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":20,"normalized_share":0.9,"delta":0.0,"spark":[0.9]}
+{"subject":"기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":12,"normalized_share":0.8,"delta":0.0,"spark":[0.8]}
+{"subject":"기준금리","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":10,"normalized_share":0.5,"delta":0.0,"spark":[0.5]}
+{"subject":"기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-24","raw_count":3,"normalized_share":0.7,"delta":0.0,"spark":[0.7]}`
+	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(rows+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := getTrend(t, dir, "?axis=KR")
+	if got.Basis.BucketUnit != "hour" {
+		t.Fatalf("bucket_unit = %q, want hour", got.Basis.BucketUnit)
+	}
+	if len(got.Basis.Buckets) != 1 || got.Basis.Buckets[0] != "2026-06-23T14" {
+		t.Fatalf("buckets = %v, want only the hour bucket", got.Basis.Buckets)
+	}
+	if len(got.Series) != 1 || len(got.Series[0].Points) != 1 || got.Series[0].LatestShare != 0.5 {
+		t.Fatalf("coarser rows leaked into the hour chart: %+v", got.Series)
+	}
+}
+
 // getSentiment runs the sentiment route against a lake rooted at dir.
 func getSentiment(t *testing.T, dir, query string) sentimentResponse {
 	t.Helper()

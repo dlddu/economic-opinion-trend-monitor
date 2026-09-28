@@ -35,6 +35,32 @@ func TestSubjectTrendsReadsJSONLIntoContractType(t *testing.T) {
 	}
 }
 
+func TestSubjectTrendsWhereKeepsOnlyAcceptedRows(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "gold"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines := `{"subject":"a","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":1,"normalized_share":0.1,"delta":0.0,"spark":[]}
+{"subject":"b","axis":"US","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":2,"normalized_share":0.2,"delta":0.0,"spark":[]}
+{"subject":"c","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":0.3,"delta":0.0,"spark":[]}`
+	if err := os.WriteFile(filepath.Join(dir, "gold", "subject_trend.jsonl"), []byte(lines+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := New(dir).SubjectTrendsWhere(func(r *gen.SubjectTrend) bool { return r.Axis == gen.AxisKR })
+	if err != nil {
+		t.Fatalf("SubjectTrendsWhere: %v", err)
+	}
+	if len(got) != 2 || got[0].Subject != "a" || got[1].Subject != "c" {
+		t.Fatalf("want KR rows a, c in file order, got %+v", got)
+	}
+
+	none, err := New(t.TempDir()).SubjectTrendsWhere(func(*gen.SubjectTrend) bool { return true })
+	if err != nil || len(none) != 0 {
+		t.Fatalf("missing dataset should read empty, got %v, %v", none, err)
+	}
+}
+
 func TestMissingDatasetReadsEmpty(t *testing.T) {
 	got, err := New(t.TempDir()).AxisSentiments()
 	if err != nil {
