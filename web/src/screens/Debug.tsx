@@ -110,7 +110,6 @@ export function Debug() {
   const listQuery = searchParams.get("q")?.trim() ?? "";
   const symptom = searchParams.get("symptom")?.trim() ?? "";
   const runFilter = searchParams.get("run_id")?.trim() ?? "";
-  const [recordId, setRecordId] = useState(query);
   const [search, setSearch] = useState(listQuery);
   const [list, setList] = useState<DebugRecordsResponse | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -122,10 +121,6 @@ export function Debug() {
   const [memo, setMemo] = useState("");
   const [recorded, setRecorded] = useState<string | null>(null);
   const [bodyVer, setBodyVer] = useState("");
-
-  useEffect(() => {
-    setRecordId(query);
-  }, [query]);
 
   useEffect(() => {
     setSearch(listQuery);
@@ -195,30 +190,11 @@ export function Debug() {
     sentKnown && sentBody && latestBody && !sentBody.latest
       ? bodies.indexOf(latestBody) - bodies.indexOf(sentBody)
       : 0;
+  const emptyish =
+    !!input && (bodies.length === 0 || (!!shownBody && shownBody.raw_text.length < 60));
 
   return (
     <>
-      <div className="dash-controls">
-        <form
-          className="dbg-lookup"
-          onSubmit={(e) => {
-            e.preventDefault();
-            updateParams({ record_id: recordId.trim() });
-          }}
-        >
-          <label className="dbg-field">
-            <span className="dbg-field-label">record_id</span>
-            <input
-              type="text"
-              value={recordId}
-              placeholder="비우면 첫 레코드"
-              onChange={(e) => setRecordId(e.target.value)}
-            />
-          </label>
-          <button type="submit">이 판단 되짚기</button>
-        </form>
-      </div>
-
       <p className="lede">
         분석 결과 하나를 <span className="b">그것을 만든 기록</span>까지 되짚습니다 — 모델이
         무엇을 받고 무엇을 답했는지, 그리고 그 판단이 속한 실행 전체가 어땠는지.
@@ -246,14 +222,14 @@ export function Debug() {
           </div>
           <div className="card-b">
             <form
-              className="formrow"
+              className="dbg-formrow"
               onSubmit={(e) => {
                 e.preventDefault();
                 updateParams({ q: search.trim() });
               }}
             >
-              <label className="fld">
-                <span className="fl">검색</span>
+              <label className="dbg-fld">
+                <span className="dbg-fl">검색</span>
                 <input
                   type="search"
                   value={search}
@@ -261,8 +237,8 @@ export function Debug() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </label>
-              <label className="fld">
-                <span className="fl">증상</span>
+              <label className="dbg-fld">
+                <span className="dbg-fl">증상</span>
                 <select value={symptom} onChange={(e) => updateParams({ symptom: e.target.value })}>
                   <option value="">전체</option>
                   <optgroup label="분석 상태">
@@ -358,10 +334,10 @@ export function Debug() {
               </table>
             )}
             {list && listRows.length === 0 && (
-              <div className="emptybox">
+              <div className="dbg-emptybox">
                 찾는 분석 결과가 없습니다.
                 <br />
-                레코드 번호는 제보 링크 끝의 <span className="mono">R-</span>로 시작하는 값입니다 —
+                레코드 번호는 제보 링크 끝 <span className="mono">record_id=</span> 뒤의 값입니다 —
                 증상 필터를 ‘전체’로 넓혀 보세요.
               </div>
             )}
@@ -404,11 +380,11 @@ export function Debug() {
                 </div>
               </div>
               <div className="card-b">
+                {input?.title && <p className="dbg-verdict">{input.title}</p>}
                 {data.selection === "auto" && (
                   <div className="note">
                     <div>
-                      조회 없이 열어 <b>첫 레코드</b>를 골랐습니다 — 제보 링크로 들어오면 그
-                      레코드가 먼저 골라집니다.
+                      조회 없이 열어 <b>첫 레코드</b>를 골랐습니다.
                     </div>
                   </div>
                 )}
@@ -454,6 +430,12 @@ export function Debug() {
                   <span className="k">실행</span>
                   <span className="v mono">{selected.run_id || "—"}</span>
                 </div>
+                {input?.source_url && (
+                  <div className="kv">
+                    <span className="k">원문 주소</span>
+                    <span className="v mono dbg-url">{input.source_url}</span>
+                  </div>
+                )}
                 {data.versions.length > 1 && (
                   <div className="note">
                     <div>
@@ -462,7 +444,22 @@ export function Debug() {
                     </div>
                   </div>
                 )}
+                <div className="note info dbg-note">
+                  <svg className="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8h.01M11 12h1v4h1" />
+                  </svg>
+                  <div>
+                    결과마다 그것을 만든 실행과 모델 호출이 붙어 있습니다. 원문으로 되짚는 키도
+                    그대로입니다.
+                  </div>
+                </div>
                 <div className="dbg-actions">
+                  {input?.source_url && (
+                    <a className="btn sm" href={input.source_url} target="_blank" rel="noreferrer">
+                      원문 열기 ↗
+                    </a>
+                  )}
                   <a className="btn sm" href={`/trace?record_id=${encodeURIComponent(data.record_id)}`}>
                     원문 추적 상세에서 보기 →
                   </a>
@@ -561,9 +558,9 @@ export function Debug() {
                       </span>
                     </div>
 
-                    <div className="formrow">
-                      <label className="fld">
-                        <span className="fl">보낸 요청</span>
+                    <div className="dbg-formrow">
+                      <label className="dbg-fld">
+                        <span className="dbg-fl">보낸 요청</span>
                         <select
                           value={promptPart}
                           onChange={(e) => setPromptPart(e.target.value as "user" | "system")}
@@ -676,33 +673,31 @@ export function Debug() {
                 <span className="sub">수정될 때마다 새 버전으로 쌓입니다</span>
               </div>
               <div className="card-b">
-                <div className="formrow">
-                  <label className="fld">
-                    <span className="fl">원문 버전</span>
-                    <select
-                      value={shownBody?.body_hash ?? ""}
-                      onChange={(e) => setBodyVer(e.target.value)}
-                    >
-                      {bodies.length ? (
-                        bodies.map((b) => (
-                          <option key={b.body_hash} value={b.body_hash}>
-                            {bodyLabel(b.body_hash)} · {b.first_seen_at}
-                            {b.analyzed && sentKnown ? " · 분석에 쓴 버전" : ""}
-                            {b.latest ? " · 최신" : ""}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="">보관된 본문 없음</option>
-                      )}
-                    </select>
-                  </label>
-                </div>
+                <label className="dbg-fld dbg-fld-narrow">
+                  <span className="dbg-fl">원문 버전</span>
+                  <select
+                    value={shownBody?.body_hash ?? ""}
+                    onChange={(e) => setBodyVer(e.target.value)}
+                  >
+                    {bodies.length ? (
+                      bodies.map((b) => (
+                        <option key={b.body_hash} value={b.body_hash}>
+                          {bodyLabel(b.body_hash)} · {b.first_seen_at}
+                          {b.analyzed && sentKnown ? " · 분석에 쓴 버전" : ""}
+                          {b.latest ? " · 최신" : ""}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">보관된 본문 없음</option>
+                    )}
+                  </select>
+                </label>
                 <pre className="code">
                   {shownBody && input
                     ? `TITLE: ${input.title}\n\nBODY:\n${shownBody.raw_text}`
                     : "(본문 없음 — 원문 링크만 보관)"}
                 </pre>
-                <div className="dbg-actions">
+                <div className="dbg-actions dbg-actions-tight">
                   {input?.source_url && (
                     <a className="btn sm" href={input.source_url} target="_blank" rel="noreferrer">
                       원문 열기 ↗
@@ -716,18 +711,16 @@ export function Debug() {
             </div>
             <div className="card col-12">
               <div className="card-b">
-                <p>
-                  <b>
-                    {!shownBody
+                <p className="dbg-verdict">
+                  {!shownBody
                       ? "비교할 원문이 없습니다"
                       : !sentKnown || !input
                         ? "모델이 받은 입력을 알 수 없어 원문만 보여 줍니다"
                         : shownBody.analyzed
                           ? "고른 원문 버전이 모델이 받은 본문과 같습니다"
                           : `고른 원문 버전이 모델이 받은 본문과 다릅니다 (${bodyLabel(input.body_hash)} ↔ ${bodyLabel(shownBody.body_hash)})`}
-                  </b>
                 </p>
-                <p className="meta">
+                <p className="dbg-vsub">
                   {bodies.length && latestBody
                     ? `보관 버전 ${bodies.length}개 · 분석에 쓴 버전 ${
                         sentKnown && input ? bodyLabel(input.body_hash) : "알 수 없음"
@@ -735,7 +728,7 @@ export function Debug() {
                     : "보관 버전 0개"}
                 </p>
                 {staleBy > 0 && (
-                  <div className="note">
+                  <div className="dbg-banner warn">
                     <div>
                       <b>분석에 쓴 본문과 지금 보관된 최신 본문이 다릅니다.</b> 기사가 분석 뒤에{" "}
                       {staleBy}번 수정됐습니다. 판단은 당시 본문 기준으로는 맞았을 수 있습니다 — 이
@@ -743,12 +736,14 @@ export function Debug() {
                     </div>
                   </div>
                 )}
-                {input && bodies.length === 0 && (
-                  <div className="note">
+                {emptyish && (
+                  <div className="dbg-banner warn">
                     <div>
-                      <b>본문이 사실상 비어 있습니다.</b> 원문 링크만 있고 본문이 수집되지
-                      않았습니다. 이 입력으로는 어떤 모델도 판단할 수 없습니다 — 수집 쪽을 먼저
-                      봐야 합니다.
+                      <b>본문이 사실상 비어 있습니다.</b>{" "}
+                      {bodies.length === 0
+                        ? "원문 링크만 있고 본문이 수집되지 않았습니다."
+                        : "보관된 본문이 구독·저작권 안내 문구뿐입니다."}{" "}
+                      이 입력으로는 어떤 모델도 판단할 수 없습니다 — 수집 쪽을 먼저 봐야 합니다.
                     </div>
                   </div>
                 )}
@@ -980,8 +975,8 @@ export function Debug() {
                     setRecorded(CAUSES.find((c) => c.id === cause)?.label ?? cause);
                   }}
                 >
-                  <div className="fld">
-                    <span className="fl">원인</span>
+                  <div className="dbg-fld">
+                    <span className="dbg-fl">원인</span>
                     <div className="radios">
                       {CAUSES.map((c) => (
                         <label key={c.id}>
@@ -997,8 +992,8 @@ export function Debug() {
                       ))}
                     </div>
                   </div>
-                  <label className="fld">
-                    <span className="fl">판정 메모</span>
+                  <label className="dbg-fld">
+                    <span className="dbg-fl">판정 메모</span>
                     <textarea
                       value={memo}
                       placeholder="무엇을 보고 이렇게 판정했는지"
