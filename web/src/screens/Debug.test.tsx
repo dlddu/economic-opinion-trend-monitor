@@ -2,7 +2,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Debug } from "./Debug";
-import type { DebugCall, DebugRecordsResponse, DebugResponse, DebugVersion } from "../api/types";
+import type {
+  DebugCall,
+  DebugInput,
+  DebugRecordsResponse,
+  DebugResponse,
+  DebugVersion,
+} from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -77,6 +83,31 @@ const RUN = {
   },
 };
 
+const INPUT: DebugInput = {
+  title: "기준금리 동결",
+  source_url: "https://news.example/a/1",
+  body_available: true,
+  body_hash: "hash-v1",
+  versions: [
+    {
+      body_hash: "hash-v1",
+      first_seen_at: "2026-09-24T01:12:00Z",
+      first_seen_cycle: "2026-09-24T01:00",
+      raw_text: "한국은행은 기준금리를 동결했다.",
+      analyzed: true,
+      latest: false,
+    },
+    {
+      body_hash: "hash-v2",
+      first_seen_at: "2026-09-24T01:40:00Z",
+      first_seen_cycle: "2026-09-24T01:00",
+      raw_text: "한국은행은 기준금리를 동결했다. 다만 가계부채 우려를 덧붙였다.",
+      analyzed: false,
+      latest: true,
+    },
+  ],
+};
+
 function response(over: Partial<DebugResponse> = {}): DebugResponse {
   return {
     record_id: "r-1",
@@ -84,8 +115,16 @@ function response(over: Partial<DebugResponse> = {}): DebugResponse {
     found: true,
     versions: [VERSION],
     run: RUN,
+    input: INPUT,
     ...over,
   };
+}
+
+function cardTitled(container: HTMLElement, title: string): Element | null {
+  const heading = [...container.querySelectorAll(".card-h h3")].find(
+    (h) => h.textContent === title,
+  );
+  return heading?.closest(".card") ?? null;
 }
 
 const LIST_ROW: DebugRecordsResponse["rows"][number] = {
@@ -184,7 +223,7 @@ it("shows why no call was made instead of an empty exchange", async () => {
 
   await waitFor(() => expect(container.textContent).toContain("모델을 부르지 않았습니다"));
   expect(container.textContent).toContain("본문을 확보하지 못해");
-  expect(container.querySelector("pre.code")).toBeNull();
+  expect(cardTitled(container, "모델 호출 기록")?.querySelector("pre.code")).toBeNull();
 });
 
 it("names the original call when this run reused an answer", async () => {
@@ -335,4 +374,65 @@ it("keeps the search table reachable when the requested record is missing", asyn
   await waitFor(() => expect(container.textContent).toContain("되짚을 판단이"));
   expect(container.textContent).toContain(LIST_ROW.title);
   expect(container.querySelector(`input[aria-label="${LIST_ROW.record_id} 고르기"]`)).toBeTruthy();
+});
+
+it("puts the body the model analyzed on the version history and flags a later edit", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  const [analyzed, latest] = INPUT.versions;
+  const options = [...container.querySelectorAll("option")].map((o) => o.textContent ?? "");
+  expect(options).toContain(`v1 · ${analyzed.first_seen_at} · 분석에 쓴 버전`);
+  expect(options).toContain(`v2 · ${latest.first_seen_at} · 최신`);
+  expect(container.textContent).toContain("분석에 쓴 본문과 지금 보관된 최신 본문이 다릅니다.");
+  expect(container.textContent).toContain("분석 뒤에 1번 수정됐습니다");
+  expect(container.textContent).toContain("고른 원문 버전이 모델이 받은 본문과 다릅니다 (v1 ↔ v2)");
+  expect(container.textContent).toContain(latest.raw_text);
+
+  const archive = cardTitled(container, "보관된 원문") as HTMLElement;
+  fireEvent.change(archive.querySelector("select") as HTMLSelectElement, {
+    target: { value: analyzed.body_hash },
+  });
+  expect(container.textContent).toContain("고른 원문 버전이 모델이 받은 본문과 같습니다");
+  expect(archive.querySelector("pre.code")?.textContent).toContain(analyzed.raw_text);
+  const open = archive.querySelector(`a[href="${INPUT.source_url}"]`);
+  expect(open?.getAttribute("target")).toBe("_blank");
+});
+
+it("raises no edit badge when the analyzed body is still the latest", async () => {
+  const only = { ...INPUT.versions[0], latest: true };
+  stub(response({ input: { ...INPUT, versions: [only] } }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  expect(container.textContent).toContain("보관 버전 1개 · 분석에 쓴 버전 v1 · 최신 v1");
+  expect(container.textContent).not.toContain("분석에 쓴 본문과 지금 보관된 최신 본문이 다릅니다.");
+});
+
+it("says the body was never captured instead of drawing an empty version", async () => {
+  const notCalled = withExchange({
+    state: "no-call",
+    no_call_reason: "body_unavailable",
+    call_id: null,
+    call: null,
+  });
+  stub({ ...notCalled, input: { ...INPUT, body_available: false, body_hash: "", versions: [] } });
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  expect(container.textContent).toContain("보관된 본문 없음");
+  expect(container.textContent).toContain("(본문 없음 — 원문 링크만 보관)");
+  expect(container.textContent).toContain("(모델에 보내지 않음)");
+  expect(container.textContent).toContain("본문이 사실상 비어 있습니다.");
+  expect(container.textContent).toContain("원문 링크만 있고 본문이 수집되지 않았습니다.");
+});
+
+it("claims no empty body when the collection record itself is missing", async () => {
+  stub(response({ input: null }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("보관된 원문"));
+  expect(container.textContent).toContain("비교할 원문이 없습니다");
+  expect(container.textContent).not.toContain("본문이 사실상 비어 있습니다.");
 });
