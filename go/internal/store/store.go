@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -29,6 +30,10 @@ func New(root string) *Lake { return &Lake{Root: root} }
 
 func (l *Lake) path(layer, dataset string) string {
 	return filepath.Join(l.Root, layer, dataset+".jsonl")
+}
+
+func (l *Lake) objectDir(layer, dataset string) string {
+	return filepath.Join(l.Root, layer, dataset)
 }
 
 // objectPartitionChars mirrors econ_core.storage.OBJECT_PARTITION_CHARS.
@@ -69,22 +74,7 @@ func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
 
 // NewsBody reads one version from the Bronze news_body object dataset by its content hash.
 func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
-	path, ok := l.objectPath("bronze", "news_body", "body_hash", hash)
-	if !ok {
-		return nil, nil
-	}
-	raw, err := os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var body gen.NewsBody
-	if err := json.Unmarshal(raw, &body); err != nil {
-		return nil, err
-	}
-	return &body, nil
+	return readObject[gen.NewsBody](l, "bronze", "news_body", "body_hash", hash)
 }
 
 // Analyses reads the Silver analysis dataset (empty if absent).
@@ -111,8 +101,90 @@ func (l *Lake) ReprocessDecisions() ([]ReprocessDecision, error) {
 	return readJSONL[ReprocessDecision](l.path("silver", "reprocess_decision"))
 }
 
+func (l *Lake) PipelineRun(runID string) (*gen.PipelineRun, error) {
+	return readObject[gen.PipelineRun](l, "silver", "pipeline_run", "run_id", runID)
+}
+
+func (l *Lake) PipelineRuns() ([]gen.PipelineRun, error) {
+	return readObjects[gen.PipelineRun](l.objectDir("silver", "pipeline_run"))
+}
+
+func (l *Lake) LlmCall(callID string) (*gen.LlmCallRecord, error) {
+	return readObject[gen.LlmCallRecord](l, "silver", "llm_call", "call_id", callID)
+}
+
+func (l *Lake) LlmCalls() ([]gen.LlmCallRecord, error) {
+	return readObjects[gen.LlmCallRecord](l.objectDir("silver", "llm_call"))
+}
+
 // partitionFile mirrors econ_core.storage.PARTITION_FILE.
 const partitionFile = "data.jsonl"
+
+// readObject is the Go counterpart of econ_core.storage.LakeStore.get_object.
+func readObject[T any](l *Lake, layer, dataset, keyField, key string) (*T, error) {
+	path, ok := l.objectPath(layer, dataset, keyField, key)
+	if !ok {
+		return nil, nil
+	}
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var rec T
+	if err := json.Unmarshal(raw, &rec); err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}
+
+// readObjects is the Go counterpart of econ_core.storage.LakeStore.read_objects.
+func readObjects[T any](root string) ([]T, error) {
+	partitions, err := os.ReadDir(root)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	type found struct {
+		name string
+		path string
+	}
+	var files []found
+	for _, partition := range partitions {
+		if !partition.IsDir() || !strings.Contains(partition.Name(), "=") {
+			continue
+		}
+		entries, err := os.ReadDir(filepath.Join(root, partition.Name()))
+		if err != nil {
+			return nil, err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+			files = append(files, found{entry.Name(), filepath.Join(root, partition.Name(), entry.Name())})
+		}
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].name < files[j].name })
+
+	out := make([]T, 0, len(files))
+	for _, f := range files {
+		raw, err := os.ReadFile(f.path)
+		if err != nil {
+			return nil, err
+		}
+		var rec T
+		if err := json.Unmarshal(raw, &rec); err != nil {
+			return nil, err
+		}
+		out = append(out, rec)
+	}
+	return out, nil
+}
 
 // readPartitions is the Go counterpart of econ_core.storage.LakeStore.read_partitions.
 func readPartitions[T any](root string) ([]T, error) {

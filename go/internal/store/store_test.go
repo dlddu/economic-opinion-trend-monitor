@@ -194,3 +194,85 @@ func TestNewsItemsReadEveryCyclePartitionInOrder(t *testing.T) {
 		t.Fatalf("records = %v, want a,b,c in partition order", got)
 	}
 }
+
+func writeObjectRecord(t *testing.T, dir, dataset, keyField, key, body string) {
+	t.Helper()
+	partition := filepath.Join(dir, "silver", dataset, keyField+"_prefix="+key[:1])
+	if err := os.MkdirAll(partition, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(partition, key+".json"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPipelineRunAndLlmCallReadTheObjectDatasetsByKey(t *testing.T) {
+	dir := t.TempDir()
+	run := `{"run_id":"run-a","run_trigger":"reprocess","run_started_at":"2026-09-28T00:00:00Z",` +
+		`"run_ended_at":null,"run_status":"running","stages":[{"stage_name":"analysis",` +
+		`"stage_status":"running","stage_started_at":"2026-09-28T00:01:00Z","stage_ended_at":null,` +
+		`"duration_ms":0,"input_count":2,"output_count":0,"outcomes":[],"failure_reason":null,` +
+		`"source_failures":[]}]}`
+	call := `{"call_id":"call-1","run_id":"run-a","record_id":"r-1","source_url":"https://ex.test/1",` +
+		`"analyzer_version":"v2","call_model":"model-x","call_temperature":0.2,"prompt_system":"s",` +
+		`"prompt_user":"u","prompt_sha256":"h","response_raw":null,"call_outcome":"call_failed",` +
+		`"call_failure_reason":"upstream 500","call_attempt_count":3,"called_at":"2026-09-28T00:01:10Z",` +
+		`"duration_ms":12,"reused_from_call_id":null}`
+	writeObjectRecord(t, dir, "pipeline_run", "run_id", "run-a", run)
+	writeObjectRecord(t, dir, "llm_call", "call_id", "call-1", call)
+
+	lake := New(dir)
+	gotRun, err := lake.PipelineRun("run-a")
+	if err != nil || gotRun == nil {
+		t.Fatalf("PipelineRun: %v %v", gotRun, err)
+	}
+	if gotRun.RunTrigger != gen.RunTriggerReprocess || gotRun.RunStatus != gen.RunStatusRunning {
+		t.Errorf("run enums decoded wrong: %+v", *gotRun)
+	}
+	if len(gotRun.Stages) != 1 || gotRun.Stages[0].StageName != gen.PipelineStageAnalysis {
+		t.Errorf("nested stage decoded wrong: %+v", gotRun.Stages)
+	}
+	if gotRun.RunEndedAt != nil {
+		t.Errorf("an unfinished run keeps run_ended_at null: %+v", *gotRun)
+	}
+
+	gotCall, err := lake.LlmCall("call-1")
+	if err != nil || gotCall == nil {
+		t.Fatalf("LlmCall: %v %v", gotCall, err)
+	}
+	if gotCall.CallOutcome != gen.LlmCallOutcomeCallFailed || gotCall.ResponseRaw != nil {
+		t.Errorf("a failed call keeps no reply: %+v", *gotCall)
+	}
+	if gotCall.CallFailureReason == nil || *gotCall.CallFailureReason != "upstream 500" {
+		t.Errorf("failure reason decoded wrong: %+v", *gotCall)
+	}
+}
+
+func TestObjectDatasetsReadEmptyWhenAbsentAndOrderByKeyFileName(t *testing.T) {
+	lake := New(t.TempDir())
+	runs, err := lake.PipelineRuns()
+	if err != nil || len(runs) != 0 {
+		t.Fatalf("absent dataset must read empty: %v %v", runs, err)
+	}
+	if got, err := lake.PipelineRun("run-a"); err != nil || got != nil {
+		t.Fatalf("absent object must read nil: %v %v", got, err)
+	}
+
+	dir := t.TempDir()
+	for _, key := range []string{"run-c", "run-a", "run-b"} {
+		writeObjectRecord(t, dir, "pipeline_run", "run_id", key,
+			`{"run_id":"`+key+`","run_trigger":"scheduled","run_started_at":"2026-09-28T00:00:00Z",`+
+				`"run_ended_at":null,"run_status":"succeeded","stages":[]}`)
+	}
+	got, err := New(dir).PipelineRuns()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, run := range got {
+		ids = append(ids, run.RunID)
+	}
+	if strings.Join(ids, ",") != "run-a,run-b,run-c" {
+		t.Errorf("order = %v, want key-name order", ids)
+	}
+}
