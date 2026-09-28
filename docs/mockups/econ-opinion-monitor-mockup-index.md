@@ -142,9 +142,15 @@
 항목 집합 전체가 `tbm_econ-opinion-monitor-mockup-render`의 판정 범위다. `trace` 귀속인 `PAT-lineage`는
 슬라이스 9가 `Trace.tsx`에 계보 표면을 실제로 세우면서 그쪽 모델의 「규칙 3 — 이름 대조 예외」에서 **걷혔다**
 (등재 예외 1 → 0, 래칫이 강제한 철거).
-`fairness` 귀속 단계 중 `STP-check-normalized`와 `STP-drilldown-articles`가 구현에 열렸고
-(후자는 2026-09-27 AC3.10 착지), `STP-inspect-sources`는 Gold에 수집원 차원이 없어 표면 자체가
-부재다(설계 트래커 「등재된 편차」 참조). 이 귀속을 화면 착지보다
+`fairness` 귀속 단계는 **셋 다 구현에 열렸다** — `STP-check-normalized`는 슬라이스 8(`#66`, 2026-09-20,
+AC3.8), `STP-drilldown-articles`는 `#174`(2026-09-27, AC3.10), `STP-inspect-sources`는 `#178`(2026-09-27,
+AC3.9)로 열렸다. 마지막 단계의 구현 실체는 Gold 계약 `contracts/gold/subject_source_contribution.avsc`와
+그 생성 타입 `go/gen/gold.go`의 `SubjectSourceContribution`, 서빙 `GET /api/source-contributions`,
+`Fairness.tsx`의 소스별 기여 카드다. 이전 문면(「`STP-inspect-sources`는 Gold에 수집원 차원이 없어 표면
+자체가 부재다」)은 이 절을 쓴 `#66` 시점에는 참이었고 `#178`이 Gold에 수집원 차원을 세우면서 낡았다 —
+rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 그 행도 같은 착지로 **재판정**됐다(2026-09-27,
+「전면 부재」가 아니다) — 거기 남아 있는 것은 표면 전체가 아니라 갈래 몇이므로, 남은 편차를 확인할 때는
+그 행의 재판정 본문을 읽는다. 이 귀속을 화면 착지보다
 먼저 선언해 둔 이유는 그때 경계를 새로 긋지 않기 위해서였고, 실제로 착지하며 경계가 그대로 쓰였다.
 
 새 여정 페이지를 등재할 때는 이 형태의 귀속 표를 함께 넣는다. 한 단계가 두 화면에 걸치면 **더 앞선 화면**에 귀속시키고
