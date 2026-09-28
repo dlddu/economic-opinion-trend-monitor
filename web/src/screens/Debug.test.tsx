@@ -107,8 +107,6 @@ function withExchange(over: Partial<DebugVersion["exchange"]>): DebugResponse {
   return response({ versions: [{ ...VERSION, exchange: { ...VERSION.exchange, ...over } }] });
 }
 
-// The reason the screen exists: request, raw reply and the run that made them,
-// on one surface (STP-read-exchange + STP-scan-run).
 it("puts the prompt, the raw reply and the owning run on one screen", async () => {
   stub(response());
   const { container } = renderDebug();
@@ -121,13 +119,10 @@ it("puts the prompt, the raw reply and the owning run on one screen", async () =
   expect(text).toContain(CALL.prompt_sha256);
   expect(text).toContain(RUN.run_id);
   expect(text).toContain(String(RUN.symptoms.records));
-  // The stage table is read from the run record, not from the analysis rows.
   expect(text).toContain(RUN.stages[0].stage_name);
   expect(text).toContain(String(RUN.stages[0].input_count));
 });
 
-// The screen's sharpest judgement: the model's LAST answer disagreed with what
-// was stored, which points at the parser rather than at the model.
 it("flags a field where the final reply and the stored value disagree", async () => {
   stub(response());
   const { container } = renderDebug();
@@ -140,14 +135,11 @@ it("flags a field where the final reply and the stored value disagree", async ()
   );
   expect(mismatched.length).toBeGreaterThan(0);
 
-  // "어긋난 필드만 보기" narrows the table to exactly those rows.
   const rowsBefore = container.querySelectorAll("tbody tr").length;
   fireEvent.click(container.querySelector(".chk input") as HTMLInputElement);
   expect(container.querySelectorAll("tbody tr").length).toBeLessThan(rowsBefore);
 });
 
-// §4 branch: a record the analyzer never called the model for shows the reason
-// instead of an empty exchange.
 it("shows why no call was made instead of an empty exchange", async () => {
   stub(
     withExchange({ state: "no-call", no_call_reason: "body_unavailable", call_id: null, call: null }),
@@ -159,7 +151,6 @@ it("shows why no call was made instead of an empty exchange", async () => {
   expect(container.querySelector("pre.code")).toBeNull();
 });
 
-// §4 branch: a reused answer names the original call — one hop, not a copy.
 it("names the original call when this run reused an answer", async () => {
   const reuse = { ...CALL, call_id: "c-2", call_outcome: "reused", reused_from_call_id: CALL.call_id };
   stub(withExchange({ state: "call", call_id: "c-2", call: reuse, reused_from: CALL }));
@@ -169,8 +160,6 @@ it("names the original call when this run reused an answer", async () => {
   expect(container.textContent).toContain(CALL.call_id);
 });
 
-// §4 branch: rows written before call logging existed have nothing to replay,
-// and the screen says so rather than drawing a blank record.
 it("routes rows written before call logging to sample re-analysis", async () => {
   stub(withExchange({ state: "unrecorded", call_id: null, call: null }));
   const { container } = renderDebug();
@@ -179,7 +168,6 @@ it("routes rows written before call logging to sample re-analysis", async () => 
   expect(container.querySelector('a[href="/reprocess"]')).not.toBeNull();
 });
 
-// §4 branch: a call id whose record is gone is NOT the same as "never called".
 it("distinguishes a missing call record from a record that was never called", async () => {
   stub(withExchange({ state: "call-record-absent", call_id: "c-gone", call: null }));
   const { container } = renderDebug();
@@ -188,7 +176,6 @@ it("distinguishes a missing call record from a record that was never called", as
   expect(container.textContent).toContain("c-gone");
 });
 
-// A failed call reports the retry count and the last error (AC4.2).
 it("reports the retry count and last error of a failed call", async () => {
   const failed = {
     ...CALL,
@@ -205,7 +192,6 @@ it("reports the retry count and last error of a failed call", async () => {
   expect(container.textContent).toContain(String(failed.call_attempt_count));
 });
 
-// A record with no run record is a missing RECORD, not a missing run.
 it("says the run record is missing rather than drawing an empty run", async () => {
   stub(response({ run: null }));
   const { container } = renderDebug();
@@ -214,7 +200,6 @@ it("says the run record is missing rather than drawing an empty run", async () =
   expect(container.textContent).toContain("기록이 없습니다");
 });
 
-// A lookup that found nothing must read as "nothing to replay", not as a failure.
 it("separates an unknown record from an empty lake", async () => {
   stub(response({ found: false, selection: "requested-missing", versions: [], run: null }));
   const { container } = renderDebug();
@@ -222,7 +207,6 @@ it("separates an unknown record from an empty lake", async () => {
   await waitFor(() => expect(container.textContent).toContain("되짚을 판단이"));
 });
 
-// STP-route-cause: the verdict is session-local and the screen admits it.
 it("records a cause and says the verdict does not outlive the screen", async () => {
   stub(response());
   const { container } = renderDebug();
@@ -234,8 +218,6 @@ it("records a cause and says the verdict does not outlive the screen", async () 
   expect(container.textContent).toContain("이 화면 안에서만");
 });
 
-// The parser picks the model's LAST answer: reading the first one is exactly the
-// bug the screen is built to expose, so the table must show the final value.
 it("compares the model's last answer, not its first draft", async () => {
   stub(response());
   const { container } = renderDebug();
@@ -246,14 +228,10 @@ it("compares the model's last answer, not its first draft", async () => {
     (tr) => tr.querySelector("td")?.textContent === "분위기",
   );
   const cells = [...(sentimentRow?.querySelectorAll("td") ?? [])].map((td) => td.textContent);
-  // The reply column carries the LAST object ("mixed"), the stored column the
-  // draft that was actually saved ("positive") — that gap is the finding.
   expect(cells[1]).toBe("mixed");
   expect(cells[2]).toBe(VERSION.sentiment);
 });
 
-// With no raw reply there is nothing to compare — the table is absent rather
-// than inventing agreement.
 it("draws no comparison table when there is no raw reply", async () => {
   stub(withExchange({ call: { ...CALL, response_raw: null } }));
   const { container } = renderDebug();

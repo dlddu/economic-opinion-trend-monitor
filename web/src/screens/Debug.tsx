@@ -4,15 +4,6 @@ import { api } from "../api/client";
 import type { DebugCall, DebugResponse, DebugVersion } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// 판단 디버깅(JRN-judgment-debug): 「틀린 게 모델인지, 입력인지, 우리 파서인지」를 가른다.
-//
-// 이 화면이 여는 것은 판단 하나가 아니라 **그 판단을 만든 기록 전체**다 — 레코드의
-// 분석 버전들, 그 버전을 쓴 모델 호출(요청·응답 원문), 그리고 그 호출이 속한 배치 실행.
-// 셋을 한 자리에 놓아야 「이 결과만 이상한가, 실행 전체가 이상한가」를 물을 수 있다.
-//
-// 조회 축은 `record_id` 하나다(`/api/debug`). 비우면 서빙이 첫 레코드를 고르고
-// 무엇을 골랐는지 `selection` 이 말한다 — 화면이 이름을 지어내지 않는다.
-
 const STATUS_LABEL: Record<string, string> = {
   analyzed: "분석됨",
   low_confidence: "저신뢰 — 분류에서 제외",
@@ -53,11 +44,8 @@ function sentimentBadge(s: string | null): string {
 }
 
 /**
- * 응답 원문에서 모델이 **마지막으로** 내놓은 JSON 을 읽는다.
- *
- * 모델은 초안을 낸 뒤 판단을 고쳐 다시 답하기도 한다. 그때 첫 JSON 을 읽으면
- * 저장값이 초안에서 나오고, 화면은 「모델이 틀렸다」로 읽게 된다 — 목업이
- * `parse-mismatch` 로 그린 바로 그 상태다. 마지막 것을 모델의 최종 답으로 본다.
+ * 모델은 초안을 낸 뒤 판단을 고쳐 다시 답하기도 한다 — 그때 첫 JSON 을 읽으면 저장값이
+ * 초안에서 나오고, 파서 결함이 모델 결함처럼 보인다.
  */
 function lastJSONObject(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null;
@@ -99,7 +87,6 @@ interface CompareRow {
   agrees: boolean;
 }
 
-/** 응답 원문의 최종 판단 ↔ 저장된 값을 필드 단위로 맞춘다(STP-read-exchange). */
 function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[] {
   const replied = lastJSONObject(call?.response_raw ?? null);
   if (!replied) return [];
@@ -125,8 +112,6 @@ export function Debug() {
   const [error, setError] = useState<string | null>(null);
   const [promptPart, setPromptPart] = useState<"user" | "system">("user");
   const [diffOnly, setDiffOnly] = useState(false);
-  // 판정은 이 화면 안에서만 유지된다 — 판정 보존은 아직 제품에 없다(여정 문서가
-  // 「현재 AC 없음 — 백로그 후보」로 파킹). 남지 않는다는 사실을 화면이 말한다.
   const [cause, setCause] = useState("");
   const [memo, setMemo] = useState("");
   const [recorded, setRecorded] = useState<string | null>(null);
@@ -217,7 +202,7 @@ export function Debug() {
       {data && data.found && selected && exchange && (
         <>
           <div className="grid g-12">
-            {/* STP-pin-record — 고른 결과. CMP-kv */}
+            {/* CMP-kv */}
             <div className="card col-5">
               <div className="card-h">
                 <h3>고른 결과</h3>
@@ -293,7 +278,7 @@ export function Debug() {
               </div>
             </div>
 
-            {/* STP-read-exchange — 모델 호출 기록. CMP-kv + 요청·응답 원문 */}
+            {/* CMP-kv */}
             <div className="card col-7">
               <div className="card-h">
                 <h3>모델 호출 기록</h3>
@@ -415,7 +400,7 @@ export function Debug() {
             </div>
           </div>
 
-          {/* STP-read-exchange — 응답 ↔ 저장값 대조. CMP-table */}
+          {/* CMP-table */}
           {rows.length > 0 && (
             <div className="card">
               <div className="card-h">
@@ -473,9 +458,8 @@ export function Debug() {
             </div>
           )}
 
-          {/* STP-scan-run — 배치 실행의 단계 기록과 증상 집계. CMP-table + CMP-metric.
-              수집 단계의 구간별 집계 패널은 다른 여정(JRN-ingestion-recovery)의 것이라
-              여기서 세우지 않는다 — 이 표가 읽는 것은 한 실행의 단계 기록이다. */}
+          {/* CMP-table + CMP-metric. 수집 단계의 구간별 집계 패널은 다른 여정
+              (JRN-ingestion-recovery)의 것이라 여기서 세우지 않는다. */}
           {run ? (
             <div className="grid g-12">
               <div className="card col-7">
@@ -606,7 +590,6 @@ export function Debug() {
             </div>
           )}
 
-          {/* STP-route-cause — 원인 판정과 인계 */}
           <div className="grid g-12">
             <div className="card col-7">
               <div className="card-h">
