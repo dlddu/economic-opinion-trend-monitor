@@ -539,7 +539,7 @@ export function Fairness() {
             chips={[
               { value: "JRN-spike-verification", text: "여정" },
               { value: "STP-check-normalized · STP-drilldown-articles", text: "단계" },
-              { value: "AC3.1 · AC3.8 · AC3.10", text: "정규화 · 구분 표기 · 기여 기사" },
+              { value: "AC3.1 · AC3.8", text: "정규화 · 구분 표기" },
               { text: `${rows.length}개 대상 · ${data.basis.raw_total}건` },
               { text: `${subject} 기여 기사 ${contrib?.basis.total ?? 0}건` },
             ]}
