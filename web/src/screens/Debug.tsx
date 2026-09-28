@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { DebugCall, DebugResponse, DebugVersion } from "../api/types";
+import type { DebugCall, DebugRecordsResponse, DebugResponse, DebugVersion } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -107,7 +107,13 @@ function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[
 export function Debug() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("record_id")?.trim() ?? "";
+  const listQuery = searchParams.get("q")?.trim() ?? "";
+  const symptom = searchParams.get("symptom")?.trim() ?? "";
+  const runFilter = searchParams.get("run_id")?.trim() ?? "";
   const [recordId, setRecordId] = useState(query);
+  const [search, setSearch] = useState(listQuery);
+  const [list, setList] = useState<DebugRecordsResponse | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   const [data, setData] = useState<DebugResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [promptPart, setPromptPart] = useState<"user" | "system">("user");
@@ -119,6 +125,32 @@ export function Debug() {
   useEffect(() => {
     setRecordId(query);
   }, [query]);
+
+  useEffect(() => {
+    setSearch(listQuery);
+  }, [listQuery]);
+
+  useEffect(() => {
+    let active = true;
+    setList(null);
+    setListError(null);
+    api
+      .debugRecords(listQuery, runFilter, symptom)
+      .then((d) => active && setList(d))
+      .catch((e: unknown) => active && setListError(String(e)));
+    return () => {
+      active = false;
+    };
+  }, [listQuery, runFilter, symptom]);
+
+  const updateParams = (patch: Record<string, string>) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(patch)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    setSearchParams(next);
+  };
 
   useEffect(() => {
     let active = true;
@@ -145,6 +177,7 @@ export function Debug() {
     [selected, call],
   );
   const mismatched = rows.filter((r) => !r.agrees);
+  const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
 
   return (
@@ -154,8 +187,7 @@ export function Debug() {
           className="dbg-lookup"
           onSubmit={(e) => {
             e.preventDefault();
-            const next = recordId.trim();
-            setSearchParams(next ? { record_id: next } : {});
+            updateParams({ record_id: recordId.trim() });
           }}
         >
           <label className="dbg-field">
@@ -184,6 +216,150 @@ export function Debug() {
         </div>
       )}
       {!data && !error && <div className="placeholder-note">불러오는 중…</div>}
+
+      <div className="grid g-12">
+        <div className="card col-12">
+          <div className="card-h">
+            <h3>분석 결과 찾기</h3>
+            <span className="sub">
+              {list ? `${list.matched}건 · ` : ""}제목·레코드 번호로 찾거나 증상으로 좁힙니다
+            </span>
+            <div className="r">
+              <span className="tag">제보 링크로 들어오면 그 레코드가 먼저 골라져 있습니다</span>
+            </div>
+          </div>
+          <div className="card-b">
+            <form
+              className="formrow"
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateParams({ q: search.trim() });
+              }}
+            >
+              <label className="fld">
+                <span className="fl">검색</span>
+                <input
+                  type="search"
+                  value={search}
+                  placeholder="제목 또는 레코드 번호"
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </label>
+              <label className="fld">
+                <span className="fl">증상</span>
+                <select value={symptom} onChange={(e) => updateParams({ symptom: e.target.value })}>
+                  <option value="">전체</option>
+                  <optgroup label="분석 상태">
+                    {Object.entries(STATUS_LABEL).map(([name, label]) => (
+                      <option key={name} value={`analysis_status:${name}`}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="호출 결과">
+                    {Object.entries(OUTCOME_LABEL).map(([name, label]) => (
+                      <option key={name} value={`call_outcome:${name}`}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="미호출 사유">
+                    {Object.entries(NO_CALL_LABEL).map(([name, label]) => (
+                      <option key={name} value={`no_call_reason:${name}`}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </label>
+              <button type="submit">찾기</button>
+            </form>
+
+            {runFilter && (
+              <div className="note">
+                <div>
+                  실행 <span className="mono">{runFilter}</span> 안에서만 찾고 있습니다 — 증상이 이
+                  실행에 몰렸는지 보는 중입니다.{" "}
+                  <button
+                    type="button"
+                    className="btn sm"
+                    onClick={() => updateParams({ run_id: "" })}
+                  >
+                    전체 실행으로 넓히기
+                  </button>
+                </div>
+              </div>
+            )}
+            {listError && (
+              <div className="note">
+                <div>
+                  <b>API 오류:</b> {listError}
+                </div>
+              </div>
+            )}
+            {!list && !listError && <div className="placeholder-note">불러오는 중…</div>}
+            {list && listRows.length > 0 && (
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th />
+                    <th>레코드</th>
+                    <th>제목</th>
+                    <th>분석 결과</th>
+                    <th>수집</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listRows.map((row) => (
+                    <tr key={row.record_id}>
+                      <td>
+                        <input
+                          type="radio"
+                          name="rec"
+                          value={row.record_id}
+                          aria-label={`${row.record_id} 고르기`}
+                          checked={row.record_id === data?.record_id}
+                          onChange={() => updateParams({ record_id: row.record_id })}
+                        />
+                      </td>
+                      <td className="mono">{row.record_id}</td>
+                      <td>{row.title || <span className="meta">제목 기록 없음</span>}</td>
+                      <td>
+                        {row.sentiment ? (
+                          <span className={`badge ${sentimentBadge(row.sentiment)}`}>
+                            {SENTIMENT_LABEL[row.sentiment] ?? row.sentiment}
+                          </span>
+                        ) : (
+                          <span className="meta">
+                            {STATUS_LABEL[row.analysis_status] ?? row.analysis_status}
+                          </span>
+                        )}
+                      </td>
+                      <td className="mono">{row.collected_at || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {list && listRows.length === 0 && (
+              <div className="emptybox">
+                찾는 분석 결과가 없습니다.
+                <br />
+                레코드 번호는 제보 링크 끝의 <span className="mono">R-</span>로 시작하는 값입니다 —
+                증상 필터를 ‘전체’로 넓혀 보세요.
+              </div>
+            )}
+            {list?.truncated && (
+              <div className="note">
+                <div>
+                  맞는 결과 {list.matched}건 가운데 앞 {list.limit}건만 보입니다 — 검색이나 증상으로
+                  좁히세요.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {data && !data.found && (
         <div className="placeholder-note">
@@ -550,11 +726,23 @@ export function Debug() {
                     <div className="kv" key={t.name}>
                       <span className="k">{STATUS_LABEL[t.name] ?? t.name}</span>
                       <span className="v mono">
-                        {t.count}건 ·{" "}
-                        {run.symptoms.records
-                          ? Math.round((t.count / run.symptoms.records) * 1000) / 10
-                          : 0}
-                        %
+                        <button
+                          type="button"
+                          className="btn sm"
+                          onClick={() =>
+                            updateParams({
+                              symptom: `analysis_status:${t.name}`,
+                              run_id: run.run_id,
+                              q: "",
+                            })
+                          }
+                        >
+                          {t.count}건 ·{" "}
+                          {run.symptoms.records
+                            ? Math.round((t.count / run.symptoms.records) * 1000) / 10
+                            : 0}
+                          % 목록 보기
+                        </button>
                       </span>
                     </div>
                   ))}
@@ -564,7 +752,21 @@ export function Debug() {
                       {run.symptoms.call_outcome.map((t) => (
                         <div className="kv" key={t.name}>
                           <span className="k">{OUTCOME_LABEL[t.name] ?? t.name}</span>
-                          <span className="v mono">{t.count}건</span>
+                          <span className="v mono">
+                            <button
+                              type="button"
+                              className="btn sm"
+                              onClick={() =>
+                                updateParams({
+                                  symptom: `call_outcome:${t.name}`,
+                                  run_id: run.run_id,
+                                  q: "",
+                                })
+                              }
+                            >
+                              {t.count}건 목록 보기
+                            </button>
+                          </span>
                         </div>
                       ))}
                     </>
@@ -575,7 +777,21 @@ export function Debug() {
                       {run.symptoms.no_call_reason.map((t) => (
                         <div className="kv" key={t.name}>
                           <span className="k">{NO_CALL_LABEL[t.name] ?? t.name}</span>
-                          <span className="v mono">{t.count}건</span>
+                          <span className="v mono">
+                            <button
+                              type="button"
+                              className="btn sm"
+                              onClick={() =>
+                                updateParams({
+                                  symptom: `no_call_reason:${t.name}`,
+                                  run_id: run.run_id,
+                                  q: "",
+                                })
+                              }
+                            >
+                              {t.count}건 목록 보기
+                            </button>
+                          </span>
                         </div>
                       ))}
                     </>

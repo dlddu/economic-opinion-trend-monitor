@@ -460,3 +460,31 @@ export interface DebugResponse {
   versions: DebugVersion[];
   run: DebugRun | null;
 }
+
+export interface DebugRecordRow {
+  record_id: string;
+  title: string;
+  source_id: string;
+  collected_at: string;
+  analysis_status: string;
+  sentiment: string | null;
+  confidence: number;
+  analyzer_version: string;
+  analyzed_at: string;
+  run_id: string;
+  versions: number;
+  exchange_state: string;
+  call_outcome: string | null;
+  no_call_reason: string | null;
+}
+
+export interface DebugRecordsResponse {
+  query: string;
+  run_id: string;
+  symptom: string;
+  total: number;
+  matched: number;
+  limit: number;
+  truncated: boolean;
+  rows: DebugRecordRow[];
+}

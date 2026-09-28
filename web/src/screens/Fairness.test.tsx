@@ -343,6 +343,7 @@ it("lists the contributing articles and prints the count beside the raw count", 
   );
   expect(first.querySelector(`a[href="${ARTICLES[0].source_url}"]`)).toBeTruthy();
   expect(first.querySelector(`a[href="/trace?record_id=${ARTICLES[0].record_id}"]`)).toBeTruthy();
+  expect(first.querySelector(`a[href="/debug?record_id=${ARTICLES[0].record_id}"]`)).toBeTruthy();
 });
 
 // 목록 건수가 원시 카운트와 갈리면 화면이 그것을 숨기지 않는다 — 이 note 가 없으면

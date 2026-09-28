@@ -10,6 +10,7 @@ import type {
   SourceContributionsResponse,
   DashboardResponse,
   DashRange,
+  DebugRecordsResponse,
   DebugResponse,
   FairnessResponse,
   ReprocessPublish,
@@ -103,6 +104,12 @@ export const api = {
   debug: (recordId?: string) =>
     getJSON<DebugResponse>(
       `/debug${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
+    ),
+  debugRecords: (q = "", runId = "", symptom = "") =>
+    getJSON<DebugRecordsResponse>(
+      `/debug/records?q=${encodeURIComponent(q)}` +
+        `&run_id=${encodeURIComponent(runId)}` +
+        `&symptom=${encodeURIComponent(symptom)}`,
     ),
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };
