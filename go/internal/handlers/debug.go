@@ -7,7 +7,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// debugResponse walks one Silver record back to the model call and the batch run that produced it (JRN-judgment-debug).
 type debugResponse struct {
 	RecordID  string         `json:"record_id"`
 	Selection string         `json:"selection"`
