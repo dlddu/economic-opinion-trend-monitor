@@ -2462,3 +2462,88 @@ details.meta .metabody {
 .dbg-actions-tight {
   margin-top: 10px;
 }
+
+.dbg-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+}
+
+.dbg-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dbg-banner.err {
+  background: #f6e3de;
+  border: 1px solid #dbb6ac;
+  color: #6b2e1c;
+}
+
+.dbg-banner.good {
+  background: var(--primary-soft);
+  border: 1px solid var(--line-3);
+  color: var(--primary-2);
+}
+
+.dbg-banner .dbg-actions {
+  margin-top: 8px;
+}
+
+.dbg-actions-center {
+  justify-content: center;
+}
+
+.dbg-actions-mid {
+  align-items: center;
+}
+
+.dbg-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.dbg-muted {
+  color: var(--ink-3);
+}
+
+.dbg-na {
+  color: #6f685b;
+  background: var(--na-soft);
+  border: 1px dashed var(--line-3);
+}
+
+.dbg-na .d {
+  background: var(--na);
+}
+
+.dbg-br-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.dbg-br-row:last-child {
+  border-bottom: 0;
+}
+
+.dbg-br-when {
+  font-weight: 600;
+}
+
+.dbg-br-how {
+  color: var(--ink-2);
+}
+
+.dbg-br-go {
+  white-space: nowrap;
+  font-size: 11.5px;
+}

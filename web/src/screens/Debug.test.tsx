@@ -206,7 +206,7 @@ it("flags a field where the final reply and the stored value disagree", async ()
 
   expect(container.textContent).toContain("읽는 쪽");
   const mismatched = [...container.querySelectorAll("td .badge")].filter(
-    (n) => n.textContent === "어긋남",
+    (n) => n.textContent === "다름",
   );
   expect(mismatched.length).toBeGreaterThan(0);
 
@@ -289,9 +289,28 @@ it("records a cause and says the verdict does not outlive the screen", async () 
   await waitFor(() => expect(container.textContent).toContain("원인 판정"));
   const causeInput = container.querySelector('input[value="parse"]') as HTMLInputElement;
   fireEvent.click(causeInput);
+  fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
+    target: { value: "응답 끝의 JSON 이 저장값과 다르다" },
+  });
   fireEvent.submit(causeInput.closest("form") as HTMLFormElement);
 
+  expect(container.textContent).toContain("「파싱」로 1건을 판정했습니다.");
   expect(container.textContent).toContain("이 화면 안에서만");
+});
+
+it("refuses a verdict without a cause, then without a memo", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("원인 판정"));
+  const form = container.querySelector('input[value="parse"]')?.closest("form") as HTMLFormElement;
+  fireEvent.submit(form);
+  expect(container.textContent).toContain("원인을 먼저 고르세요.");
+
+  fireEvent.click(container.querySelector('input[value="parse"]') as HTMLInputElement);
+  fireEvent.submit(form);
+  expect(container.textContent).toContain("근거 없는 판정은 다음 조사에 쓸 수 없습니다.");
+  expect(container.textContent).not.toContain("판정했습니다.");
 });
 
 it("compares the model's last answer, not its first draft", async () => {
@@ -308,14 +327,81 @@ it("compares the model's last answer, not its first draft", async () => {
   expect(cells[2]).toBe(VERSION.sentiment);
 });
 
-it("draws no comparison table when there is no raw reply", async () => {
+it("keeps the comparison card but marks every field uncomparable without a raw reply", async () => {
   stub(withExchange({ call: { ...CALL, response_raw: null } }));
   const { container } = renderDebug();
 
   await waitFor(() => expect(container.textContent).toContain(CALL.call_model));
-  const headings = [...container.querySelectorAll(".card-h h3")].map((h) => h.textContent);
-  expect(headings).not.toContain("응답 ↔ 저장값");
-  expect(container.textContent).toContain("대조할 응답 원문이 없음");
+  const card = cardTitled(container, "응답 ↔ 저장값");
+  expect(card?.textContent).toContain("응답이 없어 대조할 수 없습니다");
+  const badges = [...(card?.querySelectorAll("td .badge") ?? [])].map((n) => n.textContent);
+  expect(badges).toEqual(["대조 불가", "대조 불가", "대조 불가", "대조 불가"]);
+});
+
+it("opens the original call behind a reused answer", async () => {
+  const original = { ...CALL, run_id: "run-0", prompt_user: "원 호출 때 보낸 제목과 본문" };
+  const reuse = {
+    ...CALL,
+    call_id: "c-2",
+    call_outcome: "reused",
+    response_raw: null,
+    reused_from_call_id: CALL.call_id,
+  };
+  stub(withExchange({ state: "call", call_id: "c-2", call: reuse, reused_from: original }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("재사용한 결과입니다"));
+  const card = cardTitled(container, "모델 호출 기록");
+  expect(card?.querySelector("pre.code")).toBeNull();
+  expect(card?.textContent).toContain("모델 호출 없음 (응답 재사용)");
+
+  const open = [...(card?.querySelectorAll("button") ?? [])].find((b) =>
+    b.textContent?.includes("원 호출 기록 열기"),
+  ) as HTMLButtonElement;
+  fireEvent.click(open);
+  expect(card?.textContent).toContain("원 호출 기록");
+  expect(card?.textContent).toContain(`${CALL.call_id} (원 호출)`);
+  expect(card?.textContent).toContain(original.prompt_user);
+});
+
+it("checks that each stage's outcome counts add up to its input", async () => {
+  const balanced = {
+    ...RUN,
+    stages: [{ ...RUN.stages[0], outcomes: [{ outcome_name: "parsed", outcome_count: 14 }] }],
+  };
+  stub(response({ run: balanced }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("배치 실행"));
+  expect(cardTitled(container, "배치 실행")?.textContent).toContain("✓ 입력 = 합");
+});
+
+it("flags a stage whose outcome counts miss part of its input", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("배치 실행"));
+  const stage = RUN.stages[0];
+  expect(cardTitled(container, "배치 실행")?.textContent).toContain(
+    `✗ ${stage.outcomes[0].outcome_count} ≠ ${stage.input_count}`,
+  );
+});
+
+it("hands the verdict on through three branches", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("판정 뒤 이어지는 길"));
+  const card = cardTitled(container, "판정 뒤 이어지는 길");
+  const links = [...(card?.querySelectorAll("a") ?? [])].map((a) => [
+    a.textContent,
+    a.getAttribute("href"),
+  ]);
+  expect(links).toEqual([
+    ["재처리 콘솔 →", "/reprocess"],
+    ["소급 적용 범위 정하기 →", "/reprocess"],
+    ["이 결과부터 다시 보기 →", "/debug?record_id=r-1"],
+  ]);
 });
 
 it("lists the records that match the search and opens the one the operator picks", async () => {

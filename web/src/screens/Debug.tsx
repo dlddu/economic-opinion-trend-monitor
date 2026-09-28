@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { DebugCall, DebugRecordsResponse, DebugResponse, DebugVersion } from "../api/types";
+import type {
+  DebugCall,
+  DebugRecordsResponse,
+  DebugResponse,
+  DebugVersion,
+  RunStage,
+} from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -80,28 +86,31 @@ function asText(value: unknown): string {
   return String(value);
 }
 
+function stageBalance(stage: RunStage): string {
+  if (stage.outcomes.length === 0) return "—";
+  const sum = stage.outcomes.reduce((acc, o) => acc + o.outcome_count, 0);
+  return sum === stage.input_count ? "✓ 입력 = 합" : `✗ ${sum} ≠ ${stage.input_count}`;
+}
+
 interface CompareRow {
   field: string;
-  replied: string;
+  replied: string | null;
   stored: string;
   agrees: boolean;
 }
 
 function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[] {
   const replied = lastJSONObject(call?.response_raw ?? null);
-  if (!replied) return [];
   const pairs: [string, unknown, string][] = [
-    ["분위기", replied.sentiment, version.sentiment ?? ""],
-    ["신뢰도", replied.confidence, String(version.confidence)],
-    ["대상국", replied.target_countries, version.target_countries.join(", ")],
-    ["서술 대상", replied.narrative_subjects, version.narrative_subjects.join(", ")],
+    ["대상 국가", replied?.target_countries, version.target_countries.join(", ")],
+    ["서술 대상", replied?.narrative_subjects, version.narrative_subjects.join(", ")],
+    ["분위기", replied?.sentiment, version.sentiment ?? ""],
+    ["신뢰도", replied?.confidence, String(version.confidence)],
   ];
-  return pairs
-    .filter(([, value]) => value !== undefined)
-    .map(([field, value, stored]) => {
-      const repliedText = asText(value);
-      return { field, replied: repliedText, stored, agrees: repliedText === stored };
-    });
+  return pairs.map(([field, value, stored]) => {
+    const repliedText = value === undefined ? null : asText(value);
+    return { field, replied: repliedText, stored, agrees: repliedText === stored };
+  });
 }
 
 export function Debug() {
@@ -120,6 +129,8 @@ export function Debug() {
   const [cause, setCause] = useState("");
   const [memo, setMemo] = useState("");
   const [recorded, setRecorded] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState<string | null>(null);
+  const [showOrig, setShowOrig] = useState(false);
   const [bodyVer, setBodyVer] = useState("");
 
   useEffect(() => {
@@ -153,6 +164,8 @@ export function Debug() {
     setData(null);
     setError(null);
     setRecorded(null);
+    setInvalid(null);
+    setShowOrig(false);
     setBodyVer("");
     api
       .debug(query || undefined)
@@ -169,11 +182,17 @@ export function Debug() {
   );
   const exchange = selected?.exchange ?? null;
   const call = exchange?.call ?? null;
+  const original = exchange?.reused_from ?? null;
+  const reusedView = !!original && !showOrig;
+  const shownCall = original && showOrig ? original : call;
+  const judgedCall = original ?? call;
   const rows = useMemo(
-    () => (selected ? compareRows(selected, call) : []),
-    [selected, call],
+    () => (selected ? compareRows(selected, judgedCall) : []),
+    [selected, judgedCall],
   );
-  const mismatched = rows.filter((r) => !r.agrees);
+  const hasReply = rows.some((r) => r.replied !== null);
+  const mismatched = rows.filter((r) => r.replied !== null && !r.agrees);
+  const shownRows = diffOnly ? rows.filter((r) => !r.agrees) : rows;
   const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
   const input = data?.input ?? null;
@@ -217,7 +236,7 @@ export function Debug() {
               {list ? `${list.matched}건 · ` : ""}제목·레코드 번호로 찾거나 증상으로 좁힙니다
             </span>
             <div className="r">
-              <span className="tag">제보 링크로 들어오면 그 레코드가 먼저 골라져 있습니다</span>
+              <span className="dbg-tag">제보 링크로 들어오면 그 레코드가 먼저 골라져 있습니다</span>
             </div>
           </div>
           <div className="card-b">
@@ -370,8 +389,9 @@ export function Debug() {
       {data && data.found && selected && exchange && (
         <>
           <div className="grid g-12">
+            <div className="col-5 dbg-stack">
             {/* CMP-kv */}
-            <div className="card col-5">
+            <div className="card">
               <div className="card-h">
                 <h3>고른 결과</h3>
                 <span className="sub">이 판단이 어디서 나왔는지 되짚습니다</span>
@@ -467,150 +487,17 @@ export function Debug() {
               </div>
             </div>
 
-            {/* CMP-kv */}
-            <div className="card col-7">
-              <div className="card-h">
-                <h3>모델 호출 기록</h3>
-                <span className="sub">보낸 그대로 · 받은 그대로</span>
-              </div>
-              <div className="card-b">
-                {exchange.state === "no-call" && (
-                  <div className="note">
-                    <div>
-                      <b>이 결과는 모델을 부르지 않았습니다</b> —{" "}
-                      {NO_CALL_LABEL[exchange.no_call_reason ?? ""] ?? exchange.no_call_reason}.
-                      볼 요청·응답이 없으니 모델이 무엇을 받았어야 했는지부터 봅니다.
-                    </div>
-                  </div>
-                )}
-                {exchange.state === "call-record-absent" && (
-                  <div className="note">
-                    <div>
-                      <b>호출 기록을 찾지 못했습니다.</b> 이 결과는{" "}
-                      <span className="mono">{exchange.call_id}</span> 호출을 가리키는데 그 기록이
-                      레이크에 없습니다 — 되짚을 요청·응답이 남아 있지 않습니다.
-                    </div>
-                  </div>
-                )}
-                {exchange.state === "unrecorded" && (
-                  <div className="note">
-                    <div>
-                      <b>이 결과에는 호출 기록이 없습니다.</b> 호출 기록을 남기기 전에 분석된
-                      결과라 요청·응답을 되짚을 수 없습니다 — 판단을 재현하려면 표본 재분석으로
-                      넘기세요.
-                      <div className="dbg-actions">
-                        <a className="btn sm" href="/reprocess">
-                          표본 재분석으로 재현하기 →
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {exchange.state === "call" && call && (
-                  <>
-                    {exchange.reused_from && (
-                      <div className="note">
-                        <div>
-                          <b>이번 실행은 모델을 다시 부르지 않았습니다.</b> 같은 입력의 이전 응답을
-                          재사용했습니다 — 판단은{" "}
-                          <span className="mono">{exchange.reused_from.call_id}</span> 호출에서
-                          나왔습니다.
-                        </div>
-                      </div>
-                    )}
-                    {call.call_outcome === "call_failed" && (
-                      <div className="note">
-                        <div>
-                          <b>모델 호출이 실패해 결과를 채우지 않았습니다.</b> 재시도{" "}
-                          {call.call_attempt_count}회 뒤에도 응답을 받지 못했습니다. 마지막 오류:{" "}
-                          <span className="mono">{call.call_failure_reason ?? "—"}</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="kv">
-                      <span className="k">모델</span>
-                      <span className="v mono">{call.call_model}</span>
-                    </div>
-                    <div className="kv">
-                      <span className="k">temperature</span>
-                      <span className="v mono">
-                        {call.call_temperature === null ? "—" : call.call_temperature}
-                      </span>
-                    </div>
-                    <div className="kv">
-                      <span className="k">로직 버전</span>
-                      <span className="v mono">{call.analyzer_version}</span>
-                    </div>
-                    <div className="kv">
-                      <span className="k">결과</span>
-                      <span className="v">
-                        {OUTCOME_LABEL[call.call_outcome] ?? call.call_outcome}
-                      </span>
-                    </div>
-                    <div className="kv">
-                      <span className="k">재시도</span>
-                      <span className="v mono">{call.call_attempt_count}</span>
-                    </div>
-                    <div className="kv">
-                      <span className="k">호출 시각</span>
-                      <span className="v mono">
-                        {call.called_at} · {call.duration_ms}ms
-                      </span>
-                    </div>
-
-                    <div className="dbg-formrow">
-                      <label className="dbg-fld">
-                        <span className="dbg-fl">보낸 요청</span>
-                        <select
-                          value={promptPart}
-                          onChange={(e) => setPromptPart(e.target.value as "user" | "system")}
-                        >
-                          <option value="user">사용자 메시지</option>
-                          <option value="system">시스템 지시문</option>
-                        </select>
-                      </label>
-                      <span className="meta mono">sha256 {call.prompt_sha256}</span>
-                    </div>
-                    <pre className="code">
-                      {promptPart === "user" ? call.prompt_user : call.prompt_system}
-                    </pre>
-                    <div className="dbg-seclabel">받은 응답 (가공 전)</div>
-                    {call.response_raw === null ? (
-                      <div className="placeholder-note">
-                        응답을 받지 못했습니다 — 보여 줄 원문이 <b>없습니다</b>. 빈 칸으로 두지
-                        않고 없다고 적습니다.
-                      </div>
-                    ) : (
-                      <pre className="code">{call.response_raw}</pre>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* CMP-table */}
-          {rows.length > 0 && (
+            {/* CMP-table */}
             <div className="card">
               <div className="card-h">
                 <h3>응답 ↔ 저장값</h3>
-                <span className="sub">필드마다 모델의 최종 답과 저장된 값을 맞춰 봅니다</span>
-                <div className="r">
-                  <span className={`badge ${mismatched.length ? "b-neg" : "b-pos"}`}>
-                    어긋난 필드 {mismatched.length}
-                  </span>
-                </div>
+                <span className="sub">
+                  {hasReply
+                    ? `${rows.length}개 필드 중 ${mismatched.length}개가 다릅니다`
+                    : "응답이 없어 대조할 수 없습니다"}
+                </span>
               </div>
               <div className="card-b">
-                {mismatched.length > 0 && (
-                  <div className="note">
-                    <div>
-                      <b>응답의 최종 판단과 저장값이 다릅니다.</b> 모델이 아니라{" "}
-                      <b>읽는 쪽</b>을 먼저 의심할 근거입니다 — 응답 안에 판단이 여러 번 나오면
-                      저장값이 초안에서 읽혔을 수 있습니다.
-                    </div>
-                  </div>
-                )}
                 <label className="chk">
                   <input
                     type="checkbox"
@@ -629,26 +516,242 @@ export function Debug() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(diffOnly ? mismatched : rows).map((r) => (
-                      <tr key={r.field}>
-                        <td>{r.field}</td>
-                        <td className="mono">{r.replied || "—"}</td>
-                        <td className="mono">{r.stored || "—"}</td>
-                        <td>
-                          <span className={`badge ${r.agrees ? "b-pos" : "b-neg"}`}>
-                            {r.agrees ? "일치" : "어긋남"}
-                          </span>
+                    {shownRows.length ? (
+                      shownRows.map((r) => (
+                        <tr key={r.field}>
+                          <td>{r.field}</td>
+                          <td className="mono">{r.replied || "—"}</td>
+                          <td className="mono">{r.stored || "—"}</td>
+                          <td>
+                            {r.replied === null ? (
+                              <span className="badge dbg-na">
+                                <span className="d" />
+                                대조 불가
+                              </span>
+                            ) : (
+                              <span className={`badge ${r.agrees ? "b-pos" : "b-neg"}`}>
+                                <span className="d" />
+                                {r.agrees ? "같음" : "다름"}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="dbg-muted">
+                          어긋난 필드가 없습니다
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
+            </div>
+
+            {/* CMP-kv */}
+            <div className="card col-7">
+              <div className="card-h">
+                <h3>모델 호출 기록</h3>
+                <span className="sub">
+                  {data.record_id} ·{" "}
+                  {exchange.state !== "call" || !call
+                    ? "볼 요청·응답이 없습니다"
+                    : reusedView
+                      ? "재사용한 결과입니다"
+                      : showOrig
+                        ? "원 호출 기록"
+                        : "이 결과를 만든 호출"}
+                </span>
+                <div className="r">
+                  <span className="dbg-tag">보낸 그대로 · 받은 그대로</span>
+                </div>
+              </div>
+              <div className="card-b">
+                {exchange.state === "no-call" && (
+                  <div className="kv">
+                    <span className="k">모델 호출</span>
+                    <span className="v">
+                      없음 — {NO_CALL_LABEL[exchange.no_call_reason ?? ""] ?? exchange.no_call_reason}
+                    </span>
+                  </div>
+                )}
+                {exchange.state === "unrecorded" && (
+                  <div className="kv">
+                    <span className="k">모델 호출</span>
+                    <span className="v">기록 없음 (기록 도입 이전 분석)</span>
+                  </div>
+                )}
+                {exchange.state === "call-record-absent" && (
+                  <div className="kv">
+                    <span className="k">호출</span>
+                    <span className="v mono">{exchange.call_id}</span>
+                  </div>
+                )}
+                {exchange.state === "call" && call && reusedView && original && (
+                  <>
+                    <div className="kv">
+                      <span className="k">이번 실행</span>
+                      <span className="v">
+                        <span className="mono">{call.run_id}</span> · 모델 호출 없음 (응답 재사용)
+                      </span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">판단 출처</span>
+                      <span className="v">
+                        <span className="mono">{original.call_id}</span> ·{" "}
+                        <span className="mono">{original.run_id}</span> 실행
+                      </span>
+                    </div>
+                  </>
+                )}
+                {exchange.state === "call" && shownCall && !reusedView && (
+                  <>
+                    <div className="kv">
+                      <span className="k">호출</span>
+                      <span className="v">
+                        <span className="mono">{shownCall.call_id}</span>
+                        {showOrig ? " (원 호출)" : ""}
+                      </span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">실행</span>
+                      <span className="v">
+                        <span className="mono">{shownCall.run_id}</span>
+                        {run && run.run_id === shownCall.run_id ? ` ${run.run_trigger}` : ""}
+                      </span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">모델</span>
+                      <span className="v mono">
+                        {shownCall.call_model} · temperature{" "}
+                        {shownCall.call_temperature === null ? "기본값" : shownCall.call_temperature}
+                      </span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">분석 로직</span>
+                      <span className="v mono">{shownCall.analyzer_version}</span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">재시도</span>
+                      <span className="v mono">{shownCall.call_attempt_count}회</span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">소요</span>
+                      <span className="v mono">{(shownCall.duration_ms / 1000).toFixed(1)}초</span>
+                    </div>
+                    <div className="kv">
+                      <span className="k">호출 시각</span>
+                      <span className="v mono">{shownCall.called_at}</span>
+                    </div>
+                  </>
+                )}
+
+                {mismatched.length > 0 && (
+                  <div className="dbg-banner err">
+                    <div>
+                      <b>응답의 최종 판단과 저장값이 다릅니다.</b> 모델이 아니라{" "}
+                      <b>읽는 쪽</b>을 먼저 의심할 근거입니다 — 응답 안에 판단이 여러 번 나오면
+                      저장값이 초안에서 읽혔을 수 있습니다.
+                    </div>
+                  </div>
+                )}
+                {exchange.state === "call" && call?.call_outcome === "call_failed" && (
+                  <div className="dbg-banner err">
+                    <div>
+                      <b>모델 호출이 실패해 결과를 채우지 않았습니다.</b> 재시도{" "}
+                      {call.call_attempt_count}회 뒤에도 응답을 받지 못해 미분석으로 두었습니다.
+                      마지막 오류: <span className="mono">{call.call_failure_reason ?? "—"}</span>
+                    </div>
+                  </div>
+                )}
+                {exchange.state === "no-call" && (
+                  <div className="dbg-emptybox">
+                    이 결과는 모델을 부르지 않았습니다 —{" "}
+                    <b>{NO_CALL_LABEL[exchange.no_call_reason ?? ""] ?? exchange.no_call_reason}</b>.
+                    <br />
+                    볼 요청·응답이 없으니 모델이 무엇을 받았어야 했는지부터 봅니다.
+                    <div className="dbg-actions dbg-actions-center">
+                      <a className="btn sm" href="#dbg-input">
+                        입력부터 점검하기 →
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {reusedView && original && (
+                  <div className="dbg-banner good">
+                    <div>
+                      <b>이번 실행은 모델을 다시 부르지 않았습니다.</b> 같은 입력의 이전 응답을
+                      재사용했습니다 — 판단은 <span className="mono">{original.call_id}</span> 호출에서
+                      나왔습니다.
+                      <div className="dbg-actions">
+                        <button type="button" className="btn sm" onClick={() => setShowOrig(true)}>
+                          원 호출 기록 열기 →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {exchange.state === "unrecorded" && (
+                  <div className="dbg-banner warn">
+                    <div>
+                      <b>이 결과에는 호출 기록이 없습니다.</b> 호출 기록을 남기기 전에 분석된 결과라
+                      요청·응답을 되짚을 수 없습니다. 원문과 실행 정보만으로 보되, 판단을 재현하려면
+                      표본 재분석으로 넘기세요.
+                      <div className="dbg-actions">
+                        <a className="btn sm" href="/reprocess">
+                          표본 재분석으로 재현하기 →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {exchange.state === "call-record-absent" && (
+                  <div className="dbg-banner warn">
+                    <div>
+                      <b>호출 기록을 찾지 못했습니다.</b> 이 결과는{" "}
+                      <span className="mono">{exchange.call_id}</span> 호출을 가리키는데 그 기록이
+                      레이크에 없습니다 — 되짚을 요청·응답이 남아 있지 않습니다.
+                    </div>
+                  </div>
+                )}
+
+                {exchange.state === "call" && shownCall && !reusedView && (
+                  <>
+                    <div className="dbg-formrow">
+                      <label className="dbg-fld">
+                        <span className="dbg-fl">보낸 요청</span>
+                        <select
+                          value={promptPart}
+                          onChange={(e) => setPromptPart(e.target.value as "user" | "system")}
+                        >
+                          <option value="user">사용자 메시지</option>
+                          <option value="system">시스템 지시문</option>
+                        </select>
+                      </label>
+                      <span className="meta mono">sha256 {shownCall.prompt_sha256}</span>
+                    </div>
+                    <pre className="code">
+                      {promptPart === "user" ? shownCall.prompt_user : shownCall.prompt_system}
+                    </pre>
+                    <div className="dbg-seclabel">받은 응답 (가공 전)</div>
+                    {shownCall.response_raw === null ? (
+                      <div className="placeholder-note">
+                        응답을 받지 못했습니다 — 보여 줄 원문이 <b>없습니다</b>. 빈 칸으로 두지
+                        않고 없다고 적습니다.
+                      </div>
+                    ) : (
+                      <pre className="code">{shownCall.response_raw}</pre>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="grid g-12">
-            <div className="card col-6">
+            <div className="card col-6" id="dbg-input">
               <div className="card-h">
                 <h3>모델이 받은 입력</h3>
                 <span className="sub">
@@ -759,19 +862,26 @@ export function Debug() {
                 <div className="card-h">
                   <h3>배치 실행</h3>
                   <span className="sub">
-                    <span className="mono">{run.run_id}</span> · {run.run_trigger} ·{" "}
-                    {run.run_started_at}
+                    <span className="mono">{run.run_id}</span> {run.run_trigger} 실행
                   </span>
                   <div className="r">
-                    <span className={`badge ${run.run_status === "failed" ? "b-neg" : "b-pos"}`}>
-                      {run.run_status}
-                    </span>
+                    <span className="dbg-tag">스케줄러 이력이 지워져도 남는 기록</span>
                   </div>
                 </div>
                 <div className="card-b">
                   <div className="kv">
-                    <span className="k">끝난 시각</span>
-                    <span className="v mono">{run.run_ended_at ?? "아직 진행 중"}</span>
+                    <span className="k">트리거</span>
+                    <span className="v">{run.run_trigger}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="k">시작 → 종료</span>
+                    <span className="v mono">
+                      {run.run_started_at} → {run.run_ended_at ?? "아직 진행 중"}
+                    </span>
+                  </div>
+                  <div className="kv">
+                    <span className="k">최종 상태</span>
+                    <span className="v">{run.run_status}</span>
                   </div>
                   <table className="tbl">
                     <thead>
@@ -780,6 +890,7 @@ export function Debug() {
                         <th>상태</th>
                         <th className="num">입력</th>
                         <th>처리 결과</th>
+                        <th>합</th>
                         <th className="num">소요</th>
                       </tr>
                     </thead>
@@ -808,6 +919,7 @@ export function Debug() {
                               </>
                             )}
                           </td>
+                          <td>{stageBalance(stage)}</td>
                           <td className="num mono">{stage.duration_ms}ms</td>
                         </tr>
                       ))}
@@ -927,7 +1039,10 @@ export function Debug() {
             <div className="card col-7">
               <div className="card-h">
                 <h3>원인 판정</h3>
-                <span className="sub">모은 근거로 원인을 하나 고릅니다</span>
+                <span className="sub">
+                  {data.record_id}
+                  {input?.title ? ` · ${input.title}` : ""}
+                </span>
               </div>
               <div className="card-b">
                 <table className="tbl">
@@ -939,39 +1054,65 @@ export function Debug() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>모델 호출</td>
+                      <td>요청·응답</td>
                       <td>
-                        {exchange.state === "call"
-                          ? `${OUTCOME_LABEL[call?.call_outcome ?? ""] ?? call?.call_outcome} · 재시도 ${call?.call_attempt_count}회`
-                          : exchange.state === "no-call"
-                            ? `부르지 않음 — ${NO_CALL_LABEL[exchange.no_call_reason ?? ""] ?? exchange.no_call_reason}`
-                            : "기록 없음"}
+                        {exchange.state === "no-call"
+                          ? `호출 없음 · ${NO_CALL_LABEL[exchange.no_call_reason ?? ""] ?? exchange.no_call_reason}`
+                          : exchange.state !== "call" || !call
+                            ? "기록 없음"
+                            : call.call_outcome === "call_failed"
+                              ? `호출 실패 · ${call.call_failure_reason ?? "—"}`
+                              : !hasReply
+                                ? (OUTCOME_LABEL[call.call_outcome] ?? call.call_outcome)
+                                : `${original ? "재사용 · " : ""}${
+                                    mismatched.length
+                                      ? "응답의 최종 판단 ≠ 저장값"
+                                      : original
+                                        ? "원 응답과 저장값 같음"
+                                        : "응답과 저장값 같음"
+                                  }`}
                       </td>
                     </tr>
                     <tr>
-                      <td>응답 ↔ 저장값</td>
+                      <td>입력</td>
                       <td>
-                        {rows.length === 0
-                          ? "대조할 응답 원문이 없음"
-                          : mismatched.length === 0
-                            ? "전 필드 일치"
-                            : `${mismatched.length}개 필드가 어긋남`}
+                        {!input
+                          ? "알 수 없음"
+                          : bodies.length === 0
+                            ? "본문 없음"
+                            : emptyish
+                              ? "안내 문구뿐인 본문"
+                              : staleBy > 0
+                                ? "분석 뒤 본문 수정됨"
+                                : sentKnown
+                                  ? "보관 원문과 같음"
+                                  : "알 수 없음"}
                       </td>
                     </tr>
                     <tr>
-                      <td>실행 전체</td>
+                      <td>실행</td>
                       <td>
                         {run
-                          ? `${run.symptoms.records}건 중 호출 ${run.symptoms.calls}건 · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
+                          ? `${run.run_id} · ${run.symptoms.records}건 중 호출 ${run.symptoms.calls}건 · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
                           : "실행 기록 없음"}
                       </td>
                     </tr>
                   </tbody>
                 </table>
                 <form
+                  noValidate
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!cause) return;
+                    if (!cause || !memo.trim()) {
+                      setRecorded(null);
+                      setInvalid(
+                        !cause
+                          ? "원인을 먼저 고르세요."
+                          : "무엇을 보고 판정했는지 적어야 기록됩니다 — 근거 없는 판정은 다음 조사에 쓸 수 없습니다.",
+                      );
+                      return;
+                    }
+                    setInvalid(null);
                     setRecorded(CAUSES.find((c) => c.id === cause)?.label ?? cause);
                   }}
                 >
@@ -1000,16 +1141,22 @@ export function Debug() {
                       onChange={(e) => setMemo(e.target.value)}
                     />
                   </label>
-                  <div className="dbg-actions">
-                    <button type="submit" disabled={!cause}>
-                      판정 기록
-                    </button>
+                  <div className="dbg-actions dbg-actions-mid">
+                    <button type="submit">판정 기록</button>
+                    <span className="dbg-hint">조치가 필요하면 아래 길로 넘깁니다.</span>
                   </div>
                 </form>
-                {recorded && (
-                  <div className="note">
+                {invalid && (
+                  <div className="dbg-banner err">
                     <div>
-                      <b>{recorded}</b> 로 판정했습니다. 이 판정은 <b>이 화면 안에서만</b>{" "}
+                      <b>{invalid}</b>
+                    </div>
+                  </div>
+                )}
+                {recorded && (
+                  <div className="dbg-banner good">
+                    <div>
+                      <b>「{recorded}」로 1건을 판정했습니다.</b> 이 판정은 이 화면 안에서만
                       유지됩니다 — 판정 보존은 아직 제품에 없습니다.
                     </div>
                   </div>
@@ -1020,30 +1167,31 @@ export function Debug() {
             <div className="card col-5">
               <div className="card-h">
                 <h3>판정 뒤 이어지는 길</h3>
-                <span className="sub">조치가 필요하면 그 흐름으로 넘깁니다</span>
               </div>
               <div className="card-b">
-                <div className="kv">
-                  <span className="k">입력(수집)이 문제였다면</span>
-                  <span className="v">
-                    빈 본문·빠진 버전을 다시 수집해 소급 적용합니다.{" "}
-                    <a href="/reprocess">재처리 콘솔 →</a>
-                  </span>
+                <div className="dbg-br-row">
+                  <span className="dbg-br-when">입력(수집)이 문제였다면</span>
+                  <span className="dbg-br-how">빈 본문·빠진 버전을 다시 수집해 소급 적용합니다.</span>
+                  <a className="btn sm dbg-br-go" href="/reprocess">
+                    재처리 콘솔 →
+                  </a>
                 </div>
-                <div className="kv">
-                  <span className="k">로직·프롬프트가 문제였다면</span>
-                  <span className="v">
-                    고친 뒤 표본부터 소급 적용합니다. <a href="/reprocess">표본 재분석 →</a>
-                  </span>
+                <div className="dbg-br-row">
+                  <span className="dbg-br-when">로직·프롬프트가 문제였다면</span>
+                  <span className="dbg-br-how">고친 뒤 표본부터 소급 적용합니다.</span>
+                  <a className="btn sm dbg-br-go" href="/reprocess">
+                    소급 적용 범위 정하기 →
+                  </a>
                 </div>
-                <div className="kv">
-                  <span className="k">원문이 의심되면</span>
-                  <span className="v">
-                    수집된 원문까지 내려가 확인합니다.{" "}
-                    <a href={`/trace?record_id=${encodeURIComponent(data.record_id)}`}>
-                      원문 추적 상세 →
-                    </a>
-                  </span>
+                <div className="dbg-br-row">
+                  <span className="dbg-br-when">지금 결론을 못 내겠다면</span>
+                  <span className="dbg-br-how">이 결과의 링크로 같은 자리에서 다시 시작합니다.</span>
+                  <a
+                    className="btn sm dbg-br-go"
+                    href={`/debug?record_id=${encodeURIComponent(data.record_id)}`}
+                  >
+                    이 결과부터 다시 보기 →
+                  </a>
                 </div>
               </div>
             </div>
