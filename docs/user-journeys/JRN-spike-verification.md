@@ -10,7 +10,7 @@
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
 | 최종 수정일 | 2026-09-18 |
 | 달성 가치 | `V4` 수집원 편차를 보정한 공정한 비교 · `V5` 원문 추적성과 재처리 가능성 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.1·AC3.2·AC3.8) · `econ-opinion-monitor-prd-analysis.md` (AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · mockup 여정 페이지 `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 화면을 흡수) |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-fairness.md` (AC6.1·AC6.2) · `econ-opinion-monitor-prd-interest-trends.md` (AC5.1) · `econ-opinion-monitor-prd-analysis.md` (AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · mockup 여정 페이지 `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -46,21 +46,21 @@
 
 ### `STP-check-normalized` 정규화/원시 전환 확인
 
-- **사용자 행동**: 지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다 (AC3.8)
+- **사용자 행동**: 지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다 (AC6.2)
 - **터치포인트**: `JRN-spike-verification.html` 정규화 토글(`CMP-norm-toggle`), 원시↔정규화 대비 패턴(`PAT-raw-vs-norm`)
 - **생각·감정**: "정규화하면 이 순위가 유지되나?"
 - **페인포인트 / 이탈 위험**: 화면 어디에도 지금 값의 종류가 표시되지 않으면 두 수치를 섞어 해석한다 → 모든 수치 옆에 정규화 여부를 상시 명시
 
 ### `STP-inspect-sources` 소스 구성 확인
 
-- **사용자 행동**: 이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다 (AC3.1)
+- **사용자 행동**: 이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다 (AC6.1)
 - **터치포인트**: `JRN-spike-verification.html` 소스별 기여 테이블(`CMP-table`)
 - **생각·감정**: "한 군데서 다 나온 거면 신호가 아니라 잡음이지"
 - **페인포인트 / 이탈 위험**: 소스별 분해가 없으면 정규화를 믿을 수 있는지도 확인할 수 없다 → 소스별 기여 비중을 원시·정규화 양쪽으로 제시
 
 ### `STP-drilldown-articles` 기여 뉴스 목록으로 내려가기
 
-- **사용자 행동**: 해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다 (AC3.2)
+- **사용자 행동**: 해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다 (AC5.1)
 - **터치포인트**: `JRN-spike-verification.html` 기여 뉴스 행 → 같은 페이지의 원문 역추적 단계
 - **생각·감정**: "실제로 무슨 기사들이 잡힌 거야"
 - **페인포인트 / 이탈 위험**: 목록이 제목만 나열되면 같은 사건의 재탕인지 구분이 안 된다 → 소스·수집 시각·본문 중복 여부(AC1.7)를 목록에 함께 표기

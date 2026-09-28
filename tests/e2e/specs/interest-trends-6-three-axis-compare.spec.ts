@@ -1,6 +1,6 @@
-// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 7
+// 검증 시나리오: econ-opinion-monitor-test-interest-trends.md#시나리오 6
 //
-// AC3.7 "3축 비교 뷰" — docs/econ-opinion-monitor-prd-aggregation-viz.md
+// AC5.6 "3축 비교 뷰" — docs/econ-opinion-monitor-prd-interest-trends.md
 // 검증 방법(AC 본문): "동일 시점·기준에서 3개 축이 정렬되어 비교 가능한지 확인한다."
 //
 // 그 문장의 세 낱말을 그대로 나눠 단언한다.
@@ -12,7 +12,7 @@
 //      **세 축 공통 스케일** 하나로 그려진다. 컬럼 안에서만 옳은 그림은 나란히
 //      놓아도 대조가 안 된다.
 //
-// 기대값은 상수로 박지 않는다(ac3-6·ac3-8이 세운 관례). 서빙 API가 내려주는 값을
+// 기대값은 상수로 박지 않는다(interest-trends-5·fairness-2이 세운 관례). 서빙 API가 내려주는 값을
 // 먼저 읽고 화면과 대조하므로, corpus를 바꿔도 이 테스트는 여전히 옳고 화면이
 // 집계에서 어긋나는 순간에만 깨진다.
 //
@@ -20,9 +20,9 @@
 // (`fixtures/feeds/e2e-feeds-agg.json`)가 축을 다 덮는지에 달려 있다 — 축이 비면
 // `/api/compare`는 옛 버킷을 빌리지 않고 빈 컬럼을 내려주므로 (1)에서 끊긴다.
 //
-// 단언하지 않는 것: 축별 집계값 자체의 정확성(AC3.2·AC3.4)과 정규화 계산의
-// 견고성(AC3.1). 그 층은 원천에서 다시 센 교차표와 Gold를 대조하는
-// aggregation-1·2·4가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
+// 단언하지 않는 것: 축별 집계값 자체의 정확성(AC5.1·AC5.3)과 정규화 계산의
+// 견고성(AC6.1). 그 층은 원천에서 다시 센 교차표와 Gold를 대조하는
+// fairness-1·interest-trends-1·3가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
 
 import { expect, test } from "@playwright/test";
 

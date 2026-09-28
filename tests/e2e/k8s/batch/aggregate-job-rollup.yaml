@@ -3,7 +3,7 @@
 # 앞선 하네스 스텝(`timeshift-job.yaml`)이 심어 둔 `/data/aggregation-rollup` 위에서 실
 # `econ-aggregation` 을 한 번 더 돌린다. 코퍼스의 내용은 파이프라인이 만든 그대로이고 수집
 # 시각만 여러 버킷으로 흩어져 있으므로, 이 Job 이 쓴 Gold 는 시간·일·주 세 단위가 모두
-# 버킷을 여럿 갖는다 — `…-test-aggregation-viz.md#시나리오 3` 이 관측할 대상이다.
+# 버킷을 여럿 갖는다 — `…-test-interest-trends.md#시나리오 2` 이 관측할 대상이다.
 #
 # 루트를 기준 상태(`/data/aggregation`)와 가르는 이유는 다른 루트들과 같다: `write_records`
 # 가 데이터셋을 교체하므로 같은 루트에서 두 번 돌리면 이미 매칭된 spec 들이 보는 Gold 가

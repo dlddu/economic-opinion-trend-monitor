@@ -2,30 +2,30 @@
   "type": "record",
   "name": "AxisSentiment",
   "namespace": "econ.gold",
-  "doc": "Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6).",
+  "doc": "Gold record — per (axis, time bucket) sentiment distribution (AC5.3, AC5.5).",
   "x-layer": "gold",
   "fields": [
     {
       "name": "axis",
       "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
-      "doc": "Source axis (AC3.4)."
+      "doc": "Source axis (AC5.3)."
     },
     {
       "name": "bucket_unit",
       "type": { "type": "enum", "name": "BucketUnit", "symbols": ["hour", "day", "week"] },
-      "doc": "Time bucket unit (AC3.3)."
+      "doc": "Time bucket unit (AC5.2)."
     },
     {
       "name": "time_bucket",
       "type": "string",
-      "doc": "Bucket label (AC3.3)."
+      "doc": "Bucket label (AC5.2)."
     },
     {
       "name": "distribution",
       "type": {
         "type": "record",
         "name": "SentimentDistribution",
-        "doc": "Sentiment ratios for analyzed items; unanalyzed kept separate (AC3.4, AC3.6).",
+        "doc": "Sentiment ratios for analyzed items; unanalyzed kept separate (AC5.3, AC5.5).",
         "fields": [
           { "name": "positive", "type": "double" },
           { "name": "neutral", "type": "double" },
@@ -34,7 +34,7 @@
           {
             "name": "unanalyzed",
             "type": "double",
-            "doc": "Share separated out from the sentiment ratios (AC2.5, AC3.4)."
+            "doc": "Share separated out from the sentiment ratios (AC2.5, AC5.3)."
           }
         ]
       },

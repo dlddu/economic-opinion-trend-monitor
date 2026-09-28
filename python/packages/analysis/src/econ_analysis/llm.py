@@ -14,7 +14,7 @@ path against a canned completer — the analysis logic is genuinely real, yet fu
 deterministic offline.
 
 **Operator error is not an analysis outcome.** ``unanalyzed`` is a data-quality signal
-AC2.5 defines and AC3.4 consumes ("미분석 분리"), so this module refuses to spend it on
+AC2.5 defines and AC5.3 consumes ("미분석 분리"), so this module refuses to spend it on
 misconfiguration or an unreachable endpoint: :func:`http_completer` raises
 :class:`ConfigError` at construction when the environment is incomplete (the caller can
 then abort before reading Bronze), and :func:`analyze_llm` *raises*

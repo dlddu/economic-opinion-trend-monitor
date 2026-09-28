@@ -24,7 +24,7 @@ SPARK_WINDOW = 6
 
 
 def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
-    """Cut a collection timestamp down to its bucket label in ``unit`` (AC3.3).
+    """Cut a collection timestamp down to its bucket label in ``unit`` (AC5.2).
 
     Every label is zero-padded, so lexical order is chronological order *within*
     a unit — the assumption both the serving layer and the delta/spark history
@@ -157,7 +157,7 @@ def build_axis_sentiment(
             total = c["_total"] or 1
             analyzed = total - c["unanalyzed"]
             analyzed_denom = analyzed or 1
-            # Sentiment ratios are over analyzed items; unanalyzed kept separate (AC3.4).
+            # Sentiment ratios are over analyzed items; unanalyzed kept separate (AC5.3).
             distribution = SentimentDistribution(
                 positive=round(c["positive"] / analyzed_denom, 4),
                 neutral=round(c["neutral"] / analyzed_denom, 4),

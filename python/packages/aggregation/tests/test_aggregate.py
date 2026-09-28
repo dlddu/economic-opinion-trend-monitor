@@ -72,7 +72,7 @@ def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
     assert rows[("A", "2026-06-23T15")]["spark"] == [0.5, 0.75]
     assert rows[("B", "2026-06-23T15")]["delta"] == -25.0
 
-    # Raw counts stay per-bucket rather than cumulative (AC3.8).
+    # Raw counts stay per-bucket rather than cumulative (AC6.2).
     assert rows[("A", "2026-06-23T15")]["raw_count"] == 3
 
 
@@ -136,7 +136,7 @@ def test_every_unit_is_emitted_finest_first() -> None:
     rows = build_subject_trends_all_units(_span_bronze(), _span_silver())
     units = [row["bucket_unit"] for row in rows]
     assert set(units) == set(BUCKET_UNITS)
-    # Readers that stop at the first unit they recognize get the default (AC3.3: 기본 단위는 시간).
+    # Readers that stop at the first unit they recognize get the default (AC5.2: 기본 단위는 시간).
     assert units == sorted(units, key=lambda u: BUCKET_UNITS.index(u))
 
 

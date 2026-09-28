@@ -1,4 +1,4 @@
-# 다중 시간 버킷 코퍼스를 심는 하네스 Job (…-test-aggregation-viz.md#시나리오 3).
+# 다중 시간 버킷 코퍼스를 심는 하네스 Job (…-test-interest-trends.md#시나리오 2).
 #
 # **배치 단계가 아니라 하네스 스텝이다.** 제품 CLI 를 부르지 않고(`command` 로 스크립트를
 # 직접 돌린다) Gold 도 만들지 않는다. 집계는 바로 다음 Job(`aggregate-job-rollup.yaml`)이

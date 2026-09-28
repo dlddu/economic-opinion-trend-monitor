@@ -14,18 +14,18 @@ import { MapStrip } from "../shell/MapStrip";
 //
 // 순위 하나로는 답할 수 없고 **대조**가 답한다. 그래서 이 화면의 중심은 표가
 // 아니라 같은 대상을 두 가지로 센 결과를 나란히 놓는 것이다 — 집계가 계산한
-// 정규화 비율(소스 안에서 점유율을 먼저 내고 축으로 결합, AC3.1)과 독자가 원시
+// 정규화 비율(소스 안에서 점유율을 먼저 내고 축으로 결합, AC6.1)과 독자가 원시
 // 건수를 그냥 나눴다면 얻었을 순진한 카운트 점유율. 원시에서 앞서고 정규화에서
 // 밀리는 대상이 곧 「한 매체의 편집 결정」이다.
 //
 // 대조가 「편중 의심」으로 기울면 다음 물음은 「그럼 실제로 무슨 기사였나」다.
-// 그래서 표의 대상을 고르면 그 값에 기여한 개별 기사 목록이 열린다(AC3.10):
+// 그래서 표의 대상을 고르면 그 값에 기여한 개별 기사 목록이 열린다(AC6.4):
 // 수집원·수집 시각·본문 중복 여부를 행에 적고, 수집원으로 좁혀 셀 수 있고, 각
 // 행은 원문 링크와 원문 역추적으로 이어진다. 목록 건수와 그 값의 원시 카운트를
 // 카드 머리에 나란히 적는 것이 이 목록의 정직성 조건이다 — 수를 설명하지 못하는
 // 목록은 다른 수를 설명하는 목록이다.
 //
-// 편중 의심의 **어디서**에 답하는 것이 소스별 기여 분해다(AC3.9): 고른 값에
+// 편중 의심의 **어디서**에 답하는 것이 소스별 기여 분해다(AC6.3): 고른 값에
 // 수집원마다 원시 건수·원시 기여 비중·정규화 후 기여를 적는다. 그 수는 화면이
 // 새로 계산한 것이 아니라 집계가 정규화를 내며 접어 두었던 항 그대로다 — 두 번째
 // 계산법을 쓰면 자기가 설명한다는 값과 조용히 어긋나는 분해가 된다.
@@ -143,14 +143,14 @@ export function Fairness() {
     };
   }, [axis, subject, bucket, bucketUnit]);
 
-  // AC3.9 의 두 합 등식. 화면이 판정하는 것이 아니라 서빙이 실측한 네 수치를
+  // AC6.3 의 두 합 등식. 화면이 판정하는 것이 아니라 서빙이 실측한 네 수치를
   // 대조하는 것이다 — 그래서 어긋남이 관측 가능하다.
   const rawAdds = Boolean(split) && split?.basis.raw_total === split?.basis.raw_count;
   const normAdds = Boolean(split) && split?.basis.normalized_total === split?.basis.normalized_share;
 
   const articles = (contrib?.rows ?? []).filter((row) => !dupOnly || row.body_duplicate);
   const sources = contrib?.sources ?? [];
-  // 목록이 그 값을 설명하는지는 건수 등식으로만 말할 수 있다(AC3.10). 좁히기 전
+  // 목록이 그 값을 설명하는지는 건수 등식으로만 말할 수 있다(AC6.4). 좁히기 전
   // 전체 건수와 Gold 원시 카운트를 같은 자리에 적고, 어긋나면 어긋났다고 적는다.
   const reconciles = Boolean(contrib) && contrib?.basis.total === contrib?.basis.raw_count;
 
@@ -170,7 +170,7 @@ export function Fairness() {
           <span className="fl" />
           {axis}
         </span>
-        {/* CMP-norm-toggle — 정규화 비율 ↔ 원시 카운트 전환(AC3.8).
+        {/* CMP-norm-toggle — 정규화 비율 ↔ 원시 카운트 전환(AC6.2).
             허위 컨트롤이 아니다: 두 값이 같은 응답에 함께 오므로 누르면 순위·막대·
             수치가 실제로 바뀐다. 스위치의 표기는 목업의 `.norm-toggle` 그대로다. */}
         <button
@@ -336,7 +336,7 @@ export function Fairness() {
                 </div>
               </div>
 
-              {/* CMP-ranklist — 소스별 기여. 고른 값을 수집원으로 가른다(AC3.9). */}
+              {/* CMP-ranklist — 소스별 기여. 고른 값을 수집원으로 가른다(AC6.3). */}
               <div className="card src-card">
                 <div className="card-h">
                   <h3>소스별 기여</h3>
@@ -439,7 +439,7 @@ export function Fairness() {
             </div>
           </div>
 
-          {/* CMP-ranklist — 기여 뉴스. 고른 대상의 값을 만든 개별 기사들(AC3.10). */}
+          {/* CMP-ranklist — 기여 뉴스. 고른 대상의 값을 만든 개별 기사들(AC6.4). */}
           <div className="card art-card">
             <div className="card-h">
               <h3>기여 뉴스</h3>
@@ -539,7 +539,7 @@ export function Fairness() {
             chips={[
               { value: "JRN-spike-verification", text: "여정" },
               { value: "STP-check-normalized · STP-drilldown-articles", text: "단계" },
-              { value: "AC3.1 · AC3.8 · AC3.10", text: "정규화 · 구분 표기 · 기여 기사" },
+              { value: "AC6.1 · AC6.2 · AC6.4", text: "정규화 · 구분 표기 · 기여 기사" },
               { text: `${rows.length}개 대상 · ${data.basis.raw_total}건` },
               { text: `${subject} 기여 기사 ${contrib?.basis.total ?? 0}건` },
             ]}

@@ -1,11 +1,11 @@
-"""Decompose a Gold value into the collection sources that made it (AC3.9).
+"""Decompose a Gold value into the collection sources that made it (AC6.3).
 
 The decomposition is not a second calculation. ``build_subject_trends`` folds the
 per-source terms away at one point — ``(n / source_total) / n_sources`` summed
 over sources — and this module takes the same ``fold_bucket`` terms *before* that
 sum is discarded. A source breakdown computed a second way would quietly
 disagree with the number it claims to explain, which is the failure the two sum
-identities in AC3.9 exist to catch.
+identities in AC6.3 exist to catch.
 """
 
 from __future__ import annotations

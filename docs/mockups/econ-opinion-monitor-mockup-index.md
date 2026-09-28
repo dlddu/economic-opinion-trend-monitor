@@ -88,8 +88,8 @@
 |---|---|---|
 | `STP-notice-spike` | `dash` | 급등 인지. 이 단계는 `dash`(순위 목록)와 `trend`(라인 차트) 두 화면에 걸치므로 아래 규약대로 **더 앞선 화면**인 `dash`에 귀속시킨다. `trend`로 넘어갈 때 **의심 대상과 비교 구간을 그대로 승계**하는 것은 `dash`가 넘겨줘야 하는 계약이다. |
 | `STP-check-normalized` | `fairness` | 원시↔정규화 전환과 대비 표기 |
-| `STP-inspect-sources` | `fairness` | 소스별 기여 분해 · 저신뢰 분리 표기. 이 단계는 `#178`(2026-09-27, AC3.9)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render` 의 「등재된 편차」 허용목록이 대조한다**(`STP-drilldown-articles`·`STP-verify-in-trend` 행과 같은 규약) |
-| `STP-drilldown-articles` | `fairness` | 기여 뉴스 목록 (소스·수집 시각·본문 중복 표기). 이 단계는 `#174`(2026-09-27, AC3.10)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(`STP-verify-in-trend`·`STP-backfill` 행과 같은 규약) |
+| `STP-inspect-sources` | `fairness` | 소스별 기여 분해 · 저신뢰 분리 표기. 이 단계는 `#178`(2026-09-27, AC6.3)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render` 의 「등재된 편차」 허용목록이 대조한다**(`STP-drilldown-articles`·`STP-verify-in-trend` 행과 같은 규약) |
+| `STP-drilldown-articles` | `fairness` | 기여 뉴스 목록 (소스·수집 시각·본문 중복 표기). 이 단계는 `#174`(2026-09-27, AC6.4)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(`STP-verify-in-trend`·`STP-backfill` 행과 같은 규약) |
 | `STP-open-origin` | `trace` | 원문 역추적 · 보존 원문 · 링크 상태 배지 |
 | `STP-judge` | `trace` | 판정과 종료. 여정 문서가 이 단계의 터치포인트를 「`trace.html` / 제품 외부(리포트·메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 판정 화면으로 흡수했다. 판정 결과의 **영속화(검증 이력·플래그)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다. |
 | (페이지 수준) 토프바 — 크럼 `급등 검증` · `.ctl` pill `tb-basis` | `fairness` | **단계 밖 장치.** `<header class="topbar">`(`:503-511`)에 있어 어느 `data-step` 에도 들어 있지 않고 페이지 전체에 걸린다 — 위 규약의 페이지 수준 절대로 이 페이지가 흡수한 두 화면 중 더 앞선 `fairness` 가 받는다. 단계 하나를 빌려준 `dash` 에는 얹지 않는다(그 토프바는 `JRN-daily-scan` 의 것이다). 구현 편차는 설계 트래커 「페이지 수준 토프바 부재」 행이 대조한다. |
@@ -143,7 +143,7 @@
 슬라이스 9가 `Trace.tsx`에 계보 표면을 실제로 세우면서 그쪽 모델의 「규칙 3 — 이름 대조 예외」에서 **걷혔다**
 (등재 예외 1 → 0, 래칫이 강제한 철거).
 `fairness` 귀속 단계 중 `STP-check-normalized`와 `STP-drilldown-articles`가 구현에 열렸고
-(후자는 2026-09-27 AC3.10 착지), `STP-inspect-sources`는 Gold에 수집원 차원이 없어 표면 자체가
+(후자는 2026-09-27 AC6.4 착지), `STP-inspect-sources`는 Gold에 수집원 차원이 없어 표면 자체가
 부재다(설계 트래커 「등재된 편차」 참조). 이 귀속을 화면 착지보다
 먼저 선언해 둔 이유는 그때 경계를 새로 긋지 않기 위해서였고, 실제로 착지하며 경계가 그대로 쓰였다.
 
@@ -348,25 +348,25 @@
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
 ### 여정 페이지 · `JRN-daily-scan` 아침 정기 스캔
-- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3), `STP-drill-trend`(AC3.5, AC3.2), `STP-shortlist`
+- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC5.1, AC5.4), `STP-scan-delta`, `STP-adjust-window`(AC5.2), `STP-drill-trend`(AC5.4, AC5.1), `STP-shortlist`
 - **파일**: `docs/mockups/JRN-daily-scan.html` (구 `dash`·`trend` 두 화면을 흡수, 화면 파일은 삭제. `JRN-spike-verification` / `STP-notice-spike`(급등 인지 지점)와 `JRN-axis-contrast` / `STP-verify-in-trend`는 각 여정 페이지가 자기 맥락의 화면을 원본으로 이미 갖고 있다 — 같은 화면이 여러 여정에 등장하는 것은 규칙 2의 중복이 아니다)
 - **가치**: V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-table`, `CMP-legend`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-axis-contrast` 지역 온도차 확인
-- **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC3.7), `STP-scan-axis-tops`(AC3.7, AC3.4), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`, `STP-verify-in-trend`(AC3.5)
+- **여정 단계**: `JRN-axis-contrast` / `STP-open-compare`(AC5.6), `STP-scan-axis-tops`(AC5.6, AC5.3), `STP-disambiguate-axis`(AC1.3, AC2.1), `STP-pick-outlier`, `STP-verify-in-trend`(AC5.4)
 - **파일**: `docs/mockups/JRN-axis-contrast.html` (구 `compare` 화면을 흡수, 화면 파일은 삭제. `STP-verify-in-trend`는 이 여정 맥락의 추세 상세를 원본으로 새로 그린다 — 구 `trend` 화면은 `JRN-daily-scan.html` 이 흡수했다)
 - **가치**: V2 지역 축 간 비교
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-axis-compare`, `PAT-line-chart`, `CMP-card`, `CMP-axpill`, `CMP-ranklist`, `CMP-badge`, `CMP-note`, `CMP-legend`, `CMP-table`, `CMP-kv`, `CMP-metric`, `CMP-delta`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-sentiment-shift` 분위기 반전 감지
-- **여정 단계**: `JRN-sentiment-shift` / `STP-open-sentiment`(AC3.6, AC3.4), `STP-check-unanalyzed`(AC2.5, AC3.4), `STP-overlay-time`(AC3.3, AC3.6), `STP-confirm-cause`
+- **여정 단계**: `JRN-sentiment-shift` / `STP-open-sentiment`(AC5.5, AC5.3), `STP-check-unanalyzed`(AC2.5, AC5.3), `STP-overlay-time`(AC5.2, AC5.5), `STP-confirm-cause`
 - **파일**: `docs/mockups/JRN-sentiment-shift.html` (구 `sentiment` 화면을 흡수, 화면 파일은 삭제)
 - **가치**: V3 분위기 분포 파악, V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-donut`, `PAT-stacked-sentiment`, `CMP-card`, `CMP-sentbar`, `CMP-legend`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-spike-verification` 급등 신호의 진위 확인
-- **여정 단계**: `JRN-spike-verification` / `STP-notice-spike`, `STP-check-normalized`(AC3.8), `STP-inspect-sources`(AC3.1, AC3.8), `STP-drilldown-articles`(AC3.2, AC1.7), `STP-open-origin`(AC2.6, AC1.4), `STP-judge`
+- **여정 단계**: `JRN-spike-verification` / `STP-notice-spike`, `STP-check-normalized`(AC6.2), `STP-inspect-sources`(AC6.1, AC6.2), `STP-drilldown-articles`(AC5.1, AC1.7), `STP-open-origin`(AC2.6, AC1.4), `STP-judge`
 - **파일**: `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 두 화면을 흡수, 화면 파일은 삭제. `STP-notice-spike`는 이 여정 맥락의 급등 인지 화면을 원본으로 새로 그린다 — 구 `dash`·`trend` 화면은 `JRN-daily-scan.html` 이 흡수했다)
 - **가치**: V4 수집원 편차 보정, V5 원문 추적성·재처리
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-raw-vs-norm`, `PAT-lineage`, `CMP-card`, `CMP-norm-toggle`, `CMP-ranklist`, `CMP-table`, `CMP-note`, `CMP-kv`, `CMP-badge`, `CMP-delta`, `CMP-mapstrip`
@@ -378,7 +378,7 @@
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-integrity-panel`, `PAT-before-after`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`
 
 ### 여정 페이지 · `JRN-logic-backfill` 로직 개선의 소급 적용
-- **여정 단계**: `JRN-logic-backfill` / `STP-scope-range`(AC1.4, AC2.6), `STP-dry-run`, `STP-run-reprocess`(AC2.6, AC2.4), `STP-compare-before-after`(AC3.2, AC3.3), `STP-publish`
+- **여정 단계**: `JRN-logic-backfill` / `STP-scope-range`(AC1.4, AC2.6), `STP-dry-run`, `STP-run-reprocess`(AC2.6, AC2.4), `STP-compare-before-after`(AC5.1, AC5.2), `STP-publish`
 - **파일**: `docs/mockups/JRN-logic-backfill.html` (구 `reprocess` 화면을 흡수, 화면 파일은 삭제. `JRN-ingestion-recovery` 는 같은 `reprocess` 귀속 단계를 자기 여정 맥락의 원본으로 이미 갖고 있다 — 같은 화면이 여러 여정에 등장하는 것은 규칙 2의 중복이 아니다)
 - **가치**: V5 원문 추적성·재처리 (페르소나 P2 운영자)
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-before-after`, `PAT-integrity-panel`, `CMP-card`, `CMP-table`, `CMP-kv`, `CMP-badge`, `CMP-note`, `CMP-metric`, `CMP-mapstrip`

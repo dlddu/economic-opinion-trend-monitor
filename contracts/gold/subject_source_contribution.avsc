@@ -2,28 +2,28 @@
   "type": "record",
   "name": "SubjectSourceContribution",
   "namespace": "econ.gold",
-  "doc": "Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC3.9). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend.",
+  "doc": "Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC6.3). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend.",
   "x-layer": "gold",
   "fields": [
     {
       "name": "subject",
       "type": "string",
-      "doc": "Narrative subject key, the same unified key SubjectTrend uses (AC3.2)."
+      "doc": "Narrative subject key, the same unified key SubjectTrend uses (AC5.1)."
     },
     {
       "name": "axis",
       "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
-      "doc": "Source axis (AC3.4, AC3.7)."
+      "doc": "Source axis (AC5.3, AC5.6)."
     },
     {
       "name": "bucket_unit",
       "type": { "type": "enum", "name": "BucketUnit", "symbols": ["hour", "day", "week"] },
-      "doc": "Time bucket unit; hour rolls up to day/week (AC3.3)."
+      "doc": "Time bucket unit; hour rolls up to day/week (AC5.2)."
     },
     {
       "name": "time_bucket",
       "type": "string",
-      "doc": "Bucket label, e.g. 2026-06-23T14 (AC3.3)."
+      "doc": "Bucket label, e.g. 2026-06-23T14 (AC5.2)."
     },
     {
       "name": "source_id",
@@ -33,17 +33,17 @@
     {
       "name": "raw_count",
       "type": "long",
-      "doc": "Raw collected count from this source alone; the per-value sum equals SubjectTrend.raw_count (AC3.9)."
+      "doc": "Raw collected count from this source alone; the per-value sum equals SubjectTrend.raw_count (AC6.3)."
     },
     {
       "name": "raw_share",
       "type": "double",
-      "doc": "This source's share of the value's raw count, before normalization (AC3.9)."
+      "doc": "This source's share of the value's raw count, before normalization (AC6.3)."
     },
     {
       "name": "normalized_contribution",
       "type": "double",
-      "doc": "This source's part of the normalized share; the per-value sum equals SubjectTrend.normalized_share (AC3.1, AC3.9)."
+      "doc": "This source's part of the normalized share; the per-value sum equals SubjectTrend.normalized_share (AC6.1, AC6.3)."
     }
   ]
 }
