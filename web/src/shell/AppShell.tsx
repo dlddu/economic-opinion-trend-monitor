@@ -11,7 +11,9 @@ export function AppShell() {
   return (
     <TopbarContext.Provider value={slot}>
       <div className="app">
-        <Sidebar />
+        <div className="sidebar-rail">
+          <Sidebar />
+        </div>
         <div className="main">
           <Topbar />
           <main className="canvas">

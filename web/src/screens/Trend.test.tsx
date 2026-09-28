@@ -1,8 +1,10 @@
+/// <reference types="vite/client" />
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
+import tokensCss from "../tokens/tokens.css?raw";
 
 function renderTrend(entry = "/trend") {
   return render(
@@ -20,6 +22,36 @@ afterEach(() => {
 });
 
 const BUCKETS = ["2026-06-23T12", "2026-06-23T13", "2026-06-23T14"];
+
+/** One subject over `buckets`, for the axis tests that only care about the scale. */
+function seriesResponse(buckets: string[], shares: number[]): TrendResponse {
+  return {
+    axis: "KR",
+    subject: "기준금리",
+    basis: {
+      bucket_unit: "hour",
+      first_bucket: buckets[0],
+      latest_bucket: buckets[buckets.length - 1],
+      buckets,
+      normalized: true,
+    },
+    series: [
+      {
+        subject: "기준금리",
+        selected: true,
+        latest_share: shares[shares.length - 1],
+        delta: 0,
+        points: buckets.map((b, i) => ({ time_bucket: b, normalized_share: shares[i], raw_count: 1 })),
+      },
+    ],
+  };
+}
+
+function axisLabels(container: HTMLElement, anchor: "middle" | "end"): string[] {
+  return Array.from(container.querySelectorAll("text.axlab"))
+    .filter((el) => el.getAttribute("y") === "240" && (el.getAttribute("text-anchor") ?? "") === anchor)
+    .map((el) => el.textContent ?? "");
+}
 
 function response(selected = "기준금리"): TrendResponse {
   const series = [
@@ -97,6 +129,49 @@ describe("Trend", () => {
     // inverted scale, which a shares-only assertion would miss.
     expect(ys[0]).toBeGreaterThan(ys[1]);
     expect(ys[1]).toBeGreaterThan(ys[2]);
+  });
+
+  it("labels at most seven buckets, dated once the window spans days", async () => {
+    // 100 hourly buckets from 2026-09-24 02시 — the window crosses into 09-28.
+    const start = Date.UTC(2026, 8, 24, 2);
+    const buckets = Array.from({ length: 100 }, (_, i) =>
+      new Date(start + i * 3_600_000).toISOString().slice(0, 13),
+    );
+    stubTrend([seriesResponse(buckets, buckets.map(() => 0.01))]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
+    const ticks = [...axisLabels(container, "middle"), ...axisLabels(container, "end")];
+    expect(ticks).toHaveLength(7);
+    expect(ticks[0]).toBe("09-24 02시");
+    expect(axisLabels(container, "end")).toEqual(["09-28 05시"]);
+  });
+
+  it("keeps same-day hourly ticks to the hour", async () => {
+    stubTrend([response()]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
+    expect(axisLabels(container, "middle")).toEqual(["12시", "13시", "14시"]);
+  });
+
+  it("steps the share axis so no two gridline labels read the same", async () => {
+    stubTrend([seriesResponse(["2026-06-23T12", "2026-06-23T13"], [0.004, 0.019])]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
+    const labels = Array.from(container.querySelectorAll("text.axlab"))
+      .filter((el) => el.getAttribute("text-anchor") === "end" && el.getAttribute("x") === "48")
+      .map((el) => el.textContent);
+    expect(labels).toEqual(["2.0%", "1.5%", "1.0%", "0.5%", "0"]);
+  });
+
+  it("ships a [hidden] rule that outranks the banners' own display", () => {
+    // 배너는 `hidden` 속성으로 숨기는데 `.trend-sl-banner` 가 `display` 를 스스로 선언해 UA 의
+    // `[hidden]{display:none}` 을 이긴다. jsdom 은 `!important` 를 캐스케이드에 반영하지 않아
+    // 계산된 스타일로는 이 결함을 볼 수 없으므로, 막아 주는 규칙이 토큰에 있는지를 직접 본다.
+    expect(tokensCss).toMatch(/\.trend-sl-banner\s*\{[^}]*display:\s*block/);
+    expect(tokensCss).toMatch(/(^|\n)\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
   });
 
   it("draws the picked subject alone until 겹쳐 보기 is opted into", async () => {
