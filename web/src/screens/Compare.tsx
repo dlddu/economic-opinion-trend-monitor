@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { AxisColumn, CompareResponse, SentimentDistribution } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -23,6 +23,7 @@ function pct(x: number): string {
 }
 
 export function Compare() {
+  const navigate = useNavigate();
   const [data, setData] = useState<CompareResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +91,14 @@ export function Compare() {
                   <h3>{a.label}</h3>
                 </div>
                 <div className="card-b">
-                  <AxisRows column={columns.get(a.id)} maxShare={maxShare} axisName={a.name} />
+                  <AxisRows
+                    column={columns.get(a.id)}
+                    maxShare={maxShare}
+                    axisName={a.name}
+                    onOpen={(subject) =>
+                      navigate(`/trend?axis=${a.id}&subject=${encodeURIComponent(subject)}`)
+                    }
+                  />
                 </div>
               </section>
             ))}
@@ -144,10 +152,12 @@ function AxisRows({
   column,
   maxShare,
   axisName,
+  onOpen,
 }: {
   column?: AxisColumn;
   maxShare: number;
   axisName: string;
+  onOpen: (subject: string) => void;
 }) {
   // An axis with nothing collected is not an axis with zero interest. Drawing it
   // as 0% would read as "nobody there talked about anything", so the column says
@@ -163,7 +173,12 @@ function AxisRows({
   return (
     <>
       {column.top_subjects.map((row) => (
-        <div key={row.subject} className="cmprow">
+        <div
+          key={row.subject}
+          className="cmprow"
+          style={{ cursor: "pointer" }}
+          onClick={() => onOpen(row.subject)}
+        >
           <div className="top">
             <span className="nm">
               {row.rank}. {row.subject}

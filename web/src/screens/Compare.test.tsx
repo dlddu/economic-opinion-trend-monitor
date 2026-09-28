@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Compare } from "./Compare";
 import type { Axis, CompareResponse } from "../api/types";
 
@@ -36,12 +36,24 @@ function stubCompare(body: CompareResponse = response()) {
   );
 }
 
+function Landing() {
+  const { pathname, search } = useLocation();
+  return <div data-testid="landed">{`${pathname}${search}`}</div>;
+}
+
 function renderScreen() {
   return render(
-    <MemoryRouter>
-      <Compare />
+    <MemoryRouter initialEntries={["/compare"]}>
+      <Routes>
+        <Route path="/compare" element={<Compare />} />
+        <Route path="/trend" element={<Landing />} />
+      </Routes>
     </MemoryRouter>,
   );
+}
+
+function columnRows(container: HTMLElement, axis: Axis): HTMLElement[] {
+  return [...container.querySelectorAll(`.cmpcol[data-axis="${axis}"] .cmprow`)] as HTMLElement[];
 }
 
 function exitCard(container: HTMLElement, heading: string): HTMLElement {
@@ -83,4 +95,32 @@ it("keeps the exits out of the three compared columns", async () => {
   expect(container.querySelectorAll(".cmp-exit .cmprow").length).toBe(0);
   expect(container.querySelectorAll(".cmp-exit .norm-flag").length).toBe(0);
   expect(container.querySelectorAll(".norm-flag").length).toBe(1);
+});
+
+it("carries the picked subject into the trend detail, keeping the column's axis", async () => {
+  stubCompare();
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(container.querySelectorAll(".cmprow").length).toBe(3));
+  fireEvent.click(columnRows(container, "KR")[0]);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe(
+      `/trend?axis=KR&subject=${encodeURIComponent("금리")}`,
+    ),
+  );
+});
+
+it("sends the axis of the column the row sits in, not the first one", async () => {
+  stubCompare();
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(container.querySelectorAll(".cmprow").length).toBe(3));
+  fireEvent.click(columnRows(container, "GLOBAL")[0]);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe(
+      `/trend?axis=GLOBAL&subject=${encodeURIComponent("유가")}`,
+    ),
+  );
 });
