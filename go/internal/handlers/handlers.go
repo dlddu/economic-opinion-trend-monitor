@@ -290,9 +290,8 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
-	// Filter while reading rather than after: only this axis's rows in the
-	// finest unit seen so far are kept, so the other axes and the coarser
-	// units never sit in memory at once.
+	// Filter while reading, not after: Gold grows every batch run, and holding
+	// every axis and unit at once is what got serving OOM-killed.
 	var finest gen.BucketUnit
 	rows, _ := h.lake.SubjectTrendsWhere(func(t *gen.SubjectTrend) bool {
 		if string(t.Axis) != axis {
@@ -685,8 +684,6 @@ func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
 	return finestUnit(present)
 }
 
-// unitRank orders the units finest first, the same order finestUnit walks; an
-// unknown unit ranks after all of them.
 func unitRank(u gen.BucketUnit) int {
 	for i, unit := range []gen.BucketUnit{gen.BucketUnitHour, gen.BucketUnitDay, gen.BucketUnitWeek} {
 		if u == unit {

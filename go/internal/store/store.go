@@ -54,10 +54,7 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
 }
 
-// SubjectTrendsWhere streams the Gold subject_trend dataset and keeps only the
-// rows keep accepts. The whole dataset is never held at once: each line is
-// decoded, offered to keep, and dropped if refused — Gold grows every batch
-// run, and a handler that wants one axis should not pay for all of them.
+// SubjectTrendsWhere reads the Gold subject_trend dataset, keeping only the rows keep accepts.
 func (l *Lake) SubjectTrendsWhere(keep func(*gen.SubjectTrend) bool) ([]gen.SubjectTrend, error) {
 	return scanJSONL(l.path("gold", "subject_trend"), keep)
 }
@@ -223,8 +220,6 @@ func readJSONL[T any](path string) ([]T, error) {
 	return scanJSONL[T](path, nil)
 }
 
-// scanJSONL is readJSONL with a per-record filter applied while decoding; a nil
-// keep keeps every record.
 func scanJSONL[T any](path string, keep func(*T) bool) ([]T, error) {
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
