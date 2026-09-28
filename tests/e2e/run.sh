@@ -362,7 +362,7 @@ chain_record_links() {
 }
 
 # 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
-# …-test-fairness.md#시나리오 1·2·4).
+# …-test-aggregation-viz.md#시나리오 1·2·4).
 run_aggregation_stack() {
   suffix="$1"; root="$2"; label="$3"
   ingest_log="$(run_batch_job "econ-e2e-ingest-agg$suffix" \
@@ -397,7 +397,7 @@ run_aggregation_stack() {
   echo "[e2e] aggregation ($label) done in $root"
 }
 
-# Baseline aggregation, then 4f) the rollup root (…-test-interest-trends.md#시나리오 2) — it must follow it.
+# Baseline aggregation, then 4f) the rollup root (…-test-aggregation-viz.md#시나리오 3) — it must follow it.
 chain_aggregation() {
   run_aggregation_stack "" /data/aggregation baseline
   export_news_item /data/aggregation "$AGG_BRONZE_DIR"

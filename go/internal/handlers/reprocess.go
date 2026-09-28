@@ -84,7 +84,7 @@ type compareShare struct {
 
 // compareRow is one subject's mention share under each version. Share here is
 // raw: mentions of the subject over all mentions the version produced in the
-// range. It is not the AC6.1 normalized share Gold carries — the point is to
+// range. It is not the AC3.1 normalized share Gold carries — the point is to
 // see what the new logic *said*, before aggregation reweights it.
 type compareRow struct {
 	Subject     string  `json:"subject"`

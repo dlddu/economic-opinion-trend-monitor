@@ -10,7 +10,7 @@
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
 | 최종 수정일 | 2026-08-31 |
 | 달성 가치 | `V2` 지역 축 간 관심사 비교 |
-| 연결 문서 | PRD `econ-opinion-monitor-prd-interest-trends.md` (AC5.3·AC5.4·AC5.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.3) · `econ-opinion-monitor-prd-analysis.md` (AC2.1) · mockup `JRN-axis-contrast.html` (여정 단위 페이지, 구 `compare` 화면을 흡수) |
+| 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.4·AC3.5·AC3.7) · `econ-opinion-monitor-prd-ingestion.md` (AC1.3) · `econ-opinion-monitor-prd-analysis.md` (AC2.1) · mockup `JRN-axis-contrast.html` (여정 단위 페이지, 구 `compare` 화면을 흡수) |
 
 ## 1. 서비스 개요 (참고)
 
@@ -39,14 +39,14 @@
 
 ### `STP-open-compare` 3축 비교 뷰 진입
 
-- **사용자 행동**: 한국·미국·전세계를 같은 기준으로 나란히 놓는다 (AC5.6)
+- **사용자 행동**: 한국·미국·전세계를 같은 기준으로 나란히 놓는다 (AC3.7)
 - **터치포인트**: `JRN-axis-contrast.html` 3축 비교 패턴(`PAT-axis-compare`), 축 필(`CMP-axpill`)
 - **생각·감정**: "같은 기준으로 놓고 봐야 말이 되지"
 - **페인포인트 / 이탈 위험**: 축마다 기간·정규화 기준이 다르면 비교 자체가 무의미해진다 → 축 간 기준(기간·단위·정규화)을 강제로 동기화하고 화면에 명시
 
 ### `STP-scan-axis-tops` 축별 상위 대상 대조
 
-- **사용자 행동**: 동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다 (AC5.6, AC5.3)
+- **사용자 행동**: 동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다 (AC3.7, AC3.4)
 - **터치포인트**: `JRN-axis-contrast.html` 축별 순위 목록(`CMP-ranklist`)
 - **생각·감정**: "이건 셋 다 있네. 근데 이건 한국에만 있다"
 - **페인포인트 / 이탈 위험**: 공통 대상과 축 고유 대상이 시각적으로 구분되지 않으면 눈으로 교집합을 계산해야 한다 → 공통/고유를 배지로 구분 표시
@@ -67,7 +67,7 @@
 
 ### `STP-verify-in-trend` 상세 추세로 확인
 
-- **사용자 행동**: 선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다 (AC5.4)
+- **사용자 행동**: 선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다 (AC3.5)
 - **터치포인트**: `JRN-axis-contrast.html` 축별 라인 차트, 범례(`CMP-legend`) — 이 여정 맥락의 상세 화면(비교 뷰의 축·기간을 승계)
 - **생각·감정**: "계속 이랬던 거네" / "이번 주만 그런 거였네"
 - **페인포인트 / 이탈 위험**: 축 선택이 상세 화면으로 이어지지 않으면 처음부터 다시 설정해야 한다 → 비교 뷰의 축·기간 상태를 상세로 승계
@@ -79,7 +79,7 @@
 | 특정 축의 수집 데이터가 비어 있음 | 해당 축을 "데이터 없음"으로 명시하고 비교에서 제외(0으로 표시하지 않음) | `STP-scan-axis-tops` |
 | 축 간 격차가 수집량 차이 때문으로 의심됨 | 정규화·공정성 확인 흐름으로 이탈 | `JRN-spike-verification` · `STP-check-normalized` |
 | 분위기까지 축별로 보고 싶어짐 | 분위기 흐름으로 이탈 | `JRN-sentiment-shift` · `STP-open-sentiment` |
-| 표기 변형으로 같은 대상이 축마다 다르게 잡힘 (AC5.1) | 통합 규칙을 안내하고 통합 전후를 구분 표기 | `STP-scan-axis-tops` |
+| 표기 변형으로 같은 대상이 축마다 다르게 잡힘 (AC3.2) | 통합 규칙을 안내하고 통합 전후를 구분 표기 | `STP-scan-axis-tops` |
 
 ## 5. 측정 지표
 

@@ -10,7 +10,7 @@ from econ_core.models.enums import Axis, BucketUnit
 
 @dataclass(kw_only=True)
 class AxisSentiment:
-    """Gold record — per (axis, time bucket) sentiment distribution (AC5.3, AC5.5)."""
+    """Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6)."""
 
     axis: Axis
     bucket_unit: BucketUnit
@@ -31,7 +31,7 @@ class AxisSentiment:
 
 @dataclass(kw_only=True)
 class SentimentDistribution:
-    """Sentiment ratios for analyzed items; unanalyzed kept separate (AC5.3, AC5.5)."""
+    """Sentiment ratios for analyzed items; unanalyzed kept separate (AC3.4, AC3.6)."""
 
     positive: float
     neutral: float
@@ -52,7 +52,7 @@ class SentimentDistribution:
 
 @dataclass(kw_only=True)
 class SubjectSourceContribution:
-    """Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC6.3). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend."""
+    """Gold record — how much one collection source contributed to a (subject, axis, time bucket) value (AC3.9). Kept in its own dataset so readers that do not know the source dimension cannot double-count the subject-level rows of SubjectTrend."""
 
     subject: str
     axis: Axis
@@ -79,7 +79,7 @@ class SubjectSourceContribution:
 
 @dataclass(kw_only=True)
 class SubjectTrend:
-    """Gold record — per (subject, axis, time bucket) trend aggregation (AC6.1-AC5.2, AC5.4, AC6.2)."""
+    """Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8)."""
 
     subject: str
     axis: Axis

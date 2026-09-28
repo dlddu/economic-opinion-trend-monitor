@@ -1,4 +1,4 @@
-// 검증 시나리오: econ-opinion-monitor-test-interest-trends.md#시나리오 1
+// 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 2
 //
 // 기대 결과의 두 절을 각각 다르게 관측한다:
 //   · 키 병합 — 더블이 `삼성전자`·`Samsung`·`삼성` 세 표기로 답하게 해 두고, Silver 에서 세
@@ -8,7 +8,7 @@
 //     Bronze(축·수집 시각) + Silver(서술 대상)에서 교차표를 **독립적으로 다시 세어**
 //     (`lib/gold.ts: crossTab`) Gold 행과 대조한다.
 //
-// 집계가 같은 레코드를 시간·일·주 세 벌로 산출하므로(AC5.2), 아래 단정은 전부 `lib/gold.ts` 가
+// 집계가 같은 레코드를 시간·일·주 세 벌로 산출하므로(AC3.3), 아래 단정은 전부 `lib/gold.ts` 가
 // **기본 단위 한 벌로 정한** 행 위에서 돈다 — 그러지 않으면 교차표의 칸마다 롤업 행이 겹쳐
 // 이 시나리오가 재려던 것(원천과의 일치)이 단위 회계 문제에 묻힌다.
 
@@ -104,7 +104,7 @@ test("aggregation: every Gold row carries the time bucket its source records fal
   }
 
   // 위 단정이 도는 슬라이스가 **필터의 산물**이라는 사실을 그 자리에서 밝힌다: 원본 Gold 는
-  // 세 단위를 다 갖고 있고, 기본 단위가 시간이라 위 행들이 시간 버킷을 든다(AC5.2
+  // 세 단위를 다 갖고 있고, 기본 단위가 시간이라 위 행들이 시간 버킷을 든다(AC3.3
   // "기본 단위는 시간"). 롤업 합산이 하위 버킷 합과 일치하는지는 시나리오 3의 몫이라 여기서
   // 재지 않는다 — 여기서 보는 것은 필터가 단위 하나를 고른 것이지 데이터를 지운 게 아니라는 점뿐이다.
   const units = new Set(subjectTrendsAllUnits().map((row) => row.bucket_unit));

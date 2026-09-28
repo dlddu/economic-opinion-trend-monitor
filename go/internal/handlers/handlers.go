@@ -118,7 +118,7 @@ type sentimentBasis struct {
 
 // sentimentPoint is one bucket of the selected axis. The four sentiment ratios
 // are over the *analyzed* items and Unanalyzed rides alongside as its own share
-// of the whole, never folded in with them (AC5.3). AnalyzedTotal is what those
+// of the whole, never folded in with them (AC3.4). AnalyzedTotal is what those
 // ratios were taken over, so a 60% that rests on five items can be told apart
 // from one that rests on five hundred.
 type sentimentPoint struct {
@@ -127,7 +127,7 @@ type sentimentPoint struct {
 	AnalyzedTotal int64                     `json:"analyzed_total"`
 }
 
-// sentimentAxisRow is one axis at the basis bucket — the 축별 half of AC5.3.
+// sentimentAxisRow is one axis at the basis bucket — the 축별 half of AC3.4.
 //
 // Present is the field that keeps the comparison honest. An axis with no Gold
 // row in that bucket comes back with the zero distribution and Present false:
@@ -156,7 +156,7 @@ const fairnessRowLimit = 20
 //
 // Method names the normalization the aggregation applied, so the screen can
 // print it verbatim rather than asserting "normalized" with no way to say how
-// (AC6.1). RawTotal is the denominator RawShare was taken over — published so
+// (AC3.1). RawTotal is the denominator RawShare was taken over — published so
 // the raw counts beside it add up.
 type fairnessBasis struct {
 	BucketUnit string `json:"bucket_unit"`
@@ -170,8 +170,8 @@ type fairnessBasis struct {
 //
 // RawShare is deliberately *not* the normalized share: it is the naive count
 // share, what dividing raw counts would have told the reader. Keeping both is
-// the whole point — the gap between them is the source-volume deviation AC6.1
-// corrects, and AC6.2 asks for exactly that distinction to be visible.
+// the whole point — the gap between them is the source-volume deviation AC3.1
+// corrects, and AC3.8 asks for exactly that distinction to be visible.
 type fairnessRow struct {
 	Rank            int       `json:"rank"`
 	Subject         string    `json:"subject"`
@@ -270,7 +270,7 @@ func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// trend answers AC5.4: one subject's interest over time, with the axis's
+// trend answers AC3.5: one subject's interest over time, with the axis's
 // leading subjects overlaid so the selected line can be read against them.
 //
 // Gold holds one flat row per (subject, axis, bucket), so a time series is the
@@ -323,7 +323,7 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// compare answers AC5.6: the three axes side by side on the *same* basis.
+// compare answers AC3.7: the three axes side by side on the *same* basis.
 //
 // "Same basis" is the whole point of the view, so it is not left implicit —
 // the response carries the basis it compared on. Gold holds one record per
@@ -362,7 +362,7 @@ func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-// sentiment answers AC5.3 (축별·분위기별 비율, 미분석 분리) and gives AC5.5 a
+// sentiment answers AC3.4 (축별·분위기별 비율, 미분석 분리) and gives AC3.6 a
 // screen of its own: the selected axis over time, plus the three axes read
 // against each other at one bucket.
 //
@@ -409,8 +409,8 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// fairness answers AC6.2's half of 급등 검증: is this spike still a spike once
-// the source-volume difference is normalized away (AC6.1)?
+// fairness answers AC3.8's half of 급등 검증: is this spike still a spike once
+// the source-volume difference is normalized away (AC3.1)?
 //
 // A ranking on its own cannot answer that — it is the *contrast* that answers
 // it. So the response carries both counting modes for the same subject: the
@@ -661,7 +661,7 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 }
 
 // plottedUnit picks the bucket unit the chart is drawn in: the finest one
-// present, which is the default AC5.2 names.
+// present, which is the default AC3.3 names.
 //
 // Note what it does *not* do — pick the unit of the newest bucket. Bucket keys
 // are only comparable within a unit: "2026-W26" sorts above "2026-06-23T14"
@@ -806,7 +806,7 @@ func countUnselected(series []trendSeries) int {
 // meaningful. Bucket keys are only comparable within a unit — "2026-W26" sorts
 // above "2026-06-23T14" because 'W' outranks '0', not because that week is
 // later — so a plain maximum over mixed rows would hand the view a week rollup
-// and label it the latest hour. With rollups in Gold (AC5.2) that is not a
+// and label it the latest hour. With rollups in Gold (AC3.3) that is not a
 // hypothetical: every run writes a week row.
 func latestBucket(trends []gen.SubjectTrend, sentiments []gen.AxisSentiment) (string, gen.BucketUnit) {
 	present := make(map[gen.BucketUnit]bool, 3)

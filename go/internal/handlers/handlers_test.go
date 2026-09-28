@@ -52,7 +52,7 @@ type compareResponse struct {
 	} `json:"axes"`
 }
 
-// AC5.6 — the three axes must line up on one shared basis. This is the unit
+// AC3.7 — the three axes must line up on one shared basis. This is the unit
 // guard for that half: the e2e fixture is deliberately single-bucket (it feeds
 // the dashboard specs too), so only a test that supplies two buckets can prove
 // the handler picks one. The e2e spec covers the rendered side by side view.
@@ -201,7 +201,7 @@ func getTrend(t *testing.T, dir, query string) trendResponseJSON {
 	return got
 }
 
-// AC5.4 — the response has to be a real time series before the screen can chart
+// AC3.5 — the response has to be a real time series before the screen can chart
 // it, so this pins the three properties the chart reads: bucket order, one
 // bucket unit, and a ranking taken from the current bucket.
 func TestTrendReturnsBucketOrderedSeries(t *testing.T) {
@@ -350,7 +350,7 @@ func getSentiment(t *testing.T, dir, query string) sentimentResponse {
 	return s
 }
 
-// AC5.3, 축별 half — the three axes have to be read at one bucket, and an axis
+// AC3.4, 축별 half — the three axes have to be read at one bucket, and an axis
 // Gold has nothing for must say so rather than answer zeros.
 //
 // writeMultiBucketGold is shaped for exactly this: KR holds a stale T13 row
@@ -396,7 +396,7 @@ func TestSentimentComparesAxesAtOneBucket(t *testing.T) {
 	}
 }
 
-// AC5.3, 미분석 분리 — the four sentiment ratios are over the analyzed items and
+// AC3.4, 미분석 분리 — the four sentiment ratios are over the analyzed items and
 // unanalyzed is its own share of the whole. If the handler ever folded them
 // together the five numbers would start summing to 1, so that is what is
 // asserted against: KR's four sum to 1.0 *and* unanalyzed is 0.2 beside them.
@@ -444,7 +444,7 @@ func writeMixedUnitSentiment(t *testing.T, dir string) {
 	}
 }
 
-// One chart, one unit (the AC5.2 rollups the contract already allows must not
+// One chart, one unit (the AC3.3 rollups the contract already allows must not
 // land inside the hourly bars). Empty Gold must answer 200 with nothing drawn
 // rather than invent a basis.
 func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
@@ -479,7 +479,7 @@ func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
 }
 
 // writeRolledUpGold is one aggregation run as it now reaches Gold: the same
-// records cut three ways (AC5.2). Every hour row has a day and a week row that
+// records cut three ways (AC3.3). Every hour row has a day and a week row that
 // covers it, so any reader that fails to settle on one unit triple-counts.
 //
 // The week label is the trap the compare basis used to fall into: "2026-W26"
@@ -508,7 +508,7 @@ func writeRolledUpGold(t *testing.T, dir string) {
 	}
 }
 
-// AC5.6's basis must stay an hour even though a week rollup sorts above every
+// AC3.7's basis must stay an hour even though a week rollup sorts above every
 // hour key on bytes.
 func TestCompareSettlesTheUnitBeforePickingTheLatestBucket(t *testing.T) {
 	dir := t.TempDir()
@@ -596,7 +596,7 @@ func TestViewsFallBackToTheCoarserUnitWhenItIsAllGoldHas(t *testing.T) {
 // testable rather than decorative.
 //
 // The file also carries the two traps: day/week rollups of the same records
-// (AC5.2), and an earlier hour whose subject led with a raw count nothing in
+// (AC3.3), and an earlier hour whose subject led with a raw count nothing in
 // the latest bucket reaches.
 func writeSkewedGold(t *testing.T, dir string) {
 	t.Helper()
@@ -643,7 +643,7 @@ func getFairness(t *testing.T, dir, query string) fairnessResponse {
 
 // The two counting modes have to disagree for the view to be worth anything:
 // if the raw ranking and the normalized ranking always matched, normalization
-// would be correcting nothing and AC6.2's "구분 표기" would have no content.
+// would be correcting nothing and AC3.8's "구분 표기" would have no content.
 func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 	dir := t.TempDir()
 	writeSkewedGold(t, dir)
@@ -657,7 +657,7 @@ func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 		t.Fatalf("want the 2 subjects of the basis bucket, got %d: %+v", len(f.Rows), f.Rows)
 	}
 
-	// Ranking follows the normalized share (AC6.1's output), not the raw count.
+	// Ranking follows the normalized share (AC3.1's output), not the raw count.
 	if f.Rows[0].Subject != "고른 관심 대상" || f.Rows[0].Rank != 1 {
 		t.Errorf("ranking did not follow the normalized share: %+v", f.Rows)
 	}
