@@ -431,7 +431,7 @@ export function Debug() {
                   <span className="v mono">{selected.confidence}</span>
                 </div>
                 <div className="kv">
-                  <span className="k">대상국</span>
+                  <span className="k">대상 국가</span>
                   <span className="v">{selected.target_countries.join(", ") || "—"}</span>
                 </div>
                 <div className="kv">
@@ -439,7 +439,7 @@ export function Debug() {
                   <span className="v">{selected.narrative_subjects.join(", ") || "—"}</span>
                 </div>
                 <div className="kv">
-                  <span className="k">로직 버전</span>
+                  <span className="k">분석 로직</span>
                   <span className="v mono">{selected.analyzer_version}</span>
                 </div>
                 <div className="kv">
