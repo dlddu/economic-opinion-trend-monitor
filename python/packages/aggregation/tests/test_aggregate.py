@@ -198,7 +198,6 @@ def _observed(rid: str, url: str, hour: int, source: str = "src") -> dict:
 
 
 def test_day_bucket_counts_an_article_once_however_often_it_was_observed() -> None:
-    # Article a stays on the feed for three hourly cycles, b for one: two articles.
     bronze = [
         _observed("a14", "https://n.test/a", 14),
         _observed("a15", "https://n.test/a", 15),
@@ -216,7 +215,6 @@ def test_day_bucket_counts_an_article_once_however_often_it_was_observed() -> No
     assert day["A"]["normalized_share"] == 0.5
     assert day["B"]["normalized_share"] == 0.5
 
-    # Each hour holds one observation per article, so the hour buckets are unchanged.
     hour = [t for t in build_subject_trends(bronze, silver, "hour") if t["subject"] == "A"]
     assert [t["raw_count"] for t in hour] == [1, 1, 1]
 
@@ -226,7 +224,6 @@ def test_day_bucket_counts_an_article_once_however_often_it_was_observed() -> No
 
 
 def test_article_is_read_through_its_latest_observation_in_the_bucket() -> None:
-    # The body was edited between cycles and re-analysed: the day counts what it says now.
     bronze = [_observed("a14", "https://n.test/a", 14), _observed("a15", "https://n.test/a", 15)]
     silver = [
         _silver("a15", ["new"], "negative", "analyzed"),

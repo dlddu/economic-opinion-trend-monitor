@@ -270,9 +270,7 @@ func TestContributionsAnswersAnUnknownSubjectWithAnEmptyList(t *testing.T) {
 	}
 }
 
-// One article (https://wire.example/a) observed in two hourly cycles, its body
-// edited and re-analysed in between, next to article b observed once. The Gold
-// is build_subject_trends_all_units' output for this lake, day unit, pasted in.
+// The Gold is build_subject_trends_all_units' output for this lake, day unit, pasted in.
 func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *testing.T) {
 	dir := t.TempDir()
 	bronze := `{"record_id": "a13", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 1보", "source_url": "https://wire.example/a", "body_hash": "ha1", "body_available": true, "collected_at": "2026-06-23T13:00:00Z", "collection_cycle": "2026-06-23T13"}
@@ -309,7 +307,6 @@ func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *
 	if fx.Basis.Total != int(fx.Basis.RawCount) || len(fx.Rows) != 1 || fx.Rows[0].RecordID != "b14" {
 		t.Fatalf("환율: want b14 alone, total == raw_count 1; got %+v", fx)
 	}
-	// hb is carried by one article observed twice — that is not a shared body.
 	if fx.Rows[0].BodyDuplicate || fx.Rows[0].BodyShares != 1 {
 		t.Fatalf("re-observation counted as body reuse: %+v", fx.Rows[0])
 	}

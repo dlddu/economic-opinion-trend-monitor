@@ -104,9 +104,8 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		byID[it.RecordID] = it
 	}
 
-	// One row per article, through its latest observation in the bucket — the
-	// pick econ_aggregation.aggregate.bucket_articles makes before it counts, so
-	// the subject filter runs on the same analysis the Gold count read.
+	// Mirrors the pick econ_aggregation.aggregate.bucket_articles makes before it
+	// counts, so the subject filter runs on the same analysis the Gold count read.
 	type observed struct {
 		item     gen.NewsItem
 		analysis gen.Analysis
@@ -268,8 +267,7 @@ func bucketLabel(collectedAt string, unit gen.BucketUnit) string {
 	return ""
 }
 
-// articleKey mirrors econ_aggregation.aggregate.article_key: an observation's
-// article is its link, or the record itself when it has none.
+// articleKey mirrors econ_aggregation.aggregate.article_key.
 func articleKey(item gen.NewsItem) string {
 	if item.SourceURL != "" {
 		return item.SourceURL
@@ -277,9 +275,7 @@ func articleKey(item gen.NewsItem) string {
 	return item.RecordID
 }
 
-// bodyShares counts the articles carrying each body, not the observations: the
-// hourly re-collection observes one article many times, and that is not reuse.
-// An empty body hash is "no text kept", not a text they all share.
+// bodyShares: an empty body hash is "no text kept", not a text they all share.
 func bodyShares(items []gen.NewsItem) map[string]int {
 	articles := map[string]map[string]bool{}
 	for _, it := range items {

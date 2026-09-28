@@ -380,7 +380,6 @@ def test_gloss_that_is_not_an_acronym_is_kept() -> None:
 
 
 def test_variants_folding_together_leave_one_subject() -> None:
-    # One article naming both 세계은행 and 세계은행그룹 is one mention of one subject.
     c = _completer(
         _reply(narrative_subjects=["세계은행", "세계은행그룹", "IMF", "국제통화기금(IMF)"])
     )
