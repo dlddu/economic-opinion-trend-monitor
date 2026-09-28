@@ -898,11 +898,17 @@
 `scripts/check-mockup-render.py` 가 **이 절을 SSOT 로 읽고** PR 마다 단일 required 체크로 재실행된다.
 이 절의 상한은 **래칫**이다: 실측이 넘으면 실패하고, 밑돌면 상한을 낮추라고 실패한다.
 
-**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`·`sentiment`·`fairness`·`trace`·`reprocess`)에 든 화면이
+**판정 범위.** `web/src/App.tsx` 의 `BUILT`(현재 `dash`·`compare`·`trend`·`sentiment`·`fairness`·`trace`·`reprocess`·`debug`)에 든 화면이
 mockup 인덱스에서 쓴다고 선언한 디자인 시스템 항목 **27종**과, 그 화면의 목업 인라인 `<style>`
 ↔ `web/src/tokens/tokens.css` 가 **공통으로 선언한 선택자**의 선언값. 화면이 `BUILT` 에 하나 들어오는
 순간 그 화면의 항목이 자동으로 범위에 들어온다. **여기에 규칙 4 의 한 조각으로 좌측 네비가 더해진다**
 (아래 「규칙 4(네비)」) — 네비는 `BUILT` 화면들이 공유하는 셸이라 화면 단위 범위와 별개로 항상 in-scope 다.
+
+> **`debug` 는 2026-09-28부터 위 열거의 대상이다.** `#199`(`a6edd0f`, rct_20260928-0006)가 `App.tsx` 의 `BUILT` 에
+> `debug` 를 들였는데 이 절의 화면 열거는 그 커밋에서 갱신되지 않아 「현재」를 자임한 채 실측과 어긋나 있었고,
+> rct_20260928-0008 이 정정했다. `trend` 때와 같은 유형이다(위 `STP-verify-in-trend` 절) — 게이트는 이 산문 열거를
+> 읽지 않으므로(허용목록 표와 상한 줄만 파싱한다) 초록이 이 문면의 근거가 되지 못한다. 항목 종수는 `debug` 가
+> 쓴다고 선언한 항목이 모두 기존 열거 안에 있어 움직이지 않는다.
 
 `rct_20260921-0004`(2026-09-21, 자매 모델 `tbm_econ-opinion-monitor-docs-impl` 의 슬라이스 10 **전반부**)가
 `reprocess` 를 `BUILT` 에 들여 항목이 **25종 → 27종**이 됐다. 새로 들어온 둘은 `reprocess` 화면을
