@@ -89,7 +89,7 @@ Google Fonts `<link>`로 로드하며 각각 Georgia / system-ui / ui-monospace 
 | `CMP-spark` | 스파크라인 | 추세 미리보기용 소형 SVG 라인(`spark()` 헬퍼). |
 | `CMP-table` | 데이터 표 | `tbl`. 비교/원천/계보/전후 데이터의 정렬 가능한 표. 수치 칼럼은 mono. |
 | `CMP-seg` | 세그먼트 컨트롤 | 기간·단위·범위 등 상호배타 옵션 토글(`seg` 버튼 그룹, `on` 상태). |
-| `CMP-norm-toggle` | 정규화 토글 | 정규화 비율 ↔ 원시 카운트 전환 스위치(AC3.8). raw/norm 플래그와 연동. |
+| `CMP-norm-toggle` | 정규화 토글 | 정규화 비율 ↔ 원시 카운트 전환 스위치(AC6.2). raw/norm 플래그와 연동. |
 | `CMP-delta` | 증감 표시 | 상승/하락/보합(`up/dn/delta`) 방향 + 값. mono. |
 | `CMP-note` | 주의/정보 노트 | `note`/`info` 박스. 축 기준(수집원 vs 대상국) 같은 해석 주의 강조. |
 | `CMP-legend` | 범례 | 차트 색-의미 대응 표시. |
@@ -107,10 +107,10 @@ Google Fonts `<link>`로 로드하며 각각 Georgia / system-ui / ui-monospace 
 | `PAT-line-chart` | 다중 선 추세 차트 | 손수 그린 SVG 축·격자·다중 라인 + `CMP-legend` | 대상별 시계열 추세 비교(V1). |
 | `PAT-stacked-sentiment` | 분위기 누적 추세 | 시간축 위 분위기 누적 막대(미분석 분리) | 분위기 비율의 시간 변화(V3+V1). |
 | `PAT-donut` | 분위기 도넛 | 단일 대상의 분위기 비율 도넛 + 중앙 합계 | 한 대상의 현재 분위기 구성(V3). |
-| `PAT-raw-vs-norm` | 원시 vs 정규화 비교 | 동일 대상의 원시 카운트 막대 ↔ 정규화 비율 막대 병치 | 편차 보정 효과 가시화(V4, AC3.1/3.8). |
+| `PAT-raw-vs-norm` | 원시 vs 정규화 비교 | 동일 대상의 원시 카운트 막대 ↔ 정규화 비율 막대 병치 | 편차 보정 효과 가시화(V4, AC6.1/6.2). |
 | `PAT-axis-compare` | 3축 병렬 비교 | KR/US/GL 3열, 각 열 상위 대상 + 미니 분위기바 + 대상국 플래그 | 지역 축 비교 + 축 기준 인지(V2, AC1.3/2.1). |
 | `PAT-lineage` | 원문 계보 추적 | `CMP-crumb` + Bronze 원문 카드 + Silver 분석 카드 + 수집 메타 카드 | 골드 수치에서 원문까지 역추적(V5, AC2.6/1.4). |
-| `PAT-before-after` | 재처리 전후 비교 | 재분석 전/후 값 `CMP-table` 대조 | 재처리 영향 확인(V5, AC3.2/3.3). |
+| `PAT-before-after` | 재처리 전후 비교 | 재분석 전/후 값 `CMP-table` 대조 | 재처리 영향 확인(V5, AC5.1/5.2). |
 | `PAT-integrity-panel` | 수집 무결성 패널 | 성공/재시도/중복/누락 지표 + 이벤트 로그 | 수집 건강성 점검(AC1.6). |
 
 ---
