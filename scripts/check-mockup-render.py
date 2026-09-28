@@ -79,6 +79,23 @@ def absorbed_screens():
     return out
 
 
+def journey_pages():
+    out = {}
+    for line in read(IDX).splitlines():
+        m = re.match(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|\s*`([^`]+\.html)`", line)
+        if m:
+            out[m.group(1)] = m.group(2)
+    return out
+
+
+def owned_screens(key, absorbed, files, journeys):
+    page = journeys.get(key)
+    out = set(absorbed.get(key, set() if page else {key}))
+    if page:
+        out |= {s for s, f in files.items() if f == page}
+    return out
+
+
 def items_by_screen():
     """화면 id -> 그 화면이 쓴다고 인덱스가 선언한 디자인 시스템 항목 집합.
 
@@ -88,6 +105,8 @@ def items_by_screen():
     공유하므로 같은 항목 집합을 갖는다.
     """
     absorbed = absorbed_screens()
+    files = screen_files()
+    journeys = journey_pages()
     out = {}
     key = None
     for line in read(IDX).splitlines():
@@ -97,7 +116,7 @@ def items_by_screen():
             continue
         if key and line.startswith("- **디자인 시스템 항목**"):
             items = set(re.findall(r"`((?:CMP|PAT)-[a-z0-9-]+)`", line))
-            for screen in absorbed.get(key, {key}):
+            for screen in owned_screens(key, absorbed, files, journeys):
                 out.setdefault(screen, set()).update(items)
             key = None
     return out

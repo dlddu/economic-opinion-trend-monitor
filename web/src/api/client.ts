@@ -10,6 +10,7 @@ import type {
   SourceContributionsResponse,
   DashboardResponse,
   DashRange,
+  DebugResponse,
   FairnessResponse,
   ReprocessPublish,
   ReprocessResponse,
@@ -99,5 +100,9 @@ export const api = {
   reprocessPublish: (body: ReprocessPublish) =>
     postJSON<{ run: ReprocessRun }>("/reprocess/publish", body),
   reprocessRuns: () => getJSON<{ runs: ReprocessRun[] }>("/reprocess/runs"),
+  debug: (recordId?: string) =>
+    getJSON<DebugResponse>(
+      `/debug${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
+    ),
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };

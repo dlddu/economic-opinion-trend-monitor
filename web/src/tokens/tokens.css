@@ -1012,14 +1012,18 @@ a {
 
 .code {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink);
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  padding: 12px 14px;
-  overflow: auto;
-  color: var(--ink-2);
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin: 0;
   white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
 }
 
 /* ---- PAT-line-chart ---- */
@@ -2298,4 +2302,60 @@ details.meta .metabody {
   .trace-lookup {
     flex-wrap: wrap;
   }
+}
+
+.dbg-lookup {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dbg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 260px;
+}
+
+.dbg-field-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.dbg-field input {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.dbg-lookup button {
+  font-size: 13px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.dbg-seclabel {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.dbg-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
