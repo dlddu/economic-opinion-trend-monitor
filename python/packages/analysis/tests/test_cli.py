@@ -7,11 +7,12 @@ importantly, that the previous Silver survives.
 """
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from econ_analysis import cli, llm
-from econ_core import LocalFsStore, calllog, domain
+from econ_analysis import cli, fake_llm, llm
+from econ_core import LocalFsStore, calllog, domain, silver
 
 CYCLE = "2026-06-23T14:00"
 NEXT_CYCLE = "2026-06-23T15:00"
@@ -323,6 +324,34 @@ def test_silver_rows_bronze_no_longer_holds_are_pruned(tmp_path: Path) -> None:
     _write_items(tmp_path, [b for b in _bronze_rows(tmp_path) if b["record_id"] == "r1"])
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     assert [r["record_id"] for r in _silver_rows(tmp_path)] == ["r1"]
+
+
+def test_cycle_collected_during_a_run_is_not_pruned_as_orphan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A reprocess outlived the hour in production: the hourly pipeline collected and
+    # analyzed the next cycle meanwhile, and the reprocess's closing prune, working
+    # from the Bronze it read at start, deleted that cycle's Silver (2026-09-28).
+    _seed_lake(tmp_path)
+    store = LocalFsStore(tmp_path)
+    late = {**_bronze_rows(tmp_path)[0], "record_id": "r3", "collection_cycle": NEXT_CYCLE}
+    real_analyze = fake_llm.analyze
+    landed = []
+
+    def analyze_while_the_hour_turns(*args, **kwargs):
+        if not landed:
+            _write_items(tmp_path, [late])
+            silver.store_analyses(
+                store, {"r3": NEXT_CYCLE}, [asdict(real_analyze(late, None, "fake-v1", "hourly"))]
+            )
+            landed.append(True)
+        return real_analyze(*args, **kwargs)
+
+    monkeypatch.setattr(fake_llm, "analyze", analyze_while_the_hour_turns)
+    base = ["--data", str(tmp_path), "--analyzer", "fake"]
+    assert cli.main([*base, "--analyzer-version", "fake-v2", "--axis", "KR"]) == 0
+    kept = {(r["record_id"], r["analyzer_version"]) for r in _silver_rows(tmp_path)}
+    assert ("r3", "fake-v1") in kept
 
 
 def test_whole_lake_run_skips_settled_records_and_retries_unanalyzed(

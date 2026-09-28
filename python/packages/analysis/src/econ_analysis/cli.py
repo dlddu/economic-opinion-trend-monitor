@@ -297,7 +297,10 @@ def _analyze(
         silver.record_retries(store, cycles, version, [r["record_id"] for r in rows], failed_ids)
         pruned += dropped
         analyses.extend(rows)
-    written, orphaned = silver.prune_orphans(store, cycles)
+    # Bronze read again, not the snapshot taken at start: a run that outlives the hour
+    # would otherwise see the cycle collected meanwhile as orphans and drop its Silver.
+    fresh = silver.cycles_of(store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM))
+    written, orphaned = silver.prune_orphans(store, fresh)
     pruned += orphaned
 
     unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")
