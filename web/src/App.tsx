@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./shell/AppShell";
 import { Compare } from "./screens/Compare";
 import { Dashboard } from "./screens/Dashboard";
+import { Debug } from "./screens/Debug";
 import { Fairness } from "./screens/Fairness";
 import { Placeholder } from "./screens/Placeholder";
 import { Reprocess } from "./screens/Reprocess";
@@ -10,7 +11,7 @@ import { Trace } from "./screens/Trace";
 import { Trend } from "./screens/Trend";
 import { SCREENS } from "./shell/nav";
 
-const BUILT = new Set(["dash", "compare", "trend", "sentiment", "fairness", "trace", "reprocess"]);
+const BUILT = new Set(["dash", "compare", "trend", "sentiment", "fairness", "trace", "reprocess", "debug"]);
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/fairness" element={<Fairness />} />
         <Route path="/trace" element={<Trace />} />
         <Route path="/reprocess" element={<Reprocess />} />
+        <Route path="/debug" element={<Debug />} />
         {SCREENS.filter((s) => !BUILT.has(s.id)).map((s) => (
           <Route key={s.id} path={s.path} element={<Placeholder screen={s} />} />
         ))}

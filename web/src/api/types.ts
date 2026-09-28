@@ -377,3 +377,86 @@ export interface ReprocessPublish {
   memo: string;
   notify_consumer: boolean;
 }
+
+export interface RunStage {
+  stage_name: string;
+  stage_status: string;
+  stage_started_at: string;
+  stage_ended_at?: string | null;
+  duration_ms: number;
+  input_count: number;
+  output_count: number;
+  outcomes: { outcome_name: string; outcome_count: number }[];
+  failure_reason?: string | null;
+  source_failures: { source_id: string; source_failure_reason: string }[];
+}
+
+export interface DebugCall {
+  call_id: string;
+  run_id: string;
+  analyzer_version: string;
+  call_model: string;
+  call_temperature: number | null;
+  prompt_system: string;
+  prompt_user: string;
+  prompt_sha256: string;
+  response_raw: string | null;
+  call_outcome: string;
+  call_failure_reason: string | null;
+  call_attempt_count: number;
+  called_at: string;
+  duration_ms: number;
+  reused_from_call_id: string | null;
+}
+
+export interface DebugExchange {
+  state: "call" | "no-call" | "call-record-absent" | "unrecorded";
+  no_call_reason: string | null;
+  call_id: string | null;
+  call: DebugCall | null;
+  reused_from: DebugCall | null;
+}
+
+export interface DebugVersion {
+  analyzer_version: string;
+  analyzed_at: string;
+  analysis_status: string;
+  sentiment: string | null;
+  confidence: number;
+  target_countries: string[];
+  narrative_subjects: string[];
+  run_id: string;
+  selected: boolean;
+  exchange: DebugExchange;
+}
+
+export interface DebugTally {
+  name: string;
+  count: number;
+}
+
+export interface DebugSymptoms {
+  records: number;
+  calls: number;
+  analysis_status: DebugTally[];
+  call_outcome: DebugTally[];
+  no_call_reason: DebugTally[];
+}
+
+export interface DebugRun {
+  run_id: string;
+  run_trigger: string;
+  run_started_at: string;
+  run_ended_at: string | null;
+  run_status: string;
+  stages: RunStage[];
+  symptoms: DebugSymptoms;
+}
+
+export interface DebugResponse {
+  record_id: string;
+  selection: "requested" | "requested-missing" | "auto" | "empty" | string;
+  found: boolean;
+  versions: DebugVersion[];
+  run: DebugRun | null;
+}
