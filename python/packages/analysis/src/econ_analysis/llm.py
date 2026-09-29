@@ -42,7 +42,7 @@ from econ_core.models import SENTIMENT_VALUES, Analysis, LlmCallRecord
 
 from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
 
-ANALYZER_VERSION = "llm-v1"
+ANALYZER_VERSION = "llm-v3"
 
 #: AC4.3 no-call reason: the body was never captured, so there was nothing to send.
 NO_CALL_BODY_UNAVAILABLE = "body_unavailable"

@@ -54,8 +54,8 @@ test("analysis: re-analysis updates Silver in place, keeping every tracking key"
 });
 
 test("analysis: the re-analysed batch is stamped with the new analyzer version", () => {
-  expect(new Set(analyses().map((r) => r.analyzer_version))).toEqual(new Set(["llm-v1"]));
-  expect(new Set(reanalyses().map((r) => r.analyzer_version))).toEqual(new Set(["llm-v2"]));
+  expect(new Set(analyses().map((r) => r.analyzer_version))).toEqual(new Set(["llm-v3"]));
+  expect(new Set(reanalyses().map((r) => r.analyzer_version))).toEqual(new Set(["llm-v4"]));
 });
 
 test("analysis: re-judged articles change, untouched ones keep their earlier result", () => {

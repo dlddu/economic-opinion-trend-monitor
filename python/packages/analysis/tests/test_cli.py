@@ -154,7 +154,7 @@ def test_llm_writes_and_reports_call_stats(
     monkeypatch.setattr(llm, "http_completer", _canned(reply))
     assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
     records = [json.loads(line) for line in _silver(tmp_path).read_text().splitlines()]
-    assert {r["analyzer_version"] for r in records} == {"llm-v1"}
+    assert {r["analyzer_version"] for r in records} == {"llm-v3"}
     assert all(r["sentiment"] == "negative" for r in records)
     assert "model calls: attempted=2 failed=0" in capsys.readouterr().out
 

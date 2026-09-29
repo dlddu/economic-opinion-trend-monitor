@@ -36,7 +36,7 @@ test("pipeline-ops: one observed run records all four call outcomes with their e
     expect(call.call_model).toBe(MODEL_CALLS);
     expect(call.record_id).not.toBe("");
     expect(call.source_url).not.toBe("");
-    expect(call.analyzer_version).toBe("llm-v1");
+    expect(call.analyzer_version).toBe("llm-v3");
     expect(promptDigest(call)).toBe(call.prompt_sha256);
   }
 
@@ -105,8 +105,8 @@ test("pipeline-ops: a version bump adds call records and leaves the earlier ones
   const after = callsOfRun(all, REPROCESS_RUN);
 
   expect(after.length).toBeGreaterThan(0);
-  expect(new Set(after.map((call) => call.analyzer_version))).toEqual(new Set(["llm-v2"]));
-  expect(new Set(before.map((call) => call.analyzer_version))).toEqual(new Set(["llm-v1"]));
+  expect(new Set(after.map((call) => call.analyzer_version))).toEqual(new Set(["llm-v4"]));
+  expect(new Set(before.map((call) => call.analyzer_version))).toEqual(new Set(["llm-v3"]));
 
   const survivingIds = new Set(all.map((call) => call.call_id));
   for (const call of before) {

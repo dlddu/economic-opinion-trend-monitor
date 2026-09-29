@@ -17,8 +17,8 @@ import {
 } from "../lib/recordlinks";
 
 const SCOPED_SOURCE = "e2e-links-desk";
-const BASE_VERSION = "llm-v1";
-const REPROCESS_VERSION = "llm-v2";
+const BASE_VERSION = "llm-v3";
+const REPROCESS_VERSION = "llm-v4";
 const REPROCESS_RUN = "e2e-links-run-3";
 
 function callOf(row: AnalysisLink, byId: Map<string, LlmCall>): LlmCall {

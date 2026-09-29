@@ -20,7 +20,7 @@ spec:
           command: ["econ-analysis"]
           args:
             - --analyzer-version
-            - llm-v2
+            - llm-v4
           # mock-exception: LLM-13 — 호출 기록 묶음의 chat-completions 상류를 같은 LLM 더블로 돌린다(BASE_URL·MODEL·더미 KEY 한 묶음) — docs/econ-opinion-monitor-e2e-mocking-policy.md
           env:
             - name: ECON_DATA_ROOT

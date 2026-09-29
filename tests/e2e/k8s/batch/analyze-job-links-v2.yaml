@@ -20,7 +20,7 @@ spec:
           command: ["econ-analysis"]
           args:
             - --analyzer-version
-            - llm-v2
+            - llm-v4
             # `--source` 를 빼면 범위 없는 전체 재처리가 되어 앞 버전 행이 사라진다
             # (`run.sh` 의 `coexisting` 가드가 그 자리다).
             - --source

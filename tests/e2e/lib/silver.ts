@@ -66,12 +66,12 @@ function readAnalyses(dir: string): Analysis[] {
   return records;
 }
 
-/** 1차 분석(`e2e-llm-v1`, analyzer=llm-v1)이 쓴 Silver. */
+/** 1차 분석(`e2e-llm-v1`, analyzer=llm-v3)이 쓴 Silver. */
 export function analyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_DIR"));
 }
 
-/** 재분석(`e2e-llm-v2`, analyzer=llm-v2)이 갱신한 Silver. */
+/** 재분석(`e2e-llm-v2`, analyzer=llm-v4)이 갱신한 Silver. */
 export function reanalyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_V2_DIR"));
 }
