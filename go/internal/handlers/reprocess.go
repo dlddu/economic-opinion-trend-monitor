@@ -344,8 +344,8 @@ func compareVersions(silver []gen.Analysis, versions []versionRow, target string
 	}
 }
 
-// mentionShares returns, for one version, each subject's share of all subject
-// mentions that version produced, plus the fraction of its records it did not
+// mentionShares returns, for one version, each grouping key's share of all the
+// mentions that version produced (the keys Gold would count, see groupingKeys), plus the fraction of its records it did not
 // classify. Records are counted once per version even if Silver holds the same
 // record twice at that version.
 func mentionShares(silver []gen.Analysis, version string) (map[string]float64, float64) {
@@ -361,7 +361,7 @@ func mentionShares(silver []gen.Analysis, version string) (map[string]float64, f
 		if a.AnalysisStatus != gen.AnalysisStatusAnalyzed {
 			unanalyzed++
 		}
-		for _, s := range a.NarrativeSubjects {
+		for _, s := range groupingKeys(a) {
 			mentions[s]++
 			total++
 		}

@@ -25,6 +25,40 @@ DS_SUBJECT_TREND = "subject_trend"
 DS_SUBJECT_SOURCE_CONTRIBUTION = "subject_source_contribution"
 DS_AXIS_SENTIMENT = "axis_sentiment"
 
+#: The fixed categories an article's narrative subjects are filed under. Free-form
+#: subjects split one day's articles over hundreds of keys, so a share of any one of
+#: them says nothing; aggregation groups on these instead. ``기타`` is the catch-all
+#: and must stay last. The list is part of the model prompt: a change reaches new
+#: cycles on its own, and history only through a reprocess under a new analyzer version.
+SUBJECT_CATEGORIES = (
+    "통화정책·금리",
+    "환율·외환",
+    "물가",
+    "경기·성장",
+    "고용·노동",
+    "주식시장",
+    "채권·자금시장",
+    "은행·금융업",
+    "가상자산",
+    "부동산·주택",
+    "가계·소비",
+    "재정·세금",
+    "무역·통상",
+    "반도체",
+    "자동차·배터리",
+    "AI·테크",
+    "에너지·원자재",
+    "산업·제조",
+    "기업 경영·실적",
+    "중소기업·자영업",
+    "규제·금융당국",
+    "지역경제",
+    "농림·수산·식품",
+    "지정학·국제정세",
+    "기타",
+)
+OTHER_CATEGORY = SUBJECT_CATEGORIES[-1]
+
 #: Collection cycle id format — one cycle per UTC hour.
 CYCLE_FORMAT = "%Y-%m-%dT%H:00"
 

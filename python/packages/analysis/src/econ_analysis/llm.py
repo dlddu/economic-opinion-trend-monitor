@@ -37,7 +37,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Protocol
 
-from econ_core import calllog
+from econ_core import calllog, domain
 from econ_core.models import SENTIMENT_VALUES, Analysis, LlmCallRecord
 
 from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
@@ -60,10 +60,14 @@ _SYSTEM_PROMPT = (
     "write every subject in Korean as Korean financial press names it, whatever the "
     "article's language, e.g. 연준 not Federal Reserve, 엔비디아 not Nvidia, 삼성전자 not "
     "Samsung Electronics; keep Latin letters only where Korean press does, e.g. S&P 500, AI), "
+    "subject_categories (array of 1 or 2 categories the article is mainly about, most "
+    "central first, each copied exactly from this list: "
+    + ", ".join(domain.SUBJECT_CATEGORIES)
+    + f"; use {domain.OTHER_CATEGORY} only when none fits), "
     "sentiment (exactly one of positive/neutral/negative/mixed; use mixed when opposing "
     "tones coexist and neutral when no tone shows), analyzable (false when the body is too "
     "thin or the judgement is genuinely uncertain), and confidence (0.0-1.0). "
-    'Reply shape: {"target_countries":[],"narrative_subjects":[],'
+    'Reply shape: {"target_countries":[],"narrative_subjects":[],"subject_categories":[],'
     '"sentiment":"neutral","analyzable":true,"confidence":0.0}'
 )
 
@@ -139,6 +143,28 @@ def canonical_subject(text: str) -> str:
 def canonical_subjects(names: list[str]) -> list[str]:
     """Canonicalize each subject, keeping the first of any that fold together."""
     return list(dict.fromkeys(canonical_subject(name) for name in names))
+
+
+#: At most this many categories per article, as the prompt asks — a model that lists
+#: more would count one article under every category it touches.
+MAX_CATEGORIES = 2
+
+_CATEGORY_BY_FOLD = {_fold(c): c for c in domain.SUBJECT_CATEGORIES}
+
+
+def canonical_categories(value: object) -> list[str] | None:
+    """Keep the model's categories that are on the fixed list, in its order.
+
+    ``None`` when the reply carried no ``subject_categories`` at all: there is no
+    category judgement, and aggregation falls back to the free-form subjects. A list
+    with nothing usable on it files the article under the catch-all instead of
+    dropping it from the shares.
+    """
+    if value is None:
+        return None
+    known = [_CATEGORY_BY_FOLD.get(_fold(name)) for name in _clean_list(value)]
+    kept = list(dict.fromkeys(c for c in known if c))[:MAX_CATEGORIES]
+    return kept or [domain.OTHER_CATEGORY]
 
 
 class Completer(Protocol):
@@ -367,6 +393,7 @@ def analyze_llm(
     return Analysis(
         target_countries=_clean_list(parsed.get("target_countries")),
         narrative_subjects=subjects,
+        subject_categories=canonical_categories(parsed.get("subject_categories")),
         sentiment=sentiment,
         analysis_status=status,
         confidence=confidence,

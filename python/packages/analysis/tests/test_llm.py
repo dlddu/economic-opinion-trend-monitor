@@ -21,6 +21,7 @@ from econ_analysis.llm import (
     reply_cache_key,
     run_llm_analysis,
 )
+from econ_core import domain
 
 
 def _bronze(**overrides) -> dict:
@@ -384,3 +385,42 @@ def test_variants_folding_together_leave_one_subject() -> None:
         _reply(narrative_subjects=["세계은행", "세계은행그룹", "IMF", "국제통화기금(IMF)"])
     )
     assert analyze_llm(_bronze(), "body", c).narrative_subjects == ["세계은행", "국제통화기금"]
+
+
+def test_prompt_lists_every_category() -> None:
+    for category in domain.SUBJECT_CATEGORIES:
+        assert category in _SYSTEM_PROMPT
+    assert '"subject_categories":[]' in _SYSTEM_PROMPT
+
+
+def test_categories_keep_listed_names_in_order() -> None:
+    c = _completer(
+        _reply(
+            narrative_subjects=["삼성전자"],
+            subject_categories=["반도체", "없는 분류", "반도체", "주식 시장", "물가"],
+        )
+    )
+    out = analyze_llm(_bronze(), "본문", c)
+    # Off-list names drop, a duplicate folds, spacing is not identity, and the cap holds.
+    assert out.subject_categories == ["반도체", "주식시장"]
+    assert out.narrative_subjects == ["삼성전자"]
+
+
+def test_categories_with_nothing_on_the_list_file_under_the_catch_all() -> None:
+    for categories in ([], ["없는 분류"], "반도체"):
+        out = analyze_llm(_bronze(), "본문", _completer(_reply(subject_categories=categories)))
+        assert out.subject_categories == [domain.OTHER_CATEGORY]
+
+
+def test_reply_without_categories_leaves_them_null() -> None:
+    out = analyze_llm(_bronze(), "본문", _completer(_reply(narrative_subjects=["삼성전자"])))
+    assert out.subject_categories is None
+
+
+def test_unanalyzed_rows_carry_no_categories() -> None:
+    declined = analyze_llm(
+        _bronze(), "본문", _completer(_reply(analyzable=False, subject_categories=["반도체"]))
+    )
+    assert declined.subject_categories is None
+    no_body = analyze_llm(_bronze(body_available=False), "", _boom)
+    assert no_body.subject_categories is None

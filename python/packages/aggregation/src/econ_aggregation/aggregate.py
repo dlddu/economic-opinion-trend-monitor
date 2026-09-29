@@ -16,6 +16,7 @@ from dataclasses import asdict
 from datetime import date
 
 from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
+from econ_core.silver import grouping_keys
 
 DEFAULT_BUCKET_UNIT = "hour"
 BUCKET_UNITS = ("hour", "day", "week")
@@ -82,7 +83,7 @@ def count_by_source(
         lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
     for axis, bucket, item, analysis in bucket_articles(bronze, silver, unit):
-        for subject in dict.fromkeys(analysis["narrative_subjects"]):
+        for subject in dict.fromkeys(grouping_keys(analysis)):
             counts[axis][bucket][item["source_id"]][subject] += 1
     return counts
 

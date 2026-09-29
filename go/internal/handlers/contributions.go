@@ -130,7 +130,7 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 	all := make([]contributionRow, 0, len(latest))
 	for _, o := range latest {
 		item := o.item
-		if !contains(o.analysis.NarrativeSubjects, subject) {
+		if !contains(groupingKeys(o.analysis), subject) {
 			continue
 		}
 		n := shares[item.BodyHash]
@@ -311,6 +311,15 @@ func sourceTally(rows []contributionRow) []contributionSource {
 		return out[i].SourceID < out[j].SourceID
 	})
 	return out
+}
+
+// groupingKeys mirrors econ_core.silver.grouping_keys: the keys Gold counted an
+// analysis under — its categories, or its narrative subjects when it has none.
+func groupingKeys(a gen.Analysis) []string {
+	if a.SubjectCategories != nil {
+		return *a.SubjectCategories
+	}
+	return a.NarrativeSubjects
 }
 
 func contains(values []string, want string) bool {
