@@ -13,17 +13,20 @@ import re
 import subprocess
 import sys
 
-SENSITIVE_PATHS: list[tuple[str, str]] = [
-    ("contracts/**", "스키마 계약(contracts/) — JSON Schema·Avro·코드젠"),
-    ("go/gen/**", "contracts 에서 생성된 Go 레코드 타입"),
-    ("python/packages/core/src/econ_core/models/**", "contracts 에서 생성된 Python 레코드 타입"),
-    (".github/workflows/review-gate.yml", "리뷰 게이트 워크플로 자체"),
-    ("scripts/check-data-format-change.py", "리뷰 게이트 판정기 자체"),
+POLICY = "docs/econ-opinion-monitor-review-policy.md"
+
+SENSITIVE_PATHS: list[tuple[str, str, str]] = [
+    ("MA1", "contracts/**", "스키마 계약(contracts/) — JSON Schema·Avro·코드젠"),
+    ("MA2", "go/gen/**", "contracts 에서 생성된 Go 레코드 타입"),
+    ("MA3", "python/packages/core/src/econ_core/models/**", "contracts 에서 생성된 Python 레코드 타입"),
+    ("MA5", ".github/workflows/review-gate.yml", "리뷰 게이트 워크플로 자체"),
+    ("MA5", "scripts/check-data-format-change.py", "리뷰 게이트 판정기 자체"),
+    ("MA5", POLICY, "수동 승인 정책 문서 자체"),
 ]
 
 PATH_EXCLUDES: list[str] = []
 
-CONTENT_RULES: list[tuple[list[str], re.Pattern[str], str]] = []
+CONTENT_RULES: list[tuple[str, list[str], re.Pattern[str], str]] = []
 
 PRODUCER_GLOBS: list[str] = [
     "python/packages/ingestion/src/**/*.py",
@@ -103,11 +106,12 @@ def contract_fields(root: str = ".") -> set[str]:
     return names
 
 
-def field_assignment_rule(fields: set[str]) -> tuple[list[str], re.Pattern[str], str] | None:
+def field_assignment_rule(fields: set[str]) -> tuple[str, list[str], re.Pattern[str], str] | None:
     if not fields:
         return None
     alt = "|".join(sorted(map(re.escape, fields), key=len, reverse=True))
     return (
+        "MA4",
         PRODUCER_GLOBS,
         # ruff format 이 강제하는 모양에 기댄다: 키워드 인자는 `field=value`(공백 없음),
         # 지역 변수 대입은 `field = value`(공백 있음) — 후자는 잡지 않는다.
@@ -163,14 +167,18 @@ def evaluate(base: str, head: str) -> list[tuple[str, str, str]]:
     for path in changed_paths(base, head):
         path_hit = False
         if not match_any(path, PATH_EXCLUDES):
-            for pattern, reason in SENSITIVE_PATHS:
+            for case, pattern, reason in SENSITIVE_PATHS:
                 if match(path, pattern):
-                    hits.append((path, reason, ""))
+                    hits.append((path, f"{case} {reason}", ""))
                     path_hit = True
                     break
         if path_hit or match_any(path, CONTENT_EXCLUDES):
             continue
-        rules = [(rx, reason) for globs, rx, reason in content_rules if match_any(path, globs)]
+        rules = [
+            (rx, f"{case} {reason}")
+            for case, globs, rx, reason in content_rules
+            if match_any(path, globs)
+        ]
         if not rules:
             continue
         for line in changed_lines(base, head, path):
@@ -198,7 +206,8 @@ def write_outputs(changed: bool, hits: list[tuple[str, str, str]]) -> None:
                 )
             else:
                 fh.write("### 👀 데이터 저장 형식 변경 감지 — 사람 리뷰 필요\n\n")
-                fh.write("| 파일 | 이유 | 근거 줄(첫 줄) | 건수 |\n|---|---|---|---|\n")
+                fh.write(f"케이스 ID 는 `{POLICY}` 의 수동 승인 케이스 표를 가리킨다.\n\n")
+                fh.write("| 파일 | 케이스 · 이유 | 근거 줄(첫 줄) | 건수 |\n|---|---|---|---|\n")
                 for (path, reason), (line, count) in _group(hits).items():
                     cell = line.replace("|", "\\|").replace("`", "'")
                     shown = f"`{cell}`" if cell else ""

@@ -247,6 +247,8 @@ commit status `review/manual-approval` = `success`를 붙인다. 건드리면 st
 근거는 워크플로 Job Summary에 남는다. `pull_request_target`으로 base 브랜치의 판정기를
 돌리므로 PR이 게이트를 고쳐 스스로 통과할 수 없다. `checks.yml`의 `required`와는 독립이다.
 직렬화·레이크 경로·`data/`·볼륨·마운트 변경은 이 게이트가 보지 않는다(일반 리뷰 몫).
+수동 승인 케이스(ID)·사람 승인 절차·의도적 제외와 그 재개 조건은
+[`docs/econ-opinion-monitor-review-policy.md`](docs/econ-opinion-monitor-review-policy.md)가 SSOT다.
 
 ## 범위
 

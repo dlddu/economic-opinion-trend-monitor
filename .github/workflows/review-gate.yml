@@ -58,11 +58,11 @@ jobs:
           gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
             -f state=success \
             -f context="$CONTEXT" \
-            -f description="데이터 저장 형식(스키마·직렬화·레이크 경로) 변경 없음 — 사람 리뷰 불필요" \
+            -f description="수동 승인 케이스(docs/econ-opinion-monitor-review-policy.md)에 닿지 않음 — 사람 리뷰 불필요" \
             -f target_url="$RUN_URL" > /dev/null
           echo "status ${CONTEXT}=success → ${HEAD_SHA}"
 
       - name: 변경 있음 → status 없음(사람 리뷰 필요)
         if: env.stale != 'true' && steps.gate.outputs.format_changed == 'true'
         run: |
-          echo "::notice::데이터 저장 형식 변경 감지 — ${CONTEXT} status 를 붙이지 않음. 근거는 Job Summary 참고."
+          echo "::notice::수동 승인 케이스에 닿음 — ${CONTEXT} status 를 붙이지 않음. 케이스 ID·근거는 Job Summary 참고."

@@ -329,9 +329,6 @@ def test_silver_rows_bronze_no_longer_holds_are_pruned(tmp_path: Path) -> None:
 def test_cycle_collected_during_a_run_is_not_pruned_as_orphan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # A reprocess outlived the hour in production: the hourly pipeline collected and
-    # analyzed the next cycle meanwhile, and the reprocess's closing prune, working
-    # from the Bronze it read at start, deleted that cycle's Silver (2026-09-28).
     _seed_lake(tmp_path)
     store = LocalFsStore(tmp_path)
     late = {**_bronze_rows(tmp_path)[0], "record_id": "r3", "collection_cycle": NEXT_CYCLE}
