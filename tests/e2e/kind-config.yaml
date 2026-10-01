@@ -1,5 +1,5 @@
-# Single-node kind cluster for the serving e2e — nothing multi-node about
-# the scenario, so keep cluster spin-up as cheap as possible.
+# Keep this a single node: serving and the batch Pods mount one ReadWriteOnce claim
+# together, which only works while they share a node (`k8s/e2e-patch.yaml`).
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

@@ -1,35 +1,20 @@
 // 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 8
 //
-// AC3.8 "정규화된 비율 표시 (원시 카운트와 구분)" — docs/econ-opinion-monitor-prd-aggregation-viz.md
-// 검증 방법(AC 본문): "정규화 비율과 원시 카운트가 구분 표기되고, 정규화 적용
-// 여부가 드러나는지 확인한다."
+// 대시보드는 목업(`JRN-daily-scan` 화면 1)대로 원시 건수를 행마다 적지 않는다 — 원시 순위가
+// 정규화 순위와 갈릴 때만 그 사실을 적으므로, 두 값의 병치는 `fairness` 화면에서 단언한다.
 //
-// 그래서 이 파일은 다음을 단언한다.
-//   1) 서빙 API가 정규화 적용 여부(`normalized`)를 명시적으로 실어 보낸다.
-//   2) 같은 행에 정규화 비율(`normalized_share`)과 원시 카운트(`raw_count`)가
-//      서로 다른 필드로 함께 온다 — 하나가 다른 하나를 대체하지 않는다.
-//   3) 대시보드가 정규화 비율을 그리고, 지금 보고 있는 값이 정규화된 값이라는
-//      플래그를 노출한다. 대시보드는 목업(`JRN-daily-scan` 화면 1)대로 원시 건수를
-//      행마다 적지 않는다 — 원시 순위가 정규화 순위와 갈릴 때만 그 사실을 적는다.
-//   4) AC3.8의 전용 표시 표면인 `fairness` 화면이 같은 두 값을 한 행 안에서
-//      **구분된 표기**로 병치하고, 세는 방식을 전환하면 표기가 실제로 바뀐다.
-//
-// 단언하지 않는 것: 정규화 계산 자체의 견고성(AC3.1)과 집계 정확성(AC3.2/3.3). 서빙이 받는
-// Gold 는 이제 집계 배치가 쓴 것이지만, 그 계산이 옳은지는 원천에서 다시 센 교차표와 대조하는
-// aggregation-1·2·4 가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
+// 단언하지 않는 것: 정규화 계산 자체의 견고성과 집계 정확성 — 원천에서 다시 센 교차표와
+// 대조하는 aggregation-1·2·4 가 본다. 여기서 집계값은 화면이 따라야 할 기준으로만 쓴다.
 
 import { expect, test } from "@playwright/test";
 
-/**
- * 어느 대상 행을 볼지는 **응답이 정한다** — 이름을 상수로 박으면 corpus 가 바뀔 때마다
- * 테스트가 헛되이 깨진다.
- *
- * 1위 행을 고르는 이유: 이 spec 의 단정 중 하나가 **원시 카운트가 비율이 아니다**(> 1)이고,
- * 집계 corpus 에서 기사 여러 건을 가진 대상이 곧 1위이기 때문이다.
- */
 type RankRow = { subject: string; normalized_share: number; raw_count: number };
 type FairRow = RankRow & { raw_share: number };
 
+/**
+ * 1위 행을 고르는 이유: 이 spec 의 단정 중 하나가 **원시 카운트가 비율이 아니다**(> 1)이고,
+ * 집계 corpus 에서 기사 여러 건을 가진 대상이 곧 1위이기 때문이다.
+ */
 function topRow<T extends RankRow>(rows: T[], where: string): T {
   expect(rows.length, `${where} 에 대상 행이 없다 — 집계 Gold 가 이 축을 채우지 않았다`)
     .toBeGreaterThan(0);
@@ -43,16 +28,14 @@ test("api: dashboard marks the ratio as normalized and keeps raw counts alongsid
   expect(res.status()).toBe(200);
   const body = await res.json();
 
-  // (1) 정규화 적용 여부가 응답에 드러난다.
   expect(body.normalized).toBe(true);
 
-  // (2) 정규화 비율과 원시 카운트가 별개 필드로 공존한다.
   const row = topRow(body.top_subjects, "/api/dashboard?axis=KR");
   expect(typeof row.normalized_share).toBe("number");
   expect(typeof row.raw_count).toBe("number");
   expect(row.normalized_share).toBeGreaterThan(0);
   expect(row.normalized_share).toBeLessThanOrEqual(1);
-  expect(row.raw_count).toBeGreaterThan(1); // 원시 건수 — 비율이 아니다
+  expect(row.raw_count).toBeGreaterThan(1);
 });
 
 test("web: dashboard shows the normalized share and flags the counting basis", async ({
@@ -71,15 +54,12 @@ test("web: dashboard shows the normalized share and flags the counting basis", a
   const rankRow = page.locator(".rankrow").filter({ hasText: row.subject });
   await expect(rankRow).toHaveCount(1);
 
-  // (3a) 정규화 비율 — 집계값과 같은 값이 퍼센트로 표기된다.
   await expect(rankRow.locator(".pct")).toHaveText(`${(row.normalized_share * 100).toFixed(1)}%`);
 
-  // (3b) 보정된 비교를 보고 있다는 사실이 순위 카드와 세는 방식 타일에 드러난다.
   await expect(page.locator(".card-h .norm-flag")).toHaveText("▣ 정규화");
   await expect(page.locator(".card.metric .norm-flag")).toHaveText("▣ share-normalized");
 });
 
-// 기대값은 전부 서빙 응답에서 끌어온다(픽스처 숫자를 spec 에 복사하지 않는다).
 test("web: the fairness screen juxtaposes both counting modes and lets the reader switch", async ({
   page,
   request,

@@ -10,7 +10,7 @@
 // **경계 하나를 명시한다**: 오늘 Gold 계약에는 저신뢰 축이 없다(`AxisSentiment.distribution` 은
 // `unanalyzed` 만 별도 항목으로 싣는다). 그래서 "집계에서 구분된다"는 **미분석**에 대해 단정하고,
 // 저신뢰는 Silver 의 `analysis_status` 와 분석 Job 의 집계에서 "표시된다"를 단정한다. 저신뢰를
-// 집계에서도 가르는 것은 제품 계약의 변경이라 이 루프(산출물은 e2e 와 등재 문서뿐)의 몫이 아니다.
+// 집계에서도 가르려면 Gold 계약(`contracts/`)부터 바뀌어야 한다.
 
 import { expect, test } from "@playwright/test";
 
@@ -20,9 +20,7 @@ import { analysisSummary, analyzedTitled } from "../lib/silver";
 
 /** 본문이 잡히지 않은 관측 — `<description>` 이 없는 기사(`fixtures/feeds/agg_kr_wire.rss.xml`). */
 const NO_BODY = "본문 없는 속보";
-/** 모델이 판단을 유보한 기사 — 더블이 `analyzable: false` 로 답한다. */
 const AMBIGUOUS = "해석이 엇갈리는 지표 발표";
-/** 임계(0.6) 아래 신뢰도로 답해 저신뢰로 표시되는 기사. */
 const LOW_CONFIDENCE = "US jobs data beats expectations";
 
 const AGG_JOB = "econ-e2e-analyze-agg";
@@ -32,7 +30,6 @@ test("analysis: an article with no body is left unanalyzed instead of force-fill
 
   expect(item.body_available).toBe(false);
   expect(analysis.analysis_status).toBe("unanalyzed");
-  // 강제 채움이 없다는 것은 라벨이 **비어 있다**는 뜻이다 — 기본값으로 채우면 아래가 깨진다.
   expect(analysis.sentiment).toBeNull();
   expect(analysis.target_countries).toEqual([]);
   expect(analysis.narrative_subjects).toEqual([]);
@@ -55,7 +52,6 @@ test("analysis: a low-confidence reply keeps its label and is marked, not droppe
   // 픽스처가 임계 아래이기를 먼저 확인한다(픽스처가 낡으면 이 단정은 헛돈다).
   expect(canned.confidence).toBeLessThan(0.6);
   expect(analysis.analysis_status).toBe("low_confidence");
-  // 저신뢰는 **버리는 것이 아니라 표시하는 것**이다 — 모델이 답한 라벨은 그대로 남는다.
   expect(analysis.sentiment).toBe(canned.sentiment);
   expect(analysis.confidence).toBeCloseTo(canned.confidence, 6);
 });
@@ -91,13 +87,11 @@ test("analysis: aggregation separates the unanalyzed from the analyzed items", (
       (item) => byRecord.get(item.record_id)?.analysis_status === "unanalyzed",
     );
 
-    // ⑴ 분모에서 빠진다 — 분석된 건수만 센다.
     expect(row.analyzed_total, row.axis).toBe(inAxis.length - unanalyzed.length);
-    // ⑵ 사라지지 않고 **별도 항목으로** 남는다 — 전체 대비 비율로 실린다.
     expect(row.distribution.unanalyzed, row.axis).toBeCloseTo(unanalyzed.length / inAxis.length, 3);
   }
 
-  // ⑶ 미분석은 서술 대상 집계에도 끼어들지 않는다. 축의 교차표 총합은 **분석된 기사가 단
+  // 미분석은 서술 대상 집계에도 끼어들지 않는다. 축의 교차표 총합은 **분석된 기사가 단
   // 서술 대상 수**와 같아야 한다 — 미분석이 한 건이라도 세어졌다면 총합이 그만큼 커진다.
   const counts = crossTab();
   for (const title of [NO_BODY, AMBIGUOUS]) {
@@ -109,14 +103,11 @@ test("analysis: aggregation separates the unanalyzed from the analyzed items", (
     // 합이어야 대조가 성립한다 — 셀을 (축, 버킷)으로 더 자르면 "축의 모든 관측이 한 버킷을
     // 공유한다"를 암묵 전제로 깔고, 그 전제가 깨지는 순간 미분석 누수와 무관하게 0이 된다.
     // 축 경계는 구분자까지 붙여 정확히 끊는다(맨 `startsWith(axis)` 는 축 이름이 다른 축의
-    // 접두사일 때 옆 축을 끌어온다). 구분자를 손으로 다시 쓰지 않고 `CELL_SEP` 을 쓴다 —
-    // 이 자리를 손으로 조립했다가 `cellKey` 의 구분자(당시 NUL)와 어긋나 이 단정이 한 번
-    // 깨졌다(`ci / e2e` 실측: `cells=[["KR\u0000<버킷>\u0000<대상>", n]]` vs 공백으로 조립한 접두사).
+    // 접두사일 때 옆 축을 끌어온다).
     const tabulated = [...counts.entries()]
       .filter(([key]) => key.startsWith(`${item.axis}${CELL_SEP}`))
       .reduce((sum, [, n]) => sum + n, 0);
     expect(tabulated, title).toBe(mentionsInAxis);
-    // 그리고 그 기사 자신은 셀 대상이 0개다(미분석이라 라벨이 비어 있다).
     expect(byRecord.get(item.record_id)?.narrative_subjects, title).toEqual([]);
   }
 });
@@ -141,7 +132,6 @@ test("analysis: the unanalyzed items do not dilute the sentiment ratios", () => 
       (item) => byRecord.get(item.record_id)?.sentiment === "positive",
     ).length;
 
-    // 분석분 대비 값이고, 전체 대비 값이 아니다. 둘이 같아지면 미분석이 분모에 섞인 것이다.
     expect(row.distribution.positive, row.axis).toBeCloseTo(positives / analyzed.length, 3);
     // 분자가 0이면 두 분모가 같은 0을 주므로 가르지 못한다 — 그때는 이 대조를 건너뛴다.
     if (positives > 0) {

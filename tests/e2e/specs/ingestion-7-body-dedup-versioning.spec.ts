@@ -26,7 +26,6 @@ function hashOf(text: string): string {
   return createHash("sha256").update(text, "utf-8").digest("hex");
 }
 
-/** 그 주기의 상류가 준 본문을 링크로 찾는다. */
 function providedBody(file: string, url: string): string {
   const entries = feedConfigs(file).flatMap((config) => entriesOf(config));
   const found = entries.find((entry) => entry.url === url);
@@ -34,7 +33,6 @@ function providedBody(file: string, url: string): string {
   return found.body;
 }
 
-/** 그 주기의 관측 레코드를 링크로 찾는다. */
 function itemAt(cycle: number, url: string) {
   const id = ingestSummary(`econ-e2e-ingest-cycle${cycle}`).cycle;
   const found = newsItems(cycleDir(cycle)).find(
@@ -48,8 +46,7 @@ test("ingestion: an unchanged body is not stored again on the next cycle", () =>
   const first = ingestSummary("econ-e2e-ingest-cycle1");
   const second = ingestSummary("econ-e2e-ingest-cycle2");
 
-  // 주기 1 이 상류가 준 서로 다른 본문을 저장하고, 주기 2 는 같은 내용이라 한 건도 새로
-  // 쓰지 않는다. 주기 2 의 관측 레코드 수는 그대로다 — 재저장이 없는 것이지 관측이 없는 게 아니다.
+  // 주기 2 의 관측 레코드 수는 그대로다 — 재저장이 없는 것이지 관측이 없는 게 아니다.
   expect(first.bodiesNew).toBeGreaterThan(0);
   expect(second.bodiesNew).toBe(0);
   expect(second.bodiesDeduplicated).toBe(first.bodiesNew);
@@ -72,7 +69,6 @@ test("ingestion: an edited body is added as a new version and the old one surviv
   const byHash = new Map(stored.map((body) => [body.body_hash, body]));
   expect(byHash.has(edited)).toBe(true);
 
-  // 보존이 요점이다 — 새 버전이 붙어도 기존 레코드가 덮이거나 사라지지 않는다.
   const kept = byHash.get(original);
   expect(kept, "수정 전 본문 레코드가 사라졌다").toBeDefined();
   expect(kept!.raw_text).toBe(providedBody("e2e-feeds-cycle12.json", STORY));

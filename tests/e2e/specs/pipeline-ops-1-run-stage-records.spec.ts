@@ -123,7 +123,6 @@ test.describe("중단 실행 — 분석 단계가 실패로, 집계는 실행되
     const analysis: RunStage = stage(stopped, "analysis");
     expect(analysis.stage_status).toBe("failed");
     expect(analysis.failure_reason ?? "").toMatch(/model calls failed/);
-    // 수집은 이 실행에서도 성공했다 — 멈춘 것은 그 다음 단계다.
     expect(stage(stopped, "ingestion").stage_status).toBe("succeeded");
   });
 
