@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 고장 주입 픽스처: 건강한 소스. 옆 소스들이 실패·지연·중복을 내는 동안 이 소스의
-     관측 레코드가 Bronze 에 그대로 남아야 한다(부분 장애 격리). views 는 엄격히 감소한다. -->
 <rss version="2.0">
   <channel>
     <title>E2E Faults OK</title>

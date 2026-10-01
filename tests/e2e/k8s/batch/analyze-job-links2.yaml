@@ -1,5 +1,3 @@
-# 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 2 분석**.
-#
 # `--analyzer-version` 을 주지 않는다 — 주기 1 과 **같은 버전**이어야 캐시 키가 맞는다.
 apiVersion: batch/v1
 kind: Job

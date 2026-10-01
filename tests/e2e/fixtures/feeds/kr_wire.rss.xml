@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 피드 더블 픽스처: 소스 A(KR). 110건을 제공해 limit=100 절단을 관측 가능하게 한다.
-     views 는 엄격히 감소하므로 상위 N 선택과 rank 부여가 결정적이다. -->
 <rss version="2.0">
   <channel>
     <title>E2E KR Wire</title>

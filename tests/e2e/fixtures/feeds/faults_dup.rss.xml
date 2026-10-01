@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 고장 주입 픽스처: 중복 노출 소스. 앞 소스(faults_ok)가 이미 준 링크 두 개를 다시
-     노출하고 자기 고유 링크 하나를 더 준다. 수집은 링크(source_url)로 중복을 거르므로
-     duplicates_skipped 가 2 로 찍히고 Bronze 에는 중복 링크가 한 번씩만 남아야 한다.
-     제공 3건 중 고유는 1건 — 이 관계를 spec 이 픽스처에서 직접 계산한다. -->
 <rss version="2.0">
   <channel>
     <title>E2E Faults Duplicate</title>

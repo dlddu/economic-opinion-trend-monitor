@@ -1,6 +1,3 @@
-# `…-test-pipeline-ops.md#시나리오 1` **정상 실행**의 마지막 단계.
-#
-# 컨테이너 계약은 aggregate-job.yaml 과 같고 바뀌는 것은 데이터 루트와 `ECON_RUN_ID` 뿐이다.
 apiVersion: batch/v1
 kind: Job
 metadata:

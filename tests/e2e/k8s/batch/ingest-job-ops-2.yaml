@@ -1,11 +1,5 @@
-# `…-test-pipeline-ops.md#시나리오 1`의 **중단 실행**, 첫 단계.
-#
-# 상류는 기존 `faults_ok.rss.xml`(4건)을 그대로 쓴다 — 새 RSS 픽스처를 만들지 않는다. 이 실행에
-# 필요한 것은 「앞 실행이 다루지 않은 기사가 있다」뿐이고, 모델 호출은 전건 실패할 예정이라
-# 응답 픽스처도 필요하지 않다.
-#
-# `ECON_RUN_ID` 가 앞 실행과 **다르다** — 그것이 두 실행을 두 레코드로 가르는 유일한 배선이다.
-# 이 Job 은 성공(completed)이 기대값이다: 중단되는 것은 수집이 아니라 다음 단계다.
+# `ECON_RUN_ID` 가 앞 실행과 **달라야** 두 실행이 두 레코드로 갈린다. 이 Job 은 성공(completed)이
+# 기대값이다 — 중단되는 것은 수집이 아니라 다음 단계(`analyze-job-ops-stopped.yaml`)다.
 apiVersion: batch/v1
 kind: Job
 metadata:
