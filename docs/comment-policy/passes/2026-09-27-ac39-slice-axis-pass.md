@@ -5,7 +5,7 @@
 **행 소멸 1**(`python/packages/aggregation/src/econ_aggregation/contributions.py` 의 **L 행** —
 판정 대상 줄머리 주석 0줄. 같은 파일의 D 행은 남는다).
 
-reconcile task `rct_20260927-0007` (`tbm_econ-opinion-monitor-comment-redundancy`).
+reconcile task `rct_20260927-0007` (`tbm_econ-opinion-monitor-comment-necessity`).
 
 게이트 자기출력(편집 전 → 후):
 

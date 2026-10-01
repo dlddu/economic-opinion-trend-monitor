@@ -1,7 +1,7 @@
 # reprocess-trigger-pass — #97 묶음 중 서빙→Argo 제출 경로의 백엔드 10파일 판정
 
 **표적 패스다(전수 아님).** 기준 커밋 `f7e2338`(#97 squash = 판정 트리이자 main tip).
-추적 task는 `rct_20260921-0005`(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0005`(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 겨눈 것은 **10파일 / 158줄** — 직전 패스(reprocess-surface-pass)가 「다음 패스의 선은 #97 묶음」이라고 이름 붙인 그 묶음 가운데
 **서빙이 배치 Workflow 를 제출하는 경로의 백엔드**다: ⑴ 행이 없던 신설 4파일 82줄(`go/internal/argo/argo.go` 36 ·
 `go/internal/handlers/reprocess_trigger.go` 29 · `go/internal/handlers/reprocess_trigger_test.go` 6 · `deploy/base/rbac.yaml` 11),

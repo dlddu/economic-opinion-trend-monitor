@@ -1,7 +1,7 @@
 # lineage-surface-pass — 계보 표면 4파일 판정 (`trace` 화면 + `go/internal/store`)
 
 **표적 판정이다(전수 아님).** 기준 커밋 `9a5d32e`. 추적 task는 `rct_20260920-0003`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 판정 대상은 **4파일 / 93줄** — 슬라이스 9(`4ddbdaa`/#70)가 들인 계보 표면 중
 **어느 열린 PR도 건드리지 않는** 것 전부다.
 
@@ -260,7 +260,7 @@ dashboard-surface-pass 셋이 착지해 큰 몫을 닫았고, 그 사이 제품 
 수만 센다).
 
 **범위 밖(이 모델의 task 가 다룰 것이 아니다)**: Python docstring 표면. 지문이 원리적으로 보지
-못하고(줄머리가 `#` 가 아니다), 모델 정의가 표면 추가를 `tbm_econ-opinion-monitor-comment-redundancy`
+못하고(줄머리가 `#` 가 아니다), 모델 정의가 표면 추가를 `tbm_econ-opinion-monitor-comment-necessity`
 의 **정의 변경**(tobe-modeler 몫)으로 못박았다.
 
 **판정하지 않은 것을 판정했다고 적지 않는다** — 위 12파일은 행이 없거나(1) 옛 판정 시점 행을

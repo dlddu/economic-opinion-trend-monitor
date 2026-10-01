@@ -5,7 +5,7 @@
 `tests/e2e/specs/aggregation-5-subject-trend-chart.spec.ts` +13」으로 이름 붙인 한 파일의 **증가분만** 판정한다.
 그다음 후보 `ac3-8-normalized-ratio.spec.ts` +9 는 같은 디렉터리지만 **다른 묶음**(#66 fairness 슬라이스가 들인 것 — 복원처가
 `Fairness.tsx`·트래커 fairness 행·PR #66)이라 이 패스에 섞지 않았다(「판단이 갈린 자리」 3).
-추적 task는 `rct_20260921-0014`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0014`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 16줄(물리) 중 제거 10줄 / 유지 6줄** — 지문 증가분으로는 13줄이다(#85 가 옛 1줄 셋을 3줄·3줄·2줄로
 갈아 썼기 때문에 물리 16 = 증가 13 + 갈아 쓴 옛 줄 3). 유지 6 중 **정정 4자리**(4→1 · 3→1 · 3→1 · 3→1)와 옛 줄 복원 1(2→1),

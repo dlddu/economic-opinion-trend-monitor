@@ -72,7 +72,6 @@ def test_subject_trend_delta_and_spark_come_from_real_buckets() -> None:
     assert rows[("A", "2026-06-23T15")]["spark"] == [0.5, 0.75]
     assert rows[("B", "2026-06-23T15")]["delta"] == -25.0
 
-    # Raw counts stay per-bucket rather than cumulative (AC3.8).
     assert rows[("A", "2026-06-23T15")]["raw_count"] == 3
 
 

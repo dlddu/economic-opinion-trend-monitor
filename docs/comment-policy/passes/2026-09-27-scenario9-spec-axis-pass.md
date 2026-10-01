@@ -4,7 +4,7 @@
 ①②③④ 네 축으로 판정하고 **제거 15줄 · 개작 4줄**(38 → 19)로 닫았다. 다른 행·다른 표면은
 **무접촉**이다.
 
-reconcile task `rct_20260927-0009` (`tbm_econ-opinion-monitor-comment-redundancy`).
+reconcile task `rct_20260927-0009` (`tbm_econ-opinion-monitor-comment-necessity`).
 
 게이트 자기출력(편집 전 → 후):
 

@@ -3,7 +3,7 @@
 **표적 재판정이다(전수 아님).** 기준 커밋 `1f508e1`(#105 착지 tip = main, 감지 시점과 같다 — 2파도 0, 열린 PR 0).
 직전 패스([dash-brief-pass](2026-09-21-dash-brief-pass.md))가 말미에 「다음 패스의 선은
 `python/packages/aggregation/tests/test_aggregate.py` +18(⑵ 최대)」로 이름 붙인 한 파일의 **증가분만** 판정한다.
-추적 task는 `rct_20260921-0012`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0012`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **제거 12줄 / 유지 6줄**(그중 정정 3자리 — 2→1 · 7→2 · 2→1 로 줄인 자리, 지문상 −6 은 위 12 에 들어 있다)
 + 옛 1줄 무접촉. 레포 전체 지문은 `2498 → 2486`(파일 `134 → 134`). 실행 코드는 한 바이트도 바뀌지 않았다 — diff 에서 주석이

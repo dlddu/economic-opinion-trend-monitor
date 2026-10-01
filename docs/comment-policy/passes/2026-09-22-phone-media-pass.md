@@ -4,7 +4,7 @@
 직전 패스([web-convergence-pass](2026-09-21-web-convergence-pass.md))가 말미에 「무인 패스의 다음 선은 없다 — ⑵ 가 0 이라 지문이 다시 자라야
 (자매 슬라이스가 `web/src`·`go`·`python`·`tests`·`deploy` 에 주석을 들여야) 다음 표적이 생긴다」로 닫아 둔 그 조건이 성립해 열린 패스다.
 자매 모델 `tbm_econ-opinion-monitor-mockup-render` / `rct_20260922-0001`(PR #115, `@media` 표면 수렴)이 `web/src/tokens/tokens.css` 에
-**주석 1줄(물리 4)**을 들였고, 그 한 자리만 판정한다. 추적 task는 `rct_20260922-0001`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+**주석 1줄(물리 4)**을 들였고, 그 한 자리만 판정한다. 추적 task는 `rct_20260922-0001`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 1줄 중 제거 1줄 / 유지 0줄** — 정정 0, 판단 분기 0. 레포 전체 지문은 `2432 → 2431`(파일 `134 → 134`;
 `tokens.css` 남음 62 > 0 이라 집합 불변). 편집 후 지문이 `d888d2b26acbc2f83c093b68588fae584204b117c2644c94de8f7537cb9bb0c3` 로

@@ -4,7 +4,7 @@
 직전 패스([phone-media-pass](2026-09-22-phone-media-pass.md))가 말미에 「무인 패스의 다음 선은 없다 — 지문이 또 자라야
 (자매 슬라이스가 `web/src`·`go`·`python`·`tests`·`deploy` 에 주석을 들여야) 다음 표적이 생긴다; 「다음 선 없음」은 고갈이 아니라
 **자매 착지 대기**로 읽는다」로 닫아 둔 그 조건이 12커밋으로 성립해 열린 패스다. 추적 task는 `rct_20260924-0001`
-(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 85줄 중 제거 41 / 유지 44** — 판단 분기 0. 레포 전체 지문은 `2601 → 2560`(파일 `140 → 140` — 어느 파일도
 남음 0 이 되지 않았다). 편집 전 `c190df879f5a…`, 편집 후 `94d42f5f5a8f…`. **주석 외 한 바이트도 바뀌지 않았다** — 편집한 6파일 전부

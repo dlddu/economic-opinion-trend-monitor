@@ -1,7 +1,7 @@
 # reprocess-console-pass — #97 묶음 중 web 6파일 74줄 판정
 
 **표적 패스다(전수 아님).** 기준 커밋 `ca0554d`(#100 착지 = main tip; 감지 트리거 `98e97d6` 과 지문·정책 트리가 바이트 동일).
-추적 task는 `rct_20260921-0006`(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0006`(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 겨눈 것은 **6파일 / 74줄** — 직전 패스(reprocess-trigger-pass)가 「다음 패스의 선은 #97 묶음의 web 6파일 74줄」이라고 이름 붙인
 그 묶음이다: ⑴ 행이 없던 신설 2파일 51줄(`web/src/screens/ReprocessTrigger.tsx` 23 · `web/src/screens/Reprocess.tsx` 28 — 후자는 #94
 신설이나 reprocess-surface-pass 가 파일째 보류해 행이 없었다), ⑵ 행이 있는 4파일에 #97 이 들인 증가분 22줄(`web/src/screens/Reprocess.test.tsx`

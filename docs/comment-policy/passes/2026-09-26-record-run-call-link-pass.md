@@ -2,7 +2,7 @@
 
 기준 커밋 `fafceb8` — PR [#137](https://github.com/dlddu/economic-opinion-trend-monitor/pull/137)
 (`feat(analysis): 레코드↔실행↔호출 연결 (PRD-4 AC4.3)`)이 착지한 main tip.
-reconciler task `rct_20260926-0001` / `tbm_econ-opinion-monitor-comment-redundancy`.
+reconciler task `rct_20260926-0001` / `tbm_econ-opinion-monitor-comment-necessity`.
 
 **표적 패스다** — #137 이 들인 주석 26줄만 판정했다. 그 아래 줄들은 직전 판정 그대로다.
 

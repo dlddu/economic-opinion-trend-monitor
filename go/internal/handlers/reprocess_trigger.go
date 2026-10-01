@@ -13,11 +13,7 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// The write side of the reprocess console.
-//
-// The three steps that *cause* work in JRN-logic-backfill — 표본 실행
-// (STP-dry-run), 전량 실행 (STP-run-reprocess), 반영/되돌리기 (STP-publish) —
-// are each one Workflow submitted from the batch WorkflowTemplate. The Pod's
+// Each trigger submits one Workflow from the batch WorkflowTemplate. The Pod's
 // data mount is read-only, so nothing here touches the lake: the batch does,
 // with the parameters the operator chose, and the read side of /api/reprocess
 // shows the result the next time it is asked.
@@ -85,7 +81,6 @@ func (h *Handlers) reprocessTrigger(r *http.Request) reprocessTrigger {
 	return out
 }
 
-// reprocessRuns is the polling endpoint for a run in progress.
 func (h *Handlers) reprocessRuns(w http.ResponseWriter, r *http.Request) {
 	if err := h.probeArgo(r.Context()); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
@@ -99,8 +94,6 @@ func (h *Handlers) reprocessRuns(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"runs": runs})
 }
 
-// reprocessRequest is the body of POST /api/reprocess/{sample,run}: the scope
-// the read side already answered for, plus how to run it.
 type reprocessRequest struct {
 	Range           string `json:"range"`
 	Axis            string `json:"axis"`

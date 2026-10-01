@@ -1,7 +1,7 @@
 # web-api-view-pass — 서빙 API 뷰 2파일 + 행 없는 파일 2파일 판정
 
 **표적 판정이다(전수 아님).** 기준 커밋 `6a0b464`. 추적 task는 `rct_20260920-0009`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 판정 대상은 **4파일 / 107줄** — 직전 패스(lineage-surface-pass)가 ⑴(행 없는 파일)로 남긴 **둘 전부**와,
 ⑵(행보다 자란 파일) 중 `web/src/api/` **한 디렉터리 둘**이다.
 

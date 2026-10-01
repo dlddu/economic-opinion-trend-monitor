@@ -4,7 +4,7 @@
 복원 경로로 전건 판정했다. 제거 **160줄**(D 151 · E 9), 유지 218줄, 행 소멸 1
 (`E: tests/e2e/check_scenario_mapping.py`).
 
-reconciler task `rct_20260926-0015` / 모델 `tbm_econ-opinion-monitor-comment-redundancy`.
+reconciler task `rct_20260926-0015` / 모델 `tbm_econ-opinion-monitor-comment-necessity`.
 
 ## 범위를 이렇게 고른 이유
 

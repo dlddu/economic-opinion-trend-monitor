@@ -1,6 +1,6 @@
 # 2026-09-26 — de-residual-axis-pass (D·E 잔여 중 무인 사정권 전량)
 
-`tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260926-0016`.
+`tbm_econ-opinion-monitor-comment-necessity` / `rct_20260926-0016`.
 
 직전 [core-python-docstring-pass](2026-09-26-core-python-docstring-pass.md) 가 남긴 D·E 잔여
 26행 158줄 중, **리뷰 게이트의 `SENSITIVE_PATHS` 를 건드리지 않는 23행 110줄**을 판정했다.

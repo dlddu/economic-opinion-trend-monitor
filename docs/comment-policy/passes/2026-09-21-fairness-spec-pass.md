@@ -6,7 +6,7 @@
 #66(`ddaef4f`, fairness 슬라이스 8)이 세 번째 test 를 **확장**하며 들인 것이라(doc-tracker 「신설이 아니라 확장」) 복원처가
 한 묶음이다 — `Fairness.tsx` 머리·`CMP-norm-toggle` JSX 주석, 설계 트래커 fairness 행, doc-tracker 슬라이스 8 절, PR #66 본문.
 같은 디렉터리의 다른 파일은 자라지 않았고, 그다음 후보 `aggregate.py` +4 · `test_llm.py` +4 는 python 묶음이라 섞지 않았다.
-추적 task는 `rct_20260921-0015`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0015`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 9줄 중 제거 5줄 / 유지 4줄** — 유지 4 중 **정정 1자리**(2→1) 와 문면 정정 1(줄 수 불변), 여기에
 증가분 밖의 머리 1줄을 **정정**했다(줄 수 불변 — #66 이 4) 를 더한 뒤 「세 가지」가 거짓이 된 자리). 레포 전체 지문은

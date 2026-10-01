@@ -3,7 +3,7 @@
 **표적 재판정이다(전수 아님).** 기준 커밋 `0f4f04e`(#104 착지 tip = main, 감지 시점과 같다 — 2파도 0, 열린 PR 0).
 직전 패스([journey-gate-pass](2026-09-21-journey-gate-pass.md))가 말미에 「다음 패스의 선은 dash 묶음
 `web/src/screens/Dashboard.tsx` +19 · `Dashboard.test.tsx` +12」로 이름 붙인 두 파일의 **증가분만** 판정한다.
-추적 task는 `rct_20260921-0011`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0011`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **제거 23줄 / 유지 8줄**(그중 정정 3자리는 지문 −0). 레포 전체 지문은 `2521 → 2498`(파일 `134 → 134`).
 실행 코드는 한 바이트도 바뀌지 않았다 — 두 파일의 diff 에서 주석이 아닌 줄의 추가·삭제는 0 이고

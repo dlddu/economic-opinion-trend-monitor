@@ -1,7 +1,7 @@
 # e2e-runner-pass — `tests/e2e/run.sh` 한 파일 재판정
 
 **표적 판정이다(전수 아님).** 기준 커밋 `60a8176`. 추적 task는 `rct_20260921-0002`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 판정 대상은 **1파일 / 96줄** — 직전 패스(web-api-view-pass)가 「다음 패스의 1순위」로 이름 붙인
 `tests/e2e/run.sh`(원장 행 남음 12 → 실측 96, **+84** — ⑵ 잔여 315줄의 27%)다.
 

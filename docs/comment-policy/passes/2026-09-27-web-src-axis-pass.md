@@ -4,7 +4,7 @@
 **23행 399줄**을 ①②③④ 네 축 전건 판정. 제거 **50줄** · 개작 3자리 · **행 소멸 2**
 (`web/src/App.tsx` · `web/src/screens/Placeholder.tsx` — 판정 대상 주석 0줄).
 
-reconcile task `rct_20260927-0002` (`tbm_econ-opinion-monitor-comment-redundancy`).
+reconcile task `rct_20260927-0002` (`tbm_econ-opinion-monitor-comment-necessity`).
 
 ## 범위를 이렇게 고른 이유
 

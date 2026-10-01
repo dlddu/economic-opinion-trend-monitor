@@ -4,7 +4,7 @@
 직전 패스([dash-rebuild-pass](2026-09-24-dash-rebuild-pass.md))가 말미에 「열린 PR 과 겹치는 26 — #130 이 … 동시에 고친다.
 먼저 손대면 리베이스 비용만 든다」로 **스스로 해제 조건을 적어 유예**해 둔 자리다. #130 이 2026-09-25 13:17:18Z 에 머지돼
 그 조건이 충족됐고, 같은 창이 판정된 적 없는 주석을 새로 들였다. 추적 task는 `rct_20260925-0001`
-(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 67줄 중 제거 42 / 유지 25** — 판단 분기 3. 레포 전체 지문은 `2603 → 2561`
 (파일 `145 → 143` — `debug_test.go`·`ingestion/cli.py` 가 남음 0 이 되어 지문에서 빠진다).

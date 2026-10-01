@@ -1,6 +1,6 @@
 # 2026-09-26 — sensitive-lane-pass (사람 리뷰 레인 · D·E 표면 완주)
 
-`tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260926-0017`. 기준 커밋 `d20825d`(= #171 착지 tip = main).
+`tbm_econ-opinion-monitor-comment-necessity` / `rct_20260926-0017`. 기준 커밋 `d20825d`(= #171 착지 tip = main).
 
 판정 **5행 55줄**(+ 이월 집행 1행) · **제거 43** · **행 소멸 1**. 이 패스로 **D·E 두 표면이
 네 축 전건 완료**가 된다(미판정 0 · 일부 축 0).

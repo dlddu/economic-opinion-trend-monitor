@@ -1,10 +1,4 @@
-"""Real-analyzer tests — deterministic, offline (canned completer, no network).
-
-Exercises the *real* prompt-build / response-parse / Silver-mapping path of
-:mod:`econ_analysis.llm` (AC2.1-AC2.6), plus the boundary this module draws between an
-article the model would not judge (``unanalyzed``, AC2.5) and an operational failure
-that must never be spent on that signal (``ConfigError`` / ``CompletionError``).
-"""
+"""Real-analyzer tests — deterministic, offline (canned completer, no network)."""
 
 import json
 
@@ -43,7 +37,6 @@ def _bronze(**overrides) -> dict:
 
 
 def _completer(reply: str):
-    """A canned completer that records the (system, user) prompts it was given."""
     calls: list[tuple[str, str]] = []
 
     def _complete(system: str, user: str) -> str:
@@ -98,14 +91,12 @@ def test_prompt_carries_title_and_body() -> None:
 
 
 def test_surface_variant_unifies() -> None:
-    # The model returns a surface form; the known-catalog normalizer folds it (AC2.2).
     c = _completer(_reply(narrative_subjects=["Samsung"]))
     a = analyze_llm(_bronze(), "body", c)
     assert a.narrative_subjects == ["삼성전자"]
 
 
 def test_novel_subject_kept_as_is() -> None:
-    # A subject outside the known catalog is preserved, not dropped (AC2.2).
     c = _completer(_reply(narrative_subjects=["한국조선해양"]))
     a = analyze_llm(_bronze(), "body", c)
     assert a.narrative_subjects == ["한국조선해양"]
@@ -123,7 +114,7 @@ def test_unanalyzed_when_model_declines() -> None:
     c = _completer(_reply(analyzable=False, sentiment="neutral"))
     a = analyze_llm(_bronze(), "body", c)
     assert a.sentiment is None
-    assert a.analysis_status == "unanalyzed"  # not forced
+    assert a.analysis_status == "unanalyzed"
 
 
 def test_unusable_reply_raises_instead_of_degrading() -> None:
@@ -143,7 +134,7 @@ def test_unanalyzed_when_body_missing_does_not_call_model() -> None:
     c = _completer(_reply())
     a = analyze_llm(_bronze(body_hash="", body_available=False), None, c)
     assert a.analysis_status == "unanalyzed"
-    assert c.calls == []  # model is never called without a body
+    assert c.calls == []
 
 
 def test_bad_confidence_type_degrades_to_low() -> None:
@@ -197,9 +188,8 @@ def test_run_counts_attempts_and_isolates_failures() -> None:
     # Only items with a body reach the model; the body-less one is not an attempt.
     assert (stats.attempted, stats.failed) == (2, 1)
     assert by_id["ok"]["analysis_status"] == "analyzed"
-    # A failed call degrades that record only — the batch still completes.
     assert by_id["bad"]["analysis_status"] == "unanalyzed"
-    assert by_id["bad"]["record_id"] == "bad"  # tracking key survives the failure (AC2.6)
+    assert by_id["bad"]["record_id"] == "bad"
     assert by_id["nobody"]["analysis_status"] == "unanalyzed"
 
 
@@ -401,7 +391,6 @@ def test_categories_keep_listed_names_in_order() -> None:
         )
     )
     out = analyze_llm(_bronze(), "본문", c)
-    # Off-list names drop, a duplicate folds, spacing is not identity, and the cap holds.
     assert out.subject_categories == ["반도체", "주식시장"]
     assert out.narrative_subjects == ["삼성전자"]
 

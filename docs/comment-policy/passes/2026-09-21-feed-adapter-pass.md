@@ -7,7 +7,7 @@
 `batch-pvc.yaml`(행 남음 9 · 실측 7)과 함께 봐야 하고 트래커 `∋` 인용·efs uid/gid 유지 판정이 섞이므로 다음 `deploy/` 표적 패스로 남긴다.
 blame 으로 가르면 `test_feeds.py` 지문 히트 24 = #7(`9569ca3`, RSS/Atom 수집원 신설) 21 + **#71(`11b53fee`, 실패 소스 정리 — World Bank
 JSON API 어댑터) 3** 이고, #71 은 옛 줄을 갈아 쓰지 않았다(행 「남음」 21 == blame 옛 줄 21). 이름은 들어온 내용(World Bank **피드 어댑터**의
-파서·피드 경로 테스트)에서 땄다. 추적 task는 `rct_20260921-0017`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+파서·피드 경로 테스트)에서 땄다. 추적 task는 `rct_20260921-0017`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 3줄 중 제거 3줄 / 유지 0줄** — 문면 정정 없음. 레포 전체 지문은 `2442 → 2439`(파일 `134 → 134`).
 실행 코드는 한 바이트도 바뀌지 않았다 — 파일을 `ast.dump` 로 펼친 결과가 편집 전후 **동일**하고(주석은 AST 에 없다), 비주석 줄 필터

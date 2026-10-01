@@ -1,7 +1,7 @@
 # trend-rejudge-pass — `Trend.tsx` · `tokens.css` · `Trend.test.tsx` 증가분 재판정
 
 **표적 재판정이다(전수 아님).** 기준 커밋 `da51edd`. 추적 task는 `rct_20260921-0003`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 판정 대상은 **3파일 / 증가분 86줄** — 직전 패스(e2e-runner-pass)가 「다음 패스의 선」으로 이름 붙인 묶음이다:
 `web/src/screens/Trend.tsx`(행 남음 47 → 실측 89, **+42**) · `web/src/tokens/tokens.css`(38 → 61, **+23**) ·
 `web/src/screens/Trend.test.tsx`(25 → 46, **+21**). ⑵ 잔여 231줄의 37%.

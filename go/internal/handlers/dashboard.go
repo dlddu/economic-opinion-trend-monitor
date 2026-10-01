@@ -10,8 +10,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// /api/dashboard — JRN-daily-scan 화면 1(STP-open-brief).
-
 // dashRanges is the same range vocabulary /api/reprocess takes.
 var dashRanges = map[string]time.Duration{
 	"24h": 24 * time.Hour,

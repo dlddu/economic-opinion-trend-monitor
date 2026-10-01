@@ -8,7 +8,7 @@
 | 판정 후 | 1312줄 / 94파일 — 지문 `c519bc3b…` |
 | 판정한 파일 | **3개** — `deploy/batch/workflow-template.yaml`, `python/packages/aggregation/src/econ_aggregation/aggregate.py`, `tests/e2e/k8s/batch/feed-double.yaml` |
 | 제거 | 지문 −5줄 — 삭제 1줄 · 이력 문장 절삭(6줄 → 3줄) · 이력 프레이밍 재작성(5줄 → 4줄) |
-| 추적 | reconciler `tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260918-0006` |
+| 추적 | reconciler `tbm_econ-opinion-monitor-comment-necessity` / `rct_20260918-0006` |
 
 > **기준 커밋이 귀속 창보다 앞서 있다.** 이 패스가 판정한 것은 귀속 창 `be8616f`..`a62eae1`가 들인 172줄이지만,
 > 위 표의 지문은 그 뒤 main에 착지한 `e7fbcae`(#47)에서 측정했다. 그래서 「판정 전 1317줄 / 94파일」에는 귀속 창
