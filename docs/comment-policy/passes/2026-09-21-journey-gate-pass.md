@@ -3,7 +3,7 @@
 **표적 재판정이다(전수 아님).** 기준 커밋 `32e7f09`(#103 착지 tip = main, 감지 시점과 같다 — 2파도 0).
 직전 패스([reprocess-python-pass](2026-09-21-reprocess-python-pass.md))가 말미에 「다음 패스의 선은
 `scripts/check-journey-mockup.py` +23」으로 이름 붙인 그 파일의 **증가분만** 판정한다. 추적 task는
-`rct_20260921-0009`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+`rct_20260921-0009`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **제거 20줄 / 유지 3줄.** 레포 전체 지문은 `2531 → 2511`(파일 `133 → 133` — 45줄이 남아 지문에 잔류).
 실행 코드는 한 바이트도 바뀌지 않았고 게이트 출력은 편집 전후 바이트 동일이다(아래 「검증」).

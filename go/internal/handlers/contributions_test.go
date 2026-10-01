@@ -63,7 +63,6 @@ const (
 	contribBucket  = "2026-06-23T14"
 )
 
-// writeContributionLake lays the three layers down the way the batch writes them.
 func writeContributionLake(t *testing.T, dir string) {
 	t.Helper()
 	gold := filepath.Join(dir, "gold")
@@ -120,7 +119,6 @@ func rowByRecord(t *testing.T, rows []contributionRow, id string) contributionRo
 	return contributionRow{}
 }
 
-// AC3.10, first sum identity: the list's length is the same value's raw count.
 func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)
@@ -146,7 +144,6 @@ func TestContributionsListMatchesTheGoldRawCount(t *testing.T) {
 	}
 }
 
-// AC3.10, second sum identity: narrowing by collector partitions the list.
 func TestContributionsNarrowedBySourceSumsToTheWhole(t *testing.T) {
 	dir := t.TempDir()
 	writeContributionLake(t, dir)

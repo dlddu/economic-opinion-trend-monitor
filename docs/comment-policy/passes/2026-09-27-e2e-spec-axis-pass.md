@@ -1,6 +1,6 @@
 # 2026-09-27 — e2e-spec-axis-pass (시나리오 spec 22행 364줄 · ①②③④ 축 전건 판정)
 
-`tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260927-0001`. 기준 커밋 `232fd66`(= #173 착지 tip = main).
+`tbm_econ-opinion-monitor-comment-necessity` / `rct_20260927-0001`. 기준 커밋 `232fd66`(= #173 착지 tip = main).
 
 판정 **22행 364줄** · 제거 **57줄** · 행 소멸 **2**. L 표면 `2655 → 2598`.
 

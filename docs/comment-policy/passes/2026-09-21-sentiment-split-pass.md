@@ -5,7 +5,7 @@
 **또는** ⑵ 최대 `web/src/screens/Sentiment.tsx` +17 · `Sentiment.test.tsx` +10(한 묶음 27)」로 이름 붙인 두 후보 중 **⑵ 묶음**의
 증가분만 판정한다. ⑴ 을 고르지 않은 이유는 아래 「판단이 갈린 자리」 3 — 복원처가 다른 묶음이라는 종전 이유에 더해, 그 파일은
 **레포 자신의 리뷰 게이트가 사람 리뷰를 요구하는 자리**라 무인 루프가 착지시킬 수 없다는 사실을 이번에 실측했다.
-추적 task는 `rct_20260921-0013`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0013`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **제거 23줄 / 유지 4줄**(그중 정정 2자리 — JSDoc 6→1 · 8→1 로 줄인 자리, 지문상 −12 는 위 23 에 들어 있다).
 레포 전체 지문은 `2486 → 2463`(파일 `134 → 134`). 실행 코드는 한 바이트도 바뀌지 않았다 — 두 파일을 `typescript.transpileModule`

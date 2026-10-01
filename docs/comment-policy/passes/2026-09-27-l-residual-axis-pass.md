@@ -6,7 +6,7 @@ L 표면의 판정 미완 잔여 **23행 347줄** 중, 열린 PR #178 이 파일
 `python/packages/analysis/tests/test_fake_llm.py` ·
 `python/packages/analysis/tests/test_llm_call_record.py` — 판정 대상 주석 0줄).
 
-reconcile task `rct_20260927-0004` (`tbm_econ-opinion-monitor-comment-redundancy`).
+reconcile task `rct_20260927-0004` (`tbm_econ-opinion-monitor-comment-necessity`).
 
 게이트 자기출력: L 판정 완료 **168행 2379줄 → 184행 2488줄** · 잔여(미판정 + 일부 축만)
 **23행 347줄 → 4행 88줄** · L 전체 2726줄 191파일 → **2576줄 188파일**. D·E 표면 무접촉.

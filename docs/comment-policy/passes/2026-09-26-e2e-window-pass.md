@@ -1,7 +1,7 @@
 # e2e-window-pass — 창이 들인 9파일 + e2e 배치 하네스 가족 전건 판정
 
 기준 커밋 `dfd3bc7`(#158 착지 직후 `main`). 추적 task 는 `rct_20260926-0007`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 
 **판정 대상은 원장 32행 / 주석 389줄**이고, 네 복원 경로(① 코드 ② 저장소 문서 ③ PR ④ 커밋
 메시지)를 **전건** 대어 판정했다. 결과: **제거 47줄 · 유지 342줄 · 행 31개가 판정 축 `①②③④`로

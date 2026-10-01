@@ -1,7 +1,7 @@
 # reprocess-surface-pass — #94 묶음(`reprocess` 표면) 중 자매 PR 이 손대지 않는 자리 판정
 
 **표적 패스다(전수 아님).** 기준 커밋 `88a643c`(판정 트리; 착지 트리는 #96 이 `docs/` 만 더한 `bedfa99` — 지문 동일).
-추적 task는 `rct_20260921-0004`(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0004`(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 겨눈 것은 **8파일 / 152줄** — 직전 패스(trend-rejudge-pass)가 「다음 패스의 선」으로 이름 붙인 **#94 묶음**이다:
 ⑴ 행이 없던 신설 4파일 140줄(`go/internal/handlers/reprocess.go` 69 · `web/src/screens/Reprocess.tsx` 33 ·
 `go/internal/handlers/reprocess_test.go` 22 · `web/src/screens/Reprocess.test.tsx` 16) + ⑵ 행이 있는 4파일에 #94 가

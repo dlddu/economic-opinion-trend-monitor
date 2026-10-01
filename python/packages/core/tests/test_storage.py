@@ -12,7 +12,6 @@ def test_localfs_roundtrip(tmp_path: Path) -> None:
     records = [{"a": 1, "ko": "한국"}, {"a": 2}]
     assert store.write_records("bronze", "x", records) == 2
     assert store.read_records("bronze", "x") == records
-    # Missing dataset reads as empty, not an error.
     assert store.read_records("bronze", "missing") == []
 
 

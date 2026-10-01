@@ -7,7 +7,7 @@ python 묶음이라 한 패스로 볼 수 있고, 들인 PR 은 blame 으로 가
 `aggregate.py` 의 +4 는 전량 #62(`32faf64`, AC3.3 일·주 롤업)이고 `test_llm.py` 의 +4 는 전량 #73(`9fbec58`, temperature 선택화 +
 모델 응답 재사용)이라 들인 PR 은 둘이지만 복원처의 모양이 같다 — **둘 다 같은 패키지의 구현 docstring 이 주인**이고 README·PRD·PR 본문이
 그 문장을 옮겼다. 이름은 두 파일이 들인 내용(버킷 **단위** 상수 · 모델 응답 **캐시**)에서 땄다.
-추적 task는 `rct_20260921-0016`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+추적 task는 `rct_20260921-0016`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 8줄 중 제거 6줄 / 유지 2줄** — 문면 정정 없음. 레포 전체 지문은 `2448 → 2442`(파일 `134 → 134`).
 실행 코드는 한 바이트도 바뀌지 않았다 — 두 파일을 `ast.dump` 로 펼친 결과가 편집 전후 **동일**하고(주석은 AST 에 없다), 비주석

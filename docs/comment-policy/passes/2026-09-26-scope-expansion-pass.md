@@ -1,6 +1,6 @@
 # scope-expansion-pass — 범위 개정이 새로 들인 32파일 266줄 전량 판정 (2026-09-26)
 
-- **task**: `rct_20260926-0006` (`tbm_econ-opinion-monitor-comment-redundancy`)
+- **task**: `rct_20260926-0006` (`tbm_econ-opinion-monitor-comment-necessity`)
 - **판정 트리**: `dfd3bc7` (#158 착지 tip = main) + 이 PR 의 편집
 - **지문**: 편집 전 `lines=3042 files=199 unclassified=0` / `b1c010dd…93399e` → 편집 후 `lines=2887 files=194 unclassified=0` / `a57a9c73…23574b`
 - **완료 기준**: 부모 대비 델타 **−155줄 · 파일 −5**(절대값이 아니다)

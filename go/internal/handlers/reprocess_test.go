@@ -138,8 +138,6 @@ func TestReprocessNarrowsBySourceAndRange(t *testing.T) {
 	}
 }
 
-// An unknown range key falls back rather than erroring, and the fallback is
-// named in the response so the screen shows what was actually measured.
 func TestReprocessNamesItsRangeFallbackAndSurvivesEmptyLake(t *testing.T) {
 	rp := getReprocess(t, t.TempDir(), "?range=forever")
 	if rp.Scope.Range != defaultReprocessRange {
@@ -159,8 +157,6 @@ func TestReprocessNamesItsRangeFallbackAndSurvivesEmptyLake(t *testing.T) {
 	}
 }
 
-// With one version there is nothing to compare against, and the response says
-// so — the screen must not draw a before/after table out of one column.
 func TestReprocessRefusesToCompareASingleVersion(t *testing.T) {
 	dir := t.TempDir()
 	writeScopeLake(t, dir)
@@ -181,9 +177,6 @@ func TestReprocessRefusesToCompareASingleVersion(t *testing.T) {
 	}
 }
 
-// Two versions in Silver: the newest is "after", the other "before", rows are
-// the union of subjects ordered by the size of the movement, and the share each
-// version left unclassified is reported apart.
 func TestReprocessComparesTwoCoexistingVersions(t *testing.T) {
 	dir := t.TempDir()
 	items := strings.Join([]string{
@@ -261,8 +254,6 @@ func TestReprocessComparesTwoCoexistingVersions(t *testing.T) {
 	}
 }
 
-// A version that files articles under categories is compared on its categories —
-// what Gold will count once it is published — and one without them on its subjects.
 func TestMentionSharesCountsCategoriesWhenAVersionHasThem(t *testing.T) {
 	categories := []string{"반도체", "기업 경영·실적"}
 	silver := []gen.Analysis{

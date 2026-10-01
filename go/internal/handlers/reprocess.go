@@ -9,13 +9,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// /api/reprocess — the read side of the reprocess console.
-//
-// Before anything is triggered the operator has to see what the range
-// contains, and that part is a pure read over Bronze and Silver; the
-// triggering itself is the POST side in reprocess_trigger.go.
-
-// reprocessRanges maps the range query value to how far back the window opens.
 var reprocessRanges = map[string]time.Duration{
 	"24h": 24 * time.Hour,
 	"7d":  7 * 24 * time.Hour,
@@ -53,7 +46,6 @@ type sourceRow struct {
 	Kept     int    `json:"kept"`
 }
 
-// scopeBucket is one collection cycle of the selection.
 type scopeBucket struct {
 	Cycle string `json:"cycle"`
 	Kept  int    `json:"kept"`
@@ -159,7 +151,6 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// itemsInWindow keeps the observations of one axis collected at or after since.
 // An observation whose collected_at cannot be read is left out rather than
 // guessed into the window.
 func itemsInWindow(items []gen.NewsItem, axis string, since time.Time) []gen.NewsItem {

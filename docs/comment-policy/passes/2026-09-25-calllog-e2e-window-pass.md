@@ -5,7 +5,7 @@
 시나리오 1 spec)이 착지해 리베이스했다. 두 트리에서 **이 패스의 델타는 동일하다**(아래 「검증」).
 직전 패스([runlog-window-pass](2026-09-25-runlog-window-pass.md))가 판정한 창 뒤로 **대상 레포의 기능·CI PR 둘**이
 착지해 판정된 적 없는 주석을 새로 들였다. 추적 task는 `rct_20260925-0003`
-(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 82줄 중 제거 60 / 유지 22** — 판단 분기 2. 여기에 원장이 한 번 유예해 둔
 `run.sh` 2줄을 함께 판정(유지)해 그 유예를 닫았다. 레포 전체 지문은 기준 커밋 `e92e3cc` 에서

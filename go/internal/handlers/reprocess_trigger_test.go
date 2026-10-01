@@ -15,8 +15,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// fakeAPIServer stands in for the Kubernetes API: it answers the template
-// probe, records every Workflow it is asked to create, and lists them back.
 type fakeAPIServer struct {
 	t            *testing.T
 	templateCode int

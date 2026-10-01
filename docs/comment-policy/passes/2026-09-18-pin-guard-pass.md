@@ -8,7 +8,7 @@
 | 판정 후 | 979줄 / 81파일 — 지문 `62796561…` |
 | 제거 | 3줄 (+ 2곳 문면 정정) |
 | 촉발 | `ce54a57` (#35 "ci: 운영 이미지 pin 을 main 되커밋 대신 deploy 브랜치로 발행") |
-| 추적 | reconciler `tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260918-0004` |
+| 추적 | reconciler `tbm_econ-opinion-monitor-comment-necessity` / `rct_20260918-0004` |
 
 ## 무엇이 바뀌었나
 

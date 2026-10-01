@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """주석 판정 원장(docs/comment-policy/ledger.md) 게이트.
 
-범위 추출 규칙은 모델 tbm_econ-opinion-monitor-comment-redundancy 의 as-is versionScript와
+범위 추출 규칙은 모델 tbm_econ-opinion-monitor-comment-necessity 의 as-is versionScript와
 같아야 한다. 둘이 갈라지면 지문에는 있는데 원장 불변식은 모르는 파일이 생긴다.
 """
 
@@ -63,9 +63,9 @@ FAMILIES: list[tuple[str, str, str | None]] = [
 ]
 HASH_PATTERN = r"^[ \t]*#"
 
-AXES = "①②③④"
+AXIS_DONE = "완료"
 AXIS_UNJUDGED = "—"
-HEADER = ["판정일", "범위", "현재 주석 줄 수", "지문", "판정 축", "결과"]
+HEADER = ["판정일", "범위", "현재 주석 줄 수", "지문", "판정", "결과"]
 SURFACE_SECTIONS = {
     "파일별 원장 — L (줄머리 주석)": "L",
     "파일별 원장 — D (docstring 본문)": "D",
@@ -398,11 +398,7 @@ def parse(root: str) -> tuple[dict[str, list[Row]], list[str], list[tuple[int, s
 
 
 def axis_valid(value: str) -> bool:
-    if value == AXIS_UNJUDGED:
-        return True
-    if not value or any(ch not in AXES for ch in value):
-        return False
-    return list(value) == sorted(set(value), key=AXES.index)
+    return value in (AXIS_DONE, AXIS_UNJUDGED)
 
 
 def check_surface(surface: str, srows: list[Row], smeasured: dict[str, list[str]],
@@ -426,8 +422,8 @@ def check_surface(surface: str, srows: list[Row], smeasured: dict[str, list[str]
     for row in srows:
         if not axis_valid(row.axis):
             fail.append(
-                f"R5 {tag}{LEDGER}:{row.lineno} 판정 축 표기가 유효하지 않다: {row.axis!r} "
-                f"— {AXIS_UNJUDGED} 또는 {AXES} 의 부분집합(원래 순서)"
+                f"R5 {tag}{LEDGER}:{row.lineno} 판정 칸 표기가 유효하지 않다: {row.axis!r} "
+                f"— {AXIS_DONE} 또는 {AXIS_UNJUDGED}"
             )
 
     owner: dict[str, Row] = {}
@@ -444,7 +440,7 @@ def check_surface(surface: str, srows: list[Row], smeasured: dict[str, list[str]
     if missing:
         fail.append(
             f"R6 {tag}판정 대상 주석이 있는데 행이 없는 파일 {len(missing)}개 "
-            f"(판정 축 {AXIS_UNJUDGED} 로 행을 만든다): "
+            f"(판정 칸 {AXIS_UNJUDGED} 로 행을 만든다): "
             + ", ".join(f"`{p}`" for p in missing[:8])
             + (" …" if len(missing) > 8 else "")
         )
@@ -547,8 +543,7 @@ def main() -> int:
         srows = rows[surface]
         smeasured = measured[surface]
         owned = {p for r in srows for p in r.paths}
-        judged_rows = [r for r in srows if r.axis != AXIS_UNJUDGED]
-        full_rows = [r for r in srows if r.axis == AXES]
+        done_rows = [r for r in srows if r.axis == AXIS_DONE]
         open_rows = [r for r in srows if r.axis == AXIS_UNJUDGED]
 
         def line_count(rs: list[Row]) -> int:
@@ -556,14 +551,8 @@ def main() -> int:
 
         print(f"  표면 {surface}: 행 {len(srows)} · 파일 {len(owned)} · "
               f"판정 대상 주석 {len(surfaces[surface])}줄")
-        print(f"    판정 축 {AXES} (네 경로 완료): 행 {len(full_rows)} · {line_count(full_rows)}줄")
-        print(f"    일부 축만 완료:            행 {len(judged_rows) - len(full_rows)} · "
-              f"{line_count(judged_rows) - line_count(full_rows)}줄")
-        print(f"    미판정({AXIS_UNJUDGED}):              행 {len(open_rows)} · "
-              f"{line_count(open_rows)}줄")
-        for axis in AXES:
-            pending = [r for r in srows if axis not in r.axis]
-            print(f"    축 {axis} 미판정: 행 {len(pending)} · {line_count(pending)}줄")
+        print(f"    판정 {AXIS_DONE}:   행 {len(done_rows)} · {line_count(done_rows)}줄")
+        print(f"    미판정({AXIS_UNJUDGED}): 행 {len(open_rows)} · {line_count(open_rows)}줄")
     if unparsed:
         print(f"  경고: D·E 추출에 실패한 파일 {len(unparsed)}개 — 그 파일의 D·E는 표면에서 빠져 있다 "
               f"(표면 규칙은 control plane 소유다): " + ", ".join(unparsed[:8]))

@@ -1,7 +1,7 @@
 # lineage-rejudge-pass — `trace` 표면 2파일 재판정 (복원 경로가 자란 자리)
 
 **표적 재판정이다(전수 아님).** 기준 커밋 `6a0b464`. 추적 task는 `rct_20260920-0013`
-(모델 `tbm_econ-opinion-monitor-comment-redundancy`).
+(모델 `tbm_econ-opinion-monitor-comment-necessity`).
 판정 대상은 **2파일 / 49줄** — [lineage-surface-pass](2026-09-20-lineage-surface-pass.md)가 행을 준 뒤
 #77(`8bad0be`, 설계 트래커 `trace` 전수 판정 등재)·#79(`82ceba2`, 링크 만료 배너 카피)가
 **복원 경로 ②를 새로 연** `web/src/screens/Trace.tsx` 27줄과 `web/src/screens/Trace.test.tsx` 22줄이다.

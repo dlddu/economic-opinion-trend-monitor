@@ -6,7 +6,7 @@
 | 판정 전 | 776줄 / 62파일 — 지문 `05369a31…` |
 | 판정 후 | 655줄 / 60파일 |
 | 제거 | 121줄 (+ 1줄 부분 수정: `web/src/shell/nav.ts` 첫 줄) |
-| 추적 | reconciler `tbm_econ-opinion-monitor-comment-redundancy` / `rct_20260917-0001` |
+| 추적 | reconciler `tbm_econ-opinion-monitor-comment-necessity` / `rct_20260917-0001` |
 
 등록 시점(698줄/60파일) 이후 풀은 #25(배포 오버레이 +56), #22(목업 수렴 근거 +3), #24(시나리오축 이관 +19)로
 776줄까지 자랐다. 이 패스는 그 현행 풀 전체를 판정했다. 파일별 결과는 [`../ledger.md`](../ledger.md).

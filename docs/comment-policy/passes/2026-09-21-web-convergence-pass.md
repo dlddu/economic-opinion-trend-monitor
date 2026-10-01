@@ -5,7 +5,7 @@
 `Reprocess.test.tsx` 2 · `Compare.tsx` 1 — 동률이라 한 web 패스로 묶는다)」로 이름 붙인 그 묶음만 판정한다. 세 자리는 전부 설계 트래커
 「등재된 편차」의 `구현 수렴 대기` 행을 닫은 슬라이스가 들인 주석이라(#76 `9a5d32e` 여정 이탈 동선·미분석 분모 전환·세는 방식 표기 원칙 ·
 #102 `52fba9f` 진행 문구·`.btn.pri:hover`) 이름을 거기서 땄다. `Dashboard.tsx` `BRIEF_KEY` 앞 3줄 + `Trend.tsx:81-82` 포인터는 이 패스에
-넣지 않았다 — 「판단이 갈린 자리」 2. 추적 task는 `rct_20260921-0019`(reconciler `tbm_econ-opinion-monitor-comment-redundancy`).
+넣지 않았다 — 「판단이 갈린 자리」 2. 추적 task는 `rct_20260921-0019`(reconciler `tbm_econ-opinion-monitor-comment-necessity`).
 
 판정 결과 요약: **판정 표면 5줄 중 제거 5줄 / 유지 0줄** — 정정 0, 판단 분기 0. 레포 전체 지문은 `2436 → 2431`(파일 `134 → 134`; 세 파일
 모두 남음 > 0 이라 집합 불변). 코드는 한 바이트도 바뀌지 않았다 — 세 파일의 주석 스트립 후(`typescript` `transpileModule`

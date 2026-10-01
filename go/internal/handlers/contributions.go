@@ -10,8 +10,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
-// contributionRow is one article that made a Gold number.
-//
 // BodyDuplicate and BodyShares are two fields for one reason: the reader is
 // checking whether a spike is real, and "the same text arrived twice" is the
 // answer that most often explains one (AC1.7 stores bodies by content hash, so
@@ -30,14 +28,11 @@ type contributionRow struct {
 	BodyShares    int    `json:"body_shares"`
 }
 
-// contributionSource is one collector's share of the list.
 type contributionSource struct {
 	SourceID string `json:"source_id"`
 	Listed   int    `json:"listed"`
 }
 
-// contributionsBasis states the value the list was taken under.
-//
 // RawCount must come from Gold, never from this endpoint's own count, and Total
 // must stay the pre-filter count: `Total == RawCount` and
 // `sum(Sources.Listed) == Total` are only checks while the two sides are.
@@ -62,8 +57,6 @@ type contributionsResponse struct {
 	Rows    []contributionRow    `json:"rows"`
 }
 
-// contributions lists the individual articles behind one Gold value (AC3.10).
-//
 // The join must stay the *same calculation* build_subject_trends runs — a second
 // way of computing it here disagrees with the number the list explains.
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {

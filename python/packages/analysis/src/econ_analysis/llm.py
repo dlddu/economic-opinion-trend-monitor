@@ -1,18 +1,5 @@
 """Real LLM-based analysis of Bronze news into the Silver layer.
 
-Unlike the deterministic keyword stand-in in :mod:`econ_analysis.fake_llm`, this
-module implements the *real* analysis mechanism the analysis PRD calls for: each
-Bronze observation's title + resolved body is turned into an instruction prompt,
-sent to a chat-completions model over a pluggable transport, and the model's
-structured JSON reply is parsed into a schema-conformant Silver
-:class:`~econ_core.models.Analysis`.
-
-The transport is injected (:class:`Completer`), exactly like the ingestion feed
-:class:`~econ_ingestion.feeds.Fetcher`: production wires a real HTTP client
-(:func:`http_completer`) while tests drive the identical prompt-build / response-parse
-path against a canned completer — the analysis logic is genuinely real, yet fully
-deterministic offline.
-
 **Operator error is not an analysis outcome.** ``unanalyzed`` is a data-quality signal
 AC2.5 defines and AC3.4 consumes ("미분석 분리"), so this module refuses to spend it on
 misconfiguration or an unreachable endpoint: :func:`http_completer` raises
@@ -44,7 +31,6 @@ from econ_analysis.fake_llm import ALIASES, KNOWN_SUBJECTS
 
 ANALYZER_VERSION = "llm-v1"
 
-#: AC4.3 no-call reason: the body was never captured, so there was nothing to send.
 NO_CALL_BODY_UNAVAILABLE = "body_unavailable"
 
 # Shared with the fake analyzer: below this the label is kept but marked low-confidence.
@@ -72,7 +58,6 @@ _SYSTEM_PROMPT = (
 )
 
 
-#: Korean names for the known catalog's non-Korean keys; the fake catalog stays as-is.
 _KOREAN_NAMES = {
     "Federal Reserve": "연준",
     "Nvidia": "엔비디아",
@@ -102,7 +87,6 @@ _EXTRA_ALIASES = {
     "이란 전쟁": "이란 전쟁",
 }
 
-#: A trailing Latin acronym gloss, as in 국제통화기금(IMF): the name before it is the key.
 _ACRONYM_GLOSS = re.compile(r"\s*[(（]\s*[A-Za-z][A-Za-z0-9&.\- ]*\s*[)）]\s*$")
 
 
@@ -204,7 +188,6 @@ class AnalysisStats:
 
 
 def _temperature(raw: str | None) -> float | None:
-    """Resolve ``ECON_LLM_TEMPERATURE``: unset -> 0, empty/``default`` -> omit the field."""
     if raw is None:
         return 0.0
     raw = raw.strip()
@@ -232,12 +215,9 @@ def http_completer(
 ) -> Completer:
     """Return a real chat-completions transport (stdlib ``urllib``) for production runs.
 
-    Talks to any OpenAI-compatible ``/chat/completions`` endpoint. Endpoint, model and
-    key come from the environment so no secret is checked in: ``ECON_LLM_BASE_URL``
-    (default ``https://api.openai.com/v1``), ``ECON_LLM_MODEL`` (default ``gpt-4o-mini``)
-    and ``ECON_LLM_API_KEY``. ``ECON_LLM_TEMPERATURE`` defaults to ``0``; set it to an
-    empty string or ``default`` to omit the field — newer models (e.g. the GPT-5.x
-    family) reject any temperature other than their own default with a 400. The key is
+    ``ECON_LLM_TEMPERATURE`` set to an empty string or ``default`` omits the field —
+    newer models (e.g. the GPT-5.x family) reject any temperature other than their own
+    default with a 400. The key is
     required *here*, not at the first call, so a misconfigured run fails before it reads
     Bronze or writes Silver. Not exercised offline — tests inject a canned completer.
     """
@@ -278,7 +258,7 @@ def http_completer(
                 envelope = json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             raise CompletionError(f"chat completion failed: {exc}{_error_detail(exc)}") from exc
-        except Exception as exc:  # transport / decode failure
+        except Exception as exc:
             raise CompletionError(f"chat completion failed: {exc}") from exc
         try:
             return envelope["choices"][0]["message"]["content"]
@@ -296,11 +276,7 @@ def build_prompt(item: dict, body: str) -> str:
 
 
 def parse_response(text: str) -> dict:
-    """Parse the model's reply into a plain dict, tolerating code fences / stray prose.
-
-    Extracts the outermost ``{...}`` span so a fenced or chattily-wrapped reply still
-    decodes. Raises :class:`CompletionError` when no JSON object can be recovered.
-    """
+    """Parse the model's reply into a plain dict, tolerating code fences / stray prose."""
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end <= start:
@@ -315,15 +291,12 @@ def parse_response(text: str) -> dict:
 
 
 def _clean_list(value: object) -> list[str]:
-    """Coerce a model-supplied field into a list of non-empty trimmed strings."""
     if not isinstance(value, list):
         return []
     return [s.strip() for s in value if isinstance(s, str) and s.strip()]
 
 
 def _tracking_key(item: dict, analyzer_version: str, run_id: str) -> dict:
-    """The Bronze -> Silver tracking key every record carries (AC2.6), plus the run that
-    wrote it (AC4.3): AC2.6 reaches the article, ``run_id`` reaches the execution."""
     return {
         "record_id": item["record_id"],
         "source_url": item["source_url"],
@@ -360,11 +333,6 @@ def analyze_llm(
     run_id: str = "",
 ) -> Analysis:
     """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis`` via a real model.
-
-    ``body`` is the raw text resolved from the content-addressed store via
-    ``item["body_hash"]`` (AC1.4, AC1.7); ``None`` / empty means the body was never
-    captured -> unanalyzed without calling the model (AC2.5). A model that declines
-    (``analyzable: false``) also yields unanalyzed rather than a forced label (AC2.5).
 
     Raises :class:`CompletionError` when the model could not be reached or its reply is
     unusable — that is an operational failure, not a judgement about the article, so the
@@ -468,12 +436,6 @@ def run_llm_analysis(
     run_id: str = "",
 ) -> tuple[list[dict], AnalysisStats, list[dict]]:
     """Analyze every Bronze item, isolating per-item model failures.
-
-    Mirrors :func:`econ_ingestion.feeds.run_feed_ingestion` (records + stats return
-    shape). A single unreachable or unusable completion degrades that record to
-    unanalyzed instead of aborting the batch, but it is *counted*: the caller can then
-    tell an endpoint outage (every attempt failed) from a batch the model genuinely had
-    nothing to say about, which reads identically in the records alone.
 
     ``reply_cache`` maps :func:`reply_cache_key` to a raw reply from an earlier run;
     a hit skips the model call and replays that reply through the same parse path.

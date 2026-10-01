@@ -1,7 +1,7 @@
 # reprocess-python-pass — #97 묶음의 python 5파일 판정(⑴ 12 + ⑵ 파일 전체 24 = 36줄)
 
 **표적 패스다(전수 아님).** 기준 커밋 `52fba9f`(#102 착지 = main tip). 추적 task는 `rct_20260921-0007`(모델
-`tbm_econ-opinion-monitor-comment-redundancy`). 겨눈 것은 직전 패스(reprocess-console-pass)가 「다음 패스의 선은 #97 묶음의 python
+`tbm_econ-opinion-monitor-comment-necessity`). 겨눈 것은 직전 패스(reprocess-console-pass)가 「다음 패스의 선은 #97 묶음의 python
 5파일 24줄」이라고 이름 붙인 그 묶음이다: ⑴ 행이 없던 3파일 12줄(`python/packages/core/tests/test_silver.py` 7 ·
 `python/packages/core/src/econ_core/storage.py` 3 · `python/packages/aggregation/tests/test_serving_version.py` 2 — 전부 #97 신설),
 ⑵ 행이 있는 2파일의 증가분 12줄(`python/packages/analysis/src/econ_analysis/cli.py` 7→16 · `python/packages/analysis/tests/test_cli.py` 5→8).

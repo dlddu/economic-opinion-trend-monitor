@@ -7,12 +7,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-# Medallion layers.
 BRONZE = "bronze"
 SILVER = "silver"
 GOLD = "gold"
 
-# Dataset (file) names within each layer — one dataset per generated record type.
 DS_NEWS_ITEM = "news_item"
 DS_NEWS_BODY = "news_body"
 DS_ANALYSIS = "analysis"
@@ -62,7 +60,6 @@ OTHER_CATEGORY = SUBJECT_CATEGORIES[-1]
 #: Collection cycle id format — one cycle per UTC hour.
 CYCLE_FORMAT = "%Y-%m-%dT%H:00"
 
-# Environment override for the local lake root.
 ENV_DATA_ROOT = "ECON_DATA_ROOT"
 
 
