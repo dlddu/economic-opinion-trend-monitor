@@ -115,7 +115,6 @@ echo "[e2e] images: $IMAGE, $BATCH_IMAGE  cluster: $CLUSTER  port: $PORT"
 
 mkdir -p "$E2E_DIR/.artifacts"
 
-# 0) Playwright setup in the background.
 PW_SETUP_PID=""
 PW_SETUP_RC="${E2E_PLAYWRIGHT_SETUP_RC:-}"
 if [ -n "$PW_SETUP_RC" ]; then
@@ -127,7 +126,6 @@ else
   BG_PIDS+=("$PW_SETUP_PID")
 fi
 
-# 1) Both images into a fresh single-node cluster (no registry: kind load).
 KIND_PID=""
 if [ "${E2E_REUSE_CLUSTER:-0}" = "1" ]; then
   kind get clusters 2>/dev/null | grep -qx "$CLUSTER" \
@@ -161,15 +159,13 @@ if [ -n "$KIND_PID" ]; then
 fi
 kind load docker-image "$IMAGE" "$BATCH_IMAGE" --name "$CLUSTER"
 
-# 2) Upstream-double fixtures as ConfigMaps + the serving stack and the batch harness
-# (e2e overlay of deploy/base).
 # mock-exception: FEED-02 — 실 RSS/Atom 상류는 가용성·내용이 매 순간 달라 결정적 단정이 불가능해 고정 피드 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap feed-fixtures --from-file="$E2E_DIR/fixtures/feeds"
 # 분석 배치의 상류 더블이 돌려줄 응답. 더블 Deployment가 이 ConfigMap을 마운트하므로 apply 전에
 # 만들어 둔다 — 없으면 Pod가 볼륨을 못 붙여 영영 Ready가 되지 않는다.
 # mock-exception: LLM-02 — 실 chat-completions 응답은 비결정적이라 기사별 고정 응답 픽스처를 주입한다 — docs/econ-opinion-monitor-e2e-mocking-policy.md
 kubectl --context "$CTX" create configmap llm-fixtures --from-file="$E2E_DIR/fixtures/llm"
-# 4f 의 롤업 체인이 쓰는 하네스 스크립트. 체인들이 동시에 돌므로 여기서 미리 만든다.
+# 롤업 체인이 쓰는 하네스 스크립트. 체인들이 동시에 돌므로 여기서 미리 만든다.
 kubectl --context "$CTX" create configmap rollup-timeshift \
   --from-file="$E2E_DIR/tools/timeshift_bronze.py"
 # The batch resources go first: the serving Deployment mounts their PVC, so creating the
@@ -187,7 +183,6 @@ kubectl --context "$CTX" rollout status deployment/econ-feed-double --timeout=12
 kubectl --context "$CTX" rollout status deployment/econ-llm-double --timeout=120s
 kubectl --context "$CTX" rollout status deployment/econ-bronze-shell --timeout=120s
 
-# 3) Reach the in-cluster Service from the host.
 kubectl --context "$CTX" port-forward service/econ-serving "$PORT:8080" >/dev/null &
 PF=$!
 curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
@@ -196,9 +191,7 @@ curl -sf --retry 20 --retry-delay 1 --retry-connrefused \
 SHELL_POD="$(kubectl --context "$CTX" get pod -l app=econ-bronze-shell \
   -o jsonpath='{.items[0].metadata.name}')"
 
-# 4) Batch Jobs — one chain per data root. A chain must not read another's root.
-#
-# 4a) Ingestion batch: the real collection CLI, one cycle, against a feed double.
+# One batch chain per data root. A chain must not read another's root.
 chain_ingest() {
   local log
   log="$(run_batch_job econ-e2e-ingest "$E2E_DIR/k8s/batch/ingest-job.yaml")"
@@ -214,7 +207,6 @@ chain_ingest() {
   echo "[e2e] bronze exported -> $BRONZE_DIR"
 }
 
-# 4b) Fault-injection cycle (…-test-ingestion.md#시나리오 6).
 chain_faults() {
   local log
   log="$(run_batch_job econ-e2e-ingest-faults "$E2E_DIR/k8s/batch/ingest-job-faults.yaml")"
@@ -229,7 +221,6 @@ chain_faults() {
   echo "[e2e] bronze (faults) exported -> $FAULTS_DIR"
 }
 
-# 4c) Three sequential cycles (…-test-ingestion.md#시나리오 7).
 chain_cycles() {
   for cycle in 1 2 3; do
     run_batch_job "econ-e2e-ingest-cycle$cycle" "$E2E_DIR/k8s/batch/ingest-job-cycle$cycle.yaml" \
@@ -240,7 +231,6 @@ chain_cycles() {
   echo "[e2e] bronze (3 cycles) exported -> $CYCLES_DIR"
 }
 
-# 4d) Analysis batch (…-test-analysis.md#시나리오 1·2·3·6).
 chain_analysis() {
   local log
   log="$(run_batch_job econ-e2e-ingest-analysis "$E2E_DIR/k8s/batch/ingest-job-analysis.yaml")"
@@ -275,7 +265,6 @@ chain_analysis() {
   echo "[e2e] silver (re-analysis) exported -> $SILVER_V2_DIR"
 }
 
-# 4e) Per-article model call log (…-test-pipeline-ops.md#시나리오 2).
 chain_llm_calls() {
   local log
   run_batch_job econ-e2e-ingest-calls1 "$E2E_DIR/k8s/batch/ingest-job-calls1.yaml" >/dev/null
@@ -314,7 +303,6 @@ chain_llm_calls() {
   echo "[e2e] llm call log exported -> $LLM_CALL_DIR"
 }
 
-# 4f) Record <-> run <-> call links (…-test-pipeline-ops.md#시나리오 3).
 chain_record_links() {
   local log
 
@@ -361,8 +349,6 @@ chain_record_links() {
   echo "[e2e] record-link corpus exported -> $LINKS_SILVER_DIR"
 }
 
-# 4e) Aggregation batch (…-test-analysis.md#시나리오 4·5,
-# …-test-aggregation-viz.md#시나리오 1·2·4).
 run_aggregation_stack() {
   suffix="$1"; root="$2"; label="$3"
   ingest_log="$(run_batch_job "econ-e2e-ingest-agg$suffix" \
@@ -397,7 +383,7 @@ run_aggregation_stack() {
   echo "[e2e] aggregation ($label) done in $root"
 }
 
-# Baseline aggregation, then 4f) the rollup root (…-test-aggregation-viz.md#시나리오 3) — it must follow it.
+# The rollup root re-stamps the baseline root's corpus, so it must run after it.
 chain_aggregation() {
   run_aggregation_stack "" /data/aggregation baseline
   export_news_item /data/aggregation "$AGG_BRONZE_DIR"
@@ -452,7 +438,6 @@ if [ "${#failed_chains[@]}" -gt 0 ]; then
   exit 1
 fi
 
-# 4g) Pipeline-ops root (…-test-pipeline-ops.md#시나리오 1).
 OPS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-ops "$E2E_DIR/k8s/batch/ingest-job-ops.yaml")"
 case "$OPS_INGEST_LOG" in
   *"failed_sources=['e2e-ops-down']"*) ;;
@@ -501,7 +486,6 @@ fi
 export_pipeline_run /data/pipeline-ops "$RUNLOG_OPS_DIR"
 echo "[e2e] pipeline_run exported after deleting its Jobs -> $RUNLOG_OPS_DIR"
 
-# 5) Playwright specs against the forwarded endpoint + the exported Bronze.
 pw_wait_start=$SECONDS
 if [ -n "$PW_SETUP_PID" ]; then
   if wait "$PW_SETUP_PID"; then pw_status=0; else pw_status=$?; fi

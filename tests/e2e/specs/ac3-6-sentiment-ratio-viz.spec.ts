@@ -10,8 +10,8 @@
 // 비례**가 집계값의 비례와 같은지, 그리고 전체 바가 100%를 이루는지를 본다 —
 // 스케일 상수를 몰라도 성립하는 성질이다.
 //
-// 단언하지 않는 것: 분위기 분포를 만들어내는 집계 로직 자체(AC3.4)와 미분석 분리
-// 규칙의 정합성(AC3.4). 여기서 미분석 값은 스케일과 무관한 대조군으로만 쓴다.
+// 단언하지 않는 것: 분위기 분포를 만들어내는 집계 로직 자체와 미분석 분리 규칙의 정합성
+// (aggregation-4 · analysis-5 의 몫). 여기서 미분석 값은 스케일과 무관한 대조군으로만 쓴다.
 
 import { expect, test } from "@playwright/test";
 
@@ -22,7 +22,6 @@ const SEGMENTS = [
   { cls: "s-mix", key: "mixed", label: "혼합" },
 ] as const;
 
-/** 스택바 세그먼트의 렌더된 폭(%)을 읽는다. */
 async function renderedWidth(
   bar: import("@playwright/test").Locator,
   cls: string,
@@ -31,7 +30,6 @@ async function renderedWidth(
   return Number.parseFloat(raw);
 }
 
-/** 서빙이 KR 축에 내려준 분위기 집계값. */
 async function krDistribution(
   request: import("@playwright/test").APIRequestContext,
 ): Promise<Record<string, number>> {
@@ -59,7 +57,6 @@ test("web: sentiment bar mirrors the aggregated distribution", async ({ page, re
   expect(renderedAnalyzed).toBeGreaterThan(0);
   expect(aggAnalyzed).toBeGreaterThan(0);
 
-  // (1) 4분류의 상대 비율이 집계값의 상대 비율과 일치한다 — 스케일 상수와 무관.
   for (const seg of SEGMENTS) {
     expect(
       widths[seg.key] / renderedAnalyzed,
@@ -67,10 +64,9 @@ test("web: sentiment bar mirrors the aggregated distribution", async ({ page, re
     ).toBeCloseTo(agg[seg.key] / aggAnalyzed, 2);
   }
 
-  // (2) 미분석은 스케일 대상이 아니므로 집계값이 그대로 폭이 된다.
+  // 미분석은 스케일 대상이 아니므로 집계값이 그대로 폭이 된다.
   expect(unanalyzedWidth).toBeCloseTo(agg.unanalyzed * 100, 1);
 
-  // (3) 바 전체가 100%를 채운다 — 분위기 비율이 미분석과 함께 하나의 전체를 이룬다.
   expect(renderedAnalyzed + unanalyzedWidth).toBeCloseTo(100, 1);
 });
 

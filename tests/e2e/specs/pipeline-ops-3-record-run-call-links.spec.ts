@@ -97,7 +97,6 @@ test("pipeline-ops: a replayed reply reaches the call it replays", () => {
     expect(origin?.run_id).not.toBe(call.run_id);
     expect(origin?.prompt_sha256).toBe(call.prompt_sha256);
     expect(origin?.response_raw).toBe(call.response_raw);
-    // 재사용은 전송하지 않는다 — 그래서 원 호출이 있어야만 응답 원문을 말할 수 있다.
     expect(call.call_attempt_count).toBe(0);
   }
 });

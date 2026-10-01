@@ -1,5 +1,3 @@
-# Serving reads the batch's own output on the shared claim (`k8s/batch/data-pvc.yaml`).
-#
 # The batch Pod writes the root serving reads while both are running: that only holds
 # because they sit on the one kind node, where ReadWriteOnce still allows both mounts.
 #

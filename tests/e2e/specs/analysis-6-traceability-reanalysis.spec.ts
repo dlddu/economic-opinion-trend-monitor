@@ -39,7 +39,6 @@ test("analysis: re-analysis updates Silver in place, keeping every tracking key"
   const before = analyses();
   const after = reanalyses();
 
-  // 갱신이지 추가가 아니다 — 건수가 같고 키 집합이 같아야 한다.
   expect(after).toHaveLength(before.length);
   expect(new Set(after.map((r) => r.record_id))).toEqual(new Set(before.map((r) => r.record_id)));
   expect(new Set(after.map((r) => r.source_url))).toEqual(new Set(before.map((r) => r.source_url)));
@@ -59,8 +58,6 @@ test("analysis: the re-analysed batch is stamped with the new analyzer version",
 });
 
 test("analysis: re-judged articles change, untouched ones keep their earlier result", () => {
-  // 어떤 기사가 다시 판정됐는지는 픽스처가 정한다(`responses.json` 의 v2 묶음). 여기 상수로
-  // 박으면 픽스처를 바꿀 때 두 곳이 어긋난다.
   const v1 = cannedReplies(MODEL_V1);
   const v2 = cannedReplies(MODEL_V2);
   const rejudged = new Set(
