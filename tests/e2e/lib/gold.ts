@@ -2,10 +2,6 @@
 // 늘린 뒤 기준 상태와 비교한다"이므로 단일 상태로는 관측 자체가 성립하지 않는다. 한 루트에서
 // 두 번 돌릴 수도 없다 — `write_records`가 데이터셋을 교체하므로 두 번째 집계가 기준 상태를
 // 지운다. 그래서 루트를 둘로 갈라 각자 완결된 Gold를 남기고, 여기서 나란히 읽는다.
-//
-// 같은 루트의 Bronze·Silver도 함께 읽는다. 시나리오 2의 "차원별 교차 집계값이 원천 데이터와
-// 일치한다"는 Gold만 봐서는 판정할 수 없고 — 집계가 스스로 만든 값을 자기와 비교하는 꼴이다 —
-// 원천에서 **독립적으로 다시 센** 교차표와 대조해야 한다. `crossTab()`이 그 재계산이다.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -33,7 +29,7 @@ export type SubjectTrend = {
   spark: number[];
 };
 
-/** Gold `axis_sentiment` 레코드 — contracts/gold/axis_sentiment.avsc 가 계약의 SSOT다. */
+/** Gold `subject_source_contribution` 레코드 — contracts/gold/subject_source_contribution.avsc 가 계약의 SSOT다. */
 export type SubjectSourceContribution = {
   subject: string;
   axis: string;
@@ -88,10 +84,8 @@ export function goldDir(): string {
 }
 
 /**
- * 롤업 루트의 Gold 반출 디렉터리 — 수집 시각만 고정 달력으로 다시 찍은 같은 코퍼스를 실
- * `econ-aggregation` 이 한 번 더 집계한 결과다(`tools/timeshift_bronze.py` +
- * `k8s/batch/aggregate-job-rollup.yaml`). 세 단위가 모두 버킷을 여럿 갖는 **유일한** 반출
- * 지점이라, 시나리오 3의 단정은 전부 이 루트 위에서 돈다.
+ * 롤업 루트의 Gold 반출 디렉터리. 세 단위가 모두 버킷을 여럿 갖는 **유일한** 반출 지점이라,
+ * 시나리오 3의 단정은 전부 이 루트 위에서 돈다.
  */
 export function rollupGoldDir(): string {
   return exportedDir("E2E_GOLD_ROLLUP_DIR");
@@ -128,10 +122,7 @@ export function axisSentiments(dir: string = goldDir()): AxisSentiment[] {
   return inFinestUnit(axisSentimentsAllUnits(dir));
 }
 
-/**
- * 단위를 가르지 않은 원본 Gold. 롤업 자체를 재는 쪽(테스트 문서 시나리오 3)과, 위 필터가
- * 무언가를 조용히 가리고 있지 않은지 확인하는 쪽이 쓴다.
- */
+/** 단위를 가르지 않은 원본 Gold. */
 export function subjectTrendsAllUnits(dir: string = goldDir()): SubjectTrend[] {
   return readJsonlFrom<SubjectTrend>(dir, "subject_trend");
 }
@@ -199,10 +190,8 @@ export function bucketOf(item: NewsItem): string {
 }
 
 /**
- * 셀 키의 구분자. **상수로 내보내는 이유**가 있다 — 이 구분자를 손으로 다시 쓴 자리가 한 번
- * 깨졌다. 키를 `축 버킷 대상` 으로 직접 조립한 단정이 있었고, 그때 `cellKey` 의 구분자는 눈에
- * 보이지 않는 NUL(`U+0000`)이라 두 문자열이 영원히 어긋났다(그 파일은 git 이 **바이너리로**
- * 취급해 diff 조차 나오지 않았다). 키를 만들거나 가르는 쪽은 전부 이 상수를 거친다.
+ * 셀 키의 구분자. 키를 만들거나 가르는 쪽은 전부 이 상수를 거친다 — 손으로 다시 쓴 구분자는
+ * 눈에 보이지 않는 차이로 어긋나도 단정이 「칸 없음」으로만 실패해 원인이 드러나지 않는다.
  */
 export const CELL_SEP = " ";
 
@@ -212,10 +201,9 @@ export function cellKey(axis: string, bucket: string, subject: string): string {
 }
 
 
-/** 버킷 단위. Gold 의 `bucket_unit` 값과 같은 문자열이다. */
 export type BucketUnit = (typeof UNIT_RANK)[number];
 
-/** 롤업 루트의 Bronze 관측 — 수집 시각만 다시 찍힌 집계 코퍼스다. */
+/** 롤업 루트의 Bronze 관측. */
 export function rollupItems(): NewsItem[] {
   return newsItems(rollupBronzeDir());
 }

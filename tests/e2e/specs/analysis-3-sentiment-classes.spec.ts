@@ -1,8 +1,4 @@
 // 검증 시나리오: econ-opinion-monitor-test-analysis.md#시나리오 3
-//
-// 라벨의 **정확도**는 이 층이 보지 않는다 — 어떤 기사가 긍정인가는 실 모델의 판단이고 그
-// 품질은 오프라인 골든 평가가 잰다(doc-tracker 「예외 후보 중 미등재」). 여기서 보는 것은
-// 네 값이 열거형으로 온전히 살아 Silver 에 닿는가, 그리고 네 값이 실제로 모두 관측되는가다.
 
 import { expect, test } from "@playwright/test";
 

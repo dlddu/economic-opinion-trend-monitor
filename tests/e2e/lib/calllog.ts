@@ -33,11 +33,7 @@ function need(name: string): string {
   return value;
 }
 
-/**
- * 반출된 호출 기록 전건. 비어 있으면 조용히 빈 배열을 주지 않고 예외로 끊는다.
- *
- * 루트를 가르는 이유는 `runlog.ts` 쪽과 같다.
- */
+/** 반출된 호출 기록 전건. 비어 있으면 조용히 빈 배열을 주지 않고 예외로 끊는다. */
 export function llmCalls(variable = "E2E_LLM_CALL_DIR"): LlmCall[] {
   const file = path.join(need(variable), "llm_call.jsonl");
   const rows = readFileSync(file, "utf-8")

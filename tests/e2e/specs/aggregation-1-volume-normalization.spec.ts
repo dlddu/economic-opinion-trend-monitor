@@ -30,7 +30,6 @@ test("aggregation: the normalized share moves far less than the raw volume", () 
   // 기대 결과의 앞 절: "절대 수집량 증가에 **비례해** 흔들리지 않는다". 비율이 수집량 증가의
   // 절반에도 못 미쳐야 비례가 끊어졌다고 말할 수 있다.
   expect(shareRatio).toBeLessThan(rawRatio / 2);
-  // 그렇다고 정규화가 변화를 통째로 지우는 것도 아니다 — 늘어난 쪽은 늘어난다.
   expect(shareRatio).toBeGreaterThan(1);
 });
 

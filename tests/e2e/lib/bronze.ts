@@ -19,7 +19,6 @@ export type NewsItem = {
   collection_cycle: string;
 };
 
-/** Bronze `news_body` 레코드 — 본문은 해시로 주소화돼 별도 데이터셋에 산다. */
 export type NewsBody = {
   body_hash: string;
   raw_text: string;
@@ -27,7 +26,6 @@ export type NewsBody = {
   first_seen_cycle: string;
 };
 
-/** 반출 디렉터리를 환경변수에서 읽는다. 비어 있으면 "하네스를 안 거쳤다"는 진단으로 끊는다. */
 function exportedDir(variable: string): string {
   const dir = process.env[variable];
   if (!dir) {

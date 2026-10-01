@@ -1,8 +1,4 @@
 // 검증 시나리오: econ-opinion-monitor-test-analysis.md#시나리오 1
-//
-// 기대값을 여기 적지 않고 더블의 응답 픽스처에서 읽는다 — 이 층이 보는 것은 "모델이 옳게
-// 판단했는가"(의미적 품질, 오프라인 골든 평가의 몫)가 아니라 "모델이 답한 대상 국가가 손실·
-// 왜곡 없이 Silver 까지 닿는가"라는 계약이다. 픽스처가 바뀌어도 이 단정은 그대로 옳다.
 
 import { expect, test } from "@playwright/test";
 

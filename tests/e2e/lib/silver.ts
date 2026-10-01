@@ -26,17 +26,11 @@ export type Analysis = {
   analyzer_version: string;
 };
 
-/** 한 분석 주기가 찍은 집계. 필드 이름은 CLI의 출력 토큰을 그대로 따른다. */
 export type AnalysisSummary = {
-  /** 읽어 들인 Bronze 관측 레코드 수. */
   readBronze: number;
-  /** Silver에 쓰인 레코드 수. */
   wrote: number;
-  /** 레코드에 찍힌 분석기 버전(`--analyzer-version`). */
   analyzer: string;
-  /** 라벨은 있으나 신뢰도가 낮아 표시된 레코드 수. */
   lowConfidence: number;
-  /** 모델이 판단하지 않아 강제 라벨 없이 남은 레코드 수. */
   unanalyzed: number;
   /** 본문이 있어 모델까지 간 건수. */
   attempted: number;
@@ -85,16 +79,15 @@ export function aggAnalyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_AGG_DIR"));
 }
 
-/**
- * 롤업 루트로 이식된 Silver. 타임시프트는 이 데이터셋을 **바이트 그대로** 옮기므로 집계
- * 묶음의 Silver 와 같아야 한다 — 시나리오 3의 spec 이 그 동일성부터 확인한다(다르면 재계수의
- * 기준이 무너진 것이고, 롤업이 아니라 하네스를 재고 있는 것이다).
- */
+/** 롤업 루트로 이식된 Silver. */
 export function rollupAnalyses(): Analysis[] {
   return readAnalyses(exportedDir("E2E_SILVER_ROLLUP_DIR"));
 }
 
-/** `record_id` 로 찾기 쉽게 묶는다. 역추적 단정의 공통 출발점이다. */
+/**
+ * 집계가 한 분석을 세는 키 — 카테고리가 있으면 카테고리, 없으면 서술 대상. 제품의
+ * `econ_core.silver.grouping_keys` 와 같아야 한다: 갈리면 재계산이 Gold 와 다른 칸을 센다.
+ */
 export function groupingKeys(analysis: Analysis): string[] {
   return analysis.subject_categories ?? analysis.narrative_subjects;
 }
@@ -103,18 +96,14 @@ export function byRecordId(records: Analysis[]): Map<string, Analysis> {
   return new Map(records.map((record) => [record.record_id, record]));
 }
 
-/** 한 기사의 Bronze 관측과 그 Silver 분석을 나란히 둔 짝. */
 export type Analyzed = { item: NewsItem; analysis: Analysis };
 
 /**
- * 제목 -> (Bronze 관측, Silver 분석). 네 분석 spec 이 공통으로 쓰는 조인이다.
+ * 제목 -> (Bronze 관측, Silver 분석).
  *
  * 제목을 키로 쓰는 이유는 더블의 응답 픽스처가 제목으로 색인돼 있어서다(제품 경로가 제목을
  * 프롬프트 첫 줄에 싣는다). `record_id` 는 주기·소스·링크에서 파생되므로 픽스처만 보고는
  * 알 수 없다. 제목이 겹치면 조인이 조용히 한 건을 덮으므로 그 자리에서 끊는다.
- *
- * Bronze 쪽을 인자로 열어 둔 것은 집계 묶음이 **자기 corpus** 로 같은 조인을 쓰기 때문이다
- * (`lib/gold.ts: aggByTitle`). 기본값은 분석 묶음이라 기존 호출부는 그대로다.
  */
 export function analyzedByTitle(
   records: Analysis[] = analyses(),

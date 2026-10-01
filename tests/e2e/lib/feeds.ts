@@ -18,7 +18,6 @@ export type FeedConfig = {
   limit: number;
 };
 
-/** 픽스처 피드가 제공하는 항목 하나(수집 전 원본). */
 export type ProvidedEntry = {
   url: string;
   views: number;
