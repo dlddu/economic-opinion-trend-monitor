@@ -1,12 +1,3 @@
-# 분석 배치의 상류를 대신하는 LLM 더블. 피드 더블(feed-double.yaml)과 같은 자리이고 같은
-# 방식으로 선다 — 새 이미지를 끌어오지 않도록 이미 kind에 사이드로드된 배치 이미지로
-# stdlib HTTP 서버만 띄우고, 응답은 ConfigMap으로 마운트한 픽스처가 정한다.
-#
-# 대신하는 것은 chat-completions 엔드포인트 **한 겹**이다. 프롬프트 조립·응답 파싱·서술 대상
-# 정규화·저신뢰 판정·Silver 적재는 전부 제품 경로(`econ_analysis`)가 그대로 하고, 더블이 정하는
-# 것은 "모델이 무엇이라 답하는가" 하나다. 실 모델을 부르면 응답이 매 실행 달라져
-# `…-test-analysis.md#시나리오 1·2·3` 의 기대 결과를 단언할 대상이 고정되지 않고, 키·과금·
-# 네트워크까지 CI에 끌고 들어온다.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

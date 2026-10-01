@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 고장 주입 픽스처: 재시도 끝에 성공하는 소스가 돌려주는 내용. 더블이 이 파일을
-     `/__flaky__/<n>/` 뒤에서 서빙하므로 처음 n 번 요청은 503 이고 그 뒤에야 이 본문이 온다.
-     이 소스가 failed_sources 에 없고 아래 레코드가 Bronze 에 있으면 재시도가 동작한 것이다. -->
 <rss version="2.0">
   <channel>
     <title>E2E Faults Flaky</title>

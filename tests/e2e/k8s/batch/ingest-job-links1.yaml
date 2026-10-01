@@ -1,4 +1,3 @@
-# 연결 기록 묶음(`…-test-pipeline-ops.md#시나리오 3`)의 **주기 1** 수집.
 apiVersion: batch/v1
 kind: Job
 metadata:

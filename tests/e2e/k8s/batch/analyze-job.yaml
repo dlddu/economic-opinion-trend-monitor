@@ -1,11 +1,8 @@
-# 분석 배치 한 번. 운영에서 이 CLI를 도는 것은 deploy/batch/workflow-template.yaml 의
-# `analyze` 템플릿이고, 여기서는 그 컨테이너 계약(같은 배치 이미지 · `econ-analysis` 커맨드 ·
-# ECON_DATA_ROOT · ECON_LLM_* 환경)을 그대로 옮긴 평범한 Job으로 돈다. 바뀌는 것은
-# `ECON_LLM_BASE_URL` 이 가리키는 곳뿐이다 — 분석 로직은 제품 경로 그대로 돈다.
+# deploy/batch/workflow-template.yaml 의 `analyze` 템플릿 컨테이너 계약(같은 배치 이미지 ·
+# `econ-analysis` · ECON_DATA_ROOT · ECON_LLM_*)을 옮긴 Job 이다 — 그쪽을 바꾸면 여기도 따라간다.
 #
-# 인자를 주지 않으므로 분석기는 기본값인 **실 llm 분석기**다(`--analyzer fake` 가 아니다).
-# 페이크 분석기로 돌리면 프롬프트 조립·응답 파싱·정규화 경로가 통째로 빠져 이 묶음이 검증하려는
-# 계약이 한 번도 실행되지 않는다.
+# 인자를 주지 않으므로 분석기는 기본값인 **실 llm 분석기**다. `--analyzer fake` 로 돌리면 프롬프트
+# 조립·응답 파싱·정규화 경로가 통째로 빠져 이 묶음이 검증하려는 계약이 한 번도 실행되지 않는다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -35,9 +32,8 @@ spec:
             # 더블의 응답 묶음을 고르는 이름. 실 모델 이름 자리다.
             - name: ECON_LLM_MODEL
               value: e2e-llm-v1
-            # 운영에서는 external-secrets가 넣는 `econ-llm` Secret에서 온다. 더블은 키를 보지
-            # 않지만 CLI가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야 한다.
-            # 비밀이 아닌 고정 문자열이며, 실 엔드포인트에는 쓰이지 않는다.
+            # 더블은 키를 보지 않지만 CLI 가 미설정을 operator error(exit 2)로 끊으므로 값이 있어야
+            # 한다. 비밀이 아닌 고정 문자열이다(운영 값은 external-secrets 의 `econ-llm` Secret).
             - name: ECON_LLM_API_KEY
               value: e2e-double-not-a-secret
           resources:

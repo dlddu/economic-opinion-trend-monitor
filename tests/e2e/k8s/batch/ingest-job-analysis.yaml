@@ -1,8 +1,3 @@
-# 분석 묶음(`…-test-analysis.md#시나리오 1·2·3·6`)의 입력이 되는 한 주기 수집.
-# 분석은 Bronze 를 입력으로 받으므로(메달리온 계층) 분석 Job 앞에 수집이 한 번 더 필요하다.
-#
-# 데이터 루트를 `/data/analysis` 로 가른다 — 묶음마다 자기 루트를 갖는 것이 이 하네스의 관례다.
-# 한 루트를 공유하면 ingestion 2~5 의 소스별 건수 단정이 이 묶음의 수집분에 오염된다.
 apiVersion: batch/v1
 kind: Job
 metadata:

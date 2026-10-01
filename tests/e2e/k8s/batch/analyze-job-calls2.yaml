@@ -1,7 +1,4 @@
-# 호출 기록 묶음(`…-test-pipeline-ops.md#시나리오 2`)의 **주기 2 분석** — spec 이 관측하는 본 실행.
-#
-# `--analyzer-version` 을 주지 않는다 — 주기 1과 **같은 버전**이어야 캐시 키가 맞는다.
-# 버전을 올리는 재처리는 다음 Job(`analyze-job-calls-v2.yaml`)의 몫이다.
+# `--analyzer-version` 을 주지 않는다 — 주기 1과 **같은 버전**이어야 응답 캐시 키가 맞는다.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -30,7 +27,7 @@ spec:
               value: e2e-calls-run-2
             - name: ECON_LLM_BASE_URL
               value: http://econ-llm-double:8080/v1
-            # 주기 1 분석과 같은 이름이어야 캐시가 맞는다(위 주석 참조).
+            # 주기 1 분석과 같은 이름이어야 캐시가 맞는다(`analyze-job-calls1.yaml` 이 근거를 적는다).
             - name: ECON_LLM_MODEL
               value: e2e-llm-calls
             - name: ECON_LLM_API_KEY

@@ -31,13 +31,11 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-# 더블 Pod 에서는 ConfigMap 마운트 지점이 그대로 기본값이다. 환경변수는 이 파일을 클러스터
-# 밖에서(손으로) 한 번 돌려 보기 위한 통로이지 배선의 일부가 아니다.
 FIXTURE = Path(os.environ.get("E2E_LLM_FIXTURE", "/llm/responses.json"))
 COMPLETIONS_SUFFIX = "/chat/completions"
 HEALTH_PATH = "/healthz"
 TITLE_PREFIX = "TITLE:"
-MAX_BODY = 1 << 20  # 1MiB — 기사 하나의 프롬프트에 충분하고, 무한 읽기를 막는다.
+MAX_BODY = 1 << 20
 
 
 def load_models(path: Path) -> dict[str, dict[str, dict]]:
@@ -163,7 +161,6 @@ class DoubleHandler(BaseHTTPRequestHandler):
             return
         canned = responses.get(title)
         if canned is None:
-            # 조용한 기본값 대신 실패. 픽스처에서 빠진 기사는 드러나야 한다.
             self._fail(
                 404,
                 "e2e llm double: no canned reply",
@@ -202,7 +199,7 @@ class DoubleHandler(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def _fail(self, status: int, message: str, why: str) -> None:
-        # 상태 줄·본문 규약은 피드 더블(`fixtures/feeds/server.py`)과 같다.
+        # 상태 줄은 ASCII 만 — 이유는 피드 더블(`fixtures/feeds/server.py`)의 `_fail`.
         self.send_error(status, message, why)
 
     def log_message(self, fmt: str, *args) -> None:

@@ -1,20 +1,9 @@
-# `…-test-pipeline-ops.md#시나리오 1`의 **중단 실행**, 멈추는 단계.
+# 이 Job 은 **실패(failed)하는 것이 기대값**이다. `ECON_LLM_BASE_URL` 이 해석되지 않는 이름
+# (`econ-llm-absent.invalid`, RFC 2606 예약 TLD)을 가리켜 호출이 전건 `CompletionError` 로 떨어지고
+# 분석 CLI 가 종료 코드 3(`EXIT_ALL_CALLS_FAILED`)으로 끊는다. `backoffLimit: 0` — 재시도해도 같다.
 #
-# 시나리오의 실행 단계 (2)는 「모델 호출이 모두 실패하도록 바꿔 한 번 더 실행해 분석 단계에서
-# 중단시킨다」다. 바꾸는 것은 **상류 주소 한 칸**뿐이다: `ECON_LLM_BASE_URL` 이 클러스터에 없는
-# 이름(`econ-llm-absent.invalid` — RFC 2606 의 예약 TLD 라 영영 해석되지 않는다)을 가리키므로
-# 모든 chat-completions 호출이 `CompletionError` 로 떨어진다. 분석 로직·프롬프트 조립·집계
-# 기록은 제품 경로 그대로 돈다.
-#
-# **더블에 고장 경로를 더하지 않은 이유**: LLM 더블은 모르는 제목에 404 를 내고, 그 404 는
-# 「픽스처가 낡았다」를 시끄럽게 드러내는 장치다(fixtures/llm/server.py). 그 경로를 의도적 실패에
-# 재사용하면 두 사정이 한 신호를 공유해, 픽스처가 실제로 낡은 날 이 Job 이 그것을 숨긴다.
-# 없는 주소는 「상류가 죽었다」와 1:1 이라 그 혼동이 없다.
-#
-# 이 Job 은 **실패(failed)하는 것이 기대값**이다. 분석 CLI 는 한 배치의 호출이 전건 실패하면
-# Silver 체크포인트를 지키고 종료 코드 3으로 끊고(`EXIT_ALL_CALLS_FAILED`), 그 시점까지의 단계
-# 기록은 `runlog.run_stage` 가 블록을 나가며 레이크에 쓴다. `backoffLimit: 0` 은 재시도를 막아
-# 같은 실패를 두 번 기다리지 않게 한다 — 재시도해도 결과는 같다(주소는 계속 없다).
+# 더블의 404 경로를 재사용하지 않는다: 그 404 는 「픽스처가 낡았다」를 드러내는 신호라
+# (fixtures/llm/server.py), 의도적 실패와 신호를 공유하면 픽스처가 실제로 낡은 날 이 Job 이 그것을 숨긴다.
 apiVersion: batch/v1
 kind: Job
 metadata:

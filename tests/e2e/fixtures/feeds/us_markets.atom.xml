@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 피드 더블 픽스처: 소스 B(US). limit=100 설정이지만 60건만 제공한다 —
-     제공 가능한 만큼만 수집되고 패딩이 일어나지 않는지 관측하기 위한 픽스처다. -->
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>E2E US Markets</title>
   <entry>

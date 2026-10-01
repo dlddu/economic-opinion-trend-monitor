@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- e2e 피드 더블 픽스처: 소스 C(GLOBAL). 8건 중 3건(003·006·008)은 본문 요소가 없어
-     본문 미확보(body_available=false, body_hash 빈 값) 경로를 관측하게 한다. -->
 <rss version="2.0">
   <channel>
     <title>E2E Global Desk</title>
