@@ -39,10 +39,6 @@ type Client struct {
 
 // FromEnv builds the in-cluster client, or returns nil when this process is
 // not running in a Pod.
-//
-//	KUBERNETES_SERVICE_HOST/PORT   the API server (set by the kubelet)
-//	ECON_ARGO_NAMESPACE            overrides the ServiceAccount namespace
-//	ECON_ARGO_WORKFLOW_TEMPLATE    overrides the template name (default econ-batch-pipeline)
 func FromEnv() (*Client, error) {
 	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
 	if host == "" || port == "" {
@@ -85,7 +81,6 @@ func New(baseURL, namespace, token string) *Client {
 
 // Submission is one Workflow to create from the template.
 type Submission struct {
-	// Kind labels the run for listing.
 	Kind       string
 	Entrypoint string
 	Parameters map[string]string
@@ -232,7 +227,6 @@ func IsAPIError(err error) (int, bool) {
 	return 0, false
 }
 
-// workflow is the subset of an Argo Workflow object this package reads.
 type workflow struct {
 	Metadata struct {
 		Name              string            `json:"name"`
