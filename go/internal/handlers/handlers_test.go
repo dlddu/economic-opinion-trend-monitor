@@ -52,10 +52,8 @@ type compareResponse struct {
 	} `json:"axes"`
 }
 
-// AC3.7 — the three axes must line up on one shared basis. This is the unit
-// guard for that half: the e2e fixture is deliberately single-bucket (it feeds
-// the dashboard specs too), so only a test that supplies two buckets can prove
-// the handler picks one. The e2e spec covers the rendered side by side view.
+// The e2e fixture is single-bucket (it feeds the dashboard specs too), so only
+// this test supplies two buckets and can prove the handler picks one.
 func TestCompareAlignsAxesOnTheLatestBucket(t *testing.T) {
 	dir := t.TempDir()
 	writeMultiBucketGold(t, dir)
@@ -80,7 +78,6 @@ func TestCompareAlignsAxesOnTheLatestBucket(t *testing.T) {
 		t.Fatalf("basis wrong: %+v", c.Basis)
 	}
 
-	// Axis order is fixed so the columns can be read side by side.
 	want := []string{"KR", "US", "GLOBAL"}
 	if len(c.Axes) != len(want) {
 		t.Fatalf("want %d axis columns, got %d", len(want), len(c.Axes))
@@ -107,8 +104,6 @@ func TestCompareAlignsAxesOnTheLatestBucket(t *testing.T) {
 		t.Errorf("KR sentiment came from the wrong bucket: %+v", c.Axes[0].Sentiment)
 	}
 
-	// An axis absent from the shared bucket stays empty instead of borrowing
-	// an older one — an honest gap beats a misaligned comparison.
 	if len(c.Axes[2].TopSubjects) != 0 {
 		t.Errorf("GLOBAL column should be empty in this bucket: %+v", c.Axes[2].TopSubjects)
 	}
@@ -201,9 +196,6 @@ func getTrend(t *testing.T, dir, query string) trendResponseJSON {
 	return got
 }
 
-// AC3.5 — the response has to be a real time series before the screen can chart
-// it, so this pins the three properties the chart reads: bucket order, one
-// bucket unit, and a ranking taken from the current bucket.
 func TestTrendReturnsBucketOrderedSeries(t *testing.T) {
 	dir := t.TempDir()
 	writeTrendGold(t, dir)
@@ -268,9 +260,6 @@ func TestTrendReturnsBucketOrderedSeries(t *testing.T) {
 	}
 }
 
-// Selecting a subject must move the highlight without dropping the comparison,
-// and a long-tail subject must survive the top-N trim — otherwise picking one
-// would silently return someone else's lines.
 func TestTrendSelectsRequestedSubject(t *testing.T) {
 	dir := t.TempDir()
 	writeTrendGold(t, dir)
@@ -300,8 +289,6 @@ func TestTrendSelectsRequestedSubject(t *testing.T) {
 	}
 }
 
-// A subject with no rows is not a reason to hand back someone else's selection,
-// and an axis with no Gold at all must still answer 200 with an empty chart.
 func TestTrendFallsBackAndSurvivesEmptyGold(t *testing.T) {
 	dir := t.TempDir()
 	writeTrendGold(t, dir)
@@ -319,7 +306,6 @@ func TestTrendFallsBackAndSurvivesEmptyGold(t *testing.T) {
 		t.Errorf("empty Gold should not invent a basis: %+v", empty.Basis)
 	}
 
-	// The axis filter is what keeps a US row out of a KR chart.
 	for _, s := range getTrend(t, dir, "?axis=US").Series {
 		if s.Subject != "US 대상" {
 			t.Errorf("US chart leaked a KR subject: %+v", s)
@@ -355,7 +341,6 @@ func TestTrendPicksFinestUnitWhenCoarserRowsComeFirst(t *testing.T) {
 	}
 }
 
-// getSentiment runs the sentiment route against a lake rooted at dir.
 func getSentiment(t *testing.T, dir, query string) sentimentResponse {
 	t.Helper()
 	mux := http.NewServeMux()
@@ -378,9 +363,6 @@ func getSentiment(t *testing.T, dir, query string) sentimentResponse {
 	return s
 }
 
-// AC3.4, 축별 half — the three axes have to be read at one bucket, and an axis
-// Gold has nothing for must say so rather than answer zeros.
-//
 // writeMultiBucketGold is shaped for exactly this: KR holds a stale T13 row
 // whose positive ratio (0.9) would top the comparison if the bucket filter were
 // missing, US holds only the current T14, and GLOBAL holds no sentiment row at
@@ -412,7 +394,6 @@ func TestSentimentComparesAxesAtOneBucket(t *testing.T) {
 	if !kr.Present || kr.AnalyzedTotal != 10 {
 		t.Errorf("KR should be present at the latest bucket: %+v", kr)
 	}
-	// The stale bucket's 0.9 must not leak into the comparison.
 	if kr.Distribution.Positive != 0.4 {
 		t.Errorf("KR positive = %v, want the current bucket's 0.4", kr.Distribution.Positive)
 	}
@@ -472,9 +453,6 @@ func writeMixedUnitSentiment(t *testing.T, dir string) {
 	}
 }
 
-// One chart, one unit (the AC3.3 rollups the contract already allows must not
-// land inside the hourly bars). Empty Gold must answer 200 with nothing drawn
-// rather than invent a basis.
 func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
 	dir := t.TempDir()
 	writeMixedUnitSentiment(t, dir)
@@ -509,10 +487,6 @@ func TestSentimentKeepsOneBucketUnitAndSurvivesEmptyGold(t *testing.T) {
 // writeRolledUpGold is one aggregation run as it now reaches Gold: the same
 // records cut three ways (AC3.3). Every hour row has a day and a week row that
 // covers it, so any reader that fails to settle on one unit triple-counts.
-//
-// The week label is the trap the compare basis used to fall into: "2026-W26"
-// sorts above "2026-06-23T14" on bytes, so a plain max over mixed rows returns
-// the rollup and calls it the latest hour.
 func writeRolledUpGold(t *testing.T, dir string) {
 	t.Helper()
 	gold := filepath.Join(dir, "gold")
@@ -536,8 +510,6 @@ func writeRolledUpGold(t *testing.T, dir string) {
 	}
 }
 
-// AC3.7's basis must stay an hour even though a week rollup sorts above every
-// hour key on bytes.
 func TestCompareSettlesTheUnitBeforePickingTheLatestBucket(t *testing.T) {
 	dir := t.TempDir()
 	writeRolledUpGold(t, dir)
@@ -569,8 +541,6 @@ func TestCompareSettlesTheUnitBeforePickingTheLatestBucket(t *testing.T) {
 	}
 }
 
-// Rollup-only Gold is not a broken state: with no hour rows the finest unit
-// present is the day, and the views answer in it rather than going blank.
 func TestViewsFallBackToTheCoarserUnitWhenItIsAllGoldHas(t *testing.T) {
 	dir := t.TempDir()
 	gold := filepath.Join(dir, "gold")
@@ -669,9 +639,6 @@ func getFairness(t *testing.T, dir, query string) fairnessResponse {
 	return f
 }
 
-// The two counting modes have to disagree for the view to be worth anything:
-// if the raw ranking and the normalized ranking always matched, normalization
-// would be correcting nothing and AC3.8's "구분 표기" would have no content.
 func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 	dir := t.TempDir()
 	writeSkewedGold(t, dir)
@@ -685,7 +652,6 @@ func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 		t.Fatalf("want the 2 subjects of the basis bucket, got %d: %+v", len(f.Rows), f.Rows)
 	}
 
-	// Ranking follows the normalized share (AC3.1's output), not the raw count.
 	if f.Rows[0].Subject != "고른 관심 대상" || f.Rows[0].Rank != 1 {
 		t.Errorf("ranking did not follow the normalized share: %+v", f.Rows)
 	}
@@ -695,8 +661,6 @@ func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 		byName[r.Subject] = r
 	}
 	skewed := byName["와이어 도배 대상"]
-	// Raw share and normalized share are separate fields with different values —
-	// one does not stand in for the other.
 	if math.Abs(skewed.RawShare-0.6) > 1e-9 {
 		t.Errorf("raw_share = %v, want 60/100", skewed.RawShare)
 	}
@@ -710,7 +674,6 @@ func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 		t.Errorf("raw_count = %d, want the count itself alongside the share", skewed.RawCount)
 	}
 
-	// RawTotal is the published denominator, so the shares add up to the whole.
 	if f.Basis.RawTotal != 100 {
 		t.Errorf("raw_total = %d, want 60+40 of the basis bucket", f.Basis.RawTotal)
 	}
@@ -723,8 +686,6 @@ func TestFairnessCarriesBothCountingModesForTheSameSubject(t *testing.T) {
 	}
 }
 
-// Same two traps the other Gold readers close: the rollups must not multiply
-// the ranking, and an earlier bucket must not outrank the current one.
 func TestFairnessSettlesOneUnitAndOneBucket(t *testing.T) {
 	dir := t.TempDir()
 	writeSkewedGold(t, dir)
@@ -749,8 +710,6 @@ func TestFairnessSettlesOneUnitAndOneBucket(t *testing.T) {
 	}
 }
 
-// Empty Gold is a real state until the production schedule is unsuspended, so
-// the view answers "nothing aggregated yet" instead of inventing a basis.
 func TestFairnessSurvivesEmptyGold(t *testing.T) {
 	f := getFairness(t, t.TempDir(), "?axis=KR")
 
@@ -836,8 +795,6 @@ const (
 		`"confidence":0.91,"analyzed_at":"2026-06-23T14:40:00Z","analyzer_version":"v3"}`
 )
 
-// The point of the endpoint: one record id reaches all three layers at once, so
-// the assertion that matters is that the *stored* values come back.
 func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
 	dir := t.TempDir()
 	writeLineage(t, dir, liveItem, liveBody, liveAnalysis)
@@ -862,7 +819,6 @@ func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
 	if len(tr.Silver.NarrativeSubjects) != 1 || tr.Silver.NarrativeSubjects[0] != "한국은행 기준금리" {
 		t.Errorf("narrative subjects lost in the join: %+v", tr.Silver)
 	}
-	// Provenance is what lets the reader date the observation (AC1.5).
 	if tr.Ingestion.CollectedAt != "2026-06-23T14:05:00Z" || tr.Ingestion.Rank != 1 || tr.Ingestion.ViewCount != 120 {
 		t.Errorf("ingestion metadata lost in the join: %+v", tr.Ingestion)
 	}
@@ -873,9 +829,6 @@ func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
 	}
 }
 
-// The case the screen exists for: the original link has rotted, but the copy
-// taken at collection time is still here, so the trail does not end (AC1.4).
-// body_available=false must not be read as "nothing to show".
 func TestTraceFallsBackToPreservedBodyWhenLinkUnavailable(t *testing.T) {
 	dir := t.TempDir()
 	expired := `{"record_id":"r-2","source_id":"src-b","axis":"KR","rank":2,"view_count":40,` +
@@ -901,9 +854,6 @@ func TestTraceFallsBackToPreservedBodyWhenLinkUnavailable(t *testing.T) {
 	}
 }
 
-// Three ways to come up short, three different answers. Collapsing them would
-// tell a reader "no data" when the truth is "collected, not yet analyzed" —
-// and AC2.5 spends a whole class on keeping that distinction.
 func TestTraceSeparatesUnanalyzedFromMissingAnalysis(t *testing.T) {
 	// (a) collected, never analyzed: Silver holds no row at all.
 	noSilver := t.TempDir()
@@ -949,8 +899,6 @@ func TestTraceSeparatesUnanalyzedFromMissingAnalysis(t *testing.T) {
 	}
 }
 
-// Opening the screen with no record in hand must not error, and must not let
-// the caller mistake the fallback for what they asked for.
 func TestTraceNamesItsFallbackSelection(t *testing.T) {
 	dir := t.TempDir()
 	writeLineage(t, dir, liveItem, liveBody, liveAnalysis)

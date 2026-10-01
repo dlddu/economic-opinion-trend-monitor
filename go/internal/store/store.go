@@ -2,8 +2,7 @@
 //
 // Record datasets are JSONL files and object datasets are one file per record;
 // this reader is the Go counterpart of econ_core.storage.LocalFsStore on the
-// Python side. Records are decoded straight into the generated contract types so the
-// schema stays the single source of truth across both runtimes.
+// Python side.
 package store
 
 import (
@@ -39,7 +38,6 @@ func (l *Lake) objectDir(layer, dataset string) string {
 // objectPartitionChars mirrors econ_core.storage.OBJECT_PARTITION_CHARS.
 const objectPartitionChars = 1
 
-// objectPath locates one record of an object dataset.
 func (l *Lake) objectPath(layer, dataset, keyField, key string) (path string, ok bool) {
 	if key == "" || strings.HasPrefix(key, ".") || strings.ContainsAny(key, `/\`) {
 		return "", false
