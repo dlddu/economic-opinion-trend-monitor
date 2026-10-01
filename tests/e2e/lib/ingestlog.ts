@@ -6,15 +6,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-/** 한 수집 주기가 찍은 집계. 필드 이름은 CLI의 출력 토큰을 그대로 따른다. */
 export type IngestSummary = {
-  /** Bronze `news_item` 에 쓰인 관측 레코드 수. */
   wrote: number;
-  /** 이번 주기에 새로 저장된 본문 수. */
   bodiesNew: number;
-  /** 이미 저장돼 있어 재저장하지 않은 본문 수. */
   bodiesDeduplicated: number;
-  /** 주기 id (`--cycle`). */
   cycle: string;
   /** 링크가 겹쳐 관측에서 제외된 건수. */
   duplicatesSkipped: number;

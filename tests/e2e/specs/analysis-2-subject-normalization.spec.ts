@@ -60,7 +60,6 @@ test("analysis: unifying variants drops no other subject", () => {
     );
   }
 
-  // 카탈로그에 없는 신규 대상은 정규화 대상이 아니므로 표기 그대로 살아 있어야 한다.
   const everyKey = new Set(
     [...joined.values()].flatMap(({ analysis }) => analysis.narrative_subjects),
   );

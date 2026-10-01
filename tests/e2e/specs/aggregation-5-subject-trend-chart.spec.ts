@@ -1,12 +1,5 @@
 // 검증 시나리오: econ-opinion-monitor-test-aggregation-viz.md#시나리오 5
 //
-// 기대 결과의 세 절을 각각 한 테스트로 단언한다.
-//   (1) 차트 값 ↔ 집계   — 그려진 점의 높이가 `/api/trend` 가 내려준 정규화 점유율과
-//                          하나의 선형 스케일로 대응한다.
-//   (2) 상위 대상 비교   — 비교 표가 같은 응답의 순위·값을 그대로 말한다.
-//   (3) 대상 선택        — 표의 다른 행을 고르면 선택이 API 를 거쳐 되돌아와 차트의
-//                          강조와 헤드라인 지표가 그 대상으로 옮겨간다.
-//
 // 기대값을 상수로 박지 않는다. Gold 값을 그대로 베끼면 corpus 가 바뀔 때마다
 // 테스트가 헛되이 깨지고, 반대로 화면이 집계에서 어긋나도 잡지 못한다. 그래서 같은
 // spec 안에서 서빙 API 를 먼저 읽고 화면이 그린 것과 대조한다.
@@ -26,8 +19,6 @@
 //     서빙에 마운트되지 않는다). "같은 버킷은 어느 계열에서도 같은 x" 단언은 버킷이 늘어나는
 //     날 그대로 살아나도록 버킷 수에 독립적으로 썼다. 다중 버킷 관측은 그 루트를 든 전용
 //     서빙 인스턴스가 필요한 별도 슬라이스다(doc-tracker 「공백 해소 경로」).
-//   - 일·주 롤업 합산(시나리오 3). 집계가 `hour` 버킷만 산출해 관측 대상이 없고,
-//     doc-tracker 의 구현 대기 표에 등재돼 있다.
 
 import { expect, test } from "@playwright/test";
 import type { APIRequestContext, Page } from "@playwright/test";
@@ -69,7 +60,6 @@ async function fetchTrend(request: APIRequestContext, subject?: string): Promise
   return (await res.json()) as TrendBody;
 }
 
-/** `points="x,y x,y …"` 를 좌표 목록으로. */
 function parsePoints(raw: string): { x: number; y: number }[] {
   return raw
     .trim()
@@ -211,7 +201,6 @@ test("web: the comparison table repeats the API ranking, value for value", async
     );
   }
 
-  // 지금 어느 대상을 보고 있는지가 표에서 정확히 한 행으로 드러난다.
   const selected = api.series.find((s) => s.selected);
   expect(selected, "응답이 선택된 계열을 표시하지 않는다").toBeTruthy();
   const selectedRow = page.locator('.trend-cmp tbody tr[aria-selected="true"]');
@@ -263,7 +252,6 @@ test("web: picking another subject moves the highlight through the API", async (
   await expect(selectedRow).toHaveCount(1);
   await expect(selectedRow, "선택이 클릭한 행으로 옮겨가지 않았다").toContainText(other.subject);
 
-  // 헤드라인 지표와 범례가 새 대상을 말한다.
   await expect(page.locator(".trend-side .metric .mv")).toHaveText(
     new RegExp(`^\\s*${(pickedSeries!.latest_share * 100).toFixed(1)}\\s*%\\s*$`),
   );
