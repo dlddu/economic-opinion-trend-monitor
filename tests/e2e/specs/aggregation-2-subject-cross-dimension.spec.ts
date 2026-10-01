@@ -25,7 +25,7 @@ import {
   trendOf,
 } from "../lib/gold";
 import { MODEL_AGG, cannedReply } from "../lib/llmdouble";
-import { analyzedTitled } from "../lib/silver";
+import { analyzedTitled, groupingKeys } from "../lib/silver";
 
 /** 한 대상의 세 표기. 셋 다 `삼성전자` 한 키로 모여야 한다. */
 const VARIANTS = [
@@ -109,4 +109,43 @@ test("aggregation: every Gold row carries the time bucket its source records fal
   // 재지 않는다 — 여기서 보는 것은 필터가 단위 하나를 고른 것이지 데이터를 지운 게 아니라는 점뿐이다.
   const units = new Set(subjectTrendsAllUnits().map((row) => row.bucket_unit));
   expect([...units].sort()).toEqual(["day", "hour", "week"]);
+});
+
+test("aggregation: the corpus mixes articles with categories and articles without", () => {
+  const analyses = [...aggByTitle().values()].map(({ analysis }) => analysis);
+  expect(analyses.filter((analysis) => analysis.subject_categories !== null).length).toBeGreaterThan(0);
+  expect(analyses.filter((analysis) => analysis.subject_categories === null).length).toBeGreaterThan(0);
+  for (const title of VARIANTS) {
+    expect(analyzedTitled(aggByTitle(), title).analysis.subject_categories, title).toBeNull();
+  }
+});
+
+test("aggregation: an article with categories counts under its category, one without under its subject", () => {
+  const joined = aggByTitle();
+  const rows = subjectTrends();
+  const keysInAxis = (axis: string) =>
+    new Set(
+      [...joined.values()]
+        .filter(({ item }) => item.axis === axis)
+        .flatMap(({ analysis }) => groupingKeys(analysis)),
+    );
+
+  for (const [title, { item, analysis }] of joined) {
+    if (analysis.analysis_status === "unanalyzed") continue;
+    const expected = analysis.subject_categories ?? analysis.narrative_subjects;
+    if (analysis.subject_categories !== null) {
+      expect(analysis.subject_categories, title).toEqual(cannedReply(MODEL_AGG, title).subject_categories);
+    }
+    for (const key of expected) {
+      expect(trendOf(rows, item.axis, key).raw_count, `${title} -> ${key}`).toBeGreaterThan(0);
+    }
+    if (analysis.subject_categories === null) continue;
+    for (const subject of analysis.narrative_subjects) {
+      if (keysInAxis(item.axis).has(subject)) continue;
+      expect(
+        rows.some((row) => row.axis === item.axis && row.subject === subject),
+        `${title}: ${subject}`,
+      ).toBe(false);
+    }
+  }
 });

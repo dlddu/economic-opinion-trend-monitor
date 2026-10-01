@@ -18,6 +18,7 @@ export type Analysis = {
   source_url: string;
   target_countries: string[];
   narrative_subjects: string[];
+  subject_categories: string[] | null;
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   confidence: number;
@@ -94,6 +95,10 @@ export function rollupAnalyses(): Analysis[] {
 }
 
 /** `record_id` 로 찾기 쉽게 묶는다. 역추적 단정의 공통 출발점이다. */
+export function groupingKeys(analysis: Analysis): string[] {
+  return analysis.subject_categories ?? analysis.narrative_subjects;
+}
+
 export function byRecordId(records: Analysis[]): Map<string, Analysis> {
   return new Map(records.map((record) => [record.record_id, record]));
 }
