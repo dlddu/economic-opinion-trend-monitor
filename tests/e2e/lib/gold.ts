@@ -15,6 +15,7 @@ import {
   aggAnalyses,
   analyzedByTitle,
   byRecordId,
+  groupingKeys,
   rollupAnalyses,
   type Analysis,
   type Analyzed,
@@ -184,7 +185,7 @@ export function crossTab(
     if (!analysis) {
       throw new Error(`Bronze 레코드 ${item.record_id}(${item.title}) 의 Silver 분석이 없다`);
     }
-    for (const subject of analysis.narrative_subjects) {
+    for (const subject of groupingKeys(analysis)) {
       const key = cellKey(item.axis, bucketOf(item), subject);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
@@ -263,7 +264,7 @@ export function crossTabAt(
     if (!analysis) {
       throw new Error(`Bronze 레코드 ${item.record_id}(${item.title}) 의 Silver 분석이 없다`);
     }
-    for (const subject of analysis.narrative_subjects) {
+    for (const subject of groupingKeys(analysis)) {
       const key = cellKey(item.axis, bucketOfUnit(item, unit), subject);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }

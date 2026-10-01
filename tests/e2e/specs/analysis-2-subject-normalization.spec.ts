@@ -6,7 +6,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { MODEL_V1, cannedReply } from "../lib/llmdouble";
+import { MODEL_V1, cannedReplies, cannedReply } from "../lib/llmdouble";
 import { analyzedByTitle, analyzedTitled } from "../lib/silver";
 
 // 같은 대상을 세 가지 표기로 지칭하는 기사들(`fixtures/feeds/analysis_corpus.rss.xml`).
@@ -18,6 +18,11 @@ const VARIANT_TITLES = [
 
 // 제품 카탈로그에 없는 신규 대상 — 통합 대상이 아니므로 표기 그대로 남아야 한다.
 const NOVEL_SUBJECTS = ["한미 공급망 재편", "수출 무역수지"];
+
+const MANY_CATEGORIES_TITLE = "Samsung memory prices rebound on AI demand";
+const ON_LIST_IN_REPLY_ORDER = ["반도체", "AI·테크", "주식시장"];
+const OFF_LIST_ONLY_TITLE = "글로벌 공급망 운임 지수 급등 — 특정국 이슈 아니다";
+const CATCH_ALL = "기타";
 
 test("analysis: the corpus really does use three different surface forms for one subject", () => {
   // 사전 조건 점검. 픽스처가 셋 다 같은 표기로 바뀌면 아래 통합 단정이 공허해진다.
@@ -61,5 +66,39 @@ test("analysis: unifying variants drops no other subject", () => {
   );
   for (const subject of NOVEL_SUBJECTS) {
     expect(everyKey.has(subject), `신규 대상 ${subject} 가 사라졌다`).toBe(true);
+  }
+});
+
+test("analysis: the corpus carries all three category reply shapes", () => {
+  const many = cannedReply(MODEL_V1, MANY_CATEGORIES_TITLE).subject_categories ?? [];
+  expect(ON_LIST_IN_REPLY_ORDER.length).toBeGreaterThanOrEqual(3);
+  expect(many.filter((name) => ON_LIST_IN_REPLY_ORDER.includes(name))).toEqual(ON_LIST_IN_REPLY_ORDER);
+  expect(many.length).toBeGreaterThan(ON_LIST_IN_REPLY_ORDER.length);
+  expect(many.indexOf(ON_LIST_IN_REPLY_ORDER[1])).toBeGreaterThan(1);
+
+  const offList = cannedReply(MODEL_V1, OFF_LIST_ONLY_TITLE).subject_categories ?? [];
+  expect(offList.length).toBeGreaterThan(0);
+  expect(offList).not.toContain(CATCH_ALL);
+  expect(offList.some((name) => ON_LIST_IN_REPLY_ORDER.includes(name))).toBe(false);
+
+  const without = [...cannedReplies(MODEL_V1)].filter(([, reply]) => !("subject_categories" in reply));
+  expect(without.length).toBeGreaterThan(0);
+});
+
+test("analysis: categories keep only fixed-list values, in reply order, at most two", () => {
+  const { analysis } = analyzedTitled(analyzedByTitle(), MANY_CATEGORIES_TITLE);
+  expect(analysis.subject_categories).toEqual(ON_LIST_IN_REPLY_ORDER.slice(0, 2));
+});
+
+test("analysis: a reply naming only off-list categories is filed under the catch-all", () => {
+  const { analysis } = analyzedTitled(analyzedByTitle(), OFF_LIST_ONLY_TITLE);
+  expect(analysis.subject_categories).toEqual([CATCH_ALL]);
+});
+
+test("analysis: a reply without categories leaves them null", () => {
+  const joined = analyzedByTitle();
+  for (const [title, reply] of cannedReplies(MODEL_V1)) {
+    if ("subject_categories" in reply) continue;
+    expect(analyzedTitled(joined, title).analysis.subject_categories, title).toBeNull();
   }
 });

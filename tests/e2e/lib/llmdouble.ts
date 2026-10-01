@@ -28,6 +28,7 @@ export const MODEL_CALLS = "e2e-llm-calls";
 export type CannedReply = {
   target_countries: string[];
   narrative_subjects: string[];
+  subject_categories?: string[];
   // 판단을 유보한 응답(`analyzable: false`)은 분위기를 비워 둔다. 제품 경로도 그 경우
   // sentiment 를 읽기 전에 unanalyzed 로 끊으므로(`analyze_llm`), 여기서도 null 을 허용해야
   // 픽스처와 타입이 어긋나지 않는다.

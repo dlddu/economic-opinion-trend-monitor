@@ -42,6 +42,7 @@
         "글로벌 공급망 운임 지수 급등 — 특정국 이슈 아니다": {
           "target_countries": ["GLOBAL"],
           "narrative_subjects": ["글로벌 공급망"],
+          "subject_categories": ["해운 운임", "공급망"],
           "sentiment": "neutral",
           "analyzable": true,
           "confidence": 0.88
@@ -49,6 +50,7 @@
         "Samsung memory prices rebound on AI demand": {
           "target_countries": ["대한민국"],
           "narrative_subjects": ["Samsung", "AI 반도체 capex"],
+          "subject_categories": ["반도체", "환율", "AI·테크", "주식시장"],
           "sentiment": "positive",
           "analyzable": true,
           "confidence": 0.93
@@ -154,6 +156,7 @@
         "기준금리 동결 결정": {
           "target_countries": ["대한민국"],
           "narrative_subjects": ["기준금리"],
+          "subject_categories": ["통화정책·금리"],
           "sentiment": "neutral",
           "analyzable": true,
           "confidence": 0.92
@@ -182,6 +185,7 @@
         "Fed holds rates amid mixed signals": {
           "target_countries": ["미국"],
           "narrative_subjects": ["Fed"],
+          "subject_categories": ["통화정책·금리"],
           "sentiment": "mixed",
           "analyzable": true,
           "confidence": 0.87
@@ -252,6 +256,7 @@
         "IMF 세계 성장 전망 하향": {
           "target_countries": ["세계"],
           "narrative_subjects": ["IMF 전망"],
+          "subject_categories": ["경기·성장"],
           "sentiment": "negative",
           "analyzable": true,
           "confidence": 0.88
