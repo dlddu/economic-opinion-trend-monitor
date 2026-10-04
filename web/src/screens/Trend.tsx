@@ -25,8 +25,6 @@ const AXES: { id: Axis; label: string; pill: string }[] = [
 
 const UNIT_LABEL: Record<string, string> = { hour: "시간", day: "일", week: "주" };
 
-// Line colours: the selected subject takes the brand ink, the rest take the
-// neutral axis tones so the highlight reads at a glance.
 const COMPARE_STROKES = ["var(--ax-us)", "var(--ax-gl)", "var(--ink-3)"];
 
 // Chart box, in the mockup's viewBox coordinates.
@@ -36,8 +34,8 @@ const PLOT_L = 56;
 const PLOT_R = 716;
 const PLOT_TOP = 20;
 const BASELINE = 220;
-// 시간 단위는 버킷이 수십~수백 개라 버킷마다 라벨을 찍으면 글자가 겹쳐 읽을 수 없다.
 const GRID_ROWS = 5;
+// 시간 단위는 버킷이 수십~수백 개라 버킷마다 라벨을 찍으면 글자가 겹쳐 읽을 수 없다.
 const MAX_X_TICKS = 7;
 
 function pct(x: number): string {
@@ -63,7 +61,6 @@ function deltaLabel(delta: number): string {
   return "–";
 }
 
-/** Bucket keys are ISO prefixes; the axis only needs the part that varies. */
 function bucketTick(bucket: string, unit: string, multiDay: boolean): string {
   if (unit === "hour") {
     if (bucket.length < 13) return bucket;
@@ -247,7 +244,6 @@ export function Trend() {
                 </div>
               </div>
               <div className="card-b">
-                {/* 목업 `STP-drill-trend` 의 `#trend-form` — 겹쳐 보기 opt-in. */}
                 <form className="trend-ov-form" onSubmit={(e) => e.preventDefault()}>
                   <div className="trend-ov-row">
                     <label className="trend-ov-chk">
@@ -544,7 +540,6 @@ function Shortlist({
   );
 }
 
-// 목업 `JRN-axis-contrast.html` 의 `STP-verify-in-trend` — 「온도차 판별」(`#verdict-form` · `submitVerdict()`).
 const CONTRAST_INVALID_DEFAULT = "결론과 근거 메모를 모두 채워야 기록됩니다.";
 
 type ContrastKind = "persistent" | "transient" | "none";

@@ -5,8 +5,7 @@ import { MapStrip } from "../shell/MapStrip";
 import { useTopbar } from "../shell/topbarSlot";
 import { ReprocessTrigger } from "./ReprocessTrigger";
 
-// 재처리 콘솔(`JRN-logic-backfill`)의 읽는 둘 — `STP-scope-range`·`STP-compare-before-after`. 일으키는 셋은
-// `ReprocessTrigger` 가 그린다; 왜 갈랐고 언제 그리는지는 go/internal/handlers/reprocess_trigger.go 머리가 주인이다.
+// 일으키는 단계는 `ReprocessTrigger` 가 그린다 — 왜 갈랐고 언제 그리는지는 go/internal/handlers/reprocess_trigger.go 머리가 주인이다.
 
 const RANGES: { id: ReprocessResponse["scope"]["range"]; label: string }[] = [
   { id: "24h", label: "지난 24시간" },

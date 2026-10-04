@@ -57,8 +57,6 @@ export const api = {
   dashboard: (axis: Axis = "KR", range: DashRange = "7d", unit: BucketUnit = "day") =>
     getJSON<DashboardResponse>(`/dashboard?axis=${axis}&range=${range}&unit=${unit}`),
   compare: () => getJSON<CompareResponse>("/compare"),
-  // subject is optional: without it the API selects the leading subject, so the
-  // screen never has to guess a name before it has seen the data.
   trend: (axis: Axis = "KR", subject?: string) =>
     getJSON<TrendResponse>(
       `/trend?axis=${axis}${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`,
@@ -82,8 +80,6 @@ export const api = {
         (unit ? `&unit=${encodeURIComponent(unit)}` : "") +
         (timeBucket ? `&time_bucket=${encodeURIComponent(timeBucket)}` : ""),
     ),
-  // record_id is optional for the same reason subject is on trend: the screen
-  // has to be able to open before it knows one.
   trace: (recordId?: string) =>
     getJSON<TraceResponse>(
       `/trace${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,

@@ -78,7 +78,6 @@ function stubTrace(body: TraceResponse) {
   );
 }
 
-// The screen's reason to exist: three layers, one record, on one surface.
 it("puts all three layers of one record on the screen", async () => {
   stubTrace(response());
   const { container } = renderTrace();
@@ -86,14 +85,11 @@ it("puts all three layers of one record on the screen", async () => {
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
 
   const text = container.textContent ?? "";
-  // Bronze: where it came from and what it said.
   expect(text).toContain(BRONZE.source_id);
   expect(text).toContain(BRONZE.source_url);
   expect(text).toContain(BRONZE.body_text);
-  // Silver: how it was classified.
   expect(text).toContain(SILVER.analyzer_version);
   expect(text).toContain(SILVER.narrative_subjects[0]);
-  // Ingestion metadata: when the observation was taken (AC1.5).
   expect(text).toContain(INGESTION.collection_cycle);
   expect(text).toContain(String(INGESTION.view_count));
 
@@ -103,8 +99,6 @@ it("puts all three layers of one record on the screen", async () => {
   expect(container.querySelectorAll(".trace-crumb-gap")).toHaveLength(0);
 });
 
-// The case the whole trail exists for: the original link is dead, and the copy
-// taken at collection time carries the reader the rest of the way (AC1.4).
 it("keeps going on a dead link by showing the preserved copy", async () => {
   stubTrace(response({ bronze: { ...BRONZE, body_available: false } }));
   const { container } = renderTrace();
@@ -113,15 +107,12 @@ it("keeps going on a dead link by showing the preserved copy", async () => {
 
   const text = container.textContent ?? "";
   expect(text).toContain("링크 끊김");
-  // The trail does not end here — the body is still on screen.
   expect(text).toContain(BRONZE.body_text);
   expect(text).toContain("원문 주소가 열리지 않습니다.");
   expect(text).toContain("추적이 여기서 끊기지 않도록, 수집 시점에 보존해 둔 원문 전체를 대신 보여 줍니다.");
   expect(text).toContain("링크 상태는 위에 배지로 항상 표시됩니다.");
 });
 
-// "Set aside" is not "neutral". AC2.5 keeps low-confidence records out of the
-// four classes, so the screen must not draw one for them.
 it("leaves sentiment blank for a set-aside record instead of picking a class", async () => {
   stubTrace(
     response({
@@ -135,7 +126,6 @@ it("leaves sentiment blank for a set-aside record instead of picking a class", a
   const text = container.textContent ?? "";
   expect(text).toContain("저신뢰");
   expect(text).toContain("분류에서 제외");
-  // None of the four class labels may appear as this record's verdict.
   for (const label of ["긍정", "중립", "부정", "혼재"]) {
     expect(container.querySelector(".badge")?.textContent).not.toBe(label);
   }
@@ -143,8 +133,6 @@ it("leaves sentiment blank for a set-aside record instead of picking a class", a
   expect(container.querySelectorAll(".trace-crumb-gap")).toHaveLength(0);
 });
 
-// Three ways to come up short, three different answers. This is the one the
-// stub endpoint could never tell apart.
 it("tells 'not analyzed yet' apart from 'not collected'", async () => {
   stubTrace(
     response({
@@ -160,7 +148,6 @@ it("tells 'not analyzed yet' apart from 'not collected'", async () => {
 
   await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
   expect(container.textContent).toContain("아직 분석되지 않았습니다");
-  // Bronze survives a missing analysis — the body is still readable.
   expect(container.textContent).toContain(BRONZE.body_text);
   expect(container.querySelectorAll(".trace-crumb-gap")).toHaveLength(1);
   unmount();
@@ -168,11 +155,9 @@ it("tells 'not analyzed yet' apart from 'not collected'", async () => {
   stubTrace(response({ found: false, bronze: null, silver: null, selection: "requested-missing" }));
   const missing = renderTrace();
   await waitFor(() => expect(missing.container.textContent).toContain("Bronze 에 없습니다"));
-  // No lineage is drawn for a record that was never collected.
   expect(missing.container.querySelectorAll(".trace-crumb-step")).toHaveLength(0);
 });
 
-// A fallback must not read as a hit: the screen says it chose for you.
 it("says so when it picked the record itself", async () => {
   stubTrace(response({ selection: "auto" }));
   const { container } = renderTrace();
