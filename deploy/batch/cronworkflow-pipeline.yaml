@@ -1,19 +1,5 @@
-# Mutually exclusive with `econ-ingestion-hourly` — unsuspending this one
-# without suspending that one collects, and bills, twice every hour.
-#
-#   Before unsuspending, in this order:
-#     1. Confirm the `econ-llm` Secret exists in the namespace with an `api-key`
-#        entry (external-secrets owns it — it is not in this repo). Without it
-#        the analyze Pod never starts.
-#     2. Submit one workflow by hand from `econ-batch-pipeline` with entrypoint
-#        `pipeline` and confirm both steps complete: Bronze grows, and Silver is
-#        rewritten with `analyzer_version: llm-v1` rather than `fake-v1`.
-#     3. Read the analyze step's summary line — `attempted=` / `failed=` tells
-#        you whether the model actually answered. A run where every call failed
-#        exits 3 and deliberately leaves Silver untouched.
-#
-#   Unsuspending starts real outbound HTTP to the model endpoint for every
-#   collected item, every hour — that is billable traffic, unlike ingestion.
+# Mutually exclusive with `econ-ingestion-hourly` (this pipeline includes ingestion) —
+# never leave both unsuspended, or every hour is collected twice.
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:

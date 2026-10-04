@@ -1,9 +1,8 @@
 # `ingest` and `pipeline` are driven by the CronWorkflows; `reprocess` and
 # `publish` are submitted by the serving Pod (deploy/base/rbac.yaml), and the
 # operator input they take arrives as the `arguments.parameters` defaults below.
-#
-# The `image:` tags in this file are CI-owned and move in step with the serving
-# image in deploy/base — do not edit them by hand (README 「운영 고정(`pin` job)」).
+# The `image:` tags in this file are CI-owned — do not edit them by hand
+# (README 「운영 고정(`pin` job)」).
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -13,7 +12,6 @@ spec:
   serviceAccountName: econ-batch
   arguments:
     parameters:
-      # reprocess: scope + how to run it (JRN-logic-backfill STP-dry-run / STP-run-reprocess)
       - name: version
         value: ""
       - name: since
@@ -28,7 +26,6 @@ spec:
         value: random
       - name: batch
         value: "100"
-      # publish: the decision and its reason (STP-publish)
       - name: decision
         value: publish
       - name: memo
@@ -144,11 +141,9 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # JRN-logic-backfill STP-dry-run / STP-run-reprocess. `sample` > 0 is the
-    # dry run; 0 is the full run. The CLI checkpoints every `batch` records and
-    # skips what the target version already covers, so a retry of this step
-    # resumes instead of starting over — which is why the retry is safe here
-    # even though every call is billable.
+    # Retrying is safe even though every call is billable: the CLI checkpoints
+    # every `batch` records and skips what the target version already covers,
+    # so a retry resumes instead of starting over.
     - name: reprocess
       retryStrategy:
         limit: "3"
@@ -205,8 +200,7 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # JRN-logic-backfill STP-publish — record the decision and rebuild Gold
-    # from it. Nothing is re-analyzed here, so a retry is safe.
+    # Nothing is re-analyzed here, so a retry is safe.
     - name: publish
       retryStrategy:
         limit: "3"

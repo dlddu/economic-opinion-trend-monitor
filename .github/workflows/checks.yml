@@ -18,10 +18,8 @@ jobs:
   # ci.yml 의 무거운 두 job(build · e2e)을 PR 이 실제로 건드린 경로로 거른다. 워크플로
   # 레벨 `paths:` 를 쓰지 않는 이유: 그러면 `required` 체크 자체가 생기지 않아 필수 체크가
   # 영원히 pending 이 된다. 그래서 여기서 판정해 ci.yml 에 입력으로 넘긴다.
-  #
   # `code` 는 제외 목록이다 — build(make setup/gen-check/lint/test)와 e2e 에 닿지 않는다고
-  # 확인된 경로만 적고, 나머지(새 디렉터리 포함)는 전부 돌린다. docs/ 를 읽는 검사
-  # (lint-scenario-mapping)는 ci.yml 이 필터와 무관하게 따로 돌린다.
+  # 확인된 경로만 적고, 나머지(새 디렉터리 포함)는 전부 돌린다.
   changes:
     name: changes
     runs-on: ubuntu-latest
@@ -33,8 +31,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      # merge ref 의 첫 부모는 그 시점 main 이라, HEAD^1..HEAD 가 「머지되면 실제로 바뀌는
-      # 파일」이다. diff 가 실패하면 거르지 않고 전부 돌린다.
+      # merge ref 의 첫 부모는 그 시점 main 이라 HEAD^1..HEAD 가 「머지되면 실제로 바뀌는 파일」이다.
       - name: Classify changed files
         id: filter
         run: |
