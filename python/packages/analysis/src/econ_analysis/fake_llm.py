@@ -1,13 +1,4 @@
-"""A deterministic stand-in for the LLM analysis step.
-
-Instead of calling a model, it keyword-matches the Bronze title/body.
-
-Every row it writes carries ``no_call_reason="keyword_analyzer"``: this analyzer
-reaches no model at all, so AC4.3's "호출하지 않은 사유" is a property of the analyzer
-rather than of one article. The run is still named — a one-off CLI run is its own
-single-stage run (:func:`econ_core.runlog.resolve_run_id`), so no row is left without
-an execution to lead back to.
-"""
+"""A deterministic stand-in for the LLM analysis step."""
 
 from __future__ import annotations
 
@@ -93,12 +84,7 @@ def analyze(
     analyzer_version: str = ANALYZER_VERSION,
     run_id: str = "",
 ) -> Analysis:
-    """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis``.
-
-    ``body`` is the raw text resolved from the content-addressed body store via
-    ``item["body_hash"]`` (AC1.4, AC1.7); ``None``/empty means the body was
-    never captured or cannot be resolved -> unanalyzed (AC2.5).
-    """
+    """Analyze one Bronze ``NewsItem`` dict into a Silver ``Analysis``."""
     subjects = extract_subjects(item["title"])
     base = {
         "record_id": item["record_id"],

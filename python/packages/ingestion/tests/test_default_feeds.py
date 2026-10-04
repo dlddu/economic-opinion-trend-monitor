@@ -1,11 +1,4 @@
-"""Feed cutover tests — the CLI now defaults to the real RSS/Atom source (offline).
-
-These stay fully offline: they validate the checked-in default feed list and the
-CLI's source/feeds defaults without performing any network fetch. The real feed
-parse/normalize behavior (AC1.2–AC1.7) is covered by ``test_feeds.py``; here we
-just assert the operational cutover — feed is the default source and a valid
-default config resolves when ``--feeds`` is omitted.
-"""
+"""CLI source defaults and the packaged default feed list (offline)."""
 
 from econ_core.models import AXIS_VALUES
 from econ_ingestion.cli import _build_parser
@@ -15,7 +8,7 @@ from econ_ingestion.feeds import FeedConfig, default_feeds_path, load_feed_confi
 def test_cli_defaults_to_the_real_feed_source() -> None:
     args = _build_parser().parse_args([])
     assert args.source == "feed"
-    assert args.feeds is None  # resolves to the packaged default at runtime
+    assert args.feeds is None
 
 
 def test_fake_source_remains_available() -> None:

@@ -1,11 +1,4 @@
-"""Real feed-source tests — deterministic, offline (fixture feeds + fake transport).
-
-Exercises the *real* parse / normalize path of :mod:`econ_ingestion.feeds` against
-captured RSS/Atom fixtures, covering ingestion AC1.2–AC1.7. Emphasis on the
-revised Bronze design: the observation record (``news_item``) carries only the
-body's content address, and bodies live in a separate content-addressed store
-(``news_body``) so identical text stores once and edits version (AC1.4, AC1.7).
-"""
+"""Real feed-source tests — deterministic, offline (fixture feeds + fake transport)."""
 
 import hashlib
 from pathlib import Path
@@ -31,8 +24,6 @@ COLLECTED_AT = "2026-07-26T06:00:00+00:00"
 
 
 class FakeFetcher:
-    """Maps feed URLs to fixture bytes; configured URLs always raise (AC1.6)."""
-
     def __init__(self, mapping: dict[str, bytes], fail_urls: tuple[str, ...] = ()) -> None:
         self.mapping = mapping
         self.fail_urls = set(fail_urls)
@@ -182,7 +173,6 @@ def test_dedup_failure_isolation_and_retry() -> None:
     assert stats.collected == len(items) == 4
     urls = [i["source_url"] for i in items]
     assert len(urls) == len(set(urls))
-    # The failing fetch is retried (default retries=2 -> 3 attempts) before isolation.
     assert fetcher.calls[FLAKY_URL] == 3
 
 

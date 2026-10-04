@@ -28,7 +28,6 @@ FAILED = "failed"
 SCHEDULED = "scheduled"
 REPROCESS = "reprocess"
 
-#: Stage names, in pipeline order.
 INGESTION = "ingestion"
 ANALYSIS = "analysis"
 AGGREGATION = "aggregation"

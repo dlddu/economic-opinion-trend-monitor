@@ -1,13 +1,4 @@
-"""Fake news sources.
-
-A real implementation would call news APIs. Here a static catalog yields
-deterministic articles so the rest of the pipeline has something to chew on.
-Each source is mapped to an axis (AC1.3) and declares how many items it *can*
-provide (``available``) versus the configured top-N (``limit``) so the API-cap
-case (AC1.2) is exercised. One source is flagged ``broken`` to demonstrate
-failure isolation, and one article is duplicated to demonstrate de-duplication
-(AC1.6).
-"""
+"""Fake news sources."""
 
 from __future__ import annotations
 
@@ -21,9 +12,9 @@ from econ_core.models import NewsBody, NewsItem
 
 @dataclass(frozen=True)
 class FakeArticle:
-    subject: str  # narrative subject the article centers on (echoed in the title)
-    tone: str  # sentiment hint the fake LLM later keys off of
-    countries: list[str]  # content target countries (AC2.1)
+    subject: str
+    tone: str
+    countries: list[str]
     base_views: int
     body_available: bool = True
 
@@ -31,14 +22,13 @@ class FakeArticle:
 @dataclass(frozen=True)
 class FakeSource:
     source_id: str
-    axis: str  # KR / US / GLOBAL (AC1.3)
-    limit: int  # configured top-N for this source (AC1.2)
+    axis: str
+    limit: int
     available: int  # how many it can actually provide (<= or > limit)
-    broken: bool = False  # raises on collect, to exercise failure isolation (AC1.6)
+    broken: bool = False
     articles: list[FakeArticle] = field(default_factory=list)
 
 
-# Subjects mirror the dashboard mockup so the end-to-end demo shows familiar data.
 CATALOG: list[FakeSource] = [
     FakeSource(
         source_id="kr-wire",
@@ -62,7 +52,6 @@ CATALOG: list[FakeSource] = [
         articles=[
             FakeArticle("삼성전자", "positive", ["KR"], 30110),
             FakeArticle("SK하이닉스", "positive", ["KR"], 22400),
-            # Duplicate of the kr-wire 환율 story (same URL) -> de-duplicated.
             FakeArticle("원/달러 환율", "negative", ["KR", "US"], 33240),
         ],
     ),
@@ -120,12 +109,7 @@ def _body(article: FakeArticle) -> str:
 def collect_source(
     source: FakeSource, cycle: str, collected_at: str
 ) -> Iterator[tuple[NewsItem, str | None]]:
-    """Yield ranked ``(NewsItem, body)`` pairs for one source, honoring its top-N cap (AC1.2).
-
-    The observation record carries only the body's content address; the body
-    text itself (``None`` when not captured) is stored separately so unchanged
-    bodies deduplicate and edited bodies version (AC1.4, AC1.7).
-    """
+    """Yield ranked ``(NewsItem, body)`` pairs for one source, honoring its top-N cap (AC1.2)."""
     if source.broken:
         raise SourceError(f"source '{source.source_id}' failed to respond")
     take = min(source.limit, source.available, len(source.articles))
@@ -164,9 +148,7 @@ def run_ingestion(
 ) -> tuple[list[dict], list[dict], IngestStats]:
     """Collect across all sources, de-duplicating by URL and isolating failures.
 
-    Returns ``(news_item dicts, news_body dicts, stats)``. Bodies are already
-    unique by content hash within the run (same body via different URLs stores
-    once, AC1.7); cross-run dedup happens at the store via ``put_object``.
+    Mirrored by :func:`econ_ingestion.feeds.run_feed_ingestion` — keep the two in step.
     """
     sources = CATALOG if sources is None else sources
     seen: set[str] = set()

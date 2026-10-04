@@ -124,9 +124,6 @@ def build_subject_trends(
 
     trends: list[dict] = []
     for axis, buckets in shares.items():
-        # Bucket keys are zero-padded ISO prefixes, so lexical order is
-        # chronological order within a unit — the same assumption the serving
-        # layer's latest-bucket pick makes.
         ordered = sorted(buckets)
         # history[subject] -> shares so far, oldest first (only buckets the
         # subject actually appears in; an absent bucket is not a zero reading).
@@ -177,7 +174,6 @@ def build_axis_sentiment(
             total = c["_total"] or 1
             analyzed = total - c["unanalyzed"]
             analyzed_denom = analyzed or 1
-            # Sentiment ratios are over analyzed items; unanalyzed kept separate (AC3.4).
             distribution = SentimentDistribution(
                 positive=round(c["positive"] / analyzed_denom, 4),
                 neutral=round(c["neutral"] / analyzed_denom, 4),

@@ -1,11 +1,5 @@
 """``econ-analysis`` CLI — enrich Bronze into the Silver layer.
 
-Two analyzers share the identical Silver output path (``analysis``): the real ``llm``
-analyzer (the operational default) that sends each item to a chat-completions model,
-with endpoint/model/key read from the ``ECON_LLM_*`` environment, and the deterministic
-``fake`` keyword stand-in (``--analyzer fake``) that keeps the cross-language smoke and
-offline tests network-free.
-
 Silver keeps one row per ``(record_id, analyzer_version)`` (:mod:`econ_core.silver`).
 A whole-lake run — no scope arguments, the hourly pipeline — analyzes every Bronze
 record not yet settled at the target version and *updates* Silver in place (AC2.6: the
@@ -21,19 +15,13 @@ the prompt is unchanged this replays the stored reply rather than calling the mo
 Re-analysing history is therefore a version bump, never a prompt or
 model change alone.
 
-A *scoped* run (``--since``/``--axis``/``--source``/``--sample``) is the reprocess
-path of JRN-logic-backfill: it analyzes only the selected Bronze, lands its rows
-*beside* the existing versions (that coexistence is what the console compares and
-what a rollback returns to), skips records already at the target version, and writes
-after every ``--batch-size`` records, so an interrupted run resumes from its
-checkpoint instead of starting over.
+A *scoped* run (``--since``/``--axis``/``--source``/``--sample``) lands its rows
+*beside* the existing versions instead of updating them — that coexistence is what
+the reprocess console compares and what a rollback returns to.
 
 The real analyzer never lets an operator error masquerade as analysis output, because
 ``unanalyzed`` is a data-quality signal downstream aggregation separates on (AC2.5,
-AC3.4). Two guards, two exit codes: an incomplete ``ECON_LLM_*`` environment aborts
-before Bronze is even read (:data:`EXIT_CONFIG`), and a batch whose every model call
-failed is not written and stops the run (:data:`EXIT_ALL_CALLS_FAILED`), leaving the
-Silver written so far intact.
+AC3.4).
 """
 
 from __future__ import annotations

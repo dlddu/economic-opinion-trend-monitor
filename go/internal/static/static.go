@@ -1,8 +1,4 @@
 // Package static serves the built web app with single-page-app fallback.
-//
-// Real files under dir are served as-is; unknown paths fall back to index.html
-// so client-side routes resolve. When the build is absent (no `make build-web`
-// yet), it serves a small placeholder so the server is still useful for the API.
 package static
 
 import (

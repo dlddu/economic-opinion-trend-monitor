@@ -1,9 +1,4 @@
-"""Storage abstraction over the medallion data lake.
-
-Records cross this boundary as plain JSON-able ``dict``s. Producers convert
-generated dataclasses with ``dataclasses.asdict`` before writing; consumers read
-``dict``s and rebuild typed models with ``Model.from_dict``.
-"""
+"""Storage abstraction over the medallion data lake."""
 
 from __future__ import annotations
 
@@ -13,7 +8,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
-#: File holding one partition's records (the directories above it name the partition).
 PARTITION_FILE = "data.jsonl"
 
 #: Characters of the key that name an object's partition. Changing it is a pure

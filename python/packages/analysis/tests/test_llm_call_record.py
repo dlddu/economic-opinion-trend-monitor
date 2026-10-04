@@ -60,7 +60,6 @@ def _by_record(calls: list[dict]) -> dict[str, dict]:
 
 
 def test_every_outcome_leaves_a_call_record_with_its_verdict():
-    """정상·파싱 실패·호출 실패 세 기사 모두 기록이 남고, 각각 자기 결말을 말한다."""
     items = [
         _bronze(record_id="ok", title="정상"),
         _bronze(record_id="bad", title="깨짐"),
@@ -105,7 +104,6 @@ def test_every_outcome_leaves_a_call_record_with_its_verdict():
 
 
 def test_the_recorded_prompt_is_byte_identical_to_what_was_sent():
-    """기록된 프롬프트가 모델 더블이 실제로 받은 요청과 바이트 단위로 같다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
     calls: list[dict] = []
@@ -120,7 +118,6 @@ def test_the_recorded_prompt_is_byte_identical_to_what_was_sent():
 
 
 def test_a_reused_reply_is_recorded_and_names_the_call_it_replays():
-    """재사용 기사는 재사용 사실과 원 호출 기록을 가진다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
 
@@ -154,7 +151,6 @@ def test_a_reused_reply_is_recorded_and_names_the_call_it_replays():
 
 
 def test_a_reuse_from_a_pre_call_record_cache_is_still_recorded():
-    """호출 기록 이전에 쌓인 캐시 항목을 재사용해도 기록은 남고, 원 호출만 null 이다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
     cache: dict[str, str] = {}
@@ -170,7 +166,6 @@ def test_a_reuse_from_a_pre_call_record_cache_is_still_recorded():
 
 
 def test_reprocessing_appends_and_never_overwrites_an_earlier_call(tmp_path):
-    """재처리 후 새 버전의 호출 기록이 추가되고 이전 버전의 기록은 그대로 남는다."""
     store = LocalFsStore(tmp_path)
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
@@ -194,7 +189,6 @@ def test_reprocessing_appends_and_never_overwrites_an_earlier_call(tmp_path):
 
 
 def test_an_article_that_never_reached_the_model_has_no_call_record():
-    """본문 미확보 기사는 호출 자체가 없으므로 기록도 없고, 그 자리를 미호출 사유가 채운다."""
     item = _bronze(record_id="nobody", body_available=False)
     completer = _completer({"정상": GOOD})
     calls: list[dict] = []
@@ -208,7 +202,6 @@ def test_an_article_that_never_reached_the_model_has_no_call_record():
 
 
 def test_call_records_land_in_the_contract_dataset(tmp_path):
-    """기록이 계약 데이터셋 `silver/llm_call` 에 call_id 를 키로 떨어진다."""
     store = LocalFsStore(tmp_path)
     completer = _completer({"정상": GOOD})
     calls: list[dict] = []
