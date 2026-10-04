@@ -1,11 +1,4 @@
-"""A deterministic stand-in for the LLM analysis step.
-
-Every row it writes carries ``no_call_reason="keyword_analyzer"``: this analyzer
-reaches no model at all, so AC4.3's "호출하지 않은 사유" is a property of the analyzer
-rather than of one article. The run is still named — a one-off CLI run is its own
-single-stage run (:func:`econ_core.runlog.resolve_run_id`), so no row is left without
-an execution to lead back to.
-"""
+"""A deterministic stand-in for the LLM analysis step."""
 
 from __future__ import annotations
 

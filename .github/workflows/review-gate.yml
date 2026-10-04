@@ -1,6 +1,5 @@
-# 왜 pull_request_target 인가
-#   PR 쪽 코드는 git 객체로만 받아 diff 를 읽을 뿐 체크아웃·실행하지 않는다 —
-#   pull_request_target 에서 PR 코드를 실행하면 쓰기 토큰이 노출되니 이 원칙을 지킬 것.
+# PR 쪽 코드는 git 객체로만 받아 diff 를 읽을 뿐 체크아웃·실행하지 않는다 —
+# pull_request_target 에서 PR 코드를 실행하면 쓰기 토큰이 노출되니 이 원칙을 지킬 것.
 name: review gate — data format
 
 on:
@@ -10,7 +9,6 @@ on:
 
 permissions: {}
 
-# 새 push 가 오면 이전 판정은 버린다(이전 head 에 status 를 붙일 이유가 없다).
 concurrency:
   group: review-gate-data-format-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -38,7 +36,6 @@ jobs:
           git fetch --no-tags origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
           fetched=$(git rev-parse refs/remotes/pr/head)
           if [ "$fetched" != "$HEAD_SHA" ]; then
-            # 이벤트 이후 새 push 가 왔다 — 그 push 의 실행이 판정한다.
             echo "::notice::PR head 가 이벤트 이후 바뀜($HEAD_SHA → $fetched) — 판정 생략"
             echo "stale=true" >> "$GITHUB_ENV"
           fi
