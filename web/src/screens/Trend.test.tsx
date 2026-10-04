@@ -81,7 +81,6 @@ function response(selected = "기준금리"): TrendResponse {
   };
 }
 
-/** Captures every /api/trend URL the screen asks for, answering each in turn. */
 function stubTrend(bodies: TrendResponse[]) {
   const urls: string[] = [];
   let call = 0;

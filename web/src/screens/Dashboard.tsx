@@ -12,7 +12,6 @@ import type {
 import { MapStrip } from "../shell/MapStrip";
 import { useTopbar } from "../shell/topbarSlot";
 
-// JRN-daily-scan 화면 1 · STP-open-brief (`docs/mockups/JRN-daily-scan.html`).
 // 화면 2·3 으로 넘어가는 컨트롤은 두지 않는다 — 설계 트래커 「허위 컨트롤 금지」.
 
 const AXES: { id: Axis; label: string }[] = [
@@ -171,7 +170,6 @@ export function Dashboard() {
         {/* CMP-metric ×4 */}
         <Metrics summary={data?.summary ?? null} unit={unit} />
 
-        {/* STP-open-brief — 오늘의 조회 조건 */}
         <div className="card col-4">
           <div className="card-h">
             <h3>오늘의 조회 조건</h3>

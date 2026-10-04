@@ -18,21 +18,10 @@ import { MapStrip } from "../shell/MapStrip";
 // 건수를 그냥 나눴다면 얻었을 순진한 카운트 점유율. 원시에서 앞서고 정규화에서
 // 밀리는 대상이 곧 「한 매체의 편집 결정」이다.
 //
-// 대조가 「편중 의심」으로 기울면 다음 물음은 「그럼 실제로 무슨 기사였나」다.
-// 그래서 표의 대상을 고르면 그 값에 기여한 개별 기사 목록이 열린다(AC3.10):
-// 수집원·수집 시각·본문 중복 여부를 행에 적고, 수집원으로 좁혀 셀 수 있고, 각
-// 행은 원문 링크와 원문 역추적으로 이어진다. 목록 건수와 그 값의 원시 카운트를
-// 카드 머리에 나란히 적는 것이 이 목록의 정직성 조건이다 — 수를 설명하지 못하는
-// 목록은 다른 수를 설명하는 목록이다.
-//
 // 편중 의심의 **어디서**에 답하는 것이 소스별 기여 분해다(AC3.9): 고른 값에
 // 수집원마다 원시 건수·원시 기여 비중·정규화 후 기여를 적는다. 그 수는 화면이
 // 새로 계산한 것이 아니라 집계가 정규화를 내며 접어 두었던 항 그대로다 — 두 번째
 // 계산법을 쓰면 자기가 설명한다는 값과 조용히 어긋나는 분해가 된다.
-//
-// 그래서 카드 머리에 「합 = 값」 두 등식을 그 값의 Gold 수치와 나란히 적는다.
-// 어긋나면 어긋났다고 적는다. 부분이 전체와 맞지 않는 분해는 급등을 확인하러
-// 온 독자가 쓸 수 없고, 수를 맞추려고 부분을 깎는 것은 더 나쁘다.
 
 const AXES: { id: Axis; label: string; pill: string }[] = [
   { id: "KR", label: "한국", pill: "ax-kr" },
@@ -42,7 +31,6 @@ const AXES: { id: Axis; label: string; pill: string }[] = [
 
 const UNIT_LABEL: Record<string, string> = { hour: "시간", day: "일", week: "주" };
 
-/** 세는 방식. 서버가 두 값을 모두 내려주므로 전환은 실제로 값을 바꾼다. */
 type Mode = "normalized" | "raw";
 
 function pct(x: number, digits = 1): string {
@@ -61,7 +49,6 @@ function deltaLabel(d: number): string {
   return "—";
 }
 
-/** 현재 세는 방식의 값. 두 모드가 같은 자리를 놓고 겨루게 하는 지점이다. */
 function shareIn(row: FairnessRow, mode: Mode): number {
   return mode === "normalized" ? row.normalized_share : row.raw_share;
 }
@@ -106,7 +93,6 @@ export function Fairness() {
   const leadNorm = data
     ? [...data.rows].sort((a, b) => b.normalized_share - a.normalized_share)[0]
     : undefined;
-  // 두 방식의 1위가 갈리면 그 자체가 판정의 근거다.
   const rankingDiverges = Boolean(leadRaw && leadNorm && leadRaw.subject !== leadNorm.subject);
 
   // 기여 기사 목록의 대상은 표에서 고른 것이고, 아무것도 고르지 않았으면 지금

@@ -106,7 +106,6 @@ function wired(runs: ReprocessRun[] = []): ReprocessResponse {
   return d;
 }
 
-/** The URL the n-th fetch was made with. */
 function calledUrl(fetchMock: ReturnType<typeof stub>, n: number): string {
   return String((fetchMock.mock.calls as unknown as [string][])[n][0]);
 }
@@ -126,8 +125,6 @@ function rowFor(container: HTMLElement, text: string): HTMLElement {
   return row as HTMLElement;
 }
 
-// STP-scope-range: the cycles come back as rows with the three counts the
-// operator sizes the run by, and the summary repeats the totals.
 it("sizes the range per cycle against the target version", async () => {
   stub(single());
   const { container } = render(<Reprocess />);
@@ -172,8 +169,6 @@ it("round-trips range, axis and source through the query", async () => {
   expect(calledUrl(fetchMock, 3)).not.toContain("source=");
 });
 
-// No fake before/after: with one version the table is replaced by the reason,
-// and the versions Silver does hold are still listed.
 it("refuses to draw a comparison out of a single version, but lists what exists", async () => {
   stub(single());
   const { container } = render(<Reprocess />);
@@ -184,8 +179,6 @@ it("refuses to draw a comparison out of a single version, but lists what exists"
   expect(rowFor(container, "v3").textContent).toContain("2");
 });
 
-// STP-compare-before-after: both shares in one row, the delta in points, the
-// threshold flags rows and the sort control reorders them.
 it("compares two versions side by side, flags the threshold and re-sorts", async () => {
   stub(dual());
   const { container, getByText } = render(<Reprocess />);
@@ -199,19 +192,16 @@ it("compares two versions side by side, flags the threshold and re-sorts", async
   expect(container.querySelector(".rp-over")?.textContent).toContain("2건");
   expect(container.querySelector(".rp-unanalyzed")?.textContent).toContain("25.0%");
 
-  // Raise the threshold above every delta: nothing is flagged any more.
   const input = container.querySelector(".rp-threshold input") as HTMLInputElement;
   fireEvent.change(input, { target: { value: "30" } });
   await waitFor(() => expect(container.querySelector(".rp-over")).toBeNull());
   expect(container.querySelectorAll(".rp-flagged").length).toBe(0);
 
-  // Sort by after-share: the row with the largest after share leads.
   fireEvent.click(getByText("이후 점유율 순"));
   const first = container.querySelector(".rp-cmp tbody tr");
   expect(first?.textContent).toContain(MOVED.subject);
 });
 
-// An empty lake is an empty scope, not an error and not an invented table.
 it("shows the empty scope state and no estimate when there is nothing to size", async () => {
   stub(empty());
   const { container } = render(<Reprocess />);
@@ -219,7 +209,6 @@ it("shows the empty scope state and no estimate when there is nothing to size", 
 
   expect(container.querySelector("table.tbl")).toBeNull();
   expect(container.querySelector(".rp-eta")?.textContent).toContain("—");
-  // The trigger note is always present: the screen says what it cannot do.
   expect(container.querySelector(".rp-trigger")?.textContent).toContain("일으킬 수 없습니다");
 });
 
@@ -236,8 +225,6 @@ const subOf = (container: HTMLElement, heading: string) =>
     .find((h) => h.querySelector("h3")?.textContent === heading)
     ?.querySelector(".sub")?.textContent;
 
-// STP-dry-run: the sample is submitted with the selection the read half is
-// showing, and the full run stays locked until a sample has finished.
 it("submits a sample for the selected scope and keeps the full run locked", async () => {
   const posted: { url: string; body: Record<string, unknown> }[] = [];
   stubWrites(wired(), (url, body) => {

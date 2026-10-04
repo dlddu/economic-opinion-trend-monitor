@@ -5,10 +5,6 @@ import type { TraceResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
 // 급등 검증의 마지막 갈래: 집계가 내놓은 수치를 낳은 **기사 한 건까지** 내려간다.
-//
-// `fairness` 가 「정규화하면 순위가 뒤집힌다」까지 보여 줘도 그것만으로는 판정이
-// 서지 않는다 — 편중을 의심할 근거일 뿐이고, 근거를 확인하려면 실제로 무엇이
-// 쓰였는지 읽어야 한다. 그 내려가는 길이 이 화면이다.
 
 function openableUrl(url: string | null | undefined): string | null {
   return url && /^https?:\/\//i.test(url) ? url : null;

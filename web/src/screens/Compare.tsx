@@ -6,9 +6,7 @@ import { MapStrip } from "../shell/MapStrip";
 
 // The comparison only means something if every column is read on the same
 // terms, so the shared basis the API compared on (time bucket + normalized
-// ratios) is shown above the columns instead of being assumed, and the share
-// bars are scaled by one maximum taken across all three axes — a bar twice as
-// long is twice the share no matter which column it sits in.
+// ratios) is shown above the columns instead of being assumed.
 
 const AXES: { id: AxisColumn["axis"]; name: string; label: string; pill: string }[] = [
   { id: "KR", name: "한국", label: "한국 · 출처 축", pill: "ax-kr" },

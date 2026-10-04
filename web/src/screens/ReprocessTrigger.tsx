@@ -7,7 +7,6 @@ import type {
   ReprocessSubmit,
 } from "../api/types";
 
-// 재처리 콘솔의 쓰기 절반 — `JRN-logic-backfill` 의 일으키는 세 단계(`STP-dry-run`·`STP-run-reprocess`·`STP-publish`).
 // 무엇을 일으키고 왜 서빙이 쓰지 않는지, 언제 그려지는지는 이 POST 들을 받는 go/internal/handlers/reprocess_trigger.go 머리가 주인이다.
 
 const POLL_MS = 5000;
@@ -44,9 +43,7 @@ function phaseBadge(r: ReprocessRun) {
 type Props = {
   data: ReprocessResponse;
   scope: Pick<ReprocessSubmit, "range" | "axis" | "source">;
-  /** How many compare rows cross the threshold right now (the publish gate reads it). */
   overThreshold: number;
-  /** Ask the read half to fetch again — a run finished, so the counts moved. */
   onChanged: () => void;
 };
 

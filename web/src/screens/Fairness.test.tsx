@@ -179,8 +179,6 @@ function shareCells(row: HTMLElement): HTMLElement[] {
   return [...row.querySelectorAll(".share")] as HTMLElement[];
 }
 
-// AC3.8: the two values are present *at once* and told apart, rather than one
-// standing in for the other.
 it("shows the raw count and the normalized share as distinct values in one row", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -195,14 +193,11 @@ it("shows the raw count and the normalized share as distinct values in one row",
   expect(normalized.querySelector(".pct")?.textContent).toBe(
     `${(SKEWED.normalized_share * 100).toFixed(1)}%`,
   );
-  // Same subject, two different numbers — that difference is the whole point.
   expect(raw.querySelector(".pct")?.textContent).not.toBe(
     normalized.querySelector(".pct")?.textContent,
   );
 });
 
-// The toggle is only honest if pressing it changes what the screen says. It
-// re-ranks on the selected mode and moves the emphasis to that column.
 it("re-ranks and moves the emphasis when the counting mode is switched", async () => {
   stubFairness();
   const { container } = renderFairness();
@@ -215,8 +210,6 @@ it("re-ranks and moves the emphasis when the counting mode is switched", async (
       .map((tr) => [...tr.querySelectorAll(".share")].findIndex((s) => s.classList.contains("fair-on")))
       .join(",");
 
-  // Normalized mode: the evenly-sourced subject leads, and the normalized
-  // column (index 1) is the emphasized one.
   expect(firstSubject()).toBe(EVEN.subject);
   expect(emphasized()).toBe("1,1");
   expect(container.querySelector(".norm-flag")?.textContent).toContain("정규화");
@@ -225,8 +218,6 @@ it("re-ranks and moves the emphasis when the counting mode is switched", async (
   expect(toggle.textContent).toContain("수집량 정규화");
   fireEvent.click(toggle);
 
-  // Raw mode: the ranking flips to the volume leader and the raw column
-  // (index 0) takes the emphasis.
   await waitFor(() => expect(firstSubject()).toBe(SKEWED.subject));
   expect(emphasized()).toBe("0,0");
   expect(container.querySelector(".raw-flag")?.textContent).toContain("원시");
@@ -282,7 +273,6 @@ it("says so when the decomposition does not add up to the value", async () => {
   );
 });
 
-// 분해가 없는 버킷은 0% 로 그리지 않는다 — 기여가 없는 것과 아직 없는 것은 다르다.
 it("heads the concentration block as the mockup card does and carries its one-source caution", async () => {
   stubFairness();
   const { container } = renderFairness();

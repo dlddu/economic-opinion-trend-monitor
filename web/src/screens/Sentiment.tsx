@@ -42,7 +42,6 @@ const AXES: { id: Axis; label: string; pill: string }[] = [
 
 const UNIT_LABEL: Record<string, string> = { hour: "시간", day: "일", week: "주" };
 
-/** The four analyzed classes, in the order every bar and legend uses. */
 const CLASSES = [
   { key: "positive", cls: "s-pos", label: "긍정", color: "var(--pos)" },
   { key: "neutral", cls: "s-neu", label: "중립", color: "var(--neu)" },
@@ -63,19 +62,14 @@ function pct(x: number, digits = 1): string {
   return `${(x * 100).toFixed(digits)}%`;
 }
 
-/** Bucket keys are ISO prefixes; the axis only needs the part that varies. */
 function bucketTick(bucket: string, unit: string): string {
   if (unit === "hour") return bucket.length >= 13 ? `${bucket.slice(11, 13)}시` : bucket;
   return bucket.slice(5) || bucket;
 }
 
 /**
- * The five segments of one bucket, as shares of the whole bucket.
- *
  * The four class ratios are scaled by the analyzed share so that classes and
- * 미분석 together make one bar of 100% — the same scaling the dashboard bar
- * uses, and the reason `ac3-6-sentiment-ratio-viz.spec.ts` compares proportions
- * between classes rather than absolute widths.
+ * 미분석 together make one bar of 100% — the same scaling the dashboard bar uses.
  */
 function segments(dist: SentimentDistribution): { cls: string; label: string; color: string; share: number }[] {
   const analyzed = 1 - dist.unanalyzed;

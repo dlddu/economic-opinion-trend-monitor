@@ -21,7 +21,6 @@ export interface RankRow {
   delta: number;
 }
 
-/** Window a dashboard response reads (JRN-daily-scan STP-open-brief). */
 export type DashRange = "24h" | "7d" | "30d";
 export type BucketUnit = "hour" | "day" | "week";
 
@@ -64,14 +63,12 @@ export interface DashboardResponse {
   top_subjects: DashRow[];
 }
 
-/** One axis column of the 3-axis comparison (AC3.7). */
 export interface AxisColumn {
   axis: Axis;
   top_subjects: RankRow[];
   sentiment: SentimentDistribution;
 }
 
-/** One point of a subject's time series (AC3.5). */
 export interface TrendPoint {
   time_bucket: string;
   normalized_share: number;
@@ -100,7 +97,6 @@ export interface TrendResponse {
   series: TrendSeries[];
 }
 
-/** One bucket of one axis's sentiment composition (AC3.4, AC3.6). */
 export interface SentimentPoint {
   time_bucket: string;
   distribution: SentimentDistribution;
@@ -227,7 +223,6 @@ export interface TraceCrumbStep {
   present: boolean;
 }
 
-/** The collected article (AC1.4, AC1.5, AC1.7). */
 export interface TraceBronze {
   record_id: string;
   source_id: string;
@@ -242,7 +237,6 @@ export interface TraceBronze {
   body_first_seen_cycle: string;
 }
 
-/** The analysis verdict for the same record (AC2.1–AC2.5). */
 export interface TraceSilver {
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
@@ -253,7 +247,6 @@ export interface TraceSilver {
   analyzer_version: string;
 }
 
-/** Provenance metadata ingestion is required to keep (AC1.5). */
 export interface TraceIngestion {
   collected_at: string;
   collection_cycle: string;
@@ -261,7 +254,6 @@ export interface TraceIngestion {
   view_count: number;
 }
 
-/** One record's lineage, with each layer reported separately. */
 export interface TraceResponse {
   record_id: string;
   selection: "requested" | "auto" | "requested-missing" | "empty";
@@ -272,7 +264,6 @@ export interface TraceResponse {
   ingestion: TraceIngestion;
 }
 
-/** One collection cycle of a reprocess selection (STP-scope-range). */
 export interface ReprocessBucket {
   cycle: string;
   kept: number;
@@ -324,7 +315,6 @@ export interface ReprocessCompare {
   unanalyzed_share: { before: number; after: number };
 }
 
-/** One batch Workflow the console submitted: a sample, a full run, or a publish. */
 export interface ReprocessRun {
   name: string;
   kind: "sample" | "run" | "publish";

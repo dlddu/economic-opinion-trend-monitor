@@ -39,7 +39,6 @@ function response(axis: SentimentResponse["axis"] = "KR"): SentimentResponse {
   };
 }
 
-/** Captures every /api/sentiment URL the screen asks for, answering each in turn. */
 function stubSentiment(bodies: SentimentResponse[]) {
   const urls: string[] = [];
   let call = 0;
@@ -122,7 +121,6 @@ describe("Sentiment", () => {
     });
 
     expect(absent.getAttribute("data-present")).toBe("false");
-    // A marked gap, and no bar pretending the axis was measured.
     expect(absent.querySelector(".sentbar")).toBeNull();
     // Scoped to this row on purpose: these tests share one document (there is
     // no auto-cleanup between them), so a document-wide text query would match
