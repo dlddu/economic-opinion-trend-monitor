@@ -1,8 +1,3 @@
-/*
- * Design system — single source of truth for tokens + component styles.
- * Ported from docs/design-system + docs/mockups (which inline this per page).
- */
-
 :root {
   /* TKN-surface */
   --paper: #f4efe6;
@@ -72,8 +67,6 @@
   padding: 0;
 }
 
-/* The mockups reset every button once and then style only what differs, so the
-   same reset lives here instead of being folded into .btn / .seg button. */
 button {
   font-family: inherit;
   cursor: pointer;
@@ -184,7 +177,6 @@ a {
   gap: 7px;
 }
 
-/* Persona tag (P1/P2) trailing the group label, per the mockup sidebar. */
 .nav-group .gl .vtag {
   margin-left: auto;
   font-size: 9px;
@@ -401,9 +393,6 @@ a {
   gap: 16px;
 }
 
-/* Column count is a modifier, not part of .grid — the mockups keep the two
-   apart so a screen can lay out on a different track count without a new
-   container class. */
 .g-12 {
   grid-template-columns: repeat(12, 1fr);
 }
@@ -595,7 +584,6 @@ a {
   font-weight: 400;
 }
 
-/* 순위 행의 변화량은 배경 없는 색 글자다 — `.delta` 칩(배경 pill)을 쓰지 않는다. */
 .rankrow .dlt {
   font-family: var(--mono);
   font-size: 11px;
@@ -903,7 +891,6 @@ a {
   border-bottom: none;
 }
 
-/* ---- dashboard controls ---- */
 .dash-controls {
   display: flex;
   align-items: center;
@@ -1017,7 +1004,6 @@ a {
   margin-bottom: 14px;
 }
 
-/* ---- status / placeholder ---- */
 .placeholder-note {
   margin-top: 14px;
   font-size: 13px;
@@ -1041,8 +1027,6 @@ a {
 }
 
 /* ---- PAT-line-chart ---- */
-/* .gridline / .axlab carry the mockup's declarations verbatim — selectors both
-   sides declare (규칙 5 대조 규약); trend-only rules live under .trend-* . */
 .gridline {
   stroke: var(--line);
   stroke-width: 1;
@@ -1112,16 +1096,11 @@ a {
   color: var(--ink-2);
 }
 
-/* 차트와 겹치지 않게 폼 아래에만 간격을 준다 — 목업도 `#trendchart` 쪽
-   (`margin-top:10px`)에 같은 자리의 간격을 둔다. */
 .trend-ov-form {
   margin-bottom: 10px;
 }
 
-/* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ----
-   Every selector here is .sent-* , which `JRN-sentiment-shift.html` never
-   declares — shared selectors (.sentbar, .kv, .legend, .seg …) stay untouched
-   (규칙 5 대조 규약). */
+/* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ---- */
 .sent-donut-row {
   display: flex;
   gap: 20px;
@@ -1189,9 +1168,6 @@ a {
   margin-top: 12px;
 }
 
-/* ---- 분리 전후 비율 전환 · 이탈 카드 (sentiment) ----
-   목업은 체크박스에 `.chk` 를, 이탈 산문에 `.muted` 를 쓰는데 둘 다 tokens 에는 없다 —
-   화면 전용 이름으로 선언한다(규칙 5 대조 규약, `.fair-*` 와 같다). */
 .sent-split-bar {
   margin-bottom: 14px;
 }
@@ -1293,9 +1269,6 @@ a {
 }
 
 /* ---- CMP-table ---- */
-/* The mockup's `STP-drill-trend` draws 「상위 대상 비교」 as table.tbl, so the
-   implementation does too — every declaration below is the mockup's inline
-   <style> verbatim (규칙 5 대조 규약); trend-only styling stays under .trend-* . */
 table.tbl {
   width: 100%;
   border-collapse: collapse;
@@ -1338,7 +1311,6 @@ table.tbl tr.click:hover td {
   background: var(--panel-2);
 }
 
-/* Selected-subject emphasis — the mockup has no selected-row rule. */
 table.tbl tr.click.on td {
   color: var(--ink);
   font-weight: 600;
@@ -1684,7 +1656,6 @@ tr.fair-picked td {
   gap: 12px;
 }
 
-/* 보존된 원문. 판정 재료라 읽히는 것이 목적이므로 본문 조판에 맞춘다. */
 .trace-body {
   margin-top: 12px;
   font-size: 12.5px;

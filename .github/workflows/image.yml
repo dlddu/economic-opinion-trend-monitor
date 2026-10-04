@@ -1,18 +1,12 @@
-# Tags are immutable, so the default imagePullPolicy (IfNotPresent) is correct.
-# Tags published earlier as `sha-<commit>` stay in the registry; nothing new is
-# written in that format.
-#
 # No path filter on the PR path on purpose: a preview references the head SHA
 # tag, so even a docs-only PR labelled `deploy/preview` needs an image at that
 # SHA. Unchanged sources hit the buildx gha cache wholesale, so that costs little.
 #
 # main pushes do filter: a merge that reaches neither image (go/ · web/ ·
 # python/ — see .dockerignore) nor the manifests (deploy/) would only mint a new
-# SHA tag and restart production pods. A skipped commit never reaches `deploy`;
-# the `Source-Commit:` trailer on its tip still names what production runs.
-# It is an exclusion list, so a new directory triggers by default — before
-# excluding a path, check that neither Dockerfile nor Flux reads it. The filter
-# applies to the push trigger only; workflow_call (PRs) always runs.
+# SHA tag and restart production pods. It is an exclusion list, so a new
+# directory triggers by default — before excluding a path, check that neither
+# Dockerfile nor Flux reads it.
 name: Image
 
 on:
@@ -94,13 +88,11 @@ jobs:
 
   pin:
     name: pin deploy images (main only)
-    # Waits for every matrix leg: both images must exist before either is pinned.
     needs: [publish]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 5
     permissions:
-      # The only job that pushes (to `deploy`). The workflow default stays contents: read.
       contents: write
     steps:
       # main 의 HEAD 가 아니라 방금 빌드한 커밋 그대로를 deploy 의 부모로 삼는다.
@@ -116,19 +108,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Serving and batch in one pattern: the optional group keeps the
-          # `-batch` suffix inside \1, so each reference keeps its own name.
           ref='ghcr\.io/dlddu/economic-opinion-trend-monitor(-batch)?:[A-Za-z0-9._-]+'
 
-          # Every file under deploy/ that references either image, rather than a
-          # fixed list — a reference added in a new file is pinned too.
           files=$(grep -rlE "$ref" deploy/ || true)
           [ -n "$files" ] || { echo "::error::deploy/: no image references found"; exit 1; }
           # shellcheck disable=SC2086
           sed -i -E "s#(ghcr\.io/dlddu/economic-opinion-trend-monitor(-batch)?):[A-Za-z0-9._-]+#\1:${SHA}#g" $files
 
-          # Check that sed did not silently miss: no reference may be left on
-          # any other tag, and each image must be pinned at least once.
           leftover=$(grep -rhoE "$ref" deploy/ | grep -v ":${SHA}\$" || true)
           if [ -n "$leftover" ]; then
             echo "::error::deploy/: unpinned image references remain:"
@@ -147,7 +133,6 @@ jobs:
 
           # 늦게 끝난 옛 실행이 더 새 배포를 덮지 않게 한다. deploy 끝 커밋의
           # Source-Commit 트레일러가 이 SHA 의 후손이면 이미 앞서 있으니 건너뛴다.
-          # (롤백은 main 에 revert PR 을 올리는 것 — 그 머지가 새 SHA 로 다시 여기를 탄다.)
           if [ -n "$old" ]; then
             cur=$(git log -1 --format='%(trailers:key=Source-Commit,valueonly)' "$old" | tr -d '[:space:]')
             if [ -n "$cur" ] && [ "$cur" != "$SHA" ] && git merge-base --is-ancestor "$SHA" "$cur" 2>/dev/null; then

@@ -64,9 +64,6 @@ jobs:
       - name: Test
         run: make test
 
-  # Serving-path e2e on a kind cluster (batch-produced Gold -> Go API + web render).
-  # Parallel to `build`; docker is preinstalled on the runner.
-  #
   # arm64 on purpose, like image.yml's publish job: the e2e images are built from
   # the same Dockerfiles with the same buildx gha cache scopes (`serving`,
   # `batch`), and those scopes hold arm64 layers — main pushes keep them warm, so
@@ -85,12 +82,11 @@ jobs:
         with:
           version: v0.30.0
           install_only: true
-          # The cluster its post step cleans up; created below under this name.
+          # Must match E2E_CLUSTER — the post step deletes the cluster by this name.
           cluster_name: econ-e2e
 
-      # Survives past this step. The subshell's stdio is cut, otherwise the
-      # runner waits for the step's output to close. The exit code lands in
-      # an .rc file that "Wait for kind cluster" picks up.
+      # The subshell's stdio is cut, otherwise the runner waits for the step's
+      # output to close; the exit code lands in an .rc file for "Wait for kind cluster".
       - name: Start kind cluster in background
         run: |
           mkdir -p /tmp/bg
@@ -113,10 +109,8 @@ jobs:
           ( bash tests/e2e/playwright-setup.sh \
               >/tmp/bg/playwright-setup.log 2>&1; echo $? >/tmp/bg/playwright-setup.rc ) </dev/null >/dev/null 2>&1 &
 
-      # The PR preview overlay is only ever built by Flux, so nothing else
-      # would notice it rotting. Build it with the load restrictor
-      # kustomize-controller uses and make sure no CronWorkflow survives: a
-      # preview must never run a schedule of its own.
+      # The PR preview overlay is only ever built by Flux, so nothing else would
+      # notice it rotting — hence this check, with kustomize-controller's load restrictor.
       - name: Preview overlay builds and carries no schedules
         run: |
           kubectl kustomize --load-restrictor LoadRestrictionsNone deploy/overlays/preview > /tmp/preview.yaml
@@ -128,10 +122,8 @@ jobs:
           grep -qE '^kind: WorkflowTemplate$' /tmp/preview.yaml \
             || { echo "::error::deploy/overlays/preview lost the batch WorkflowTemplate"; exit 1; }
 
-          # Flux retags both images to the PR head SHA through `images:`. That
-          # transformer skips paths it does not know, so check that a retag
-          # really reaches every image — the WorkflowTemplate included
-          # (deploy/batch/kustomizeconfig.yaml). The copy sits beside the
+          # `images:` skips paths it does not know (deploy/batch/kustomizeconfig.yaml),
+          # so check that a retag reaches every image. The copy sits beside the
           # overlay so its relative paths still resolve.
           sim=deploy/overlays/_preview-retag-check
           cp -r deploy/overlays/preview "$sim"
@@ -155,7 +147,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Same Dockerfiles and cache scopes as image.yml. Read-only here: the
       - name: Build serving image (econ-monitor:e2e)
         uses: docker/build-push-action@v6
         with:
@@ -163,7 +154,6 @@ jobs:
           file: Dockerfile
           load: true
           tags: econ-monitor:e2e
-          # Loaded locally only — no provenance attestation needed.
           provenance: false
           cache-from: type=gha,scope=serving
 
