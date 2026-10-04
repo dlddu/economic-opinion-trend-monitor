@@ -33,7 +33,6 @@ def test_versions_coexist_and_same_key_is_replaced(tmp_path: Path) -> None:
     silver.store_analyses(
         store, CYCLES, [_row("r1", "v1", "t1", ["a"]), _row("r2", "v1", "t1", ["a"])]
     )
-    # A second version lands beside the first — STP-run-reprocess 「병존」.
     written, pruned = silver.store_analyses(store, CYCLES, [_row("r1", "v2", "t2", ["b"])])
     # Only r1's cycle partition was rewritten: its two versions.
     assert (written, pruned) == (2, 0)

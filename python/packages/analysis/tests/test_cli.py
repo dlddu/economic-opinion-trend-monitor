@@ -1,6 +1,6 @@
 """CLI tests — analyzer selection and the two guards that keep Silver honest.
 
-``LocalFsStore.write_records`` *replaces* the Silver dataset, and ``unanalyzed`` is the
+A Silver write *replaces* each partition it covers, and ``unanalyzed`` is the
 data-quality signal AC2.5 defines and aggregation separates on (AC3.4). So a run that
 never reached the model must not write: these tests pin the exit codes and, more
 importantly, that the previous Silver survives.
@@ -19,7 +19,6 @@ NEXT_CYCLE = "2026-06-23T15:00"
 
 
 def _seed_lake(root: Path, bodies_available: bool = True) -> None:
-    """Write a two-item Bronze layer (plus its content-addressed bodies)."""
     items = [
         {
             "record_id": f"r{n}",
@@ -69,7 +68,6 @@ def _write_jsonl(path: Path, records: list[dict]) -> None:
 
 
 def _silver(root: Path) -> Path:
-    """The Silver partition of the seeded cycle."""
     return (
         root
         / "silver"
@@ -93,7 +91,6 @@ def _canned(reply: str):
 
 
 def test_llm_is_the_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The operational default is the real model — an unconfigured run must not write."""
     _seed_lake(tmp_path)
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     assert cli.main(["--data", str(tmp_path)]) == cli.EXIT_CONFIG
@@ -101,7 +98,6 @@ def test_llm_is_the_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_fake_stays_available_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """...and the deterministic stand-in is still one flag away, with no ECON_LLM_* at all."""
     _seed_lake(tmp_path)
     monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
@@ -205,7 +201,6 @@ def _silver_rows(root: Path) -> list[dict]:
 
 
 def test_whole_lake_rerun_updates_silver_in_place(tmp_path: Path) -> None:
-    """AC2.6: a whole-lake re-analysis at a bumped version replaces the rows, keys intact."""
     _seed_lake(tmp_path)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     assert (
@@ -220,7 +215,6 @@ def test_whole_lake_rerun_updates_silver_in_place(tmp_path: Path) -> None:
 
 
 def test_scoped_rerun_coexists_with_the_previous_version(tmp_path: Path) -> None:
-    """STP-run-reprocess: a scoped reprocess lands beside the old rows, never over them."""
     _seed_lake(tmp_path)
     base = ["--data", str(tmp_path), "--analyzer", "fake"]
     assert cli.main(base) == 0
@@ -252,7 +246,6 @@ def test_whole_lake_run_keeps_the_published_version(tmp_path: Path) -> None:
 def test_scoped_run_skips_records_already_at_the_target_version(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A resumed scoped run starts from its checkpoint instead of re-analyzing everything."""
     _seed_lake(tmp_path)
     args = [
         "--data",
@@ -288,7 +281,6 @@ def test_scope_filters_by_axis_source_and_since(tmp_path: Path) -> None:
 def test_failed_batch_keeps_the_checkpoint_of_earlier_batches(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """JRN-logic-backfill §4: 재분석 도중 실패 → 체크포인트 유지, 전량 재실행 금지."""
     _seed_lake(tmp_path)
     reply = json.dumps(
         {

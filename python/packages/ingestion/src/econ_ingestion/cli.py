@@ -1,19 +1,7 @@
 """``econ-ingestion`` CLI — collect news into the Bronze layer.
 
-This is the scheduler trigger point: a real deployment invokes this on a
-cron/interval (AC1.1), passing the cycle window in via ``--cycle``; the CLI runs
-one cycle on demand and is idempotent per cycle. The schedule itself is wired in
-``deploy/batch/cronworkflow-ingestion.yaml`` as an Argo Workflows CronWorkflow
-(hourly by default, per-environment override via a kustomize patch on
-``/spec/schedule``), which runs this CLI with no arguments so the cycle falls
-out of the current UTC hour.
-
-Two collection sources share the identical Bronze output path (``news_item`` +
-content-addressed ``news_body``): the real ``feed`` source that fetches the
-configured RSS/Atom endpoints (the operational default; uses the checked-in
-``default_feeds.json`` when ``--feeds`` is omitted) and the deterministic
-``fake`` catalog (``--source fake``) that keeps the cross-language smoke and
-offline tests pinned.
+A cycle must stay idempotent: the schedule reruns late or missed ticks into the same
+cycle, and only replacing that cycle's partition keeps the rerun from double-counting.
 """
 
 from __future__ import annotations

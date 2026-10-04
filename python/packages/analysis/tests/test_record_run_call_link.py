@@ -116,7 +116,6 @@ def test_every_row_reaches_its_run_and_either_a_call_or_a_reason():
 
 
 def test_a_reused_reply_reaches_the_original_call_through_its_own_record():
-    """재사용 레코드는 자기 호출 기록을 거쳐 원 호출 기록에 도달한다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
 
@@ -148,7 +147,6 @@ def test_a_reused_reply_reaches_the_original_call_through_its_own_record():
 
 
 def test_a_reuse_of_a_pre_call_record_cache_still_reaches_a_call_record():
-    """원 호출을 모르는 캐시를 재사용해도 레코드는 자기 호출 기록에 도달한다."""
     item = _bronze(record_id="ok", title="정상")
     completer = _completer({"정상": GOOD})
     cache: dict[str, str] = {}
@@ -172,7 +170,6 @@ def test_a_reuse_of_a_pre_call_record_cache_still_reaches_a_call_record():
 
 
 def test_the_offline_analyzer_states_why_it_called_nothing():
-    """모델을 전혀 호출하지 않는 분석기의 레코드도 사유와 실행을 가진다."""
     row = fake_llm.analyze(_bronze(record_id="ok"), "긍정적 흐름", "fake-v1", "run-7")
     assert row.run_id == "run-7"
     assert row.call_id is None

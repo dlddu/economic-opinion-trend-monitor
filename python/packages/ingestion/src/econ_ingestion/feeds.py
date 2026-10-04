@@ -1,24 +1,4 @@
-"""Real feed-based news sources (RSS / Atom).
-
-Unlike the deterministic fake catalog in :mod:`econ_ingestion.sources`, this
-module implements the *real* collection mechanism the ingestion PRD calls for:
-each configured source points at an actual RSS/Atom feed URL, the raw feed bytes
-are fetched over a pluggable transport, and a standard-library parser turns the
-feed entries into schema-conformant Bronze records.
-
-The transport is injected (:class:`Fetcher`), so production uses real HTTP while
-tests drive the exact same parse / normalize path against captured fixture feeds
-— the collection logic is genuinely real, yet fully deterministic offline.
-
-Bronze shape (revised design, AC1.4 / AC1.7): the observation record
-(:class:`~econ_core.models.NewsItem`) carries only the body's content address
-(``body_hash``); the body text itself lives in a separate content-addressed
-store (:class:`~econ_core.models.NewsBody`). This module mirrors
-:func:`econ_ingestion.sources.run_ingestion` so the real feed path is a drop-in
-alternative that produces the identical ``(news_item, news_body, stats)`` output
-— unchanged bodies (same hash, across cycles or cross-source reprints) store
-once and edited bodies version as new keys.
-"""
+"""Real feed-based news sources (RSS / Atom)."""
 
 from __future__ import annotations
 
@@ -54,10 +34,8 @@ FEED_FORMATS = ("rss", "worldbank-json")
 class FeedConfig:
     """One configured feed source.
 
-    ``axis`` tags every item collected from this source (AC1.3); ``limit`` is the
-    per-source top-N cap (AC1.2); ``feed_url`` is the real endpoint and ``format``
-    picks its parser — ``rss`` (RSS 2.0 / Atom) or ``worldbank-json`` (the World
-    Bank search API, which publishes no usable RSS/Atom).
+    ``worldbank-json`` exists because the World Bank publishes no usable RSS/Atom;
+    its search API is parsed instead.
     """
 
     source_id: str
@@ -98,11 +76,7 @@ def http_fetcher(timeout: float = 15.0) -> Fetcher:
 
 
 def load_feed_configs(path: str | Path) -> list[FeedConfig]:
-    """Load a list of :class:`FeedConfig` from a JSON config file.
-
-    Schema: ``[{"source_id", "axis", "feed_url", "limit"?, "format"?}, ...]`` — source list,
-    per-source axis (AC1.3) and top-N cap (AC1.2) are all configuration, not code.
-    """
+    """Load a list of :class:`FeedConfig` from a JSON config file."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return [
         FeedConfig(
@@ -117,27 +91,15 @@ def load_feed_configs(path: str | Path) -> list[FeedConfig]:
 
 
 def default_feeds_path() -> Path:
-    """Path to the checked-in default feed source list (used when ``--feeds`` is omitted).
-
-    A curated *starter* set of real economic RSS/Atom endpoints across the KR/US/GLOBAL
-    axes; operations verify and refine it as the scheduled CronWorkflow (AC1.1) runs on it.
-    Unreachable entries degrade gracefully — :func:`run_feed_ingestion` isolates per-source
-    failures (AC1.6) rather than aborting the run. Ships inside the package so it resolves
-    regardless of the working directory.
-    """
+    """Path to the checked-in default feed source list (used when ``--feeds`` is omitted)."""
     return Path(__file__).with_name("default_feeds.json")
 
 
 def _localname(tag: str) -> str:
-    """Strip any XML namespace, e.g. ``{...}entry`` -> ``entry``."""
     return tag.rsplit("}", 1)[-1]
 
 
 def _first_text(entry: ET.Element, names: tuple[str, ...]) -> str:
-    """Return the first non-empty direct-child text whose local name is in ``names``.
-
-    ``names`` is tried in priority order (e.g. full ``content`` before ``summary``).
-    """
     by_local: dict[str, str] = {}
     for child in entry:
         key = _localname(child.tag).lower()
@@ -150,7 +112,6 @@ def _first_text(entry: ET.Element, names: tuple[str, ...]) -> str:
 
 
 def _find_link(entry: ET.Element) -> str:
-    """Extract the article URL from an RSS ``<link>`` text or Atom ``<link href>``."""
     fallback = ""
     for child in entry:
         if _localname(child.tag) != "link":
@@ -167,12 +128,7 @@ def _find_link(entry: ET.Element) -> str:
 
 
 def parse_feed(raw: bytes) -> list[ParsedArticle]:
-    """Parse RSS 2.0 or Atom feed bytes into articles (real parser, stdlib only).
-
-    Entries without a link are dropped (provenance requires a URL, AC1.4). A
-    ``<views>`` element, when present, feeds top-N ranking (AC1.2); otherwise the
-    feed's own order is preserved.
-    """
+    """Parse RSS 2.0 or Atom feed bytes into articles (real parser, stdlib only)."""
     try:
         root = ET.fromstring(raw)
     except ET.ParseError as exc:
@@ -213,8 +169,7 @@ def _cdata(value: object) -> str:
 def parse_worldbank_news(raw: bytes) -> list[ParsedArticle]:
     """Parse a World Bank search API (``/api/v2/news?format=json``) response into articles.
 
-    ``documents`` maps document ids to records in the API's result order; non-record
-    keys (``facets``) and records without a URL are skipped. The API exposes no view
+    ``documents`` also carries a non-record ``facets`` key. The API exposes no view
     count, so the result order (``srt``/``order`` in the URL) stands in for ranking.
     """
     try:
@@ -253,7 +208,6 @@ def _record_id(source_id: str, url: str, cycle: str) -> str:
 
 
 def _fetch_with_retry(config: FeedConfig, fetcher: Fetcher, retries: int) -> bytes:
-    """Fetch a feed, retrying transient transport failures before giving up (AC1.6)."""
     last: Exception | None = None
     for _ in range(max(1, retries + 1)):
         try:
@@ -271,15 +225,7 @@ def collect_feed(
     *,
     retries: int = 2,
 ) -> Iterator[tuple[NewsItem, str | None]]:
-    """Fetch + parse one feed into ranked, top-N-capped ``(NewsItem, body)`` pairs.
-
-    Ranks by view count when the feed carries it, else preserves feed order, then
-    keeps the source's top-N (AC1.2). Every observation is axis-tagged (AC1.3) and
-    carries the link plus the body's content address — an empty ``body_hash`` when
-    the body was not captured (AC1.4) — with full provenance metadata (AC1.5). The
-    body text itself is yielded alongside (``None`` when not captured) so the
-    caller stores it once, content-addressed (AC1.7).
-    """
+    """Fetch + parse one feed into ranked, top-N-capped ``(NewsItem, body)`` pairs."""
     raw = _fetch_with_retry(config, fetcher, retries)
     # Stable sort: equal (e.g. all-zero) view counts keep the feed's own order.
     ranked = sorted(_PARSERS[config.format](raw), key=lambda a: a.view_count, reverse=True)[
@@ -313,12 +259,9 @@ def run_feed_ingestion(
 ) -> tuple[list[dict], list[dict], IngestStats]:
     """Collect across configured feeds, de-duplicating by URL and isolating failures.
 
-    Mirrors :func:`econ_ingestion.sources.run_ingestion` (same ``(news_item dicts,
-    news_body dicts, stats)`` return shape) so the real feed path is a drop-in
-    alternative to the fake catalog. Bodies are unique by content hash within the
-    run — identical text reached through different URLs (cross-source reprints)
-    stores once (AC1.7); cross-run dedup and edited-body versioning happen at the
-    store via ``put_object``.
+    Mirrors :func:`econ_ingestion.sources.run_ingestion` (same return shape) so the
+    two paths stay interchangeable. Bodies dedupe by hash only within the run;
+    cross-run dedup and edited-body versioning happen at the store via ``put_object``.
     """
     seen: set[str] = set()
     items: list[dict] = []
