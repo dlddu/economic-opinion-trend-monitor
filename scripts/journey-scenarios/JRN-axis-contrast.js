@@ -1,7 +1,3 @@
-/* JRN-axis-contrast — 페이지 고유 조작 시나리오.
- */
-
-/* 화면 4에서 격차가 큰 대상 하나를 고르는 제품 행동 — 상세로 넘어가는 선행 조건. */
 const pickFirstOutlier = (t, w, d) => {
   const row = d.querySelector('#outlierlist .trow');
   if (!row) return null;
@@ -9,7 +5,6 @@ const pickFirstOutlier = (t, w, d) => {
   return row;
 };
 
-/* 화면 4까지 화면 안 행동만으로 내려간다. */
 const walkToPick = (t, w, d) => {
   t.click(w, d.getElementById('cta-1'));
   t.click(w, d.getElementById('cta-2'));
@@ -17,12 +12,10 @@ const walkToPick = (t, w, d) => {
 };
 
 module.exports = {
-  /* (c) 4단계 전진은 '편차 대상 선택' 이라는 선행 제품 행동을 요구한다. */
   unlock: {
     'STP-pick-outlier': (t, w, d) => pickFirstOutlier(t, w, d),
   },
 
-  /* (d) 값 변경이 렌더를 실제로 바꾼다. */
   async inputs(t) {
     const { w, d } = t.boot();
 
@@ -46,8 +39,6 @@ module.exports = {
     t.is([...d.querySelectorAll('input[name="verdict"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
       true, '(d) 결론 컨트롤이 전부 실제 <input type=radio> 다');
 
-    /* 여정 문서 §3 STP-disambiguate-axis 는 출처 축과 대상 축을 **별도 컨트롤**로 나눌 것을
-       요구한다 — 두 <select> 가 서로 다른 이름의 별개 요소인지 확인한다. */
     t.is(d.getElementById('src-axis') !== d.getElementById('topic-axis'), true,
       '(d) 출처 축과 대상 축이 별개의 <select> 로 분리돼 있다');
 
@@ -57,7 +48,6 @@ module.exports = {
       opt.selected = true; t.fire(w, el, 'change'); return true;
     };
 
-    /* <input type=search> — 축별 순위 목록을 실제로 필터한다. */
     const topsBefore = d.getElementById('axistops').innerHTML;
     const q = d.getElementById('q');
     q.value = '존재하지-않는-대상'; t.fire(w, q, 'input');
@@ -66,7 +56,6 @@ module.exports = {
     q.value = ''; t.fire(w, q, 'input');
     t.is(d.getElementById('axistops').innerHTML, topsBefore, '(d) 검색어를 지우면 순위가 되돌아온다');
 
-    /* <input type=checkbox> — '축 고유만 보기' 가 공통 대상을 실제로 걷어 낸다. */
     const allRows = d.querySelectorAll('#axistops .rankrow').length;
     const uniq = d.getElementById('only-unique');
     uniq.checked = true; t.fire(w, uniq, 'change');
@@ -76,7 +65,6 @@ module.exports = {
     uniq.checked = false; t.fire(w, uniq, 'change');
     t.is(d.querySelectorAll('#axistops .rankrow').length, allRows, '(d) 해제하면 전체 순위로 되돌아온다');
 
-    /* 두 축 <select> — 출처/대상 조합 표를 실제로 바꾼다. */
     const mtxBefore = d.getElementById('axis-matrix').innerHTML;
     if (pickOption(d.getElementById('src-axis'), 'US')) {
       t.is(d.getElementById('axis-matrix').innerHTML !== mtxBefore, true,
@@ -88,7 +76,6 @@ module.exports = {
         '(d) 대상 축 <select> 선택이 조합 표를 다시 바꾼다 — 두 기준이 독립이다');
     }
 
-    /* <input type=number> — 격차 임계가 후보 목록을 실제로 줄인다. */
     const outBefore = d.querySelectorAll('#outlierlist .trow').length;
     const th = d.getElementById('gapthresh');
     th.value = '15'; t.fire(w, th, 'input');
@@ -97,7 +84,6 @@ module.exports = {
       '(d) <input type=number> 임계 변경이 후보 목록을 실제로 줄인다');
     th.value = '5'; t.fire(w, th, 'input');
 
-    /* <input type=checkbox> — 표기 변형 통합이 순위 항목을 실제로 합친다. */
     const alias = d.getElementById('alias-merge');
     const mergedBefore = d.querySelectorAll('#outlierlist .trow[data-target="usdkrw"]').length;
     alias.checked = true; t.fire(w, alias, 'change');
@@ -107,7 +93,6 @@ module.exports = {
       '(d) 통합해도 대상 식별자는 그대로 유지된다');
     alias.checked = false; t.fire(w, alias, 'change');
 
-    /* <select> 기간 + 폼 제출 — 세 축 카드를 다시 그린다. */
     const cardsBefore = d.getElementById('axiscards').innerHTML;
     pickOption(d.getElementById('range'), '30');
     t.fire(w, d.getElementById('sync-form'), 'submit');
@@ -115,7 +100,6 @@ module.exports = {
     t.is(d.getElementById('axiscards').innerHTML !== cardsBefore, true,
       '(d) 기간 <select> + 폼 제출이 축 카드를 실제로 다시 그린다');
 
-    /* <textarea> — 타이핑이 반영된다. */
     walkToPick(t, w, d);
     pickFirstOutlier(t, w, d);
     t.click(w, d.getElementById('cta-4'));
@@ -124,10 +108,8 @@ module.exports = {
     t.is(memo.value, '타이핑 확인', '(d) <textarea> 에 타이핑이 반영된다');
   },
 
-  /* (e) 각 상태가 프로토타입 안의 조작으로 실제 도달 가능하다. */
   async states(t) {
     {
-      /* loading — 기준 적용 직후 → 해소 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'loading'), false, '(e) loading — 진입 직후에는 로딩이 아니다');
       t.fire(w, d.getElementById('sync-form'), 'submit');
@@ -136,7 +118,6 @@ module.exports = {
       t.is(t.shown(d, 'loading'), false, '(e) loading — 로딩이 실제로 해소된다');
     }
     {
-      /* axis-empty — 최근 24시간에는 전세계 축 수집이 없다 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'axis-empty'), false, '(e) axis-empty — 최근 7일에는 빈 축이 없다');
       const range = d.getElementById('range');
@@ -144,7 +125,6 @@ module.exports = {
       t.fire(w, d.getElementById('sync-form'), 'submit');
       await t.sleep(400);
       t.is(t.shown(d, 'axis-empty'), true, '(e) axis-empty — 최근 24시간에서 빈 축 상태에 도달');
-      /* 0% 로 그리지 않고 비교에서 제외한다 — 축 카드가 2개로 줄어야 한다. */
       t.is(d.querySelectorAll('#axistops .axpill').length, 2,
         '(e) axis-empty — 빈 축은 0%가 아니라 비교에서 실제로 제외된다');
       [...range.options].find(o => o.value === '7').selected = true;
@@ -153,7 +133,6 @@ module.exports = {
       t.is(t.shown(d, 'axis-empty'), false, '(e) axis-empty — 기간을 되돌리면 해소된다');
     }
     {
-      /* no-selection — 화면 4 진입 직후 오른쪽 패널 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'no-selection'), true, '(e) no-selection — 대상을 고르기 전 상태');
       walkToPick(t, w, d);
@@ -161,7 +140,6 @@ module.exports = {
       t.is(t.shown(d, 'no-selection'), false, '(e) no-selection — 행을 고르면 해소된다');
     }
     {
-      /* no-outlier — 임계를 올리면 "차이 없음" */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'no-outlier'), false, '(e) no-outlier — 기본 임계에서는 후보가 있다');
       const th = d.getElementById('gapthresh');
@@ -172,7 +150,6 @@ module.exports = {
       t.is(t.shown(d, 'no-outlier'), false, '(e) no-outlier — 임계를 되돌리면 해소된다');
     }
     {
-      /* alias-merged — 표기 변형 통합 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'alias-merged'), false, '(e) alias-merged — 통합 전에는 표기 없음');
       const alias = d.getElementById('alias-merge');
@@ -182,7 +159,6 @@ module.exports = {
       t.is(t.shown(d, 'alias-merged'), false, '(e) alias-merged — 통합을 끄면 해소된다');
     }
     {
-      /* invalid → recorded */
       const { w, d } = t.boot();
       walkToPick(t, w, d);
       pickFirstOutlier(t, w, d);
@@ -201,12 +177,10 @@ module.exports = {
     }
   },
 
-  /* (h) 인라인 스크립트만으로 실제 렌더가 일어난다. */
   async renders(t) {
     const { w, d } = t.boot();
     t.is(d.querySelectorAll('#axistops .rankrow').length > 0, true, '(h) 인라인 스크립트만으로 축별 순위가 렌더된다');
     t.is(d.querySelectorAll('#outlierlist .trow').length > 0, true, '(h) 격차 후보 목록이 인라인 스크립트로 렌더된다');
-    /* 시계열은 대상을 고른 뒤 상세 단계에서 그려진다. */
     walkToPick(t, w, d);
     pickFirstOutlier(t, w, d);
     t.click(w, d.getElementById('cta-4'));

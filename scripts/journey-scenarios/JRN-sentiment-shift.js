@@ -1,7 +1,3 @@
-/* JRN-sentiment-shift — 페이지 고유 조작 시나리오.
- */
-
-/* 화면 1에서 대상 하나를 고르는 제품 행동 — 여러 시나리오가 공유한다. */
 const pickFirstTarget = (t, w, d) => {
   const row = d.querySelector('#targetlist .trow');
   if (!row) return null;
@@ -10,12 +6,10 @@ const pickFirstTarget = (t, w, d) => {
 };
 
 module.exports = {
-  /* (c) 1단계 전진은 '대상 선택' 이라는 선행 제품 행동을 요구한다. */
   unlock: {
     'STP-open-sentiment': (t, w, d) => pickFirstTarget(t, w, d),
   },
 
-  /* (d) 값 변경이 렌더를 실제로 바꾼다. */
   async inputs(t) {
     const { w, d } = t.boot();
 
@@ -38,7 +32,6 @@ module.exports = {
     t.is([...d.querySelectorAll('input[name="verdict"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
       true, '(d) 결론 컨트롤이 전부 실제 <input type=radio> 다');
 
-    /* 값 변경이 렌더에 반영되는지 — 네 종류를 실제로 굴린다. */
     const before = d.getElementById('targetlist').innerHTML;
     const q = d.getElementById('q');
     q.value = '존재하지-않는-대상'; t.fire(w, q, 'input');
@@ -83,17 +76,14 @@ module.exports = {
     t.is(memo.value, '타이핑 확인', '(d) <textarea> 에 타이핑이 반영된다');
   },
 
-  /* (e) 각 상태가 프로토타입 안의 조작으로 실제 도달 가능하다. */
   async states(t) {
     {
-      /* no-selection — 진입 직후 오른쪽 분포 패널 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'no-selection'), true, '(e) no-selection — 진입 직후 대상 미선택 상태');
       pickFirstTarget(t, w, d);
       t.is(t.shown(d, 'no-selection'), false, '(e) no-selection — 대상을 고르면 해소된다');
     }
     {
-      /* empty — 검색 결과 0건 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'empty'), false, '(e) empty — 목록이 있을 때는 빈 상태가 아니다');
       const q = d.getElementById('q');
@@ -103,7 +93,6 @@ module.exports = {
       t.is(t.shown(d, 'empty'), false, '(e) empty — 검색어를 지우면 해소된다');
     }
     {
-      /* unanalyzed-warning — 임계를 실제 비중 아래로 내린다 */
       const { w, d } = t.boot();
       pickFirstTarget(t, w, d);
       const th = d.getElementById('nathresh');
@@ -113,7 +102,6 @@ module.exports = {
       t.is(t.shown(d, 'unanalyzed-warning'), true, '(e) unanalyzed-warning — 임계를 내리면 경고 상태에 도달');
     }
     {
-      /* loading → 해소 */
       const { w, d } = t.boot();
       pickFirstTarget(t, w, d);
       t.click(w, d.getElementById('cta-1'));
@@ -124,7 +112,6 @@ module.exports = {
       t.is(t.shown(d, 'loading'), false, '(e) loading — 로딩이 실제로 해소된다');
     }
     {
-      /* low-sample — 시간 단위 */
       const { w, d } = t.boot();
       pickFirstTarget(t, w, d);
       t.click(w, d.getElementById('cta-1'));
@@ -137,7 +124,6 @@ module.exports = {
       t.is(d.querySelectorAll('#senttime .thin').length > 0, true, '(e) low-sample — 해당 구간이 실제로 흐리게 그려진다');
     }
     {
-      /* invalid → recorded */
       const { w, d } = t.boot();
       pickFirstTarget(t, w, d);
       t.click(w, d.getElementById('cta-1'));
@@ -157,7 +143,6 @@ module.exports = {
     }
   },
 
-  /* (h) 인라인 스크립트만으로 실제 렌더가 일어난다. */
   async renders(t) {
     const { d } = t.boot();
     t.is(d.querySelectorAll('#targetlist .trow').length > 0, true, '(h) 인라인 스크립트만으로 목록이 렌더된다');

@@ -216,7 +216,7 @@ def css_rules(css):
 def norm_value(v):
     """표기 차이를 지운다 — 값이 같은데 다르게 적힌 것을 차이로 세지 않기 위해."""
     v = " ".join(v.split()).strip().rstrip(";")
-    v = v.replace("'", '"')                                    # 폰트 스택 따옴표
+    v = v.replace("'", '"')
     v = re.sub(r"(?<![\w.])\.(\d)", r"0.\1", v)                # .03em -> 0.03em
     v = re.sub(r"-\.(\d)", r"-0.\1", v)
     v = re.sub(r"#([0-9a-fA-F]{3,8})", lambda m: "#" + m.group(1).lower(), v)

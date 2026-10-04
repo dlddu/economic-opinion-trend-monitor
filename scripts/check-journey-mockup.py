@@ -13,7 +13,6 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
       실제 폼 요소 · data-state ↔ 인덱스 등재 · 딥링크 핸들러 · 외부 자원)
   R9  DOM 하네스가 레포에 있고 CI 워크플로에 실제로 걸려 있으며, **여정 페이지마다**
       그 페이지를 실제로 굴리는 시나리오가 있다
-      (모델 정의: '하네스가 없거나 CI 에 걸려 있지 않은 상태는 그 자체가 drift')
   R6  참조 무결성: 폐기 식별자(`J1`~`J5`) 재사용 금지, 없는 여정·단계 참조 금지
   R7  인덱스 ↔ 실제 파일 ↔ 허브 링크 동기화
   R8  링크 무결성: docs/ 상대 링크가 전부 해석되고, HTML 이 `.md` 를 직접 링크하지 않는다
@@ -54,7 +53,6 @@ def read(p):
 def strip_comments(h):
     return re.sub(r"<!--.*?-->", "", h, flags=re.S)
 
-# 마크다운은 펜스·인라인 코드를 걷어 낸 뒤 링크를 센다.
 def strip_code(md):
     md = re.sub(r"```.*?```", "", md, flags=re.S)
     return re.sub(r"`[^`]*`", "", md)
@@ -146,16 +144,15 @@ if not m:
 else:
     CEIL = int(m.group(1))
 
-# 예외 등재(규칙 8) — 설계 트래커에서 여정 식별자를 읽는다. 현재는 0건.
 tracker = read(TRACKER) if os.path.exists(TRACKER) else ""
 excepted = set(re.findall(r"^\|\s*`(JRN-[a-z0-9-]+)`\s*\|.*재검토", tracker, re.M))
 
-pages = {}   # path -> html
+pages = {}
 for fn in sorted(os.listdir(MDIR)):
     if fn.endswith(".html"):
         pages[fn] = read(os.path.join(MDIR, fn))
 
-declared = {}    # jid -> filename
+declared = {}
 for fn, raw in pages.items():
     h = strip_comments(raw)
     # <body …> 태그를 먼저 떼어 낸 뒤 그 안에서 센다.
@@ -185,7 +182,6 @@ for jid, fn in sorted(declared.items()):
     doc_steps = journeys[jid]["steps"]
     page_steps = re.findall(r'\bdata-step\s*=\s*"([^"]+)"', h)
 
-    # R3 — 양방향 일치 (기대값은 문서에서 왔다)
     if sorted(set(page_steps)) != sorted(set(doc_steps)):
         only_doc = sorted(set(doc_steps) - set(page_steps))
         only_pg = sorted(set(page_steps) - set(doc_steps))
@@ -195,27 +191,24 @@ for jid, fn in sorted(declared.items()):
     else:
         ok("R3", f"{fn}: 단계 {len(doc_steps)}개 양방향 일치 ({', '.join(doc_steps)})")
 
-    # R5 — 프로토타입 충실도의 정적 조건.
     # (c)(d)(e) 의 배선·동작은 정적으로 판정할 수 없다 — 여기서는 "그 판정이 가능한 형태인가"
     # 까지만 보고, 실제 구동은 R9 가 보장하는 DOM 하네스가 맡는다.
-    for sid in doc_steps:                                   # (f) 딥링크 앵커
+    for sid in doc_steps:
         if not re.search(r'id\s*=\s*"' + re.escape(sid) + r'"', h):
             fail("R5", f"{fn}: 단계 `{sid}` 의 딥링크 앵커 id 가 없다")
-    for i, sid in enumerate(doc_steps[:-1]):                # (c) 화면 내 전진
+    for i, sid in enumerate(doc_steps[:-1]):
         nxt = doc_steps[i + 1]
         if not re.search(r'data-advance\s*=\s*"' + re.escape(nxt) + r'"', h):
             fail("R5", f"{fn}: `{sid}` 에서 `{nxt}` 로 전진하는 화면 내 행동이 없다")
     if "hashchange" not in h:
         fail("R5", f"{fn}: hashchange 처리가 없다 — `#STP-` 딥링크가 동작하지 않는다")
 
-    # (b) 메타 레이어 — 문서 메타를 기본 접힌 보조 레이어로 내렸는가.
     mlayer = re.search(r'<details([^>]*\bdata-meta-layer\b[^>]*)>', h)
     if not mlayer:
         fail("R5", f"{fn}: 문서 메타를 담는 <details data-meta-layer> 보조 레이어가 없다")
     elif re.search(r'\bopen\b', mlayer.group(1)):
         fail("R5", f"{fn}: 메타 레이어가 기본으로 펼쳐져 있다 — 제품이 지배면이어야 한다")
     else:
-        # 레이어 밖 본문에 단계 식별자가 텍스트로 남아 있으면 (b) 위반이다.
         outside = _product_plane(h)
         outside = re.sub(r'<(script|style)\b.*?</\1>', '', outside, flags=re.S)
         outside = re.sub(r'<[^>]+>', ' ', outside)
@@ -223,8 +216,6 @@ for jid, fn in sorted(declared.items()):
         if leaked:
             fail("R5", f"{fn}: 제품 평면의 텍스트에 문서 식별자가 노출된다: {leaked}")
 
-    # (d) 실제 폼 요소 — 단계마다 하나 이상. 모양만 입력인 요소는 여기서 걸러지지 않으므로
-    #     '동작하는가' 는 하네스가 본다. 여기서는 '진짜 태그인가' 만 본다.
     for sid in doc_steps:
         sec = re.search(r'<section[^>]*data-step\s*=\s*"' + re.escape(sid) + r'".*?</section>', h, re.S)
         if not sec:
@@ -234,12 +225,10 @@ for jid, fn in sorted(declared.items()):
 
     # (d) 모양만 입력인 관용구 금지 — 화면 단위 목업이 쓰던 <div class="seg"><button>…
     #     세그먼트 컨트롤은 실제 폼 요소가 아니다. 여정 페이지에서는 쓰지 않는다.
-    #     (컨트롤이 '진짜로 동작하는가' 는 정적으로 못 본다 — 그건 하네스가 본다.)
     if re.search(r'class\s*=\s*"[^"]*\bseg\b[^"]*"', _product_plane(h)):
         fail("R5", f"{fn}: 제품 평면에 세그먼트 의사(擬似) 컨트롤(class=\"seg\")이 있다 — "
                    "실제 <select>/<input type=radio> 로 대체해야 한다")
 
-    # (e) 상태 변형 — 인덱스 등재와 페이지 선언이 양방향으로 같아야 한다.
     want_states = registered_states.get(jid)
     got_states = re.findall(r'data-state\s*=\s*"([a-z0-9-]+)"', h)
     if want_states is None:
@@ -250,14 +239,12 @@ for jid, fn in sorted(declared.items()):
     if len(got_states) != len(set(got_states)):
         fail("R5", f"{fn}: data-state 중복 선언 {got_states}")
 
-    # (h) 정적 동작
     if re.search(r'<(script|link)[^>]+(src|href)\s*=\s*"https?://[^"]*"', h) and \
        not re.search(r'fonts\.(googleapis|gstatic)\.com', h):
         fail("R5", f"{fn}: 웹폰트 외의 외부 자원을 로드한다(정적 동작 위반)")
     ok("R5", f"{fn}: 앵커 {len(doc_steps)} · 화면 내 전진 {len(doc_steps)-1} · "
              f"메타 레이어 접힘 · 상태 {len(set(got_states))} · 딥링크 처리")
 
-    # R4 — 분기: 문서가 선언한 (상황, 대상) 쌍을 순서까지 대조
     want = journeys[jid]["branches"]
     got = re.findall(r'data-goto\s*=\s*"(JRN-[a-z0-9-]+)#(STP-[a-z0-9-]+)"', h)
     want_pairs = [(tj, ts) for _, tj, ts in want]
@@ -266,7 +253,6 @@ for jid, fn in sorted(declared.items()):
                    f"        문서: {want_pairs}\n        페이지: {got}")
     else:
         ok("R4", f"{fn}: 분기 {len(got)}건이 문서 §4 와 순서까지 일치")
-    # 분기 대상이 실재하는 여정·단계인가 + 실제 이동 대상이 해석되는가
     # 분기 컨트롤은 제품 화면 안에 흩어져 있다(경고 배너·이탈 버튼). 문서 순서와의 대조는
     # 클래스가 아니라 data-goto 선언 순서로 한다. 같은 여정 분기도 JS 없이 앵커로 닿아야 하므로
     # href 를 요구한다.
@@ -303,14 +289,12 @@ for jid, fn in sorted(declared.items()):
                 elif frag != ts:
                     fail("R4", f"{fn}: 분기 착지 앵커 {href} 가 선언한 단계 `{ts}` 와 다르다")
 
-    # R6 — 폐기 식별자 재사용 금지
     stale = sorted(set(re.findall(r"\bJ[1-5]\b", h)))
     if stale:
         fail("R6", f"{fn}: 폐기된 구 식별자 {stale} 가 남아 있다")
     else:
         ok("R6", f"{fn}: 폐기 식별자(J1~J5) 0건")
 
-    # R7 — 인덱스 등재와 실제 파일 일치
     want_path = f"docs/mockups/{fn}"
     if registered.get(jid) != want_path:
         fail("R7", f"인덱스의 `{jid}` 등재 경로({registered.get(jid)})가 실제({want_path})와 다르다")
@@ -350,8 +334,6 @@ if CEIL5 is not None:
     else:
         ok("R5", f"규칙 5 미충족 mockup 페이지 {len(screen_pages)}건 == 상한 {CEIL5}")
 
-# 모델 정의: "(c)(d)(e) 는 정적 대조로 확인할 수 없다 → 하네스를 레포에 커밋해 CI 게이트에
-# 얹는다. 하네스가 없거나 CI 에 걸려 있지 않은 상태는 그 자체가 drift."
 HARNESS = "scripts/check-journey-flow.js"
 SCEN_DIR = "scripts/journey-scenarios"
 WFDIR = D(".github", "workflows")
@@ -436,7 +418,6 @@ if md_from_html:
 if not broken and not md_from_html:
     ok("R8", f"docs/ 상대 링크 {total}건 전부 해석 · HTML→.md 직접 링크 0건")
 
-# ── R11 ── 설계 트래커 「문서 목록」의 mockup 파일 경로 ↔ 실파일 양방향 정합.
 def _expand_braces(tok):
     m = re.search(r"\{([^}]*)\}", tok)
     if not m:
@@ -466,7 +447,6 @@ else:
     if not ghost and not unlisted:
         ok("R11", f"트래커 문서 목록의 mockup 파일 {len(listed)}건 == 실파일 {len(actual)}건")
 
-# ── R13 ── 좌측 네비에 관한 산문 주장 ↔ 실측 대조.
 _nav_dest = {}                      # data-id -> {목적지 파일}
 for _fn, _raw in pages.items():
     _nb = re.search(r'<nav class="nav">(.*?)</nav>', strip_comments(_raw), re.S)
@@ -526,7 +506,6 @@ else:
     ok("R13", f"좌측 네비 실측 {M_NAV}항목 / 목적지 {M_NAVDEST}파일 · "
               f"산문 주장 {_navclaims}건 전부 실측과 일치")
 
-# ── R10 ── 서술 절이 재진술하는 숫자 ↔ 실측 대조.
 _unvis_steps = []
 _cov = next((s for s in re.split(r"^## ", idx, flags=re.M) if s.startswith("여정 단계 커버리지")), "")
 for line in _cov.splitlines():
@@ -574,7 +553,6 @@ else:
               f"(이관 {M_PAGES}/{M_JRN} · 여정 페이지 {M_PAGES} · 화면 단위 {M_SCREENS} · "
               f"미시각화 {M_UNVIS}단계)")
 
-# ── R12 ── 현재형 서술이 가리키는 mockup 파일이 실재하는가.
 _real_mockups = set(os.listdir(MDIR)) if os.path.isdir(MDIR) else set()
 _CURRENT_FORM = (
     (JDIR, lambda ln: ln.startswith("| 연결 문서") or ln.startswith("- **터치포인트**")),
