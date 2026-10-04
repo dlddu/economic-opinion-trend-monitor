@@ -6,10 +6,10 @@ reconciler task `tbm_econ-opinion-monitor-comment-necessity` / `rct_20261004-000
 
 L·D·E 표의 `—` 행 중 `python/` 아래 전부(`packages/` 네 패키지 + `pyproject.toml`)와 Go 잔여 3파일
 (`go/cmd/serving/main.go`·`go/internal/static/static.go`·`go/internal/store/store_test.go`)을 묶었다.
-각 파일이 한 덩어리다. 이로써 `python/`·`go/` 에 `—` 행이 남지 않는다.
-**판정 전 364줄(L 72 · D 281 · E 11) → 225줄(L 58 · D 163 · E 4), 제거 139.**
+각 파일이 한 덩어리다. 이로써 `python/`·`go/` 의 `—` 행은 아래 「이월」의 한 행만 남는다.
+**판정 전 364줄(L 72 · D 281 · E 11) → 230줄(L 58 · D 168 · E 4), 제거 134.** `fake_llm.py` D 행 하나는 판정을 마쳤지만 제거 1문단(5줄)을 이월해 판정 칸을 `—` 로 둔다(아래 「이월」).
 
-예산 400줄에서 36줄이 남는다. 남은 `—` 덩어리는 `contracts/codegen.py`(생성기 — 사람 게이트 경로)와
+예산 400줄에서 36줄이 남는다(이월 5줄은 판정 대상에 포함해 셌다). 남은 `—` 덩어리는 `contracts/codegen.py`(생성기 — 사람 게이트 경로)와
 `scripts/check-data-format-change.py`(형식 판정기 자신 — 사람 게이트 경로), `.github/workflows/**`, 그리고 다른
 디렉터리(`web/src`·`scripts/journey-scenarios`·`deploy/`)라 이 슬라이스의 무인 경로·툴체인과 섞지 않았다.
 
@@ -32,7 +32,7 @@ doc 주석 수준(모듈·공개 함수·공개 클래스 요약 1줄)은 그대
 | `python/packages/aggregation/tests/test_source_contributions.py` | D 12 | D 12 | 0 |
 | `python/packages/analysis/src/econ_analysis/__init__.py` | D 1 | D 1 | 0 |
 | `python/packages/analysis/src/econ_analysis/cli.py` | L 7 · D 37 | L 7 · D 26 | 11 |
-| `python/packages/analysis/src/econ_analysis/fake_llm.py` | L 2 · D 12 | L 2 · D 3 | 9 |
+| `python/packages/analysis/src/econ_analysis/fake_llm.py` | L 2 · D 12 | L 2 · D 8 | 4 |
 | `python/packages/analysis/tests/test_analysis_run_record.py` | L 2 · D 1 | L 2 · D 1 | 0 |
 | `python/packages/analysis/tests/test_cli.py` | L 5 · D 14 | L 5 · D 6 | 8 |
 | `python/packages/analysis/tests/test_llm_call_record.py` | D 9 · E 1 | D 2 · E 1 | 7 |
@@ -57,7 +57,7 @@ doc 주석 수준(모듈·공개 함수·공개 클래스 요약 1줄)은 그대
 |---|---|
 | PRD AC·계약 재진술 | `feeds.py`·`sources.py`·`test_feeds.py` 모듈 본문, `collect_feed`·`collect_source`·`parse_feed` 본문, `fake_llm.analyze` 본문 |
 | 코드·argparse 재진술 | 두 CLI 모듈의 「두 수집원/분석기」 문단, `load_feed_configs` 스키마, 비공개 `_localname`·`_first_text`·`_find_link`·`_fetch_with_retry`, `FakeArticle`·`FakeSource` 필드 줄 끝, `storage.py` 모듈 본문, `PARTITION_FILE`·「Stage names」 `#:` |
-| 다른 주석의 사본 | `aggregate.py` 의 버킷 키 사전식 3줄(주인 `_bucket`) · 분석 CLI 의 「Two guards, two exit codes」(주인 `#:` 두 줄) · `fake_llm.py` 의 `keyword_analyzer` 문단(주인 `#:`) · `sources.run_ingestion` 의 주기 간 중복 제거(주인 `run_feed_ingestion`) |
+| 다른 주석의 사본 | `aggregate.py` 의 버킷 키 사전식 3줄(주인 `_bucket`) · 분석 CLI 의 「Two guards, two exit codes」(주인 `#:` 두 줄) · `sources.run_ingestion` 의 주기 간 중복 제거(주인 `run_feed_ingestion`) |
 | 테스트 이름 재진술 | `test_cli.py` 6 · `test_llm_call_record.py` 7 · `test_record_run_call_link.py` 3 |
 | 저장소 문서 재진술 | 수집 CLI 의 스케줄 배선 문단(`deploy/batch/cronworkflow-ingestion.yaml` 머리가 주인) · `static.go` 패키지 본문 |
 | 작업 흔적·소감 | 「Feed cutover tests — the CLI now defaults …」 · 「Subjects mirror the dashboard mockup」 · 여정 표지(`STP-run-reprocess`·`JRN-logic-backfill §4`) |
@@ -86,7 +86,7 @@ doc 주석 수준(모듈·공개 함수·공개 클래스 요약 1줄)은 그대
 - `python/packages/aggregation/tests/test_source_contributions.py` — D: 같은 입력으로 두 계산을 돌리는 이유(리터럴이 아니라 일치를 단언) · 픽스처 두 개의 의도(소박한 점유율과 정규화 점유율이 갈리게 · 1/3 이 격자에서 안 나눠져 잔여 분배가 실제로 필요하게).
 - `python/packages/analysis/src/econ_analysis/__init__.py` — D: 모듈 요약 — doc 주석 수준.
 - `python/packages/analysis/src/econ_analysis/cli.py` — L: `#:` 종료 코드 2줄(각 코드가 보장하는 것 — 읽기 전 중단 · Silver 무손상) · 시드를 실행 id 로 잡는 이유(재개된 표본이 같은 레코드) · 캐시 병합·호출 기록이 전량 실패 종료보다 앞서야 하는 순서 가드 2 · 전량 실패 배치를 쓰지 않는 이유 2줄 / D: 전체 레이크 실행의 「settled」 정의 문단(시간당 실행이 새 주기에 비례하는 이유 · 실패 호출과 AC4.3 이전 행만 다시 묻는다 · 과거 재분석은 버전 올림이다) · 범위 실행이 기존 버전 **옆에** 쓴다는 것(콘솔 비교·롤백 대상) · 운영 오류가 분석 결과로 위장하지 않는 이유 · `_book_outcomes` 의 분기 순서.
-- `python/packages/analysis/src/econ_analysis/fake_llm.py` — L: `#:` `keyword_analyzer` 미호출 사유 2줄 — 사유가 기사가 아니라 분석기의 속성이라는 것(모듈 docstring 의 같은 문단은 사본이라 걷었다) / D: 모듈 요약 · `normalize_subject`·`analyze` 요약 — doc 주석 수준.
+- `python/packages/analysis/src/econ_analysis/fake_llm.py` — L: `#:` `keyword_analyzer` 미호출 사유 2줄 — 사유가 기사가 아니라 분석기의 속성이라는 것(모듈 docstring 의 같은 문단은 사본 — 아래 「이월」) / D: 모듈 요약 · `normalize_subject`·`analyze` 요약 — doc 주석 수준.
 - `python/packages/analysis/tests/test_analysis_run_record.py` — L: 두 번째 실행이 캐시로 답하고 파티션을 비워 「settled」 밖으로 미는 이유 2줄 / D: 모듈 요약 — doc 주석 수준.
 - `python/packages/analysis/tests/test_cli.py` — L: 무본문 배치에서 가드가 발화하면 안 되는 이유 · 다음 주기가 같은 기사를 다시 관측한다는 시나리오 · 서빙 버전과 코드 기본 버전이 갈리는 시나리오 · Bronze 가 주기를 모두 보관해 재순회하면 안 되는 이유 2줄 / D: 모듈 본문(모델에 닿지 못한 실행이 쓰면 안 되는 이유 — **틀린 주석 고침**: 「`write_records` 가 Silver 데이터셋을 교체한다」→ Silver 는 파티션 단위로 교체된다) · `test_whole_lake_run_keeps_the_published_version` 의 「Gold would lose it」.
 - `python/packages/analysis/tests/test_llm_call_record.py` — D: 모듈 요약 · `_completer` docstring(제목으로 키잉하고 받은 요청을 그대로 기록한다 — 이름만으로는 바이트 동일 단언의 근거가 드러나지 않는다) / E: `# the reuse sent nothing` — 두 실행 뒤 호출 1회의 근거.
@@ -113,3 +113,13 @@ doc 주석 수준(모듈·공개 함수·공개 클래스 요약 1줄)은 그대
 - `python/packages/aggregation/src/econ_aggregation/aggregate.py` 의 「Sentiment ratios are over analyzed items」 줄은
   aggregation-harness-pass 가 「AC3.4 분리 근거」로 유지했다. 바로 아래 `analyzed_denom` 분모가 그 명제를 그대로 적어
   확인에 비용이 들지 않는다.
+
+## 이월 (판정 완료 · 제거 보류)
+
+- `python/packages/analysis/src/econ_analysis/fake_llm.py` 모듈 docstring 의 `keyword_analyzer` 문단 5줄 — **제거 판정**이다.
+  같은 명제의 주인은 그 사유 값을 선언하는 `NO_CALL_KEYWORD_ANALYZER` 의 `#:` 주석(2줄, 유지)이고, 「단일 단계 실행」 문장은
+  `econ_core.runlog.resolve_run_id` 의 재진술이다. 다만 문단 첫 줄이 ``no_call_reason="keyword_analyzer"`` 를 `field=value`
+  모양으로 담고 있어, 그 줄을 지우면 `scripts/check-data-format-change.py` 가 MA4(배치 생산자가 계약 필드에 채우는 값
+  변경)로 잡아 `format_changed=true` — 사람 승인 status 가 필요해진다. 코드 동작과 무관한 docstring 한 줄 때문에 이
+  슬라이스 전체를 사람 게이트 뒤로 보내지 않으려고 걷지 않았다. 원장의 그 D 행은 판정 칸 `—` 로 두고 결과 칸에 이 판정을 적었다.
+  사람 리뷰가 붙는 슬라이스(`contracts/codegen.py`·`scripts/check-data-format-change.py` 처럼 어차피 게이트를 타는 묶음)에서 걷는다.
