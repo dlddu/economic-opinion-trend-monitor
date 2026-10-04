@@ -1,5 +1,3 @@
-# Adds the app namespace, pulls in the scheduled batch (deploy/batch), and
-# points both emptyDir seams at the one claim in batch-pvc.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

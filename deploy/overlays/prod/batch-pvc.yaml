@@ -3,7 +3,6 @@
 # The cluster's `efs` StorageClass hands every mount the same access point
 # (fixed uid/gid), so serving reads what the batch user wrote without any
 # fsGroup dance on its side.
-# No storageClassName: the cluster default is used.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

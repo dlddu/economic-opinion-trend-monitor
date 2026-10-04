@@ -9,7 +9,6 @@
  *   상태 집합  ← docs/mockups/econ-opinion-monitor-mockup-index.md 「상태 변형 등재」
  * 페이지 자신에게서 기대값을 읽으면 자기참조라 어떤 뮤테이션도 통과한다.
  *
- * ── 구조 ──────────────────────────────────────────────────────────────────
  * 이 파일은 **여정 무관 범용 러너**다. `docs/mockups/*.html` 에서 `data-journey` 를
  * 선언한 페이지를 전부 찾아 각각에 대해 (a)(b)(c)(f)(g)(h) 와 (d) 의 '단계마다 활성
  * 폼 요소가 있는가' 를 구동한다 — 이 항목들은 전부 SSOT 만으로 판정되므로 페이지 고유
@@ -70,7 +69,6 @@ function readBranches(doc, jid) {
   return out;
 }
 
-/* 인덱스 「상태 변형 등재」의 여정별 절에서 상태 id 를 읽는다. */
 function readStates(idxMd, jid) {
   const m = idxMd.split('### 상태 변형 등재')[1];
   if (!m) return [];
@@ -122,7 +120,6 @@ async function runJourney({ jid, file }, idxMd) {
   if (!STEPS.length) { bad(`${jid}: 여정 문서에서 단계를 하나도 못 읽었다`); return; }
   if (!STATES.length) { bad(`${jid}: 인덱스 「상태 변형 등재」에서 상태를 하나도 못 읽었다`); return; }
 
-  /* --- fail-closed: 시나리오가 없으면 (c)(d)(e) 를 집행할 수단이 없다 --- */
   const SCEN = path.join(SDIR, jid + '.js');
   if (!fs.existsSync(SCEN)) {
     bad(`${jid}: 시나리오 ${path.relative(REPO, SCEN)} 가 없다 — 규칙 5(c)(d)(e) 의 `
@@ -150,10 +147,8 @@ async function runJourney({ jid, file }, idxMd) {
     const el = d.querySelector(`[data-state="${sid}"]`);
     return !!el && !el.hidden;
   };
-  /* 시나리오에 넘기는 도구상자 — 단언·조작·부트스트랩을 공유한다. */
   const t = { ok, bad, is, sleep, boot, click, fire, visible, shown, STEPS, BRANCHES, STATES, jid };
 
-  /* ---------- (a) 모든 단계 포함 ---------- */
   {
     const { d } = boot();
     is([...d.querySelectorAll('[data-step]')].map(e => e.dataset.step), STEPS,
@@ -162,8 +157,6 @@ async function runJourney({ jid, file }, idxMd) {
     is(d.querySelectorAll('[data-journey]').length, 1, '(a) data-journey 선언은 정확히 1건');
   }
 
-  /* ---------- (b) 제품 화면이 지배면 ----------
-     문서 메타는 기본 접힌 보조 레이어 안에만 있어야 한다. 연 직후 보이는 것은 제품이다. */
   {
     const { d } = boot();
     const layer = d.querySelector('[data-meta-layer]');
@@ -173,7 +166,6 @@ async function runJourney({ jid, file }, idxMd) {
       is(layer.tagName, 'DETAILS', '(b) 메타 레이어가 <details> 다');
       is(layer.hasAttribute('open'), false, '(b) 메타 레이어가 기본으로 접혀 있다');
 
-      /* 메타 레이어를 들어낸 사본의 렌더 텍스트에 문서 메타가 남아 있으면 안 된다. */
       const clone = d.body.cloneNode(true);
       clone.querySelectorAll('[data-meta-layer]').forEach(n => n.remove());
       clone.querySelectorAll('script,style').forEach(n => n.remove());
@@ -190,15 +182,12 @@ async function runJourney({ jid, file }, idxMd) {
         const hits = [...new Set(text.match(re) || [])];
         is(hits, [], `(b) 제품 평면에 ${label}가 노출되지 않는다`);
       }
-      /* 반대 방향 — 메타는 사라진 게 아니라 레이어 안에 있어야 한다. */
       const meta = layer.textContent;
       is(STEPS.every(s => meta.includes(s)), true, '(b) 단계 식별자는 메타 레이어 안에 보존돼 있다');
     }
   }
 
-  /* ---------- (c) 화면 안의 행동으로 전진 ----------
-     래퍼 네비게이션(단계 레일 · 이전/다음)을 DOM 에서 들어낸 상태에서도 완주해야 한다.
-     전진이 선행 행동을 요구하는 단계는 시나리오의 unlock 훅이 그 행동을 대신한다 —
+  /* 전진이 선행 행동을 요구하는 단계는 시나리오의 unlock 훅이 그 행동을 대신한다 —
      '죽은 버튼' 과 '조건부로 열리는 버튼' 을 구분하기 위함이다. */
   {
     const { w, d } = boot();
@@ -227,15 +216,11 @@ async function runJourney({ jid, file }, idxMd) {
       click(w, cta);
       is(visible(d), [STEPS[i + 1]], `(c) 화면 내 행동 클릭으로 ${STEPS[i + 1]} 도달`);
     }
-    /* 마지막 단계는 전진이 아니라 여정을 닫는 제출을 가진다. */
     const last = d.querySelector(`section.jstep[data-step="${STEPS[STEPS.length - 1]}"]`);
     is(!!last.querySelector('form button[type="submit"], form input[type="submit"]'), true,
       '(c) 마지막 단계에 여정을 닫는 제출 행동이 있다');
   }
 
-  /* ---------- (d) 실제 입력 요소 — 여정 무관 부분 ----------
-     단계마다 진짜 폼 요소가 있고 비활성이 아니다. '값을 바꾸면 렌더가 바뀌는가' 는
-     페이지 고유 지식이라 시나리오가 본다. */
   {
     const { d } = boot();
     const SEL = 'input, select, textarea';
@@ -250,16 +235,12 @@ async function runJourney({ jid, file }, idxMd) {
     }
   }
 
-  /* ---------- (d) 페이지 고유 — 값 변경이 렌더를 실제로 바꾼다 ---------- */
   if (typeof scenario.inputs === 'function') {
     await scenario.inputs(t);
   } else {
     bad(`${jid}: 시나리오에 inputs() 가 없다 — (d) 의 '값 변경이 렌더를 바꾸는가' 를 못 본다`);
   }
 
-  /* ---------- (e) 상태 변형 ----------
-     인덱스가 등재한 상태 집합과 페이지의 data-state 가 양방향으로 같고(여정 무관),
-     각 상태가 프로토타입 안의 조작으로 실제 도달 가능하다(시나리오). */
   {
     const { d } = boot();
     const declared = [...d.querySelectorAll('[data-state]')].map(e => e.dataset.state);
@@ -271,7 +252,6 @@ async function runJourney({ jid, file }, idxMd) {
     bad(`${jid}: 시나리오에 states() 가 없다 — (e) 의 상태 도달을 못 본다`);
   }
 
-  /* ---------- (f) 딥링크 ---------- */
   for (const sid of STEPS) {
     const { w, d } = boot();
     w.location.hash = '#' + sid;
@@ -285,7 +265,6 @@ async function runJourney({ jid, file }, idxMd) {
     is(visible(d), [STEPS[0]], '(f) 알 수 없는 해시는 1단계로 폴백한다');
   }
 
-  /* ---------- (g) 분기와 끝 ---------- */
   {
     const { w, d } = boot();
     const controls = [...d.querySelectorAll('[data-goto]')].filter(e => !e.closest('[data-meta-layer]'));
@@ -305,7 +284,6 @@ async function runJourney({ jid, file }, idxMd) {
     });
   }
 
-  /* ---------- (h) 정적 동작 ---------- */
   {
     const { d } = boot();
     const ext = [...d.querySelectorAll('[src],[href]')]

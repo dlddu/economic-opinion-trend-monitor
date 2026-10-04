@@ -1,7 +1,3 @@
-/* JRN-ingestion-recovery — 페이지 고유 조작 시나리오.
- */
-
-/* 화면 1에서 구간 하나를 고르는 제품 행동 — 여러 시나리오가 공유한다. */
 const pickFirstBucket = (t, w, d) => {
   const row = d.querySelector('#bk-rows tr[data-bucket]');
   if (!row) return null;
@@ -36,7 +32,6 @@ const pickCause = (t, w, d, v) => {
   return r;
 };
 
-/* 1→4 단계를 제품 행동만으로 통과해 보정 실행 화면까지 간다. */
 const walkToBackfill = (t, w, d) => {
   pickFirstBucket(t, w, d);
   t.click(w, d.getElementById('cta-1'));
@@ -46,17 +41,12 @@ const walkToBackfill = (t, w, d) => {
 };
 
 module.exports = {
-  /* (c) 전진이 비활성인 세 단계를 여는 선행 제품 행동. */
   unlock: {
-    /* 이상 구간을 고르기 전에는 소스 단위로 좁힐 대상이 없다. */
     'STP-spot-anomaly': (t, w, d) => pickFirstBucket(t, w, d),
-    /* 원인을 가르기 전에는 실행할 작업이 정해지지 않는다. */
     'STP-diagnose-source': (t, w, d) => pickCause(t, w, d, 'api'),
-    /* 보정을 실행하기 전에는 확인할 전후가 없다. */
     'STP-backfill': (t, w, d) => t.click(w, d.getElementById('run')),
   },
 
-  /* (d) 값 변경이 렌더를 실제로 바꾼다. */
   async inputs(t) {
     const { w, d } = t.boot();
 
@@ -83,7 +73,6 @@ module.exports = {
     t.is([...d.querySelectorAll('input[name="verdict"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
       true, '(d) 결론 컨트롤이 전부 실제 <input type=radio> 다');
 
-    /* 체크박스 — 이상 구간만 보기가 목록을 실제로 줄인다. */
     const all = d.querySelectorAll('#bk-rows tr[data-bucket]').length;
     const onlyBad = d.getElementById('only-bad');
     onlyBad.checked = true; t.fire(w, onlyBad, 'change');
@@ -92,7 +81,6 @@ module.exports = {
     onlyBad.checked = false; t.fire(w, onlyBad, 'change');
     t.is(d.querySelectorAll('#bk-rows tr[data-bucket]').length, all, '(d) 체크를 풀면 목록이 되돌아온다');
 
-    /* <select> — 점검 구간을 바꾸면 버킷 라벨 집합이 바뀐다. */
     const labels = () => [...d.querySelectorAll('#bk-rows tr[data-bucket] td:first-child')]
       .map(td => td.textContent.trim());
     const day = labels();
@@ -102,7 +90,6 @@ module.exports = {
       pickOption(t, w, d.getElementById('win'), '24h');
     }
 
-    /* 화면 2 의 소스 필터가 행을 실제로 거른다. */
     pickFirstBucket(t, w, d);
     t.click(w, d.getElementById('cta-1'));
     const gapsAll = d.querySelectorAll('#gap-rows tr[data-gap]').length;
@@ -112,14 +99,12 @@ module.exports = {
     t.is(gapsOne > 0 && gapsOne < gapsAll, true, '(d) 소스 <select> 가 구간 행을 실제로 거른다');
     pickOption(t, w, d.getElementById('f-source'), 'all');
 
-    /* 화면 3 의 라디오가 메타데이터 렌더를 바꾼다. */
     t.click(w, d.getElementById('cta-2'));
     const metaBefore = d.getElementById('cause-meta').textContent;
     pickCause(t, w, d, 'api');
     t.is(d.getElementById('cause-meta').textContent !== metaBefore, true,
       '(d) <input type=radio> 선택이 수집 메타데이터 표기를 실제로 바꾼다');
 
-    /* 화면 4 의 체크박스가 보존 방식 설명을 바꾼다. */
     t.click(w, d.getElementById('cta-3'));
     const noteBefore = d.getElementById('preserve-note').textContent;
     const preserve = d.getElementById('preserve');
@@ -127,7 +112,6 @@ module.exports = {
     t.is(d.getElementById('preserve-note').textContent !== noteBefore, true,
       '(d) 보존 <input type=checkbox> 전환이 설명을 실제로 바꾼다');
 
-    /* 화면 5 의 재확인 범위 <select> 가 비교 표 수치를 바꾼다. */
     t.click(w, d.getElementById('run'));
     await t.sleep(400);
     t.click(w, d.getElementById('cta-4'));
@@ -136,16 +120,13 @@ module.exports = {
     t.is(d.getElementById('vf-rows').textContent !== vfBefore, true,
       '(d) 재확인 범위 <select> 가 전후 비교 표를 실제로 다시 그린다');
 
-    /* <textarea> 타이핑. */
     const memo = d.getElementById('verify-memo');
     memo.value = '타이핑 확인'; t.fire(w, memo, 'input');
     t.is(memo.value, '타이핑 확인', '(d) <textarea> 에 타이핑이 반영된다');
   },
 
-  /* (e) 각 상태가 프로토타입 안의 조작으로 실제 도달 가능하다. */
   async states(t) {
     {
-      /* no-anomaly — 이상이 없는 축으로 바꾼다 */
       const { w, d } = t.boot();
       t.is(t.shown(d, 'no-anomaly'), false, '(e) no-anomaly — 이상 구간이 있는 축에서는 정상 상태가 아니다');
       pickOption(t, w, d.getElementById('axis'), 'WW');
@@ -154,7 +135,6 @@ module.exports = {
       t.is(t.shown(d, 'no-anomaly'), false, '(e) no-anomaly — 이상이 있는 축으로 돌아오면 해소된다');
     }
     {
-      /* attempt-zero — 시도 0 구간을 고른다 */
       const { w, d } = t.boot();
       pickFirstBucket(t, w, d);
       t.is(t.shown(d, 'attempt-zero'), false, '(e) attempt-zero — 시도가 있는 구간은 이 상태가 아니다');
@@ -162,7 +142,6 @@ module.exports = {
       t.is(t.shown(d, 'attempt-zero'), true, '(e) attempt-zero — 시도 0 구간에서 「스케줄 미실행」 상태에 도달');
     }
     {
-      /* filter-empty — 그 축에 없는 소스로 좁힌다 */
       const { w, d } = t.boot();
       pickFirstBucket(t, w, d);
       t.click(w, d.getElementById('cta-1'));
@@ -173,7 +152,6 @@ module.exports = {
       t.is(t.shown(d, 'filter-empty'), false, '(e) filter-empty — 필터를 넓히면 해소된다');
     }
     {
-      /* source-outage / origin-gone — 원인 판정에 따라 갈린다 */
       const { w, d } = t.boot();
       pickFirstBucket(t, w, d);
       t.click(w, d.getElementById('cta-1'));
@@ -187,7 +165,6 @@ module.exports = {
       t.is(t.shown(d, 'source-outage'), false, '(e) origin-gone — 앞선 배너는 해소된다');
     }
     {
-      /* running → 해소 */
       const { w, d } = t.boot();
       walkToBackfill(t, w, d);
       t.is(t.shown(d, 'running'), false, '(e) running — 실행 전에는 로딩이 아니다');
@@ -197,7 +174,6 @@ module.exports = {
       t.is(t.shown(d, 'running'), false, '(e) running — 로딩이 실제로 해소된다');
     }
     {
-      /* dup-again — 덮어쓰기로 실행하면 중복이 다시 쌓인다 */
       const { w, d } = t.boot();
       walkToBackfill(t, w, d);
       t.click(w, d.getElementById('run'));
@@ -212,7 +188,6 @@ module.exports = {
         '(e) dup-again — 재생성된 중복 건수가 실제로 표기된다');
     }
     {
-      /* invalid → recorded */
       const { w, d } = t.boot();
       walkToBackfill(t, w, d);
       t.click(w, d.getElementById('run'));
@@ -231,7 +206,6 @@ module.exports = {
     }
   },
 
-  /* (h) 인라인 스크립트만으로 실제 렌더가 일어난다. */
   async renders(t) {
     const { d } = t.boot();
     t.is(d.querySelectorAll('#bk-rows tr[data-bucket]').length > 0, true,
