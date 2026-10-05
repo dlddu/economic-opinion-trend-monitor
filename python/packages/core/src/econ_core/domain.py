@@ -16,6 +16,7 @@ DS_NEWS_BODY = "news_body"
 DS_ANALYSIS = "analysis"
 DS_ANALYSIS_CACHE = "analysis_cache"  # not a contract
 DS_ANALYSIS_RETRY = "analysis_retry"  # not a contract
+DS_ANALYSIS_SETTLED = "analysis_settled"  # not a contract
 DS_REPROCESS_DECISION = "reprocess_decision"  # not a contract
 DS_PIPELINE_RUN = "pipeline_run"
 DS_LLM_CALL = "llm_call"
@@ -105,3 +106,11 @@ def cycle_partition(cycle: str) -> dict[str, str]:
         "day": at.strftime("%d"),
         "hour": at.strftime("%H"),
     }
+
+
+def partition_cycle(partition: dict[str, str]) -> str:
+    """The collection cycle a ``year=/month=/day=/hour=`` partition holds — the inverse
+    of :func:`cycle_partition`."""
+    cycle = f"{partition['year']}-{partition['month']}-{partition['day']}T{partition['hour']}:00"
+    parse_cycle(cycle)
+    return cycle

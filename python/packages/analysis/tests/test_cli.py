@@ -526,3 +526,73 @@ def test_rows_written_before_run_links_are_relinked_from_the_cache(
     out = capsys.readouterr().out
     assert "wrote 0 silver records" in out
     assert "relinked_unlinked_rows" not in out
+
+
+def test_whole_lake_run_reads_only_cycles_not_yet_settled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The hourly run used to read the whole lake into memory and outgrew its limit;
+    # a settled cycle must now cost a stat, not a read.
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    _write_items(
+        tmp_path,
+        [
+            {**item, "record_id": f"{item['record_id']}-next", "collection_cycle": NEXT_CYCLE}
+            for item in _bronze_rows(tmp_path)
+        ],
+    )
+    read: list[str] = []
+    real_read = LocalFsStore.read_partition
+
+    def spy(self, layer, dataset, partition):
+        if (layer, dataset) == ("bronze", "news_item"):
+            read.append(domain.partition_cycle(partition))
+        return real_read(self, layer, dataset, partition)
+
+    monkeypatch.setattr(LocalFsStore, "read_partition", spy)
+    capsys.readouterr()
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert read == [NEXT_CYCLE]
+    assert "read 4 bronze, wrote 2 silver records" in out
+    assert "silver now 4 rows" in out
+    assert "settled_already_at_version=2" in out
+
+
+def test_a_cycle_with_a_failed_call_is_not_settled_until_the_retry_succeeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    replies = iter([good, "not json"])
+    monkeypatch.setattr(
+        llm, "http_completer", lambda *_a, **_k: lambda _system, _user: next(replies)
+    )
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    store = LocalFsStore(tmp_path)
+    assert silver.read_settled(store, llm.ANALYZER_VERSION) == {}
+    assert silver.pending_retry_cycles(store, llm.ANALYZER_VERSION) == {CYCLE}
+
+    monkeypatch.setattr(llm, "http_completer", _canned(good))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert set(silver.read_settled(store, llm.ANALYZER_VERSION)) == {CYCLE}
+    assert silver.pending_retry_cycles(store, llm.ANALYZER_VERSION) == set()
+
+
+def test_a_scoped_rewrite_of_a_settled_cycle_sends_it_back_to_the_hourly_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _seed_lake(tmp_path)
+    base = ["--data", str(tmp_path), "--analyzer", "fake"]
+    assert cli.main(base) == 0
+    assert cli.main([*base, "--analyzer-version", "fake-v2", "--axis", "KR"]) == 0
+    store = LocalFsStore(tmp_path)
+    mark = silver.read_settled(store, fake_llm.ANALYZER_VERSION)[CYCLE]
+    assert not silver.still_settled(store, mark, domain.cycle_partition(CYCLE))
+
+    capsys.readouterr()
+    assert cli.main(base) == 0
+    assert "wrote 0 silver records" in capsys.readouterr().out
+    mark = silver.read_settled(store, fake_llm.ANALYZER_VERSION)[CYCLE]
+    assert silver.still_settled(store, mark, domain.cycle_partition(CYCLE))

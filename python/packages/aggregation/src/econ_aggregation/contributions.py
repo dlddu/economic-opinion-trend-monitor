@@ -10,6 +10,7 @@ identities in AC3.9 exist to catch.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import asdict
 
 from econ_core.models import SubjectSourceContribution
@@ -17,6 +18,7 @@ from econ_core.models import SubjectSourceContribution
 from econ_aggregation.aggregate import (
     BUCKET_UNITS,
     DEFAULT_BUCKET_UNIT,
+    Counts,
     count_by_source,
     fold_bucket,
 )
@@ -42,9 +44,10 @@ def _on_grid(terms: dict[str, tuple[float, int]], denom: float, share: float) ->
 def build_subject_source_contributions(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
 ) -> list[dict]:
-    counts = count_by_source(bronze, silver, unit)
+    return list(subject_source_contributions(count_by_source(bronze, silver, unit), unit))
 
-    rows: list[dict] = []
+
+def subject_source_contributions(counts: Counts, unit: str) -> Iterator[dict]:
     for axis, buckets in counts.items():
         for bucket, sources in buckets.items():
             folded, terms, denom = fold_bucket(sources)
@@ -52,21 +55,18 @@ def build_subject_source_contributions(
                 units = _on_grid(terms[subject], denom, share)
                 ordered = sorted(terms[subject].items(), key=lambda kv: (-kv[1][1], kv[0]))
                 for source, (_, n) in ordered:
-                    rows.append(
-                        asdict(
-                            SubjectSourceContribution(
-                                subject=subject,
-                                axis=axis,
-                                bucket_unit=unit,
-                                time_bucket=bucket,
-                                source_id=source,
-                                raw_count=n,
-                                raw_share=round(n / (raw_count or 1), 4),
-                                normalized_contribution=units[source] / GRID,
-                            )
+                    yield asdict(
+                        SubjectSourceContribution(
+                            subject=subject,
+                            axis=axis,
+                            bucket_unit=unit,
+                            time_bucket=bucket,
+                            source_id=source,
+                            raw_count=n,
+                            raw_share=round(n / (raw_count or 1), 4),
+                            normalized_contribution=units[source] / GRID,
                         )
                     )
-    return rows
 
 
 def build_subject_source_contributions_all_units(

@@ -29,7 +29,7 @@ from __future__ import annotations
 import argparse
 import random
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 
@@ -178,6 +178,72 @@ def main(argv: list[str] | None = None) -> int:
         return _analyze(args, store, version, completer, run_id, stage)
 
 
+@dataclass
+class _Tally:
+    """What a run did, summed over the cycles it visited or found settled."""
+
+    bronze: int = 0
+    selected: int = 0
+    skipped: int = 0
+    not_sampled: int = 0
+    written: int = 0
+    low: int = 0
+    unanalyzed: int = 0
+    relinked: int = 0
+    silver_rows: int = 0
+    pruned: int = 0
+
+
+@dataclass
+class _Replies:
+    """The reply cache, read from the lake only once a cycle actually needs the model."""
+
+    cache: dict[str, str] = field(default_factory=dict)
+    origins: dict[str, str] = field(default_factory=dict)
+    loaded: bool = False
+
+    def load(self, store: LakeStore) -> None:
+        if self.loaded:
+            return
+        for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_CACHE):
+            self.cache[row["cache_key"]] = row["reply"]
+            if row.get("call_id"):
+                self.origins[row["cache_key"]] = row["call_id"]
+        self.loaded = True
+
+
+def _sample_ids(
+    store: LakeStore, args: argparse.Namespace, version: str, retry: set[str]
+) -> set[str]:
+    """The records a ``--sample`` run analyzes, drawn over the whole selection.
+
+    Candidates are listed in the order a whole-lake read would have produced them, so
+    the seeded draw picks the same records it did before runs went cycle by cycle.
+    """
+    candidates: list[tuple[str, str]] = []
+    for partition in store.partitions(domain.BRONZE, domain.DS_NEWS_ITEM):
+        at_version = [
+            r
+            for r in store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
+            if r["analyzer_version"] == version
+        ]
+        unlinked = {r["record_id"] for r in at_version if not r.get("run_id")}
+        done = {r["record_id"] for r in at_version} - retry - unlinked
+        bronze = store.read_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
+        candidates.extend(
+            (item["record_id"], item["collected_at"])
+            for item in _select_scope(bronze, args)
+            if item["record_id"] not in done
+        )
+    picked = _take_sample(
+        [{"record_id": rid, "collected_at": at} for rid, at in candidates],
+        args.sample,
+        args.sample_mode,
+        f"{version}|{args.since}",
+    )
+    return {item["record_id"] for item in picked}
+
+
 def _analyze(
     args: argparse.Namespace,
     store: LakeStore,
@@ -186,27 +252,150 @@ def _analyze(
     run_id: str,
     stage: runlog.StageReport,
 ) -> int:
-    bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
-    cycles = silver.cycles_of(bronze)
-    migrated = silver.migrate_legacy(store, cycles)
+    """Analyze Bronze one collection cycle at a time.
+
+    Memory is bounded by one cycle's partitions rather than by the lake. A whole-lake
+    run also skips every cycle still settled at ``version`` (:func:`econ_core.silver.
+    still_settled`) without reading it, so the hourly run touches the new cycle, the
+    cycles with pending retries and any cycle whose partitions were rewritten since.
+    """
+    migrated = silver.migrate_legacy(store, silver.BronzeCycles(store))
     if migrated:
         print(f"analysis: migrated {migrated} legacy silver rows into cycle partitions")
 
     scoped = _scoped(args)
     retry = silver.pending_retries(store, version)
-    at_version = [r for r in silver.read_analyses(store) if r["analyzer_version"] == version]
+    settled = {} if scoped else silver.read_settled(store, version)
+    retry_cycles = set() if scoped else silver.pending_retry_cycles(store, version)
+    chosen = _sample_ids(store, args, version, retry) if scoped and args.sample else None
+    keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
+    stats = llm.AnalysisStats() if completer is not None else None
+    replies = _Replies()
+    tally = _Tally()
+    seen: set[tuple[tuple[str, str], ...]] = set()
+
+    for partition in store.partitions(domain.BRONZE, domain.DS_NEWS_ITEM):
+        seen.add(tuple(partition.items()))
+        cycle = domain.partition_cycle(partition)
+        mark = settled.get(cycle)
+        if cycle not in retry_cycles and silver.still_settled(store, mark, partition):
+            tally.bronze += mark["bronze_count"]
+            tally.selected += mark["bronze_count"]
+            tally.skipped += mark["bronze_count"]
+            tally.silver_rows += mark["silver_count"]
+            continue
+        code = _analyze_cycle(
+            args,
+            store,
+            version,
+            completer,
+            run_id,
+            stage,
+            partition,
+            cycle,
+            retry=retry,
+            stale_retries=cycle in retry_cycles,
+            chosen=chosen,
+            keep_versions=keep_versions,
+            stats=stats,
+            replies=replies,
+            tally=tally,
+        )
+        if code:
+            return code
+
+    for partition in store.partitions(domain.SILVER, domain.DS_ANALYSIS):
+        if tuple(partition.items()) in seen:
+            continue
+        rows = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
+        if store.partition_signature(domain.BRONZE, domain.DS_NEWS_ITEM, partition) is None:
+            if rows:
+                store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, [])
+                tally.pruned += len(rows)
+        else:
+            tally.silver_rows += len(rows)
+
+    if scoped:
+        stage.count("skipped_not_sampled", tally.not_sampled)
+    stage.input_count = tally.selected
+    stage.count("skipped_settled", tally.skipped)
+
+    target = store.dataset_dir(domain.SILVER, domain.DS_ANALYSIS)
+    print(
+        f"analysis[{args.analyzer}]: read {tally.bronze} bronze, "
+        f"wrote {tally.written} silver records -> {target}"
+    )
+    print(f"  analyzer={version} low_confidence={tally.low} unanalyzed={tally.unanalyzed}")
+    print(
+        f"  silver now {tally.silver_rows} rows "
+        f"({'coexisting' if scoped else 'in place'}, pruned={tally.pruned})"
+    )
+    if not scoped:
+        print(f"  settled_already_at_version={tally.skipped}")
+    if tally.relinked:
+        print(f"  relinked_unlinked_rows={tally.relinked}")
+    if scoped:
+        print(
+            f"  scope: since={args.since or '-'} axis={args.axis or '-'} "
+            f"source={args.source or '-'} sample={args.sample or 0}/{args.sample_mode} "
+            f"skipped_already_at_version={tally.skipped}"
+        )
+    if stats is not None:
+        print(
+            f"  model calls: attempted={stats.attempted} failed={stats.failed} "
+            f"reused={stats.reused}"
+        )
+        if stats.failed:
+            print(f"  last error: {stats.last_error}")
+    stage.output_count = tally.written
+    print(f"  run={run_id} stage=analysis")
+    return 0
+
+
+def _analyze_cycle(
+    args: argparse.Namespace,
+    store: LakeStore,
+    version: str,
+    completer: llm.Completer | None,
+    run_id: str,
+    stage: runlog.StageReport,
+    partition: dict[str, str],
+    cycle: str,
+    *,
+    retry: set[str],
+    stale_retries: bool,
+    chosen: set[str] | None,
+    keep_versions: tuple[str, ...],
+    stats: llm.AnalysisStats | None,
+    replies: _Replies,
+    tally: _Tally,
+) -> int:
+    scoped = _scoped(args)
+    bronze = store.read_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
+    present = {item["record_id"] for item in bronze}
+    cycles = dict.fromkeys(present, cycle)
+    tally.bronze += len(bronze)
+
+    rows_before = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
+    kept = [r for r in rows_before if r["record_id"] in present]
+    if len(kept) != len(rows_before):
+        store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, kept)
+        tally.pruned += len(rows_before) - len(kept)
+    silver_rows = len(kept)
+
+    at_version = [r for r in kept if r["analyzer_version"] == version]
     unlinked = {r["record_id"] for r in at_version if not r.get("run_id")}
     done = {r["record_id"] for r in at_version} - retry - unlinked
-    todo = _select_scope(bronze, args) if scoped else list(bronze)
+    del rows_before, kept, at_version
+    todo = _select_scope(bronze, args) if scoped else bronze
     selected = len(todo)
     todo = [item for item in todo if item["record_id"] not in done]
-    skipped = selected - len(todo)
-    if scoped:
+    tally.selected += selected
+    tally.skipped += selected - len(todo)
+    if chosen is not None:
         before_sample = len(todo)
-        todo = _take_sample(todo, args.sample, args.sample_mode, f"{version}|{args.since}")
-        stage.count("skipped_not_sampled", before_sample - len(todo))
-    stage.input_count = selected
-    stage.count("skipped_settled", skipped)
+        todo = [item for item in todo if item["record_id"] in chosen]
+        tally.not_sampled += before_sample - len(todo)
 
     bodies: dict[str, str] = {}
     for item in todo:
@@ -216,29 +405,20 @@ def _analyze(
             if body is not None:
                 bodies[key] = body["raw_text"]
 
-    stats = llm.AnalysisStats() if completer is not None else None
-    reply_cache: dict[str, str] = {}
-    reply_origins: dict[str, str] = {}
-    if completer is not None:
-        cached_replies = store.read_records(domain.SILVER, domain.DS_ANALYSIS_CACHE)
-        reply_cache = {r["cache_key"]: r["reply"] for r in cached_replies}
-        reply_origins = {r["cache_key"]: r["call_id"] for r in cached_replies if r.get("call_id")}
-
-    keep_versions = () if scoped else tuple(v for v in (silver.serving_version(store),) if v)
-    analyses: list[dict] = []
-    written = pruned = 0
+    cycle_failed: set[str] = set()
     for batch in _batches(todo, args.batch_size):
         failed_ids: list[str] = []
         if completer is not None:
+            replies.load(store)
             batch_calls: list[dict] = []
             rows, batch_stats, new_replies = llm.run_llm_analysis(
                 batch,
                 bodies,
                 completer,
                 version,
-                reply_cache,
+                replies.cache,
                 calls=batch_calls,
-                reply_origins=reply_origins,
+                reply_origins=replies.origins,
                 run_id=run_id,
             )
             # Keep what the model did answer even if the batch as a whole fails below.
@@ -246,7 +426,7 @@ def _analyze(
             # Must stay ahead of the all-calls-failed exit below (AC4.2).
             for call in batch_calls:
                 calllog.record_call(store, call)
-            reply_origins.update(
+            replies.origins.update(
                 {r["cache_key"]: r["call_id"] for r in new_replies if r.get("call_id")}
             )
             assert stats is not None
@@ -261,11 +441,12 @@ def _analyze(
                 # blur the AC2.5 signal. Keep the checkpoint and stop here.
                 print(
                     f"analysis[llm]: all {batch_stats.attempted} model calls failed; "
-                    f"stopped after {len(analyses)} records, Silver checkpoint kept",
+                    f"stopped after {tally.written} records, Silver checkpoint kept",
                     file=sys.stderr,
                 )
                 print(f"  last error: {batch_stats.last_error}", file=sys.stderr)
-                stage.output_count = len(analyses)
+                stage.input_count = tally.selected
+                stage.output_count = tally.written
                 stage.fail(
                     f"all {batch_stats.attempted} model calls failed; "
                     f"last error: {batch_stats.last_error}"
@@ -279,45 +460,28 @@ def _analyze(
                 for item in batch
             ]
             _book_outcomes(stage, rows, [], [])
-        _, dropped = silver.store_analyses(
+        silver_rows, dropped = silver.store_analyses(
             store, cycles, rows, coexist=scoped, keep_versions=keep_versions
         )
-        silver.record_retries(store, cycles, version, [r["record_id"] for r in rows], failed_ids)
-        pruned += dropped
-        analyses.extend(rows)
-    fresh = silver.cycles_of(store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM))
-    written, orphaned = silver.prune_orphans(store, fresh)
-    pruned += orphaned
+        analyzed = [r["record_id"] for r in rows]
+        silver.record_retries(store, cycle, present, version, analyzed, failed_ids)
+        cycle_failed |= set(failed_ids)
+        tally.pruned += dropped
+        tally.written += len(rows)
+        tally.low += sum(1 for r in rows if r["analysis_status"] == "low_confidence")
+        tally.unanalyzed += sum(1 for r in rows if r["analysis_status"] == "unanalyzed")
+        tally.relinked += len(unlinked.intersection(analyzed))
 
-    unanalyzed = sum(1 for a in analyses if a["analysis_status"] == "unanalyzed")
-    low = sum(1 for a in analyses if a["analysis_status"] == "low_confidence")
-    target = store.dataset_dir(domain.SILVER, domain.DS_ANALYSIS)
-    print(
-        f"analysis[{args.analyzer}]: read {len(bronze)} bronze, "
-        f"wrote {len(analyses)} silver records -> {target}"
-    )
-    print(f"  analyzer={version} low_confidence={low} unanalyzed={unanalyzed}")
-    print(
-        f"  silver now {written} rows ({'coexisting' if scoped else 'in place'}, pruned={pruned})"
-    )
+    if not todo and stale_retries:
+        silver.record_retries(store, cycle, present, version, [], [])
+    tally.silver_rows += silver_rows
     if not scoped:
-        print(f"  settled_already_at_version={skipped}")
-    relinked = len(unlinked & {a["record_id"] for a in analyses})
-    if relinked:
-        print(f"  relinked_unlinked_rows={relinked}")
-    if scoped:
-        print(
-            f"  scope: since={args.since or '-'} axis={args.axis or '-'} "
-            f"source={args.source or '-'} sample={args.sample or 0}/{args.sample_mode} "
-            f"skipped_already_at_version={skipped}"
+        silver.mark_settled(
+            store,
+            version,
+            cycle,
+            settled=not cycle_failed,
+            bronze_count=len(bronze),
+            silver_count=silver_rows,
         )
-    if stats is not None:
-        print(
-            f"  model calls: attempted={stats.attempted} failed={stats.failed} "
-            f"reused={stats.reused}"
-        )
-        if stats.failed:
-            print(f"  last error: {stats.last_error}")
-    stage.output_count = len(analyses)
-    print(f"  run={run_id} stage=analysis")
     return 0
