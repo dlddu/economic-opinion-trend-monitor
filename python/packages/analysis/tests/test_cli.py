@@ -596,3 +596,33 @@ def test_a_scoped_rewrite_of_a_settled_cycle_sends_it_back_to_the_hourly_run(
     assert "wrote 0 silver records" in capsys.readouterr().out
     mark = silver.read_settled(store, fake_llm.ANALYZER_VERSION)[CYCLE]
     assert silver.still_settled(store, mark, domain.cycle_partition(CYCLE))
+
+
+def test_a_cycle_holding_only_failing_retries_does_not_stop_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Cut at the cycle edge, the old cycle's batch would be its failing retry alone and
+    # the all-calls-failed guard would take it for an outage.
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+
+    def _r2_never_parses(*_args, **_kwargs):
+        return lambda _system, user: "not json" if "보도 2" in user else good
+
+    monkeypatch.setattr(llm, "http_completer", _r2_never_parses)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    late = {
+        **_bronze_rows(tmp_path)[0],
+        "record_id": "r3",
+        "title": "한국은행 기준금리 보도 3",
+        "collection_cycle": NEXT_CYCLE,
+    }
+    _write_items(tmp_path, [late])
+    capsys.readouterr()
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 2 silver records" in out
+    assert "failed=1" in out
+    store = LocalFsStore(tmp_path)
+    assert set(silver.read_settled(store, llm.ANALYZER_VERSION)) == {NEXT_CYCLE}
