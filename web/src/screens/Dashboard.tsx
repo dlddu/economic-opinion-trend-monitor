@@ -47,6 +47,12 @@ const NEW_LABEL: Record<BucketUnit, string> = {
   week: "이번 주 새로 진입",
 };
 
+const ENTRY_LABEL: Record<BucketUnit, string> = {
+  hour: "이번 시간 새로 올라옴",
+  day: "밤사이 새로 올라옴",
+  week: "이번 주 새로 올라옴",
+};
+
 /** 원시 순위와 정규화 순위가 이만큼 갈리면 행에 적는다 — 한 칸 차이는 동점 처리의 흔들림이다. */
 const RANK_SHIFT_NOTE = 2;
 
@@ -121,6 +127,9 @@ export function Dashboard() {
   const [axis, setAxis] = useState<Axis>(entry.axis);
   const [q, setQ] = useState(entry.q);
   const [restore, setRestore] = useState(entry.restore);
+  const [thresh, setThresh] = useState(0);
+  const [onlyNew, setOnlyNew] = useState(false);
+  const [target, setTarget] = useState<string | null>(null);
   const range = entry.range;
   const unit = entry.unit;
   const [data, setData] = useState<DashboardResponse | null>(null);
@@ -155,6 +164,13 @@ export function Dashboard() {
   const maxShare = Math.max(...ranked.map((r) => r.normalized_share), 0.0001);
   const noGold = data !== null && data.basis.bucket === "";
   const emptyWindow = data !== null && !noGold && data.basis.empty_window;
+  const hasBaseline = data !== null && data.basis.has_baseline;
+  const deltaRows = ranked.filter((r) => {
+    if (onlyNew && !r.is_new) return false;
+    if (hasBaseline && Math.abs(r.delta) < thresh) return false;
+    return true;
+  });
+  const picked = data?.top_subjects.find((r) => r.subject === target) ?? null;
 
   return (
     <>
@@ -263,6 +279,114 @@ export function Dashboard() {
             )}
           </div>
         </div>
+
+        <div className="card col-7">
+          <div className="card-h">
+            <h3>밤사이 변화</h3>
+            <span className="sub">직전 동일 구간 대비</span>
+            <div className="r">
+              <span className="dash-tag">{deltaRows.length}개 대상</span>
+            </div>
+          </div>
+          <div className="card-b">
+            <form onSubmit={(e) => e.preventDefault()}>
+              <div className="dash-brief-row">
+                <label className="dash-brief-field" style={{ maxWidth: 150 }}>
+                  <span className="dash-brief-label">증감 임계 (%p)</span>
+                  <input
+                    type="number"
+                    value={thresh}
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    onChange={(e) => setThresh(Number(e.target.value) || 0)}
+                  />
+                </label>
+                <label className="dash-brief-check" style={{ paddingBottom: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={onlyNew}
+                    onChange={(e) => setOnlyNew(e.target.checked)}
+                  />
+                  새로 올라온 대상만
+                </label>
+              </div>
+            </form>
+
+            <div style={{ marginTop: 6 }}>
+              {data && deltaRows.length === 0 && (
+                <div className="dash-brief-empty">이 조건에 걸리는 변화가 없습니다.</div>
+              )}
+              {data &&
+                deltaRows.map((row) => (
+                  <button
+                    key={row.subject}
+                    type="button"
+                    className="dash-trow"
+                    aria-pressed={target === row.subject}
+                    onClick={() => setTarget(row.subject)}
+                  >
+                    <span className="nm">
+                      {row.subject}
+                      {row.is_new && (
+                        <>
+                          {" "}
+                          <span className="badge b-pos">
+                            <i className="d" />
+                            신규
+                          </span>
+                        </>
+                      )}
+                    </span>{" "}
+                    <span
+                      className={`dlt ${hasBaseline ? dcls(row.delta) : "fl"}`}
+                      style={{ float: "right" }}
+                    >
+                      {dtext(row.delta, hasBaseline)}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="card col-5">
+          <div className="card-h">
+            <h3>고른 대상</h3>
+            <span className="sub">오늘 더 볼 후보</span>
+          </div>
+          <div className="card-b">
+            {!picked && (
+              <div className="dash-brief-empty" data-state="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면
+                <br />
+                여기에 어제 대비 변화가 펼쳐집니다.
+              </div>
+            )}
+            {picked && (
+              <div data-state="selection">
+                <div className="kv">
+                  <span className="dash-pick-k">대상</span>
+                  <span className="dash-pick-v">{picked.subject}</span>
+                </div>
+                <div className="kv">
+                  <span className="dash-pick-k">점유율</span>
+                  <span className="dash-pick-v">{pct(picked.normalized_share)}</span>
+                </div>
+                <div className="kv">
+                  <span className="dash-pick-k">직전 동일 구간 대비</span>
+                  <span className="dash-pick-v">{dtext(picked.delta, hasBaseline)}</span>
+                </div>
+                <div className="kv">
+                  <span className="dash-pick-k">진입</span>
+                  <span className="dash-pick-v">
+                    {hasBaseline && picked.is_new ? ENTRY_LABEL[unit] : "이전 구간에도 있었음"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <details className="meta">
@@ -270,9 +394,9 @@ export function Dashboard() {
         <div className="metabody">
           <p>
             이 화면이 시각화하는 여정: <b>JRN-daily-scan</b> — 아침 정기 스캔 · 단계{" "}
-            <span className="mono">STP-open-brief</span>. 같은 여정의{" "}
-            <span className="mono">STP-scan-delta</span>·<span className="mono">STP-adjust-window</span>{" "}
-            는 아직 구현되지 않았고, <span className="mono">STP-drill-trend</span>·
+            <span className="mono">STP-open-brief</span>·<span className="mono">STP-scan-delta</span>.
+            같은 여정의 <span className="mono">STP-adjust-window</span> 는 아직 구현되지 않았고,{" "}
+            <span className="mono">STP-drill-trend</span>·
             <span className="mono">STP-shortlist</span> 는 순위 행을 눌러 여는 추세 상세 화면이 맡는다.
           </p>
           <MapStrip
@@ -280,6 +404,7 @@ export function Dashboard() {
             chips={[
               { value: "JRN-daily-scan", text: "여정" },
               { value: "STP-open-brief", text: "단계" },
+              { value: "STP-scan-delta", text: "단계" },
               { value: "V1", text: "시계열 추세 가시화", kind: "v" },
               { text: "AC3.2 · AC3.5" },
             ]}
