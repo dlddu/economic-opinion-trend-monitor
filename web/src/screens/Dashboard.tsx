@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type {
@@ -36,12 +35,6 @@ const UNIT_LABEL: Record<BucketUnit, string> = {
   week: "주 단위",
 };
 
-const UNIT_NAME: Record<BucketUnit, string> = {
-  hour: "시간",
-  day: "일",
-  week: "주",
-};
-
 const PREV_LABEL: Record<BucketUnit, string> = {
   hour: "직전 시간 대비",
   day: "전일 대비",
@@ -58,6 +51,12 @@ const ENTRY_LABEL: Record<BucketUnit, string> = {
   hour: "이번 시간 새로 올라옴",
   day: "밤사이 새로 올라옴",
   week: "이번 주 새로 올라옴",
+};
+
+const UNIT_NAME: Record<BucketUnit, string> = {
+  hour: "시간",
+  day: "일",
+  week: "주",
 };
 
 /** 원시 순위와 정규화 순위가 이만큼 갈리면 행에 적는다 — 한 칸 차이는 동점 처리의 흔들림이다. */
