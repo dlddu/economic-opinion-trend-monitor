@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type {
   Axis,
@@ -33,6 +34,12 @@ const UNIT_LABEL: Record<BucketUnit, string> = {
   hour: "시간 단위",
   day: "일 단위",
   week: "주 단위",
+};
+
+const UNIT_NAME: Record<BucketUnit, string> = {
+  hour: "시간",
+  day: "일",
+  week: "주",
 };
 
 const PREV_LABEL: Record<BucketUnit, string> = {
@@ -130,8 +137,11 @@ export function Dashboard() {
   const [thresh, setThresh] = useState(0);
   const [onlyNew, setOnlyNew] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
-  const range = entry.range;
-  const unit = entry.unit;
+  const [range, setRange] = useState<DashRange>(entry.range);
+  const [unit, setUnit] = useState<BucketUnit>(entry.unit);
+  const [draftRange, setDraftRange] = useState<DashRange>(entry.range);
+  const [draftUnit, setDraftUnit] = useState<BucketUnit>(entry.unit);
+  const [reapplying, setReapplying] = useState(false);
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -152,11 +162,20 @@ export function Dashboard() {
     api
       .dashboard(axis, range, unit)
       .then((d) => active && setData(d))
-      .catch((e: unknown) => active && setError(String(e)));
+      .catch((e: unknown) => active && setError(String(e)))
+      .finally(() => active && setReapplying(false));
     return () => {
       active = false;
     };
   }, [axis, range, unit]);
+
+  function applyWindow(e: FormEvent) {
+    e.preventDefault();
+    if (draftRange === range && draftUnit === unit) return;
+    setReapplying(true);
+    setRange(draftRange);
+    setUnit(draftUnit);
+  }
 
   // 대소문자를 구분하는 것까지 목업(`rows()` 의 `indexOf`)과 같다.
   const needle = q.trim();
@@ -387,6 +406,149 @@ export function Dashboard() {
             )}
           </div>
         </div>
+        <div className="card col-5">
+          <div className="card-h">
+            <h3>기간 · 단위</h3>
+            <span className="sub">일시적 튐인지 지속 추세인지 가늠합니다</span>
+          </div>
+          <div className="card-b">
+            <form onSubmit={applyWindow}>
+              <label className="dash-brief-field" style={{ maxWidth: 220 }}>
+                <span className="dash-brief-label">기간</span>
+                <select
+                  name="range"
+                  value={draftRange}
+                  onChange={(e) => setDraftRange(e.target.value as DashRange)}
+                >
+                  {RANGES.map((r) => (
+                    <option key={r} value={r}>
+                      {RANGE_LABEL[r]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="dash-brief-field" style={{ marginTop: 16 }}>
+                <span className="dash-brief-label">집계 단위</span>
+                <div className="dash-radios">
+                  {UNITS.map((u) => (
+                    <label key={u}>
+                      <input
+                        type="radio"
+                        name="unit"
+                        value={u}
+                        checked={draftUnit === u}
+                        onChange={() => setDraftUnit(u)}
+                      />
+                      {UNIT_NAME[u]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="dash-stepact" style={{ marginTop: 18 }}>
+                <button type="submit" className="btn pri">
+                  기간 적용
+                </button>
+                <span className="dash-hint">고른 대상은 그대로 유지됩니다.</span>
+              </div>
+            </form>
+
+            <div className="note" style={{ marginTop: 18 }}>
+              <InfoIcon />
+              <div>
+                <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b> 방금 고른 대상은{" "}
+                <span data-state="keep-note">
+                  {picked ? (
+                    <>
+                      ‘{picked.subject}’ 으로 강조
+                    </>
+                  ) : (
+                    "그대로 강조"
+                  )}
+                </span>
+                되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card col-7">
+          <div className="card-h">
+            <h3>단위별 순위</h3>
+            <span className="sub">
+              {RANGE_LABEL[range]} · {UNIT_LABEL[unit]}
+            </span>
+            <div className="r">
+              <span className="dash-tag">
+                {range} · {unit}
+              </span>
+            </div>
+          </div>
+          <div className="card-b">
+            {!data && !error && (
+              <div className="dash-brief-empty" data-state="loading">
+                {reapplying ? "고른 단위로 다시 집계하는 중…" : "불러오는 중…"}
+              </div>
+            )}
+            {data && data.top_subjects.length === 0 && (
+              <div className="dash-brief-empty">이 축에는 이 기간에 표시할 대상이 없습니다.</div>
+            )}
+            {data && data.top_subjects.length > 0 && ranked.length === 0 && (
+              <div className="dash-brief-empty">검색어에 걸리는 대상이 없습니다.</div>
+            )}
+            {data && ranked.length > 0 && (
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>대상</th>
+                    <th className="num">{UNIT_LABEL[unit]} 점유율</th>
+                    <th className="num">변화</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.map((row) => {
+                    const on = target === row.subject;
+                    return (
+                      <tr key={row.subject} style={on ? { background: "var(--primary-soft)" } : undefined}>
+                        <td className="num">{row.rank}</td>
+                        <td>
+                          {row.subject}
+                          {on && (
+                            <>
+                              {" "}
+                              <span className="dash-tag">고른 대상</span>
+                            </>
+                          )}
+                        </td>
+                        <td className="num">{pct(row.normalized_share)}</td>
+                        <td className="num">
+                          <span className={`dlt ${hasBaseline ? dcls(row.delta) : "fl"}`}>
+                            {dtext(row.delta, hasBaseline)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            <div
+              className="dash-banner"
+              style={{ background: "var(--panel-2)", border: "1px solid var(--line)" }}
+            >
+              <ColumnsIcon />
+              <div>
+                <b>축마다 온도가 다른지 궁금하다면</b> 한국 · 미국 · 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                <div className="dash-actions">
+                  <Link className="btn sm" to="/compare">
+                    3축을 나란히 비교 →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <details className="meta">
@@ -394,8 +556,8 @@ export function Dashboard() {
         <div className="metabody">
           <p>
             이 화면이 시각화하는 여정: <b>JRN-daily-scan</b> — 아침 정기 스캔 · 단계{" "}
-            <span className="mono">STP-open-brief</span>·<span className="mono">STP-scan-delta</span>.
-            같은 여정의 <span className="mono">STP-adjust-window</span> 는 아직 구현되지 않았고,{" "}
+            <span className="mono">STP-open-brief</span>·<span className="mono">STP-scan-delta</span>·
+            <span className="mono">STP-adjust-window</span>. 같은 여정의{" "}
             <span className="mono">STP-drill-trend</span>·
             <span className="mono">STP-shortlist</span> 는 순위 행을 눌러 여는 추세 상세 화면이 맡는다.
           </p>
@@ -405,6 +567,7 @@ export function Dashboard() {
               { value: "JRN-daily-scan", text: "여정" },
               { value: "STP-open-brief", text: "단계" },
               { value: "STP-scan-delta", text: "단계" },
+              { value: "STP-adjust-window", text: "단계" },
               { value: "V1", text: "시계열 추세 가시화", kind: "v" },
               { text: "AC3.2 · AC3.5" },
             ]}
@@ -534,6 +697,23 @@ function InfoIcon() {
     <svg className="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8h.01M11 12h1v4h1" />
+    </svg>
+  );
+}
+
+function ColumnsIcon() {
+  return (
+    <svg
+      className="ic"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      style={{ flex: "none", marginTop: 1 }}
+    >
+      <path d="M4 4v16M12 4v16M20 4v16" />
     </svg>
   );
 }
