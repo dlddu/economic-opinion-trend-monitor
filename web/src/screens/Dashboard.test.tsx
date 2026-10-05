@@ -529,6 +529,198 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
   });
 });
 
+describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
+  function card(container: HTMLElement, title: string): HTMLElement {
+    const head = [...container.querySelectorAll(".card-h")].find(
+      (h) => h.querySelector("h3")?.textContent === title,
+    )!;
+    return head.parentElement as HTMLElement;
+  }
+
+  function tableRows(container: HTMLElement): string[][] {
+    return [...card(container, "단위별 순위").querySelectorAll("tbody tr")].map((tr) =>
+      [...tr.querySelectorAll("td")].map((td) => td.textContent ?? ""),
+    );
+  }
+
+  function pickUnit(container: HTMLElement, unit: string) {
+    fireEvent.click(
+      card(container, "기간 · 단위").querySelector<HTMLInputElement>(`input[name="unit"][value="${unit}"]`)!,
+    );
+  }
+
+  function pickRange(container: HTMLElement, range: string) {
+    fireEvent.change(card(container, "기간 · 단위").querySelector('select[name="range"]')!, {
+      target: { value: range },
+    });
+  }
+
+  function apply(container: HTMLElement) {
+    fireEvent.submit(card(container, "기간 · 단위").querySelector("form")!);
+  }
+
+  it("draws the form the journey promises, opened on the window the brief restored", async () => {
+    localStorage.setItem(
+      "econ-monitor:dash:brief",
+      JSON.stringify({ axis: "KR", q: "", restore: true, range: "30d", unit: "week" }),
+    );
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
+    const form = card(container, "기간 · 단위");
+    expect(form.className).toBe("card col-5");
+    expect(form.querySelector(".card-h .sub")?.textContent).toBe("일시적 튐인지 지속 추세인지 가늠합니다");
+    const select = form.querySelector<HTMLSelectElement>('select[name="range"]')!;
+    expect([...select.options].map((o) => o.textContent)).toEqual(["최근 24시간", "최근 7일", "최근 30일"]);
+    expect(select.value).toBe("30d");
+    const radios = [...form.querySelectorAll<HTMLInputElement>('input[type="radio"][name="unit"]')];
+    expect(radios.map((r) => r.parentElement?.textContent)).toEqual(["시간", "일", "주"]);
+    expect(radios.map((r) => r.checked)).toEqual([false, false, true]);
+    expect(form.querySelector('button[type="submit"]')?.textContent).toBe("기간 적용");
+    expect(form.querySelector(".dash-hint")?.textContent).toBe("고른 대상은 그대로 유지됩니다.");
+    expect(form.querySelector(".note")?.textContent).toBe(
+      "단위를 바꾸면 순위가 뒤집힐 수 있습니다. 방금 고른 대상은 그대로 강조되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.",
+    );
+  });
+
+  it("asks serving again only when the form is applied, and only when the window changed", async () => {
+    const fetch = stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
+    pickRange(container, "30d");
+    pickUnit(container, "week");
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    apply(container);
+    expect(card(container, "단위별 순위").querySelector('[data-state="loading"]')?.textContent).toBe(
+      "고른 단위로 다시 집계하는 중…",
+    );
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1][0]).toBe("/api/dashboard?axis=KR&range=30d&unit=week");
+    expect(JSON.parse(localStorage.getItem("econ-monitor:dash:brief")!)).toMatchObject({
+      range: "30d",
+      unit: "week",
+    });
+
+    apply(container);
+    expect(card(container, "단위별 순위").querySelector('[data-state="loading"]')).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("dates the rank table by the applied window, not by the one still being chosen", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    const table = card(container, "단위별 순위");
+    expect(table.className).toBe("card col-7");
+    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 일 단위");
+    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d · day");
+    expect([...table.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
+      "#",
+      "대상",
+      "일 단위 점유율",
+      "변화",
+    ]);
+
+    pickUnit(container, "hour");
+    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 일 단위");
+
+    apply(container);
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 시간 단위");
+    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d · hour");
+    expect(table.querySelectorAll("thead th")[2].textContent).toBe("시간 단위 점유율");
+    expect(table.querySelector('[data-state="low-sample"]')).toBeNull();
+  });
+
+  it("ranks by serving's rank and keeps it when the search narrows the table", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(tableRows(container)).toEqual([
+      ["1", "기준금리", "21.0%", "▲ 7.0%p"],
+      ["2", "삼성전자", "13.0%", "▼ 1.2%p"],
+      ["3", "전기요금", "7.9%", "–"],
+      ["4", "반도체 보조금", "6.6%", "▲ 6.6%p"],
+    ]);
+
+    fireEvent.change(container.querySelector('.dash-brief-field input[type="search"]')!, {
+      target: { value: "반도체" },
+    });
+    expect(tableRows(container)).toEqual([["4", "반도체 보조금", "6.6%", "▲ 6.6%p"]]);
+
+    fireEvent.change(container.querySelector('.dash-brief-field input[type="search"]')!, {
+      target: { value: "없는 대상" },
+    });
+    expect(card(container, "단위별 순위").querySelector(".dash-brief-empty")?.textContent).toBe(
+      "검색어에 걸리는 대상이 없습니다.",
+    );
+  });
+
+  it("keeps the picked subject across a re-aggregation and marks it in the table and the note", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(card(container, "단위별 순위").querySelectorAll("tbody .dash-tag")).toHaveLength(0);
+
+    fireEvent.click(container.querySelectorAll<HTMLButtonElement>(".dash-trow")[1]);
+    pickUnit(container, "week");
+    apply(container);
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+
+    expect(tableRows(container)[1]).toEqual(["2", "삼성전자 고른 대상", "13.0%", "▼ 1.2%p"]);
+    const marked = [...card(container, "단위별 순위").querySelectorAll<HTMLElement>("tbody tr")].filter(
+      (tr) => tr.style.background !== "",
+    );
+    expect(marked).toHaveLength(1);
+    expect(marked[0].style.background).toBe("var(--primary-soft)");
+    expect(card(container, "기간 · 단위").querySelector('[data-state="keep-note"]')?.textContent).toBe(
+      "‘삼성전자’ 으로 강조",
+    );
+    expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
+  });
+
+  it("says the window has nothing to show instead of drawing an empty table", async () => {
+    const empty = response();
+    empty.top_subjects = [];
+    stubDashboard(empty);
+    const { container } = renderDashboard();
+
+    await waitFor(() =>
+      expect(card(container, "단위별 순위").querySelector(".dash-brief-empty")?.textContent).toBe(
+        "이 축에는 이 기간에 표시할 대상이 없습니다.",
+      ),
+    );
+    expect(card(container, "단위별 순위").querySelector("table")).toBeNull();
+  });
+
+  it("offers the three-axis comparison from inside the rank card, and lands on the compare screen", async () => {
+    stubDashboard(response());
+    const { container } = render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/compare" element={<Landing />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    const banner = card(container, "단위별 순위").querySelector(".dash-banner")!;
+    expect(banner.textContent).toBe(
+      "축마다 온도가 다른지 궁금하다면 한국 · 미국 · 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.3축을 나란히 비교 →",
+    );
+    fireEvent.click(banner.querySelector("a.btn.sm")!);
+    expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe("/compare");
+  });
+});
+
 describe("Dashboard — 셸 토프바", () => {
   function renderInShell() {
     return render(

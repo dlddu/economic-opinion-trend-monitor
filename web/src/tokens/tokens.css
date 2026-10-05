@@ -1943,6 +1943,40 @@ tr.fair-picked td {
   font-weight: 700;
 }
 
+.dash-banner .dash-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.dash-radios {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dash-radios label {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.dash-stepact {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dash-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
 .mono {
   font-family: var(--mono);
   font-feature-settings: "tnum" 1;
