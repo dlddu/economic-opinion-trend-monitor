@@ -610,6 +610,28 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it("waits out a re-aggregation in the mockup's load box with its bar, and a first load in the empty-state box", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    const first = card(container, "단위별 순위").querySelector('[data-state="loading"]')!;
+    expect(first.className).toBe("dash-brief-empty");
+    expect(first.textContent).toBe("불러오는 중…");
+    expect(first.querySelector(".dash-bar")).toBeNull();
+
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    pickRange(container, "30d");
+    pickUnit(container, "week");
+    apply(container);
+    const box = card(container, "단위별 순위").querySelector('[data-state="loading"]')!;
+    expect(box.className).toBe("dash-loadbox");
+    expect(box.firstChild?.textContent?.trim()).toBe("고른 단위로 다시 집계하는 중…");
+    expect(box.querySelectorAll(":scope > .dash-bar > i")).toHaveLength(1);
+    expect(box.querySelector(".dash-brief-empty")).toBeNull();
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(card(container, "단위별 순위").querySelector(".dash-loadbox")).toBeNull();
+  });
+
   it("dates the rank table by the applied window, not by the one still being chosen", async () => {
     stubDashboard(response());
     const { container } = renderDashboard();

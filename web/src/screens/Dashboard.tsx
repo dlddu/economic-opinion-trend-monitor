@@ -483,9 +483,17 @@ export function Dashboard() {
             </div>
           </div>
           <div className="card-b">
-            {!data && !error && (
+            {!data && !error && reapplying && (
+              <div className="dash-loadbox" data-state="loading">
+                고른 단위로 다시 집계하는 중…
+                <div className="dash-bar">
+                  <i />
+                </div>
+              </div>
+            )}
+            {!data && !error && !reapplying && (
               <div className="dash-brief-empty" data-state="loading">
-                {reapplying ? "고른 단위로 다시 집계하는 중…" : "불러오는 중…"}
+                불러오는 중…
               </div>
             )}
             {data && data.top_subjects.length === 0 && (

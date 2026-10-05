@@ -1977,6 +1977,30 @@ tr.fair-picked td {
   color: var(--ink-3);
 }
 
+.dash-loadbox {
+  padding: 34px 18px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.dash-loadbox .dash-bar {
+  height: 4px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+  margin: 14px auto 0;
+  max-width: 220px;
+}
+
+.dash-loadbox .dash-bar i {
+  display: block;
+  height: 100%;
+  width: 45%;
+  background: var(--primary);
+  border-radius: 3px;
+}
+
 .mono {
   font-family: var(--mono);
   font-feature-settings: "tnum" 1;
