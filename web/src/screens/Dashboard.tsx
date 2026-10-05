@@ -380,7 +380,7 @@ export function Dashboard() {
                 <div className="kv">
                   <span className="dash-pick-k">진입</span>
                   <span className="dash-pick-v">
-                    {hasBaseline && picked.is_new ? ENTRY_LABEL[unit] : "이전 구간에도 있었음"}
+                    {!hasBaseline ? "—" : picked.is_new ? ENTRY_LABEL[unit] : "이전 구간에도 있었음"}
                   </span>
                 </div>
               </div>

@@ -525,7 +525,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     fireEvent.click(trows(container)[3]);
     expect(
       [...card(container, "고른 대상").querySelectorAll(".kv")].map((kv) => kv.textContent),
-    ).toEqual(["대상반도체 보조금", "점유율6.6%", "직전 동일 구간 대비—", "진입이전 구간에도 있었음"]);
+    ).toEqual(["대상반도체 보조금", "점유율6.6%", "직전 동일 구간 대비—", "진입—"]);
   });
 });
 
