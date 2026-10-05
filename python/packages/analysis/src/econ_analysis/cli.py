@@ -286,8 +286,16 @@ class _Analysis:
         self.pending: list[tuple[dict, _Cycle]] = []
 
     def visit(
-        self, partition: dict[str, str], cycle: str, stale_retries: bool, chosen: set[str] | None
+        self,
+        partition: dict[str, str],
+        cycle: str,
+        stale_retries: bool,
+        chosen: set[str] | None,
+        *,
+        count_only: bool = False,
     ) -> int:
+        """Select the cycle's records and queue them; ``count_only`` books the selection
+        and leaves the lake untouched (the cycles a stopped run never reached)."""
         store, tally = self.store, self.tally
         bronze = store.read_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
         present = {item["record_id"] for item in bronze}
@@ -295,7 +303,7 @@ class _Analysis:
 
         rows = store.read_partition(domain.SILVER, domain.DS_ANALYSIS, partition)
         kept = [r for r in rows if r["record_id"] in present]
-        if len(kept) != len(rows):
+        if len(kept) != len(rows) and not count_only:
             store.write_partition(domain.SILVER, domain.DS_ANALYSIS, partition, kept)
             tally.pruned += len(rows) - len(kept)
         at_version = [r for r in kept if r["analyzer_version"] == self.version]
@@ -312,6 +320,8 @@ class _Analysis:
             before_sample = len(todo)
             todo = [item for item in todo if item["record_id"] in chosen]
             tally.not_sampled += before_sample - len(todo)
+        if count_only:
+            return 0
 
         visited = _Cycle(partition, cycle, present, len(bronze), unlinked, len(todo))
         if not todo:
@@ -380,7 +390,6 @@ class _Analysis:
                     file=sys.stderr,
                 )
                 print(f"  last error: {batch_stats.last_error}", file=sys.stderr)
-                self.stage.input_count = tally.selected
                 self.stage.output_count = tally.written
                 self.stage.fail(
                     f"all {batch_stats.attempted} model calls failed; "
@@ -460,7 +469,11 @@ def _analyze(
     retry_cycles = set() if scoped else silver.pending_retry_cycles(store, version)
     chosen = _sample_ids(store, args, version, run.retry) if scoped and args.sample else None
     seen: set[tuple[tuple[str, str], ...]] = set()
+    if scoped:
+        stage.count("skipped_not_sampled", 0)
+    stage.count("skipped_settled", 0)
 
+    code = 0
     for partition in store.partitions(domain.BRONZE, domain.DS_NEWS_ITEM):
         seen.add(tuple(partition.items()))
         cycle = domain.partition_cycle(partition)
@@ -471,13 +484,18 @@ def _analyze(
             tally.skipped += mark["bronze_count"]
             tally.silver_rows += mark["silver_count"]
             continue
-        code = run.visit(partition, cycle, cycle in retry_cycles, chosen)
         if code:
-            return code
-    while run.pending:
+            run.visit(partition, cycle, cycle in retry_cycles, chosen, count_only=True)
+        else:
+            code = run.visit(partition, cycle, cycle in retry_cycles, chosen)
+    while run.pending and not code:
         code = run.flush()
-        if code:
-            return code
+    if scoped:
+        stage.count("skipped_not_sampled", tally.not_sampled)
+    stage.input_count = tally.selected
+    stage.count("skipped_settled", tally.skipped)
+    if code:
+        return code
 
     for partition in store.partitions(domain.SILVER, domain.DS_ANALYSIS):
         if tuple(partition.items()) in seen:
@@ -489,11 +507,6 @@ def _analyze(
                 tally.pruned += len(rows)
         else:
             tally.silver_rows += len(rows)
-
-    if scoped:
-        stage.count("skipped_not_sampled", tally.not_sampled)
-    stage.input_count = tally.selected
-    stage.count("skipped_settled", tally.skipped)
 
     stats = run.stats
     target = store.dataset_dir(domain.SILVER, domain.DS_ANALYSIS)
