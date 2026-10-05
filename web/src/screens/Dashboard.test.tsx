@@ -401,6 +401,134 @@ describe("Dashboard — 오늘의 조회 조건", () => {
   });
 });
 
+describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
+  function card(container: HTMLElement, title: string): HTMLElement {
+    const head = [...container.querySelectorAll(".card-h")].find(
+      (h) => h.querySelector("h3")?.textContent === title,
+    )!;
+    return head.parentElement as HTMLElement;
+  }
+
+  function trows(container: HTMLElement): HTMLButtonElement[] {
+    return [...container.querySelectorAll<HTMLButtonElement>(".dash-trow")];
+  }
+
+  it("lists every ranked subject with its change, and badges the overnight entry", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(trows(container)).toHaveLength(4));
+    const delta = card(container, "밤사이 변화");
+    expect(delta.className).toBe("card col-7");
+    expect(delta.querySelector(".card-h .sub")?.textContent).toBe("직전 동일 구간 대비");
+    expect(delta.querySelector(".dash-tag")?.textContent).toBe("4개 대상");
+    expect(trows(container).map((b) => b.querySelector(".dlt")?.textContent)).toEqual([
+      "▲ 7.0%p",
+      "▼ 1.2%p",
+      "–",
+      "▲ 6.6%p",
+    ]);
+    expect(trows(container).map((b) => b.querySelector(".badge")?.textContent ?? null)).toEqual([
+      null,
+      null,
+      null,
+      "신규",
+    ]);
+  });
+
+  it("narrows the list by the threshold and by 새로 올라온 대상만 without re-querying serving", async () => {
+    const fetch = stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(trows(container)).toHaveLength(4));
+    const delta = card(container, "밤사이 변화");
+    fireEvent.change(delta.querySelector('input[type="number"]')!, { target: { value: "2" } });
+    expect(trows(container).map((b) => b.querySelector(".nm")?.textContent?.trim())).toEqual([
+      "기준금리",
+      "반도체 보조금 신규",
+    ]);
+    expect(delta.querySelector(".dash-tag")?.textContent).toBe("2개 대상");
+
+    fireEvent.click(delta.querySelector(".dash-brief-check input")!);
+    expect(trows(container)).toHaveLength(1);
+
+    fireEvent.change(delta.querySelector('input[type="number"]')!, { target: { value: "9" } });
+    expect(trows(container)).toHaveLength(0);
+    expect(delta.querySelector(".dash-brief-empty")?.textContent).toBe(
+      "이 조건에 걸리는 변화가 없습니다.",
+    );
+    expect(container.querySelectorAll(".rankrow")).toHaveLength(4);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds the picked subject instead of leaving for the trend, and unfolds it beside the list", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(trows(container)).toHaveLength(4));
+    const pick = card(container, "고른 대상");
+    expect(pick.className).toBe("card col-5");
+    expect(pick.querySelector(".card-h .sub")?.textContent).toBe("오늘 더 볼 후보");
+    expect(pick.querySelector('[data-state="no-selection"]')?.textContent).toBe(
+      "왼쪽 목록에서 대상을 하나 고르면여기에 어제 대비 변화가 펼쳐집니다.",
+    );
+
+    fireEvent.click(trows(container)[3]);
+    expect(container.querySelector('[data-testid="landed"]')).toBeNull();
+    expect(trows(container).map((b) => b.getAttribute("aria-pressed"))).toEqual([
+      "false",
+      "false",
+      "false",
+      "true",
+    ]);
+    expect(pick.querySelector('[data-state="no-selection"]')).toBeNull();
+    expect([...pick.querySelectorAll(".kv")].map((kv) => kv.textContent)).toEqual([
+      "대상반도체 보조금",
+      "점유율6.6%",
+      "직전 동일 구간 대비▲ 6.6%p",
+      "진입밤사이 새로 올라옴",
+    ]);
+
+    fireEvent.click(trows(container)[0]);
+    expect(pick.querySelectorAll(".kv")[3].textContent).toBe("진입이전 구간에도 있었음");
+  });
+
+  it("keeps the pick while the filter hides its row", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(trows(container)).toHaveLength(4));
+    fireEvent.click(trows(container)[1]);
+    fireEvent.click(card(container, "밤사이 변화").querySelector(".dash-brief-check input")!);
+    expect(trows(container)).toHaveLength(1);
+    expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
+  });
+
+  it("does not filter by a change it cannot compute, and claims no entry without a baseline", async () => {
+    const body = response();
+    body.basis.has_baseline = false;
+    body.basis.previous_bucket = "";
+    stubDashboard(body);
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(trows(container)).toHaveLength(4));
+    fireEvent.change(card(container, "밤사이 변화").querySelector('input[type="number"]')!, {
+      target: { value: "5" },
+    });
+    expect(trows(container)).toHaveLength(4);
+    expect(trows(container).map((b) => b.querySelector(".dlt")?.textContent)).toEqual([
+      "—",
+      "—",
+      "—",
+      "—",
+    ]);
+    fireEvent.click(trows(container)[3]);
+    expect(
+      [...card(container, "고른 대상").querySelectorAll(".kv")].map((kv) => kv.textContent),
+    ).toEqual(["대상반도체 보조금", "점유율6.6%", "직전 동일 구간 대비—", "진입—"]);
+  });
+});
+
 describe("Dashboard — 셸 토프바", () => {
   function renderInShell() {
     return render(
