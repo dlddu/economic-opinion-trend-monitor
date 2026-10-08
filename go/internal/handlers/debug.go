@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 type debugResponse struct {
@@ -87,21 +88,21 @@ const (
 
 func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 	requested := r.URL.Query().Get("record_id")
-	analyses, _ := h.lake.Analyses()
-
-	recordID, selection := selectDebugRecord(analyses, requested)
-	if !selection.found {
+	scan := h.scanDebugSilver(r, requested)
+	if gone(r) {
+		return
+	}
+	if !scan.selection.found {
 		writeJSON(w, http.StatusOK, debugResponse{
 			RecordID:  requested,
-			Selection: selection.how,
+			Selection: scan.selection.how,
 			Found:     false,
 			Versions:  []debugVersion{},
 		})
 		return
 	}
 
-	calls, _ := h.lake.LlmCalls()
-	rows := debugVersionsOf(recordID, analyses, calls)
+	rows := debugVersionsOf(scan.rows, h.callByID)
 	selected := rows[0]
 	for _, row := range rows {
 		if row.Selected {
@@ -110,14 +111,19 @@ func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 	}
 
 	run, _ := h.lake.PipelineRun(selected.RunID)
+	debugRun := h.debugRunOf(r, run, scan.runs[selected.RunID])
+	input := h.debugInputOf(r, scan.recordID)
+	if gone(r) {
+		return
+	}
 
 	writeJSON(w, http.StatusOK, debugResponse{
-		RecordID:  recordID,
-		Selection: selection.how,
+		RecordID:  scan.recordID,
+		Selection: scan.selection.how,
 		Found:     true,
 		Versions:  rows,
-		Run:       debugRunOf(run, analyses, calls),
-		Input:     h.debugInputOf(recordID),
+		Run:       debugRun,
+		Input:     input,
 	})
 }
 
@@ -126,32 +132,72 @@ type debugSelection struct {
 	how   string
 }
 
-func selectDebugRecord(analyses []gen.Analysis, requested string) (string, debugSelection) {
-	if requested != "" {
-		for i := range analyses {
-			if analyses[i].RecordID == requested {
-				return requested, debugSelection{true, "requested"}
-			}
-		}
-		return "", debugSelection{false, "requested-missing"}
-	}
-	if len(analyses) == 0 {
-		return "", debugSelection{false, "empty"}
-	}
-	return analyses[0].RecordID, debugSelection{true, "auto"}
+// runTally is what the run panel counts over Silver, kept per run so the one
+// Silver pass that finds the record also has the counts for whichever run it picks.
+type runTally struct {
+	records int
+	status  map[string]int
+	noCall  map[string]int
 }
 
-func debugVersionsOf(recordID string, analyses []gen.Analysis, calls []gen.LlmCallRecord) []debugVersion {
-	byCallID := make(map[string]gen.LlmCallRecord, len(calls))
-	for _, call := range calls {
-		byCallID[call.CallID] = call
-	}
+type debugSilverScan struct {
+	recordID  string
+	selection debugSelection
+	rows      []gen.Analysis
+	runs      map[string]*runTally
+}
 
+func (h *Handlers) scanDebugSilver(r *http.Request, requested string) debugSilverScan {
+	scan := debugSilverScan{recordID: requested, runs: map[string]*runTally{}}
+	first := true
+	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
+		if first && requested == "" {
+			scan.recordID = a.RecordID
+		}
+		first = false
+		if a.RecordID == scan.recordID {
+			scan.rows = append(scan.rows, *a)
+		}
+		t := scan.runs[a.RunID]
+		if t == nil {
+			t = &runTally{status: map[string]int{}, noCall: map[string]int{}}
+			scan.runs[a.RunID] = t
+		}
+		t.records++
+		t.status[string(a.AnalysisStatus)]++
+		if a.NoCallReason != nil {
+			t.noCall[*a.NoCallReason]++
+		}
+		return nil
+	})
+	switch {
+	case len(scan.rows) > 0 && requested != "":
+		scan.selection = debugSelection{true, "requested"}
+	case len(scan.rows) > 0:
+		scan.selection = debugSelection{true, "auto"}
+	case requested != "":
+		scan.selection = debugSelection{false, "requested-missing"}
+	default:
+		scan.selection = debugSelection{false, "empty"}
+	}
+	return scan
+}
+
+// callLookup reads one llm_call record by call_id. A record kept in memory per
+// lookup, not all of them at once: the prompt and reply text is most of Silver's size.
+type callLookup func(callID string) (gen.LlmCallRecord, bool)
+
+func (h *Handlers) callByID(callID string) (gen.LlmCallRecord, bool) {
+	call, err := h.lake.LlmCall(callID)
+	if err != nil || call == nil {
+		return gen.LlmCallRecord{}, false
+	}
+	return *call, true
+}
+
+func debugVersionsOf(analyses []gen.Analysis, lookup callLookup) []debugVersion {
 	rows := make([]debugVersion, 0, 1)
 	for _, analysis := range analyses {
-		if analysis.RecordID != recordID {
-			continue
-		}
 		row := debugVersion{
 			AnalyzerVersion:   analysis.AnalyzerVersion,
 			AnalyzedAt:        analysis.AnalyzedAt,
@@ -160,7 +206,7 @@ func debugVersionsOf(recordID string, analyses []gen.Analysis, calls []gen.LlmCa
 			TargetCountries:   orEmpty(analysis.TargetCountries),
 			NarrativeSubjects: orEmpty(analysis.NarrativeSubjects),
 			RunID:             analysis.RunID,
-			Exchange:          exchangeOf(analysis, byCallID),
+			Exchange:          exchangeOf(analysis, lookup),
 		}
 		if analysis.Sentiment != nil {
 			sentiment := string(*analysis.Sentiment)
@@ -175,20 +221,20 @@ func debugVersionsOf(recordID string, analyses []gen.Analysis, calls []gen.LlmCa
 	return rows
 }
 
-func exchangeOf(analysis gen.Analysis, byCallID map[string]gen.LlmCallRecord) debugExchange {
+func exchangeOf(analysis gen.Analysis, lookup callLookup) debugExchange {
 	if analysis.NoCallReason != nil {
 		return debugExchange{State: exchangeNoCall, NoCallReason: analysis.NoCallReason}
 	}
 	if analysis.CallID == nil {
 		return debugExchange{State: exchangeUnrecorded}
 	}
-	call, ok := byCallID[*analysis.CallID]
+	call, ok := lookup(*analysis.CallID)
 	if !ok {
 		return debugExchange{State: exchangeCallAbsent, CallID: analysis.CallID}
 	}
 	exchange := debugExchange{State: exchangeCall, CallID: analysis.CallID, Call: projectCall(call)}
 	if call.ReusedFromCallID != nil {
-		if origin, ok := byCallID[*call.ReusedFromCallID]; ok {
+		if origin, ok := lookup(*call.ReusedFromCallID); ok {
 			exchange.ReusedFrom = projectCall(origin)
 		}
 	}
@@ -215,32 +261,22 @@ func projectCall(call gen.LlmCallRecord) *debugCall {
 	}
 }
 
-func debugRunOf(run *gen.PipelineRun, analyses []gen.Analysis, calls []gen.LlmCallRecord) *debugRun {
+func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *runTally) *debugRun {
 	if run == nil {
 		return nil
 	}
-	status := make(map[string]int)
-	noCall := make(map[string]int)
-	records := 0
-	for _, analysis := range analyses {
-		if analysis.RunID != run.RunID {
-			continue
-		}
-		records++
-		status[string(analysis.AnalysisStatus)]++
-		if analysis.NoCallReason != nil {
-			noCall[*analysis.NoCallReason]++
-		}
+	if silver == nil {
+		silver = &runTally{}
 	}
 	outcome := make(map[string]int)
 	made := 0
-	for _, call := range calls {
-		if call.RunID != run.RunID {
-			continue
+	_ = h.lake.EachLlmCallHead(r.Context(), func(call *store.LlmCallHead) error {
+		if call.RunID == run.RunID {
+			made++
+			outcome[string(call.CallOutcome)]++
 		}
-		made++
-		outcome[string(call.CallOutcome)]++
-	}
+		return nil
+	})
 	stages := run.Stages
 	if stages == nil {
 		stages = []gen.RunStage{}
@@ -253,11 +289,11 @@ func debugRunOf(run *gen.PipelineRun, analyses []gen.Analysis, calls []gen.LlmCa
 		RunStatus:    string(run.RunStatus),
 		Stages:       stages,
 		Symptoms: debugSymptoms{
-			Records:        records,
+			Records:        silver.records,
 			Calls:          made,
-			AnalysisStatus: tallies(status),
+			AnalysisStatus: tallies(silver.status),
 			CallOutcome:    tallies(outcome),
-			NoCallReason:   tallies(noCall),
+			NoCallReason:   tallies(silver.noCall),
 		},
 	}
 }

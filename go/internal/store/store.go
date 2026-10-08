@@ -8,8 +8,10 @@ package store
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -52,13 +54,19 @@ func (l *Lake) SubjectTrends() ([]gen.SubjectTrend, error) {
 	return readJSONL[gen.SubjectTrend](l.path("gold", "subject_trend"))
 }
 
+// ErrStop, returned from a scan callback, ends the scan early without an error.
+var ErrStop = errors.New("store: stop scan")
+
 // SubjectTrendsWhere reads the Gold subject_trend dataset, keeping only the rows keep accepts.
-func (l *Lake) SubjectTrendsWhere(keep func(*gen.SubjectTrend) bool) ([]gen.SubjectTrend, error) {
-	return scanJSONL(l.path("gold", "subject_trend"), keep)
+func (l *Lake) SubjectTrendsWhere(ctx context.Context, keep func(*gen.SubjectTrend) bool) ([]gen.SubjectTrend, error) {
+	return collect(ctx, l.path("gold", "subject_trend"), keep)
 }
 
-func (l *Lake) SubjectSourceContributions() ([]gen.SubjectSourceContribution, error) {
-	return readJSONL[gen.SubjectSourceContribution](l.path("gold", "subject_source_contribution"))
+// SubjectSourceContributionsWhere reads the Gold subject_source_contribution dataset, keeping only the rows keep accepts.
+func (l *Lake) SubjectSourceContributionsWhere(
+	ctx context.Context, keep func(*gen.SubjectSourceContribution) bool,
+) ([]gen.SubjectSourceContribution, error) {
+	return collect(ctx, l.path("gold", "subject_source_contribution"), keep)
 }
 
 // AxisSentiments reads the Gold axis_sentiment dataset (empty if absent).
@@ -72,7 +80,17 @@ func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 // Silver analysis carries, which is what makes the lineage join possible at all
 // (AC2.6).
 func (l *Lake) NewsItems() ([]gen.NewsItem, error) {
-	return readPartitions[gen.NewsItem](filepath.Join(l.Root, "bronze", "news_item"))
+	var out []gen.NewsItem
+	err := l.EachNewsItem(context.Background(), func(it *gen.NewsItem) error {
+		out = append(out, *it)
+		return nil
+	})
+	return out, err
+}
+
+// EachNewsItem streams the Bronze news_item dataset to fn in NewsItems order.
+func (l *Lake) EachNewsItem(ctx context.Context, fn func(*gen.NewsItem) error) error {
+	return stopped(eachPartitions(ctx, filepath.Join(l.Root, "bronze", "news_item"), fn))
 }
 
 // NewsBody reads one version from the Bronze news_body object dataset by its content hash.
@@ -85,7 +103,17 @@ func (l *Lake) NewsBody(hash string) (*gen.NewsBody, error) {
 // Silver holds one row per (record_id, analyzer_version): a reprocessed record
 // keeps its earlier version's row beside the new one (JRN-logic-backfill).
 func (l *Lake) Analyses() ([]gen.Analysis, error) {
-	return readPartitions[gen.Analysis](filepath.Join(l.Root, "silver", "analysis"))
+	var out []gen.Analysis
+	err := l.EachAnalysis(context.Background(), func(a *gen.Analysis) error {
+		out = append(out, *a)
+		return nil
+	})
+	return out, err
+}
+
+// EachAnalysis streams the Silver analysis dataset to fn in Analyses order.
+func (l *Lake) EachAnalysis(ctx context.Context, fn func(*gen.Analysis) error) error {
+	return stopped(eachPartitions(ctx, filepath.Join(l.Root, "silver", "analysis"), fn))
 }
 
 // ReprocessDecision is one publish/rollback the batch recorded (the Python
@@ -109,15 +137,34 @@ func (l *Lake) PipelineRun(runID string) (*gen.PipelineRun, error) {
 }
 
 func (l *Lake) PipelineRuns() ([]gen.PipelineRun, error) {
-	return readObjects[gen.PipelineRun](l.objectDir("silver", "pipeline_run"))
+	var out []gen.PipelineRun
+	err := eachObjects(context.Background(), l.objectDir("silver", "pipeline_run"), func(run *gen.PipelineRun) error {
+		out = append(out, *run)
+		return nil
+	})
+	return out, err
 }
 
 func (l *Lake) LlmCall(callID string) (*gen.LlmCallRecord, error) {
 	return readObject[gen.LlmCallRecord](l, "silver", "llm_call", "call_id", callID)
 }
 
-func (l *Lake) LlmCalls() ([]gen.LlmCallRecord, error) {
-	return readObjects[gen.LlmCallRecord](l.objectDir("silver", "llm_call"))
+// LlmCallHead is the part of an llm_call record a tally or a list row reads.
+// Decoding only it leaves the prompt and reply text — nearly all of a record — unallocated.
+type LlmCallHead struct {
+	CallID      string             `json:"call_id"`
+	RunID       string             `json:"run_id"`
+	CallOutcome gen.LlmCallOutcome `json:"call_outcome"`
+}
+
+// LlmCallHeadOf reads one llm_call record's head by call_id (nil if absent).
+func (l *Lake) LlmCallHeadOf(callID string) (*LlmCallHead, error) {
+	return readObject[LlmCallHead](l, "silver", "llm_call", "call_id", callID)
+}
+
+// EachLlmCallHead streams the head of every llm_call record to fn, in call_id file-name order.
+func (l *Lake) EachLlmCallHead(ctx context.Context, fn func(*LlmCallHead) error) error {
+	return stopped(eachObjects(ctx, l.objectDir("silver", "llm_call"), fn))
 }
 
 // partitionFile mirrors econ_core.storage.PARTITION_FILE.
@@ -143,14 +190,14 @@ func readObject[T any](l *Lake, layer, dataset, keyField, key string) (*T, error
 	return &rec, nil
 }
 
-// readObjects is the Go counterpart of econ_core.storage.LakeStore.read_objects.
-func readObjects[T any](root string) ([]T, error) {
+// eachObjects is the streaming Go counterpart of econ_core.storage.LakeStore.read_objects.
+func eachObjects[T any](ctx context.Context, root string, fn func(*T) error) error {
 	partitions, err := os.ReadDir(root)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 	type found struct {
 		name string
@@ -163,7 +210,7 @@ func readObjects[T any](root string) ([]T, error) {
 		}
 		entries, err := os.ReadDir(filepath.Join(root, partition.Name()))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for _, entry := range entries {
 			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -174,25 +221,39 @@ func readObjects[T any](root string) ([]T, error) {
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].name < files[j].name })
 
-	out := make([]T, 0, len(files))
+	var buf bytes.Buffer
 	for _, f := range files {
-		raw, err := os.ReadFile(f.path)
-		if err != nil {
-			return nil, err
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := readInto(&buf, f.path); err != nil {
+			return err
 		}
 		var rec T
-		if err := json.Unmarshal(raw, &rec); err != nil {
-			return nil, err
+		if err := json.Unmarshal(buf.Bytes(), &rec); err != nil {
+			return err
 		}
-		out = append(out, rec)
+		if err := fn(&rec); err != nil {
+			return err
+		}
 	}
-	return out, nil
+	return nil
 }
 
-// readPartitions is the Go counterpart of econ_core.storage.LakeStore.read_partitions.
-func readPartitions[T any](root string) ([]T, error) {
-	var out []T
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+func readInto(buf *bytes.Buffer, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	buf.Reset()
+	_, err = io.Copy(buf, f)
+	return err
+}
+
+// eachPartitions is the streaming Go counterpart of econ_core.storage.LakeStore.read_partitions.
+func eachPartitions[T any](ctx context.Context, root string, fn func(*T) error) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if errors.Is(err, fs.ErrNotExist) && path == root {
 			return fs.SkipAll
 		}
@@ -202,48 +263,65 @@ func readPartitions[T any](root string) ([]T, error) {
 		if d.IsDir() || d.Name() != partitionFile {
 			return nil
 		}
-		recs, err := readJSONL[T](path)
-		if err != nil {
-			return err
-		}
-		out = append(out, recs...)
-		return nil
+		return eachJSONL(ctx, path, fn)
 	})
-	return out, err
 }
 
 // readJSONL decodes a JSONL file into a slice of T. A missing file is not an
 // error — it yields an empty slice, matching the Python reader's behavior.
 func readJSONL[T any](path string) ([]T, error) {
-	return scanJSONL[T](path, nil)
+	return collect[T](context.Background(), path, nil)
 }
 
-func scanJSONL[T any](path string, keep func(*T) bool) ([]T, error) {
+func collect[T any](ctx context.Context, path string, keep func(*T) bool) ([]T, error) {
+	var out []T
+	err := eachJSONL(ctx, path, func(rec *T) error {
+		if keep == nil || keep(rec) {
+			out = append(out, *rec)
+		}
+		return nil
+	})
+	return out, err
+}
+
+const ctxCheckEvery = 1024
+
+func eachJSONL[T any](ctx context.Context, path string, fn func(*T) error) error {
 	f, err := os.Open(path)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer f.Close()
 
-	var out []T
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
-	for sc.Scan() {
+	for n := 0; sc.Scan(); n++ {
+		if n%ctxCheckEvery == 0 {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+		}
 		line := bytes.TrimSpace(sc.Bytes())
 		if len(line) == 0 {
 			continue
 		}
 		var rec T
 		if err := json.Unmarshal(line, &rec); err != nil {
-			return nil, err
+			return err
 		}
-		if keep != nil && !keep(&rec) {
-			continue
+		if err := fn(&rec); err != nil {
+			return err
 		}
-		out = append(out, rec)
 	}
-	return out, sc.Err()
+	return sc.Err()
+}
+
+func stopped(err error) error {
+	if errors.Is(err, ErrStop) {
+		return nil
+	}
+	return err
 }

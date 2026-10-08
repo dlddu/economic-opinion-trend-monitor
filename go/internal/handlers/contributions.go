@@ -61,14 +61,7 @@ type contributionsResponse struct {
 // way of computing it here disagrees with the number the list explains.
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
-	trends, _ := h.lake.SubjectTrends()
-
-	inAxis := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if string(t.Axis) == axis {
-			inAxis = append(inAxis, t)
-		}
-	}
+	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
 	unit := unitParam(r, plottedUnit(inAxis))
 	bucket := r.URL.Query().Get("time_bucket")
 	if bucket == "" {
@@ -85,17 +78,34 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	items, _ := h.lake.NewsItems()
-	analyses, _ := h.lake.Analyses()
+	// byID keeps only observations the loop below would not skip. A record id seen
+	// again later still replaces the earlier observation, kept or not, as the
+	// unfiltered map did.
+	articles := bodyArticles{}
+	byID := map[string]gen.NewsItem{}
+	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
+		articles.add(*it)
+		if string(it.Axis) == axis && bucketLabel(it.CollectedAt, unit) == bucket {
+			byID[it.RecordID] = *it
+		} else {
+			delete(byID, it.RecordID)
+		}
+		return nil
+	})
+	var analyses []gen.Analysis
+	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
+		if _, ok := byID[a.RecordID]; ok {
+			analyses = append(analyses, *a)
+		}
+		return nil
+	})
+	if gone(r) {
+		return
+	}
 	decisions, _ := h.lake.ReprocessDecisions()
 	version := servingVersion(decisions)
 	served := selectServing(analyses, version)
-
-	shares := bodyShares(items)
-	byID := make(map[string]gen.NewsItem, len(items))
-	for _, it := range items {
-		byID[it.RecordID] = it
-	}
+	shares := articles.shares()
 
 	// Mirrors the pick econ_aggregation.aggregate.bucket_articles makes before it
 	// counts, so the subject filter runs on the same analysis the Gold count read.
@@ -268,20 +278,22 @@ func articleKey(item gen.NewsItem) string {
 	return item.RecordID
 }
 
-// bodyShares: an empty body hash is "no text kept", not a text they all share.
-func bodyShares(items []gen.NewsItem) map[string]int {
-	articles := map[string]map[string]bool{}
-	for _, it := range items {
-		if it.BodyHash == "" {
-			continue
-		}
-		if articles[it.BodyHash] == nil {
-			articles[it.BodyHash] = map[string]bool{}
-		}
-		articles[it.BodyHash][articleKey(it)] = true
+type bodyArticles map[string]map[string]bool
+
+// add skips an empty body hash: it is "no text kept", not a text they all share.
+func (b bodyArticles) add(it gen.NewsItem) {
+	if it.BodyHash == "" {
+		return
 	}
-	out := make(map[string]int, len(articles))
-	for hash, keys := range articles {
+	if b[it.BodyHash] == nil {
+		b[it.BodyHash] = map[string]bool{}
+	}
+	b[it.BodyHash][articleKey(it)] = true
+}
+
+func (b bodyArticles) shares() map[string]int {
+	out := make(map[string]int, len(b))
+	for hash, keys := range b {
 		out[hash] = len(keys)
 	}
 	return out

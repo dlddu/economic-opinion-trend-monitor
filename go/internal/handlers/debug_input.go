@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"net/http"
 	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 type debugInput struct {
@@ -23,25 +25,27 @@ type debugBodyVersion struct {
 	Latest         bool   `json:"latest"`
 }
 
-func (h *Handlers) debugInputOf(recordID string) *debugInput {
-	items, _ := h.lake.NewsItems()
+func (h *Handlers) debugInputOf(r *http.Request, recordID string) *debugInput {
 	var item *gen.NewsItem
-	for i := range items {
-		if items[i].RecordID == recordID {
-			item = &items[i]
-			break
+	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
+		if it.RecordID != recordID {
+			return nil
 		}
-	}
+		found := *it
+		item = &found
+		return store.ErrStop
+	})
 	if item == nil {
 		return nil
 	}
 
 	observed := make([]gen.NewsItem, 0, 1)
-	for _, other := range items {
+	_ = h.lake.EachNewsItem(r.Context(), func(other *gen.NewsItem) error {
 		if other.SourceURL == item.SourceURL {
-			observed = append(observed, other)
+			observed = append(observed, *other)
 		}
-	}
+		return nil
+	})
 	sort.SliceStable(observed, func(i, j int) bool { return observed[i].CollectedAt < observed[j].CollectedAt })
 
 	seen := make(map[string]bool)

@@ -46,14 +46,7 @@ type sourceContributionsResponse struct {
 // second answer to the same question.
 func (h *Handlers) sourceContributions(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
-	trends, _ := h.lake.SubjectTrends()
-
-	inAxis := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if string(t.Axis) == axis {
-			inAxis = append(inAxis, t)
-		}
-	}
+	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
 	unit := unitParam(r, plottedUnit(inAxis))
 	bucket := r.URL.Query().Get("time_bucket")
 	if bucket == "" {
@@ -70,17 +63,13 @@ func (h *Handlers) sourceContributions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	parts, _ := h.lake.SubjectSourceContributions()
+	parts, _ := h.lake.SubjectSourceContributionsWhere(r.Context(), func(p *gen.SubjectSourceContribution) bool {
+		return string(p.Axis) == axis && p.BucketUnit == unit && p.TimeBucket == bucket && p.Subject == subject
+	})
 	rows := make([]sourceContributionRow, 0, len(parts))
 	var rawTotal int64
 	var normalizedTotal float64
 	for _, p := range parts {
-		if string(p.Axis) != axis || string(p.BucketUnit) != string(unit) {
-			continue
-		}
-		if p.TimeBucket != bucket || p.Subject != subject {
-			continue
-		}
 		rows = append(rows, sourceContributionRow{
 			SourceID:               p.SourceID,
 			RawCount:               p.RawCount,
