@@ -11,9 +11,12 @@ distribution. The wider bucket recomputes the normalization instead.
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from dataclasses import asdict
 from datetime import date
+from typing import NamedTuple
 
 from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
 from econ_core.silver import grouping_keys
@@ -50,42 +53,87 @@ def article_key(item: dict) -> str:
     return item.get("source_url") or item["record_id"]
 
 
+class Pick(NamedTuple):
+    """What the Gold builders read of one picked observation — nothing more is kept."""
+
+    collected_at: str
+    record_id: str
+    source_id: str
+    keys: tuple[str, ...]
+    sentiment: str
+
+
+def _pick_of(item: dict, analysis: dict) -> Pick:
+    unanalyzed = analysis["analysis_status"] == "unanalyzed" or analysis["sentiment"] is None
+    return Pick(
+        collected_at=sys.intern(item["collected_at"]),
+        record_id=item["record_id"],
+        source_id=sys.intern(item["source_id"]),
+        keys=tuple(sys.intern(k) for k in dict.fromkeys(grouping_keys(analysis))),
+        sentiment="unanalyzed" if unanalyzed else sys.intern(analysis["sentiment"]),
+    )
+
+
+class ArticlePicks:
+    """One :class:`Pick` per article per bucket, fed one joined observation at a time.
+
+    The latest observation of an article in a bucket wins. The serving contributions
+    list (Go ``contributions``) mirrors this pick.
+    """
+
+    def __init__(self, units: tuple[str, ...] = BUCKET_UNITS) -> None:
+        self._latest: dict[str, dict[tuple[str, str, str], Pick]] = {u: {} for u in units}
+
+    def add(self, item: dict, analysis: dict) -> None:
+        pick: Pick | None = None
+        order = (item["collected_at"], item["record_id"])
+        article = sys.intern(article_key(item))
+        axis = sys.intern(item["axis"])
+        for unit, latest in self._latest.items():
+            key = (axis, sys.intern(_bucket(item["collected_at"], unit)), article)
+            seen = latest.get(key)
+            if seen is None or order > (seen.collected_at, seen.record_id):
+                pick = pick or _pick_of(item, analysis)
+                latest[key] = pick
+
+    def join(self, bronze: Iterable[dict], silver: Iterable[dict]) -> None:
+        """Add every Silver row whose observation ``bronze`` holds, in Silver order."""
+        by_id = {b["record_id"]: b for b in bronze}
+        for analysis in silver:
+            item = by_id.get(analysis["record_id"])
+            if item is not None:
+                self.add(item, analysis)
+
+    def articles(self, unit: str) -> Iterator[tuple[str, str, Pick]]:
+        for (axis, bucket, _), pick in self._latest[unit].items():
+            yield axis, bucket, pick
+
+
 def bucket_articles(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
-) -> list[tuple[str, str, dict, dict]]:
-    """One ``(axis, bucket, item, analysis)`` per article per bucket.
+) -> list[tuple[str, str, Pick]]:
+    """One ``(axis, bucket, pick)`` per article per bucket (:class:`ArticlePicks`)."""
+    picks = ArticlePicks((unit,))
+    picks.join(bronze, silver)
+    return list(picks.articles(unit))
 
-    The serving contributions list (Go ``contributions``) mirrors this pick.
-    """
-    by_id = {b["record_id"]: b for b in bronze}
-    latest: dict[tuple[str, str, str], tuple[dict, dict]] = {}
-    for analysis in silver:
-        item = by_id.get(analysis["record_id"])
-        if item is None:
-            continue
-        key = (item["axis"], _bucket(item["collected_at"], unit), article_key(item))
-        seen = latest.get(key)
-        if seen is None or (item["collected_at"], item["record_id"]) > (
-            seen[0]["collected_at"],
-            seen[0]["record_id"],
-        ):
-            latest[key] = (item, analysis)
-    return [
-        (axis, bucket, item, analysis) for (axis, bucket, _), (item, analysis) in latest.items()
-    ]
+
+Counts = dict[str, dict[str, dict[str, dict[str, int]]]]
+
+
+def count_articles(articles: Iterable[tuple[str, str, Pick]]) -> Counts:
+    # counts[axis][bucket][source][subject] -> n
+    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
+    for axis, bucket, pick in articles:
+        for subject in pick.keys:
+            counts[axis][bucket][pick.source_id][subject] += 1
+    return counts
 
 
 def count_by_source(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
-) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
-    # counts[axis][bucket][source][subject] -> n
-    counts: dict[str, dict[str, dict[str, dict[str, int]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-    )
-    for axis, bucket, item, analysis in bucket_articles(bronze, silver, unit):
-        for subject in dict.fromkeys(grouping_keys(analysis)):
-            counts[axis][bucket][item["source_id"]][subject] += 1
-    return counts
+) -> Counts:
+    return count_articles(bucket_articles(bronze, silver, unit))
 
 
 def fold_bucket(
@@ -113,8 +161,10 @@ def fold_bucket(
 def build_subject_trends(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
 ) -> list[dict]:
-    counts = count_by_source(bronze, silver, unit)
+    return list(subject_trends(count_by_source(bronze, silver, unit), unit))
 
+
+def subject_trends(counts: Counts, unit: str) -> Iterator[dict]:
     # shares[axis][bucket][subject] -> (normalized_share, raw_count). Built in
     # full before any row is emitted: delta/spark need the neighbouring buckets.
     shares: dict[str, dict[str, dict[str, tuple[float, int]]]] = defaultdict(dict)
@@ -122,7 +172,6 @@ def build_subject_trends(
         for bucket, sources in buckets.items():
             shares[axis][bucket] = fold_bucket(sources)[0]
 
-    trends: list[dict] = []
     for axis, buckets in shares.items():
         ordered = sorted(buckets)
         # history[subject] -> shares so far, oldest first (only buckets the
@@ -137,38 +186,35 @@ def build_subject_trends(
                 delta = round((normalized - past[-1]) * 100, 4) if past else 0.0
                 spark = [*past, normalized][-SPARK_WINDOW:]
                 past.append(normalized)
-                trends.append(
-                    asdict(
-                        SubjectTrend(
-                            subject=subject,
-                            axis=axis,
-                            bucket_unit=unit,
-                            time_bucket=bucket,
-                            raw_count=raw,
-                            normalized_share=normalized,
-                            delta=delta,
-                            spark=spark,
-                        )
+                yield asdict(
+                    SubjectTrend(
+                        subject=subject,
+                        axis=axis,
+                        bucket_unit=unit,
+                        time_bucket=bucket,
+                        raw_count=raw,
+                        normalized_share=normalized,
+                        delta=delta,
+                        spark=spark,
                     )
                 )
-    return trends
 
 
 def build_axis_sentiment(
     bronze: list[dict], silver: list[dict], unit: str = DEFAULT_BUCKET_UNIT
 ) -> list[dict]:
+    return list(axis_sentiment(bucket_articles(bronze, silver, unit), unit))
+
+
+def axis_sentiment(articles: Iterable[tuple[str, str, Pick]], unit: str) -> Iterator[dict]:
     # tally[axis][bucket][key] -> n, where key is a sentiment, "unanalyzed", or "_total"
     tally: dict[str, dict[str, dict[str, int]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(int))
     )
-    for axis, bucket, _, analysis in bucket_articles(bronze, silver, unit):
-        if analysis["analysis_status"] == "unanalyzed" or analysis["sentiment"] is None:
-            tally[axis][bucket]["unanalyzed"] += 1
-        else:
-            tally[axis][bucket][analysis["sentiment"]] += 1
+    for axis, bucket, pick in articles:
+        tally[axis][bucket][pick.sentiment] += 1
         tally[axis][bucket]["_total"] += 1
 
-    rows: list[dict] = []
     for axis, buckets in tally.items():
         for bucket, c in buckets.items():
             total = c["_total"] or 1
@@ -181,18 +227,15 @@ def build_axis_sentiment(
                 mixed=round(c["mixed"] / analyzed_denom, 4),
                 unanalyzed=round(c["unanalyzed"] / total, 4),
             )
-            rows.append(
-                asdict(
-                    AxisSentiment(
-                        axis=axis,
-                        bucket_unit=unit,
-                        time_bucket=bucket,
-                        distribution=distribution,
-                        analyzed_total=analyzed,
-                    )
+            yield asdict(
+                AxisSentiment(
+                    axis=axis,
+                    bucket_unit=unit,
+                    time_bucket=bucket,
+                    distribution=distribution,
+                    analyzed_total=analyzed,
                 )
             )
-    return rows
 
 
 def build_subject_trends_all_units(

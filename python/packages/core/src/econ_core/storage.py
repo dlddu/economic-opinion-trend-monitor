@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from pathlib import Path
 
 PARTITION_FILE = "data.jsonl"
@@ -46,6 +46,13 @@ class LakeStore(ABC):
     @abstractmethod
     def partitions(self, layer: str, dataset: str) -> list[dict[str, str]]:
         """Return every existing partition of a dataset, in path order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def partition_signature(
+        self, layer: str, dataset: str, partition: Mapping[str, str]
+    ) -> str | None:
+        """Return a token that changes whenever the partition is rewritten (None if absent)."""
         raise NotImplementedError
 
     def read_partitions(self, layer: str, dataset: str) -> list[dict]:
@@ -99,9 +106,13 @@ class LakeStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def iter_records(self, layer: str, dataset: str) -> Iterator[dict]:
+        """Yield the dataset's records one at a time (nothing if it does not exist)."""
+        raise NotImplementedError
+
     def read_records(self, layer: str, dataset: str) -> list[dict]:
         """Return every record in the dataset (empty list if it does not exist)."""
-        raise NotImplementedError
+        return list(self.iter_records(layer, dataset))
 
 
 def _check_key(key: str) -> None:
@@ -134,7 +145,7 @@ class LocalFsStore(LakeStore):
     def merge_records(
         self, layer: str, dataset: str, key_field: str, records: Iterable[dict]
     ) -> int:
-        existing = {record[key_field] for record in self.read_records(layer, dataset)}
+        existing = {record[key_field] for record in self.iter_records(layer, dataset)}
         target = self.path(layer, dataset)
         target.parent.mkdir(parents=True, exist_ok=True)
         added = 0
@@ -192,6 +203,17 @@ class LocalFsStore(LakeStore):
             segments = data.parent.relative_to(root).parts
             found.append(dict(segment.split("=", 1) for segment in segments))
         return found
+
+    def partition_signature(
+        self, layer: str, dataset: str, partition: Mapping[str, str]
+    ) -> str | None:
+        try:
+            st = self.partition_path(layer, dataset, partition).stat()
+        except FileNotFoundError:
+            return None
+        # write_partition lands by os.replace, so every rewrite is a new inode even when
+        # size and mtime happen to repeat.
+        return f"{st.st_ino}:{st.st_size}:{st.st_mtime_ns}"
 
     def migrate_records_to_partitions(
         self,
@@ -274,17 +296,15 @@ class LocalFsStore(LakeStore):
         legacy.replace(legacy.with_name(f"{legacy.name}.migrated"))
         return written
 
-    def read_records(self, layer: str, dataset: str) -> list[dict]:
+    def iter_records(self, layer: str, dataset: str) -> Iterator[dict]:
         source = self.path(layer, dataset)
         if not source.exists():
-            return []
-        records: list[dict] = []
+            return
         with source.open(encoding="utf-8") as fh:
             for line in fh:
                 line = line.strip()
                 if line:
-                    records.append(json.loads(line))
-        return records
+                    yield json.loads(line)
 
 
 def open_store(root: Path | str) -> LakeStore:

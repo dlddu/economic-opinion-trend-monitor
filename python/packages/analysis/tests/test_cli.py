@@ -526,3 +526,155 @@ def test_rows_written_before_run_links_are_relinked_from_the_cache(
     out = capsys.readouterr().out
     assert "wrote 0 silver records" in out
     assert "relinked_unlinked_rows" not in out
+
+
+def test_whole_lake_run_reads_only_cycles_not_yet_settled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The hourly run used to read the whole lake into memory and outgrew its limit;
+    # a settled cycle must now cost a stat, not a read.
+    _seed_lake(tmp_path)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    _write_items(
+        tmp_path,
+        [
+            {**item, "record_id": f"{item['record_id']}-next", "collection_cycle": NEXT_CYCLE}
+            for item in _bronze_rows(tmp_path)
+        ],
+    )
+    read: list[str] = []
+    real_read = LocalFsStore.read_partition
+
+    def spy(self, layer, dataset, partition):
+        if (layer, dataset) == ("bronze", "news_item"):
+            read.append(domain.partition_cycle(partition))
+        return real_read(self, layer, dataset, partition)
+
+    monkeypatch.setattr(LocalFsStore, "read_partition", spy)
+    capsys.readouterr()
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert read == [NEXT_CYCLE]
+    assert "read 4 bronze, wrote 2 silver records" in out
+    assert "silver now 4 rows" in out
+    assert "settled_already_at_version=2" in out
+
+
+def test_a_cycle_with_a_failed_call_is_not_settled_until_the_retry_succeeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    replies = iter([good, "not json"])
+    monkeypatch.setattr(
+        llm, "http_completer", lambda *_a, **_k: lambda _system, _user: next(replies)
+    )
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    store = LocalFsStore(tmp_path)
+    assert silver.read_settled(store, llm.ANALYZER_VERSION) == {}
+    assert silver.pending_retry_cycles(store, llm.ANALYZER_VERSION) == {CYCLE}
+
+    monkeypatch.setattr(llm, "http_completer", _canned(good))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    assert set(silver.read_settled(store, llm.ANALYZER_VERSION)) == {CYCLE}
+    assert silver.pending_retry_cycles(store, llm.ANALYZER_VERSION) == set()
+
+
+def test_a_scoped_rewrite_of_a_settled_cycle_sends_it_back_to_the_hourly_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _seed_lake(tmp_path)
+    base = ["--data", str(tmp_path), "--analyzer", "fake"]
+    assert cli.main(base) == 0
+    assert cli.main([*base, "--analyzer-version", "fake-v2", "--axis", "KR"]) == 0
+    store = LocalFsStore(tmp_path)
+    mark = silver.read_settled(store, fake_llm.ANALYZER_VERSION)[CYCLE]
+    assert not silver.still_settled(store, mark, domain.cycle_partition(CYCLE))
+
+    capsys.readouterr()
+    assert cli.main(base) == 0
+    assert "wrote 0 silver records" in capsys.readouterr().out
+    mark = silver.read_settled(store, fake_llm.ANALYZER_VERSION)[CYCLE]
+    assert silver.still_settled(store, mark, domain.cycle_partition(CYCLE))
+
+
+def test_a_cycle_holding_only_failing_retries_does_not_stop_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Cut at the cycle edge, the old cycle's batch would be its failing retry alone and
+    # the all-calls-failed guard would take it for an outage.
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+
+    def _r2_never_parses(*_args, **_kwargs):
+        return lambda _system, user: "not json" if "보도 2" in user else good
+
+    monkeypatch.setattr(llm, "http_completer", _r2_never_parses)
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    late = {
+        **_bronze_rows(tmp_path)[0],
+        "record_id": "r3",
+        "title": "한국은행 기준금리 보도 3",
+        "collection_cycle": NEXT_CYCLE,
+    }
+    _write_items(tmp_path, [late])
+    capsys.readouterr()
+
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    out = capsys.readouterr().out
+    assert "wrote 2 silver records" in out
+    assert "failed=1" in out
+    store = LocalFsStore(tmp_path)
+    assert set(silver.read_settled(store, llm.ANALYZER_VERSION)) == {NEXT_CYCLE}
+
+
+def test_a_stopped_run_still_books_the_selection_of_the_whole_lake(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from econ_core import runlog
+
+    _seed_lake(tmp_path)
+    good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
+    monkeypatch.setattr(llm, "http_completer", _canned(good))
+    assert cli.main(["--data", str(tmp_path), "--analyzer", "llm"]) == 0
+    store = LocalFsStore(tmp_path)
+    for n in (3, 4, 5):
+        rid = f"r{n}"
+        store.put_object(
+            "bronze",
+            "news_body",
+            "body_hash",
+            {"body_hash": f"h{n}", "raw_text": f"본문 {n}", "first_seen_cycle": NEXT_CYCLE},
+        )
+        _write_items(
+            tmp_path,
+            [
+                *[i for i in _bronze_rows(tmp_path) if i["collection_cycle"] == NEXT_CYCLE],
+                {
+                    **_bronze_rows(tmp_path)[0],
+                    "record_id": rid,
+                    "title": f"새 보도 {n}",
+                    "body_hash": f"h{n}",
+                    "collection_cycle": NEXT_CYCLE,
+                },
+            ],
+        )
+
+    def _down(*_args, **_kwargs):
+        def _complete(_system: str, _user: str) -> str:
+            raise llm.CompletionError("endpoint down")
+
+        return _complete
+
+    monkeypatch.setattr(llm, "http_completer", _down)
+    args = ["--data", str(tmp_path), "--analyzer", "llm", "--run-id", "stopped"]
+    assert cli.main([*args, "--batch-size", "2"]) == cli.EXIT_ALL_CALLS_FAILED
+    analysis = next(
+        s for s in runlog.read_run(store, "stopped")["stages"] if s["stage_name"] == "analysis"
+    )
+    assert analysis["input_count"] == 5
+    assert [(o["outcome_name"], o["outcome_count"]) for o in analysis["outcomes"]] == [
+        ("skipped_settled", 2),
+        ("call_failed", 2),
+        ("not_reached", 1),
+    ]

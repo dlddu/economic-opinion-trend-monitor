@@ -83,3 +83,38 @@ def test_a_refused_publish_decision_records_a_failed_stage(
     assert "decision not recorded" in stage["failure_reason"]
     assert run["run_status"] == runlog.FAILED
     assert run["run_trigger"] == runlog.REPROCESS
+
+
+def test_gold_read_cycle_by_cycle_equals_gold_built_over_the_whole_lake(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json
+
+    from econ_aggregation.aggregate import (
+        build_axis_sentiment_all_units,
+        build_subject_trends_all_units,
+    )
+    from econ_aggregation.contributions import build_subject_source_contributions_all_units
+    from econ_core import silver
+
+    monkeypatch.delenv("ECON_LLM_API_KEY", raising=False)
+    args = ["--data", str(tmp_path)]
+    for cycle in ("2026-06-23T13:00", CYCLE, "2026-06-24T02:00"):
+        assert ing_cli.main(["--source", "fake", "--cycle", cycle, *args]) == 0
+    assert ana_cli.main(["--analyzer", "fake", *args]) == 0
+    assert agg_cli.main(args) == 0
+
+    store = LocalFsStore(tmp_path)
+    bronze = store.read_partitions(domain.BRONZE, domain.DS_NEWS_ITEM)
+    chosen = silver.select_serving(silver.read_analyses(store), silver.serving_version(store))
+    expected = {
+        domain.DS_SUBJECT_TREND: build_subject_trends_all_units(bronze, chosen),
+        domain.DS_AXIS_SENTIMENT: build_axis_sentiment_all_units(bronze, chosen),
+        domain.DS_SUBJECT_SOURCE_CONTRIBUTION: build_subject_source_contributions_all_units(
+            bronze, chosen
+        ),
+    }
+    for dataset, rows in expected.items():
+        assert rows
+        written = (tmp_path / "gold" / f"{dataset}.jsonl").read_text().splitlines()
+        assert [json.loads(line) for line in written] == rows

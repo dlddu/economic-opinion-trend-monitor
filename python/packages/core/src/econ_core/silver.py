@@ -27,6 +27,37 @@ def _partition_of(cycles: Mapping[str, str], record_id: str) -> dict[str, str]:
     return domain.cycle_partition(cycles[record_id])
 
 
+class BronzeCycles(Mapping[str, str]):
+    """``record_id -> collection_cycle`` over all of Bronze, read on first lookup.
+
+    For callers that need the whole-lake mapping only on a rare path (a legacy file to
+    migrate), so the common path never pays for reading every cycle.
+    """
+
+    def __init__(self, store: LakeStore) -> None:
+        self._store = store
+        self._cycles: dict[str, str] | None = None
+
+    def _load(self) -> dict[str, str]:
+        if self._cycles is None:
+            bronze = (domain.BRONZE, domain.DS_NEWS_ITEM)
+            self._cycles = {
+                item["record_id"]: item["collection_cycle"]
+                for partition in self._store.partitions(*bronze)
+                for item in self._store.read_partition(*bronze, partition)
+            }
+        return self._cycles
+
+    def __getitem__(self, record_id: str) -> str:
+        return self._load()[record_id]
+
+    def __iter__(self):
+        return iter(self._load())
+
+    def __len__(self) -> int:
+        return len(self._load())
+
+
 def cycles_of(bronze: Iterable[dict]) -> dict[str, str]:
     """``record_id -> collection_cycle`` — where each record's Silver rows live."""
     return {item["record_id"]: item["collection_cycle"] for item in bronze}
@@ -90,32 +121,121 @@ def pending_retries(store: LakeStore, version: str) -> set[str]:
     """Records whose row at ``version`` is unanalyzed because the model call failed."""
     return {
         row["record_id"]
-        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
+        for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
         if row["analyzer_version"] == version
+    }
+
+
+def pending_retry_cycles(store: LakeStore, version: str) -> set[str]:
+    """Cycles holding a pending retry at ``version`` — a cycle in this set is not settled.
+
+    A retry written before retries named their cycle is left out: the first incremental
+    run visits every cycle, and visiting a retry's cycle rewrites it with its cycle.
+    """
+    return {
+        row["collection_cycle"]
+        for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
+        if row["analyzer_version"] == version and row.get("collection_cycle")
     }
 
 
 def record_retries(
     store: LakeStore,
-    cycles: Mapping[str, str],
+    cycle: str,
+    present: Iterable[str],
     version: str,
     analyzed: Iterable[str],
     failed: Iterable[str],
 ) -> int:
-    """Update the retry list after writing a batch: ``failed`` records join it, the rest
-    of ``analyzed`` leave it, and records Bronze no longer holds drop out. Returns its size.
+    """Update the retry list after writing a batch of ``cycle``: ``failed`` records join
+    it, the rest of ``analyzed`` leave it, and the cycle's retries whose record is not
+    in ``present`` (the cycle's Bronze) drop out. Retries of other cycles are kept as
+    they are. Returns the list's size.
     """
+    present = set(present)
     failed = set(failed)
     done = set(analyzed) - failed
-    kept = {
-        (row["record_id"], row["analyzer_version"])
-        for row in store.read_records(domain.SILVER, domain.DS_ANALYSIS_RETRY)
-        if row["record_id"] in cycles
-        and not (row["analyzer_version"] == version and row["record_id"] in done)
-    }
-    kept |= {(rid, version) for rid in failed}
-    rows = [{"record_id": rid, "analyzer_version": v} for rid, v in sorted(kept)]
+    kept: dict[tuple[str, str], str | None] = {}
+    for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_RETRY):
+        rid, row_version, row_cycle = (
+            row["record_id"],
+            row["analyzer_version"],
+            row.get("collection_cycle"),
+        )
+        mine = row_cycle == cycle or (row_cycle is None and rid in present)
+        if mine and (rid not in present or (row_version == version and rid in done)):
+            continue
+        kept[(rid, row_version)] = cycle if mine else row_cycle
+    for rid in failed:
+        kept[(rid, version)] = cycle
+    rows = [
+        {"record_id": rid, "analyzer_version": v, "collection_cycle": c}
+        for (rid, v), c in sorted(kept.items())
+    ]
     return store.write_records(domain.SILVER, domain.DS_ANALYSIS_RETRY, rows)
+
+
+def read_settled(store: LakeStore, version: str) -> dict[str, dict]:
+    """``cycle -> settled mark`` of every cycle fully analyzed at ``version``.
+
+    A mark holds the Bronze and Silver partition signatures seen when the cycle settled;
+    the mark only stands while both signatures still match (:func:`still_settled`).
+    """
+    return {
+        row["collection_cycle"]: row
+        for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_SETTLED)
+        if row["analyzer_version"] == version
+    }
+
+
+def still_settled(store: LakeStore, mark: dict | None, partition: Mapping[str, str]) -> bool:
+    """True when neither partition of ``mark``'s cycle was rewritten since it settled."""
+    return (
+        mark is not None
+        and mark["bronze_signature"]
+        == store.partition_signature(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
+        and mark["silver_signature"]
+        == store.partition_signature(domain.SILVER, domain.DS_ANALYSIS, partition)
+    )
+
+
+def mark_settled(
+    store: LakeStore,
+    version: str,
+    cycle: str,
+    *,
+    settled: bool,
+    bronze_count: int = 0,
+    silver_count: int = 0,
+) -> None:
+    """Record (``settled``) or clear the settled mark of ``cycle`` at ``version``."""
+    marks: list[dict] = []
+    had_mark = False
+    for row in store.iter_records(domain.SILVER, domain.DS_ANALYSIS_SETTLED):
+        if (row["analyzer_version"], row["collection_cycle"]) == (version, cycle):
+            had_mark = True
+        else:
+            marks.append(row)
+    if not settled and not had_mark:
+        return
+    if settled:
+        partition = domain.cycle_partition(cycle)
+        marks.append(
+            {
+                "analyzer_version": version,
+                "collection_cycle": cycle,
+                "bronze_signature": store.partition_signature(
+                    domain.BRONZE, domain.DS_NEWS_ITEM, partition
+                ),
+                "silver_signature": store.partition_signature(
+                    domain.SILVER, domain.DS_ANALYSIS, partition
+                ),
+                "bronze_count": bronze_count,
+                "silver_count": silver_count,
+            }
+        )
+    marks.sort(key=lambda r: (r["analyzer_version"], r["collection_cycle"]))
+    store.write_records(domain.SILVER, domain.DS_ANALYSIS_SETTLED, marks)
 
 
 def read_analyses(store: LakeStore) -> list[dict]:

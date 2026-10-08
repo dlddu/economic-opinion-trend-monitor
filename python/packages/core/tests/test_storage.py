@@ -25,6 +25,24 @@ def test_localfs_merge_is_idempotent_by_key(tmp_path: Path) -> None:
     assert store.read_records("silver", "cache") == [r1, r2]
 
 
+def test_partition_signature_changes_on_every_rewrite(tmp_path: Path) -> None:
+    store = LocalFsStore(tmp_path)
+    partition = {"year": "2026", "hour": "14"}
+    assert store.partition_signature("silver", "analysis", partition) is None
+    store.write_partition("silver", "analysis", partition, [{"a": 1}])
+    first = store.partition_signature("silver", "analysis", partition)
+    assert store.partition_signature("silver", "analysis", partition) == first
+    store.write_partition("silver", "analysis", partition, [{"a": 1}])
+    assert store.partition_signature("silver", "analysis", partition) != first
+
+
+def test_iter_records_streams_what_read_records_returns(tmp_path: Path) -> None:
+    store = LocalFsStore(tmp_path)
+    store.write_records("silver", "cache", [{"k": 1}, {"k": 2}])
+    assert list(store.iter_records("silver", "cache")) == [{"k": 1}, {"k": 2}]
+    assert list(store.iter_records("silver", "missing")) == []
+
+
 def _body(key: str, text: str, cycle: str = "2026-06-23T14:00") -> dict:
     return {"body_hash": key, "raw_text": text, "first_seen_cycle": cycle}
 
