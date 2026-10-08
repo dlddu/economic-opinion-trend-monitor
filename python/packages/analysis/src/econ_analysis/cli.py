@@ -175,8 +175,6 @@ def main(argv: list[str] | None = None) -> int:
 
 @dataclass
 class _Tally:
-    """What a run did, summed over the cycles it visited or found settled."""
-
     bronze: int = 0
     selected: int = 0
     skipped: int = 0
@@ -191,8 +189,6 @@ class _Tally:
 
 @dataclass
 class _Replies:
-    """The reply cache, read from the lake only once a cycle actually needs the model."""
-
     cache: dict[str, str] = field(default_factory=dict)
     origins: dict[str, str] = field(default_factory=dict)
     loaded: bool = False
@@ -210,9 +206,7 @@ class _Replies:
 def _sample_ids(
     store: LakeStore, args: argparse.Namespace, version: str, retry: set[str]
 ) -> set[str]:
-    """The records a ``--sample`` run analyzes, drawn over the whole selection.
-
-    Candidates are listed in the order a whole-lake read would have produced them, so
+    """Candidates are listed in the order a whole-lake read would have produced them, so
     the seeded draw picks the same records it did before runs went cycle by cycle.
     """
     candidates: list[tuple[str, str]] = []
@@ -241,8 +235,6 @@ def _sample_ids(
 
 @dataclass
 class _Cycle:
-    """A visited cycle whose records may still be waiting in a batch."""
-
     partition: dict[str, str]
     cycle: str
     present: set[str]
@@ -253,9 +245,7 @@ class _Cycle:
 
 
 class _Analysis:
-    """One run over the lake, a visited cycle at a time.
-
-    Batches still fill to ``--batch-size`` across cycle boundaries, in lake order: a
+    """Batches still fill to ``--batch-size`` across cycle boundaries, in lake order: a
     batch that ends at a cycle edge can hold nothing but that cycle's known-bad retries,
     and the all-calls-failed guard would read it as an outage.
     """
@@ -294,8 +284,6 @@ class _Analysis:
         *,
         count_only: bool = False,
     ) -> int:
-        """Select the cycle's records and queue them; ``count_only`` books the selection
-        and leaves the lake untouched (the cycles a stopped run never reached)."""
         store, tally = self.store, self.tally
         bronze = store.read_partition(domain.BRONZE, domain.DS_NEWS_ITEM, partition)
         present = {item["record_id"] for item in bronze}
@@ -337,7 +325,6 @@ class _Analysis:
         return 0
 
     def flush(self) -> int:
-        """Analyze and write the next batch of waiting records."""
         store, tally, version = self.store, self.tally, self.version
         size = max(1, self.args.batch_size)
         taken, self.pending = self.pending[:size], self.pending[size:]
@@ -452,13 +439,7 @@ def _analyze(
     run_id: str,
     stage: runlog.StageReport,
 ) -> int:
-    """Analyze Bronze one collection cycle at a time.
-
-    Memory is bounded by the cycles a batch spans rather than by the lake. A whole-lake
-    run also skips every cycle still settled at ``version`` (:func:`econ_core.silver.
-    still_settled`) without reading it, so the hourly run touches the new cycle, the
-    cycles with pending retries and any cycle whose partitions were rewritten since.
-    """
+    """Memory is bounded by the cycles a batch spans rather than by the lake."""
     migrated = silver.migrate_legacy(store, silver.BronzeCycles(store))
     if migrated:
         print(f"analysis: migrated {migrated} legacy silver rows into cycle partitions")
