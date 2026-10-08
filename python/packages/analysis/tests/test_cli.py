@@ -531,8 +531,6 @@ def test_rows_written_before_run_links_are_relinked_from_the_cache(
 def test_whole_lake_run_reads_only_cycles_not_yet_settled(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # The hourly run used to read the whole lake into memory and outgrew its limit;
-    # a settled cycle must now cost a stat, not a read.
     _seed_lake(tmp_path)
     assert cli.main(["--data", str(tmp_path), "--analyzer", "fake"]) == 0
     _write_items(
@@ -601,8 +599,6 @@ def test_a_scoped_rewrite_of_a_settled_cycle_sends_it_back_to_the_hourly_run(
 def test_a_cycle_holding_only_failing_retries_does_not_stop_the_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Cut at the cycle edge, the old cycle's batch would be its failing retry alone and
-    # the all-calls-failed guard would take it for an outage.
     _seed_lake(tmp_path)
     good = json.dumps({"sentiment": "neutral", "analyzable": True, "confidence": 0.9})
 
