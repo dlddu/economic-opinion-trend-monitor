@@ -86,3 +86,30 @@ func TestDebugInputIsNullWithoutTheBronzeObservation(t *testing.T) {
 		t.Errorf("missing bronze must read as null input, not an invented one: %+v", got.Input)
 	}
 }
+
+func TestDebugInputFollowsTheBronzeURLWhenSilverCarriesAnother(t *testing.T) {
+	dir := t.TempDir()
+	row := strings.Replace(analysisRow("rec-1", "v2", "analyzed", "run-a", `"call_id":"call-1"`),
+		"https://ex.test/1", "https://ex.test/moved", 1)
+	writeDebugLake(t, dir, []string{row},
+		map[string]string{"run-a": debugRunRecord},
+		map[string]string{"call-1": debugCallRecord})
+	writeLineage(t, dir,
+		strings.Join([]string{
+			newsItemRow("rec-1", "2026-09-28T00:00:00Z", "aaa"),
+			newsItemRow("rec-2", "2026-09-28T02:00:00Z", "bbb"),
+		}, "\n"),
+		strings.Join([]string{
+			newsBodyRow("aaa", "첫 본문", "2026-09-28T00:00:00Z"),
+			newsBodyRow("bbb", "고친 본문", "2026-09-28T02:00:00Z"),
+		}, "\n"),
+		"")
+
+	input := getDebug(t, dir, "?record_id=rec-1").Input
+	if input == nil || input.SourceURL != "https://ex.test/1" {
+		t.Fatalf("the observation is read by record id, not by Silver's URL: %+v", input)
+	}
+	if len(input.Versions) != 2 || !input.Versions[1].Latest || input.Versions[1].BodyHash != "bbb" {
+		t.Errorf("versions must follow the observation's own URL: %+v", input.Versions)
+	}
+}
