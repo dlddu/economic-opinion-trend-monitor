@@ -24,8 +24,9 @@ import type {
 
 const BASE = "/api";
 
-export async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
+// A signal lets a screen drop a request it no longer wants; the server stops the scan behind it.
+export async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = signal ? await fetch(`${BASE}${path}`, { signal }) : await fetch(`${BASE}${path}`);
   if (!res.ok) {
     throw new Error(`GET ${BASE}${path} -> ${res.status} ${res.statusText}`);
   }
@@ -97,15 +98,17 @@ export const api = {
   reprocessPublish: (body: ReprocessPublish) =>
     postJSON<{ run: ReprocessRun }>("/reprocess/publish", body),
   reprocessRuns: () => getJSON<{ runs: ReprocessRun[] }>("/reprocess/runs"),
-  debug: (recordId?: string) =>
+  debug: (recordId?: string, signal?: AbortSignal) =>
     getJSON<DebugResponse>(
       `/debug${recordId ? `?record_id=${encodeURIComponent(recordId)}` : ""}`,
+      signal,
     ),
-  debugRecords: (q = "", runId = "", symptom = "") =>
+  debugRecords: (q = "", runId = "", symptom = "", signal?: AbortSignal) =>
     getJSON<DebugRecordsResponse>(
       `/debug/records?q=${encodeURIComponent(q)}` +
         `&run_id=${encodeURIComponent(runId)}` +
         `&symptom=${encodeURIComponent(symptom)}`,
+      signal,
     ),
   screen: (name: string) => getJSON<unknown>(`/${name}`),
 };

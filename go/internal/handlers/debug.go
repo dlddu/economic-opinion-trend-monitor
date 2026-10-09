@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
-	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 type debugResponse struct {
@@ -112,7 +111,7 @@ func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 
 	run, _ := h.lake.PipelineRun(selected.RunID)
 	debugRun := h.debugRunOf(r, run, scan.runs[selected.RunID])
-	input := h.debugInputOf(r, scan.recordID)
+	input := h.debugInputOf(r, scan.recordID, scan.rows[0].SourceURL)
 	if gone(r) {
 		return
 	}
@@ -268,15 +267,8 @@ func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *run
 	if silver == nil {
 		silver = &runTally{}
 	}
-	outcome := make(map[string]int)
-	made := 0
-	_ = h.lake.EachLlmCallHead(r.Context(), func(call *store.LlmCallHead) error {
-		if call.RunID == run.RunID {
-			made++
-			outcome[string(call.CallOutcome)]++
-		}
-		return nil
-	})
+	_ = h.calls.Refresh(r.Context(), h.lake)
+	made, outcome := h.calls.Run(run.RunID)
 	stages := run.Stages
 	if stages == nil {
 		stages = []gen.RunStage{}

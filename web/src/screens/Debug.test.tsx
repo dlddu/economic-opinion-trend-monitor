@@ -564,3 +564,58 @@ it("lets the picked result open its source and names the keys it carries", async
   expect(open?.textContent).toContain("원문 열기");
   expect(open?.getAttribute("target")).toBe("_blank");
 });
+
+// The detail for any record other than r-1 never answers, so a test sees the screen mid-load.
+function stubSlowDetail() {
+  const second = { ...LIST_ROW, record_id: "r-2", title: "환율 급등" };
+  const signals: { url: string; signal?: AbortSignal }[] = [];
+  const fetchMock = vi.fn((url: unknown, init?: { signal?: AbortSignal }) => {
+    const u = String(url);
+    signals.push({ url: u, signal: init?.signal });
+    const answer = (body: unknown) =>
+      Promise.resolve({ ok: true, status: 200, statusText: "OK", json: async () => body });
+    if (u.includes("/debug/records")) return answer(records({ rows: [LIST_ROW, second] }));
+    if (u.includes("record_id=r-1")) return answer(response());
+    return new Promise(() => {});
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return { fetchMock, signals, second };
+}
+
+it("checks the picked record at once, before its detail has loaded", async () => {
+  const { second } = stubSlowDetail();
+  const { container } = renderDebug();
+  await waitFor(() => expect(container.textContent).toContain(CALL.call_model));
+
+  const pick = container.querySelector(`input[aria-label="${second.record_id} 고르기"]`) as HTMLInputElement;
+  fireEvent.click(pick);
+
+  await waitFor(() => expect(pick.checked).toBe(true));
+  expect(container.textContent).toContain(`레코드 ${second.record_id}의 판단 기록을 불러오는 중`);
+});
+
+it("drops the unfinished detail request when another record is picked", async () => {
+  const { signals, second } = stubSlowDetail();
+  const { container } = renderDebug(`/debug?record_id=${second.record_id}`);
+  await waitFor(() => expect(container.textContent).toContain(LIST_ROW.title));
+
+  const slow = signals.find((s) => s.url.includes(`record_id=${second.record_id}`));
+  expect(slow?.signal?.aborted).toBe(false);
+  fireEvent.click(container.querySelector(`input[aria-label="${LIST_ROW.record_id} 고르기"]`) as HTMLInputElement);
+
+  await waitFor(() => expect(slow?.signal?.aborted).toBe(true));
+  await waitFor(() => expect(container.textContent).toContain(CALL.call_model));
+});
+
+it("fetches the list again when 찾기 is pressed on unchanged conditions", async () => {
+  const fetchMock = stub(response());
+  const { container } = renderDebug();
+  await waitFor(() => expect(container.textContent).toContain(LIST_ROW.title));
+
+  const listCalls = () => fetchMock.mock.calls.filter((c) => String(c[0]).includes("/debug/records")).length;
+  const before = listCalls();
+  const find = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.trim() === "찾기");
+  fireEvent.click(find as HTMLButtonElement);
+
+  await waitFor(() => expect(listCalls()).toBe(before + 1));
+});

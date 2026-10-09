@@ -132,6 +132,8 @@ export function Debug() {
   const [invalid, setInvalid] = useState<string | null>(null);
   const [showOrig, setShowOrig] = useState(false);
   const [bodyVer, setBodyVer] = useState("");
+  // Bumped when 찾기 is pressed on unchanged conditions: the URL stays put, so the list is fetched again on purpose.
+  const [listReload, setListReload] = useState(0);
 
   useEffect(() => {
     setSearch(listQuery);
@@ -139,16 +141,18 @@ export function Debug() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     setList(null);
     setListError(null);
     api
-      .debugRecords(listQuery, runFilter, symptom)
+      .debugRecords(listQuery, runFilter, symptom, controller.signal)
       .then((d) => active && setList(d))
       .catch((e: unknown) => active && setListError(String(e)));
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [listQuery, runFilter, symptom]);
+  }, [listQuery, runFilter, symptom, listReload]);
 
   const updateParams = (patch: Record<string, string>) => {
     const next = new URLSearchParams(searchParams);
@@ -167,12 +171,16 @@ export function Debug() {
     setInvalid(null);
     setShowOrig(false);
     setBodyVer("");
+    // A record picked while the previous one is still loading drops that request, so the server
+    // stops its scan instead of making the new pick queue behind it.
+    const controller = new AbortController();
     api
-      .debug(query || undefined)
+      .debug(query || undefined, controller.signal)
       .then((d) => active && setData(d))
       .catch((e: unknown) => active && setError(String(e)));
     return () => {
       active = false;
+      controller.abort();
     };
   }, [query]);
 
@@ -226,7 +234,11 @@ export function Debug() {
           </div>
         </div>
       )}
-      {!data && !error && <div className="placeholder-note">불러오는 중…</div>}
+      {!data && !error && (
+        <div className="placeholder-note">
+          {query ? `레코드 ${query}의 판단 기록을 불러오는 중…` : "판단 기록을 불러오는 중…"}
+        </div>
+      )}
 
       <div className="grid g-12">
         <div className="card col-12">
@@ -244,7 +256,9 @@ export function Debug() {
               className="dbg-formrow"
               onSubmit={(e) => {
                 e.preventDefault();
-                updateParams({ q: search.trim() });
+                const q = search.trim();
+                if (q === listQuery) setListReload((n) => n + 1);
+                else updateParams({ q });
               }}
             >
               <label className="dbg-fld">
@@ -283,7 +297,9 @@ export function Debug() {
                   </optgroup>
                 </select>
               </label>
-              <button type="submit">찾기</button>
+              <button type="submit" className="btn">
+                찾기
+              </button>
             </form>
 
             {runFilter && (
@@ -308,7 +324,7 @@ export function Debug() {
                 </div>
               </div>
             )}
-            {!list && !listError && <div className="placeholder-note">불러오는 중…</div>}
+            {!list && !listError && <div className="placeholder-note">목록을 불러오는 중…</div>}
             {list && listRows.length > 0 && (
               <table className="tbl">
                 <thead>
@@ -329,7 +345,7 @@ export function Debug() {
                           name="rec"
                           value={row.record_id}
                           aria-label={`${row.record_id} 고르기`}
-                          checked={row.record_id === data?.record_id}
+                          checked={row.record_id === (query || data?.record_id)}
                           onChange={() => updateParams({ record_id: row.record_id })}
                         />
                       </td>

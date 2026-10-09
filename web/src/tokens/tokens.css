@@ -2432,6 +2432,10 @@ details.meta .metabody {
   align-items: flex-end;
   flex-wrap: wrap;
 }
+.dbg-formrow .btn {
+  justify-content: center;
+  padding: 9px 18px;
+}
 
 .dbg-fld {
   display: flex;

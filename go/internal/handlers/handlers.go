@@ -22,11 +22,17 @@ type Handlers struct {
 	// lakeScan admits one full Bronze/Silver scan at a time: overlapping scans
 	// (a screen's parallel fetches, re-sent while earlier ones still ran) are what ran the pod out of memory.
 	lakeScan chan struct{}
+	calls    *store.LlmCallTally
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.
 func New(lake *store.Lake) *Handlers {
-	return &Handlers{lake: lake, now: time.Now, lakeScan: make(chan struct{}, 1)}
+	return &Handlers{
+		lake:     lake,
+		now:      time.Now,
+		lakeScan: make(chan struct{}, 1),
+		calls:    store.NewLlmCallTally(),
+	}
 }
 
 // WithArgo attaches the workflow client the reprocess POST routes submit through.

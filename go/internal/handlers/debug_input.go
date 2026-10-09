@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
-	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 type debugInput struct {
@@ -25,27 +24,36 @@ type debugBodyVersion struct {
 	Latest         bool   `json:"latest"`
 }
 
-func (h *Handlers) debugInputOf(r *http.Request, recordID string) *debugInput {
+// debugInputOf finds the record's collection observation and every observation of the same
+// article. urlHint is the source URL Silver carries for the record: one Bronze pass collects the
+// record and the hint's observations together, and only a record whose own URL differs from the
+// hint costs a second pass.
+func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debugInput {
 	var item *gen.NewsItem
+	var observed []gen.NewsItem
 	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
-		if it.RecordID != recordID {
-			return nil
+		if item == nil && it.RecordID == recordID {
+			found := *it
+			item = &found
 		}
-		found := *it
-		item = &found
-		return store.ErrStop
+		if urlHint != "" && it.SourceURL == urlHint {
+			observed = append(observed, *it)
+		}
+		return nil
 	})
 	if item == nil {
 		return nil
 	}
 
-	observed := make([]gen.NewsItem, 0, 1)
-	_ = h.lake.EachNewsItem(r.Context(), func(other *gen.NewsItem) error {
-		if other.SourceURL == item.SourceURL {
-			observed = append(observed, *other)
-		}
-		return nil
-	})
+	if urlHint == "" || item.SourceURL != urlHint {
+		observed = observed[:0]
+		_ = h.lake.EachNewsItem(r.Context(), func(other *gen.NewsItem) error {
+			if other.SourceURL == item.SourceURL {
+				observed = append(observed, *other)
+			}
+			return nil
+		})
+	}
 	sort.SliceStable(observed, func(i, j int) bool { return observed[i].CollectedAt < observed[j].CollectedAt })
 
 	seen := make(map[string]bool)
