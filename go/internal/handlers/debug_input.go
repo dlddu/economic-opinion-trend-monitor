@@ -45,6 +45,7 @@ func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debu
 	}
 
 	if urlHint == "" || item.SourceURL != urlHint {
+		clockOf(r).enter("bronze_again")
 		observed = observed[:0]
 		_ = h.lake.EachNewsItem(r.Context(), func(other *gen.NewsItem) error {
 			if other.SourceURL == item.SourceURL {
@@ -55,6 +56,7 @@ func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debu
 	}
 	sort.SliceStable(observed, func(i, j int) bool { return observed[i].CollectedAt < observed[j].CollectedAt })
 
+	clockOf(r).enter("bodies")
 	seen := make(map[string]bool)
 	versions := make([]debugBodyVersion, 0, 1)
 	for _, obs := range observed {

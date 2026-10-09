@@ -129,6 +129,17 @@ func (t *LlmCallTally) refreshPartition(ctx context.Context, root, name string) 
 	return nil
 }
 
+// Counted reports how many llm_call record files the tally has read so far.
+func (t *LlmCallTally) Counted() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	n := 0
+	for _, p := range t.parts {
+		n += len(p.seen)
+	}
+	return n
+}
+
 // Run reports how many calls the run made and how many ended in each outcome, as of the last Refresh.
 func (t *LlmCallTally) Run(runID string) (made int, outcomes map[string]int) {
 	t.mu.Lock()
