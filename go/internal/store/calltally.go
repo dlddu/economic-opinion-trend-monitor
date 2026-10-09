@@ -35,9 +35,7 @@ func NewLlmCallTally() *LlmCallTally {
 	return &LlmCallTally{parts: map[string]*callPartition{}}
 }
 
-// Refresh counts the llm_call records written since the last refresh. A partition that lost a
-// counted file is recounted from scratch rather than trusted. A cancelled refresh keeps what it
-// counted so far, so the next one resumes instead of starting over.
+// Refresh counts the llm_call records written since the last refresh.
 func (t *LlmCallTally) Refresh(ctx context.Context, l *Lake) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
