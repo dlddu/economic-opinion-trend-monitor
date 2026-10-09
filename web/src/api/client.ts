@@ -24,7 +24,6 @@ import type {
 
 const BASE = "/api";
 
-// A signal lets a screen drop a request it no longer wants; the server stops the scan behind it.
 export async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = signal ? await fetch(`${BASE}${path}`, { signal }) : await fetch(`${BASE}${path}`);
   if (!res.ok) {

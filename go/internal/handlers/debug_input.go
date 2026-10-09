@@ -24,10 +24,9 @@ type debugBodyVersion struct {
 	Latest         bool   `json:"latest"`
 }
 
-// debugInputOf finds the record's collection observation and every observation of the same
-// article. urlHint is the source URL Silver carries for the record: one Bronze pass collects the
-// record and the hint's observations together, and only a record whose own URL differs from the
-// hint costs a second pass.
+// urlHint is the source URL Silver carries for the record: one Bronze pass collects the record and
+// the hint's observations together, and only a record whose own URL differs from the hint costs a
+// second pass.
 func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debugInput {
 	var item *gen.NewsItem
 	var observed []gen.NewsItem
