@@ -79,8 +79,7 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// byID keeps only observations the loop below would not skip. A record id seen
-	// again later still replaces the earlier observation, kept or not, as the
-	// unfiltered map did.
+	// again later still replaces the earlier observation, kept or not.
 	articles := bodyArticles{}
 	byID := map[string]gen.NewsItem{}
 	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {

@@ -48,8 +48,6 @@ func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only a call_outcome symptom reads the call record to filter; otherwise
-	// calls are read for the shown rows alone.
 	byCall := strings.HasPrefix(symptom, "call_outcome:")
 	shown := make([]int, 0, debugRecordsLimit)
 	total := 0
