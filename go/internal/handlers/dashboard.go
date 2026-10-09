@@ -72,7 +72,22 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	unit := unitParam(r, defaultDashUnit)
 
-	trends, _ := h.lake.SubjectTrends()
+	// Another axis's rows only lift the anchor, so of those only a row that raises
+	// their running maximum is kept — the anchor comes out the same.
+	var otherAxesMax string
+	trends, _ := h.lake.SubjectTrendsWhere(r.Context(), func(t *gen.SubjectTrend) bool {
+		if t.BucketUnit != unit {
+			return false
+		}
+		if string(t.Axis) == axis {
+			return true
+		}
+		if t.TimeBucket > otherAxesMax {
+			otherAxesMax = t.TimeBucket
+			return true
+		}
+		return false
+	})
 	sentiments, _ := h.lake.AxisSentiments()
 	writeJSON(w, http.StatusOK, buildDashboard(trends, sentiments, axis, rangeKey, unit))
 }

@@ -19,10 +19,15 @@ type Handlers struct {
 	argo    *argo.Client
 	now     func() time.Time
 	trigger triggerProbe
+	// lakeScan admits one full Bronze/Silver scan at a time: overlapping scans
+	// (a screen's parallel fetches, re-sent while earlier ones still ran) are what ran the pod out of memory.
+	lakeScan chan struct{}
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.
-func New(lake *store.Lake) *Handlers { return &Handlers{lake: lake, now: time.Now} }
+func New(lake *store.Lake) *Handlers {
+	return &Handlers{lake: lake, now: time.Now, lakeScan: make(chan struct{}, 1)}
+}
 
 // WithArgo attaches the workflow client the reprocess POST routes submit through.
 func (h *Handlers) WithArgo(c *argo.Client) *Handlers {
@@ -38,16 +43,32 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/compare", h.compare)
 	mux.HandleFunc("GET /api/sentiment", h.sentiment)
 	mux.HandleFunc("GET /api/fairness", h.fairness)
-	mux.HandleFunc("GET /api/contributions", h.contributions)
+	mux.HandleFunc("GET /api/contributions", h.oneScanAtATime(h.contributions))
 	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
-	mux.HandleFunc("GET /api/trace", h.trace)
-	mux.HandleFunc("GET /api/reprocess", h.reprocess)
-	mux.HandleFunc("GET /api/debug", h.debug)
-	mux.HandleFunc("GET /api/debug/records", h.debugRecords)
+	mux.HandleFunc("GET /api/trace", h.oneScanAtATime(h.trace))
+	mux.HandleFunc("GET /api/reprocess", h.oneScanAtATime(h.reprocess))
+	mux.HandleFunc("GET /api/debug", h.oneScanAtATime(h.debug))
+	mux.HandleFunc("GET /api/debug/records", h.oneScanAtATime(h.debugRecords))
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)
 	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish)
+}
+
+func (h *Handlers) oneScanAtATime(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case h.lakeScan <- struct{}{}:
+		case <-r.Context().Done():
+			return
+		}
+		defer func() { <-h.lakeScan }()
+		next(w, r)
+	}
+}
+
+func gone(r *http.Request) bool {
+	return r.Context().Err() != nil
 }
 
 type rankRow struct {
@@ -246,7 +267,7 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 	// Filter while reading, not after: Gold grows every batch run, and holding
 	// every axis and unit at once is what got serving OOM-killed.
 	var finest gen.BucketUnit
-	rows, _ := h.lake.SubjectTrendsWhere(func(t *gen.SubjectTrend) bool {
+	rows, _ := h.lake.SubjectTrendsWhere(r.Context(), func(t *gen.SubjectTrend) bool {
 		if string(t.Axis) != axis {
 			return false
 		}
@@ -347,14 +368,7 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
-	trends, _ := h.lake.SubjectTrends()
-
-	inAxis := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if string(t.Axis) == axis {
-			inAxis = append(inAxis, t)
-		}
-	}
+	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
 
 	unit := plottedUnit(inAxis)
 	bucket := latestBucketOf(inAxis, unit)
@@ -392,6 +406,10 @@ func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func inAxisTrend(axis string) func(*gen.SubjectTrend) bool {
+	return func(t *gen.SubjectTrend) bool { return string(t.Axis) == axis }
+}
+
 func latestBucketOf(rows []gen.SubjectTrend, unit gen.BucketUnit) string {
 	var bucket string
 	for _, t := range rows {
@@ -411,9 +429,10 @@ func shareOf(count, total int64) float64 {
 
 func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 	requested := r.URL.Query().Get("record_id")
-	items, _ := h.lake.NewsItems()
-
-	item, selection := selectNewsItem(items, requested)
+	item, selection := h.selectNewsItem(r, requested)
+	if gone(r) {
+		return
+	}
 	if item == nil {
 		writeJSON(w, http.StatusOK, traceResponse{
 			RecordID:  requested,
@@ -425,10 +444,20 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, _ := h.lake.NewsBody(item.BodyHash)
-	analyses, _ := h.lake.Analyses()
+	var first []gen.Analysis
+	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
+		if a.RecordID != item.RecordID {
+			return nil
+		}
+		first = append(first, *a)
+		return store.ErrStop
+	})
+	if gone(r) {
+		return
+	}
 
 	bronze := bronzeSection(*item, body)
-	silver, hasSilver := silverSection(item.RecordID, analyses)
+	silver, hasSilver := silverSection(item.RecordID, first)
 
 	writeJSON(w, http.StatusOK, traceResponse{
 		RecordID:  item.RecordID,
@@ -443,19 +472,25 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 
 // selectNewsItem names how the record was chosen, so falling back to the first
 // observation never reads like the record the caller asked for.
-func selectNewsItem(items []gen.NewsItem, requested string) (*gen.NewsItem, string) {
-	if requested != "" {
-		for i := range items {
-			if items[i].RecordID == requested {
-				return &items[i], "requested"
-			}
+func (h *Handlers) selectNewsItem(r *http.Request, requested string) (*gen.NewsItem, string) {
+	var item *gen.NewsItem
+	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
+		if requested != "" && it.RecordID != requested {
+			return nil
 		}
+		found := *it
+		item = &found
+		return store.ErrStop
+	})
+	switch {
+	case item != nil && requested != "":
+		return item, "requested"
+	case item != nil:
+		return item, "auto"
+	case requested != "":
 		return nil, "requested-missing"
 	}
-	if len(items) == 0 {
-		return nil, "empty"
-	}
-	return &items[0], "auto"
+	return nil, "empty"
 }
 
 func bronzeSection(item gen.NewsItem, body *gen.NewsBody) traceBronze {

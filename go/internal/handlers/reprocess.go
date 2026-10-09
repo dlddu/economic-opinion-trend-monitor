@@ -96,10 +96,16 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 	source := q.Get("source")
 	since := h.now().Add(-window)
 
-	items, _ := h.lake.NewsItems()
-	analyses, _ := h.lake.Analyses()
-
-	inAxis := itemsInWindow(items, axis, since)
+	var inAxis []gen.NewsItem
+	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
+		if inWindow(*it, axis, since) {
+			inAxis = append(inAxis, *it)
+		}
+		return nil
+	})
+	if gone(r) {
+		return
+	}
 	scoped := inAxis
 	if source != "" {
 		scoped = nil
@@ -115,10 +121,14 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 		scopedIDs[it.RecordID] = true
 	}
 	silver := make([]gen.Analysis, 0, len(scoped))
-	for _, a := range analyses {
+	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
 		if scopedIDs[a.RecordID] {
-			silver = append(silver, a)
+			silver = append(silver, *a)
 		}
+		return nil
+	})
+	if gone(r) {
+		return
 	}
 
 	versions := versionsOf(silver)
@@ -153,19 +163,12 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 
 // An observation whose collected_at cannot be read is left out rather than
 // guessed into the window.
-func itemsInWindow(items []gen.NewsItem, axis string, since time.Time) []gen.NewsItem {
-	var out []gen.NewsItem
-	for _, it := range items {
-		if string(it.Axis) != axis {
-			continue
-		}
-		at, err := time.Parse(time.RFC3339, it.CollectedAt)
-		if err != nil || at.Before(since) {
-			continue
-		}
-		out = append(out, it)
+func inWindow(it gen.NewsItem, axis string, since time.Time) bool {
+	if string(it.Axis) != axis {
+		return false
 	}
-	return out
+	at, err := time.Parse(time.RFC3339, it.CollectedAt)
+	return err == nil && !at.Before(since)
 }
 
 func sourcesOf(items []gen.NewsItem) []sourceRow {

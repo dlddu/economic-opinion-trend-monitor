@@ -1,6 +1,8 @@
 package store
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +49,7 @@ func TestSubjectTrendsWhereKeepsOnlyAcceptedRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := New(dir).SubjectTrendsWhere(func(r *gen.SubjectTrend) bool { return r.Axis == gen.AxisKR })
+	got, err := New(dir).SubjectTrendsWhere(context.Background(), func(r *gen.SubjectTrend) bool { return r.Axis == gen.AxisKR })
 	if err != nil {
 		t.Fatalf("SubjectTrendsWhere: %v", err)
 	}
@@ -55,7 +57,7 @@ func TestSubjectTrendsWhereKeepsOnlyAcceptedRows(t *testing.T) {
 		t.Fatalf("want KR rows a, c in file order, got %+v", got)
 	}
 
-	none, err := New(t.TempDir()).SubjectTrendsWhere(func(*gen.SubjectTrend) bool { return true })
+	none, err := New(t.TempDir()).SubjectTrendsWhere(context.Background(), func(*gen.SubjectTrend) bool { return true })
 	if err != nil || len(none) != 0 {
 		t.Fatalf("missing dataset should read empty, got %v, %v", none, err)
 	}
@@ -300,5 +302,72 @@ func TestObjectDatasetsReadEmptyWhenAbsentAndOrderByKeyFileName(t *testing.T) {
 	}
 	if strings.Join(ids, ",") != "run-a,run-b,run-c" {
 		t.Errorf("order = %v, want key-name order", ids)
+	}
+}
+
+func TestEachAnalysisStopsEarlyAndHonorsCancellation(t *testing.T) {
+	dir := t.TempDir()
+	part := filepath.Join(dir, "silver", "analysis", "year=2026", "month=10", "day=05", "hour=00")
+	if err := os.MkdirAll(part, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rows := `{"record_id":"a"}` + "\n" + `{"record_id":"b"}` + "\n" + `{"record_id":"c"}` + "\n"
+	if err := os.WriteFile(filepath.Join(part, "data.jsonl"), []byte(rows), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lake := New(dir)
+
+	var seen []string
+	err := lake.EachAnalysis(context.Background(), func(a *gen.Analysis) error {
+		seen = append(seen, a.RecordID)
+		if a.RecordID == "b" {
+			return ErrStop
+		}
+		return nil
+	})
+	if err != nil || strings.Join(seen, ",") != "a,b" {
+		t.Fatalf("ErrStop must end the scan without an error: seen=%v err=%v", seen, err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	called := false
+	err = lake.EachAnalysis(ctx, func(*gen.Analysis) error {
+		called = true
+		return nil
+	})
+	if !errors.Is(err, context.Canceled) || called {
+		t.Fatalf("a cancelled scan must stop before decoding: called=%v err=%v", called, err)
+	}
+}
+
+func TestLlmCallHeadsReadByKeyAndInKeyOrder(t *testing.T) {
+	dir := t.TempDir()
+	for _, c := range []struct{ id, run, outcome string }{
+		{"call-2", "run-b", "parsed"},
+		{"call-1", "run-a", "call_failed"},
+	} {
+		writeObjectRecord(t, dir, "llm_call", "call_id", c.id,
+			`{"call_id":"`+c.id+`","run_id":"`+c.run+`","prompt_user":"긴 본문","call_outcome":"`+c.outcome+`"}`)
+	}
+	lake := New(dir)
+
+	head, err := lake.LlmCallHeadOf("call-1")
+	if err != nil || head == nil || head.RunID != "run-a" || head.CallOutcome != gen.LlmCallOutcomeCallFailed {
+		t.Fatalf("LlmCallHeadOf(call-1) = %+v, %v", head, err)
+	}
+	if missing, err := lake.LlmCallHeadOf("call-9"); err != nil || missing != nil {
+		t.Fatalf("absent call must read nil: %+v %v", missing, err)
+	}
+
+	var ids []string
+	if err := lake.EachLlmCallHead(context.Background(), func(h *LlmCallHead) error {
+		ids = append(ids, h.CallID+"/"+string(h.CallOutcome))
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(ids, ",") != "call-1/call_failed,call-2/parsed" {
+		t.Fatalf("heads = %v", ids)
 	}
 }

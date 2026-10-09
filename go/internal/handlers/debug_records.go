@@ -43,21 +43,41 @@ func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request) {
 	runID := strings.TrimSpace(r.URL.Query().Get("run_id"))
 	symptom := strings.TrimSpace(r.URL.Query().Get("symptom"))
 
-	analyses, _ := h.lake.Analyses()
-	calls, _ := h.lake.LlmCalls()
-	items, _ := h.lake.NewsItems()
+	all := h.debugRecordRows(r)
+	if gone(r) {
+		return
+	}
 
-	all := debugRecordRows(analyses, calls, items)
-	matched := make([]debugRecordRow, 0, len(all))
-	for _, row := range all {
-		if matchesDebugQuery(row, query) && matchesDebugRun(row, runID) && matchesDebugSymptom(row, symptom) {
-			matched = append(matched, row)
+	// Only a call_outcome symptom reads the call record to filter; otherwise
+	// calls are read for the shown rows alone.
+	byCall := strings.HasPrefix(symptom, "call_outcome:")
+	shown := make([]int, 0, debugRecordsLimit)
+	total := 0
+	for i := range all {
+		row := &all[i].row
+		if !matchesDebugQuery(*row, query) || !matchesDebugRun(*row, runID) {
+			continue
+		}
+		if byCall {
+			if i%256 == 0 && gone(r) {
+				return
+			}
+			h.fillExchange(row, all[i].analysis)
+		}
+		if matchesDebugSymptom(*row, symptom) {
+			total++
+			if len(shown) < debugRecordsLimit {
+				shown = append(shown, i)
+			}
 		}
 	}
 
-	rows := matched
-	if len(rows) > debugRecordsLimit {
-		rows = rows[:debugRecordsLimit]
+	rows := make([]debugRecordRow, 0, len(shown))
+	for _, i := range shown {
+		if !byCall {
+			h.fillExchange(&all[i].row, all[i].analysis)
+		}
+		rows = append(rows, all[i].row)
 	}
 
 	writeJSON(w, http.StatusOK, debugRecordsResponse{
@@ -65,43 +85,52 @@ func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request) {
 		RunID:     runID,
 		Symptom:   symptom,
 		Total:     len(all),
-		Matched:   len(matched),
+		Matched:   total,
 		Limit:     debugRecordsLimit,
-		Truncated: len(matched) > len(rows),
+		Truncated: total > len(rows),
 		Rows:      rows,
 	})
 }
 
-func debugRecordRows(analyses []gen.Analysis, calls []gen.LlmCallRecord, items []gen.NewsItem) []debugRecordRow {
-	byCallID := make(map[string]gen.LlmCallRecord, len(calls))
-	for _, call := range calls {
-		byCallID[call.CallID] = call
-	}
-	item := make(map[string]gen.NewsItem, len(items))
-	for _, news := range items {
-		if seen, ok := item[news.RecordID]; ok && seen.CollectedAt >= news.CollectedAt {
-			continue
-		}
-		item[news.RecordID] = news
-	}
+type listedRecord struct {
+	row      debugRecordRow
+	analysis gen.Analysis
+}
 
-	latest := make(map[string]gen.Analysis, len(analyses))
-	versions := make(map[string]int, len(analyses))
-	order := make([]string, 0, len(analyses))
-	for _, analysis := range analyses {
-		versions[analysis.RecordID]++
-		prev, ok := latest[analysis.RecordID]
+func (h *Handlers) debugRecordRows(r *http.Request) []listedRecord {
+	latest := map[string]gen.Analysis{}
+	versions := map[string]int{}
+	order := []string{}
+	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
+		slim := *a
+		slim.SourceURL, slim.TargetCountries, slim.NarrativeSubjects, slim.SubjectCategories = "", nil, nil, nil
+		versions[a.RecordID]++
+		prev, ok := latest[a.RecordID]
 		if !ok {
-			order = append(order, analysis.RecordID)
-			latest[analysis.RecordID] = analysis
-			continue
+			order = append(order, a.RecordID)
+			latest[a.RecordID] = slim
+			return nil
 		}
-		if analysis.AnalyzedAt > prev.AnalyzedAt {
-			latest[analysis.RecordID] = analysis
+		if a.AnalyzedAt > prev.AnalyzedAt {
+			latest[a.RecordID] = slim
 		}
-	}
+		return nil
+	})
 
-	rows := make([]debugRecordRow, 0, len(order))
+	type listItem struct{ title, sourceID, collectedAt string }
+	item := make(map[string]listItem, len(latest))
+	_ = h.lake.EachNewsItem(r.Context(), func(news *gen.NewsItem) error {
+		if _, listed := latest[news.RecordID]; !listed {
+			return nil
+		}
+		if seen, ok := item[news.RecordID]; ok && seen.collectedAt >= news.CollectedAt {
+			return nil
+		}
+		item[news.RecordID] = listItem{news.Title, news.SourceID, news.CollectedAt}
+		return nil
+	})
+
+	out := make([]listedRecord, 0, len(order))
 	for _, recordID := range order {
 		analysis := latest[recordID]
 		row := debugRecordRow{
@@ -112,33 +141,47 @@ func debugRecordRows(analyses []gen.Analysis, calls []gen.LlmCallRecord, items [
 			AnalyzedAt:      analysis.AnalyzedAt,
 			RunID:           analysis.RunID,
 			Versions:        versions[recordID],
+			NoCallReason:    analysis.NoCallReason,
 		}
 		if analysis.Sentiment != nil {
 			sentiment := string(*analysis.Sentiment)
 			row.Sentiment = &sentiment
 		}
 		if news, ok := item[recordID]; ok {
-			row.Title = news.Title
-			row.SourceID = news.SourceID
-			row.CollectedAt = news.CollectedAt
+			row.Title = news.title
+			row.SourceID = news.sourceID
+			row.CollectedAt = news.collectedAt
 		}
-		exchange := exchangeOf(analysis, byCallID)
-		row.ExchangeState = exchange.State
-		row.NoCallReason = exchange.NoCallReason
-		if exchange.Call != nil {
-			outcome := exchange.Call.CallOutcome
-			row.CallOutcome = &outcome
-		}
-		rows = append(rows, row)
+		out = append(out, listedRecord{row, analysis})
 	}
 
-	sort.SliceStable(rows, func(i, j int) bool {
-		if rows[i].AnalyzedAt != rows[j].AnalyzedAt {
-			return rows[i].AnalyzedAt > rows[j].AnalyzedAt
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].row.AnalyzedAt != out[j].row.AnalyzedAt {
+			return out[i].row.AnalyzedAt > out[j].row.AnalyzedAt
 		}
-		return rows[i].RecordID < rows[j].RecordID
+		return out[i].row.RecordID < out[j].row.RecordID
 	})
-	return rows
+	return out
+}
+
+func (h *Handlers) fillExchange(row *debugRecordRow, analysis gen.Analysis) {
+	exchange := exchangeOf(analysis, h.callHeadByID)
+	row.ExchangeState = exchange.State
+	row.NoCallReason = exchange.NoCallReason
+	if exchange.Call != nil {
+		outcome := exchange.Call.CallOutcome
+		row.CallOutcome = &outcome
+	}
+}
+
+// callHeadByID is a callLookup that reads only the call's head: a list row
+// shows the outcome, never the prompt or reply.
+func (h *Handlers) callHeadByID(callID string) (gen.LlmCallRecord, bool) {
+	head, err := h.lake.LlmCallHeadOf(callID)
+	if err != nil || head == nil {
+		return gen.LlmCallRecord{}, false
+	}
+	return gen.LlmCallRecord{CallID: head.CallID, RunID: head.RunID, CallOutcome: head.CallOutcome}, true
 }
 
 func matchesDebugQuery(row debugRecordRow, query string) bool {
