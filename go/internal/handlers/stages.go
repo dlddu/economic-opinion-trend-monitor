@@ -13,8 +13,6 @@ import (
 // Server-Timing header the browser shows beside the request, and as one log line written even
 // when the client gave up — the line names the stage the abort cut short, which is what a
 // request cut at the proxy's timeout otherwise leaves blank.
-//
-// A nil clock is a no-op, so handlers called without the scan gate (unit tests) need no setup.
 type stageClock struct {
 	start   time.Time
 	at      time.Time
@@ -44,7 +42,6 @@ func clockOf(r *http.Request) *stageClock {
 	return c
 }
 
-// enter closes the running stage and starts the named one.
 func (c *stageClock) enter(name string) {
 	if c == nil {
 		return
@@ -98,8 +95,6 @@ func (c *stageClock) report(r *http.Request) {
 	log.Print(b.String())
 }
 
-// timedWriter stamps Server-Timing on the response as the header goes out, closing the stage
-// that was running; the encode that follows is timed as its own "write" stage.
 type timedWriter struct {
 	http.ResponseWriter
 	clock *stageClock

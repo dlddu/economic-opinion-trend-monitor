@@ -28,7 +28,7 @@ func TestStageClockNamesTheStageAnAbortCut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	slow := h.oneScanAtATime(func(w http.ResponseWriter, r *http.Request) {
 		clockOf(r).enter("tally")
-		cancel() // the proxy gives up while the tally is still reading
+		cancel()
 	})
 	slow(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/debug?record_id=x", nil).WithContext(ctx))
 

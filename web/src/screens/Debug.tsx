@@ -203,8 +203,6 @@ export function Debug() {
   const shownRows = diffOnly ? rows.filter((r) => !r.agrees) : rows;
   const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
-  // The server counts call records in the background after it starts; until the first count
-  // is whole it sends no call numbers, and a zero here would read as "no calls".
   const callsTallied = run?.symptoms.calls_tallied !== false;
   const input = data?.input ?? null;
   const bodies = input?.versions ?? [];
