@@ -157,7 +157,7 @@ func TestLlmCallTallyCountsManyFilesAcrossItsReaders(t *testing.T) {
 
 func TestLlmCallTallyAnswersWhileARefreshIsReading(t *testing.T) {
 	tally := NewLlmCallTally()
-	tally.refresh.Lock() // a refresh in the middle of its reads
+	tally.refresh.Lock()
 	defer tally.refresh.Unlock()
 	done := make(chan struct{})
 	go func() {

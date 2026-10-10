@@ -23,7 +23,7 @@ import (
 //
 // A first count reads every record (232 k files took 16 min one by one on the prod EFS volume),
 // so Refresh belongs off the request path: it reads in parallel and holds mu only to apply what
-// it read, and readers ask Complete before trusting the counts.
+// it read.
 type LlmCallTally struct {
 	refresh  sync.Mutex // one Refresh at a time; the only writer of callPartition.seen
 	mu       sync.Mutex
@@ -45,7 +45,6 @@ func newCallPartition() *callPartition {
 // round trip on EFS, so the count goes as fast as the round trips overlap, not as the CPU.
 const tallyReaders = 16
 
-// tallyApplyEvery is how many reads a refresh gathers before it takes mu to apply them.
 const tallyApplyEvery = 1024
 
 // NewLlmCallTally returns an empty tally; the first Refresh reads every llm_call record.

@@ -13,9 +13,7 @@ import (
 )
 
 // TestProbeDebugStages times /api/debug against a real lake the way a freshly started serving
-// pod meets it: requests before the background call tally has finished its first count, the
-// first count itself, a refresh with nothing new, then requests on the finished tally. It runs
-// only when ECON_PROBE_ROOT names a lake and asserts nothing — the log lines are its output.
+// pod meets it, and asserts nothing — the log lines are its output.
 func TestProbeDebugStages(t *testing.T) {
 	root := os.Getenv("ECON_PROBE_ROOT")
 	if root == "" {
