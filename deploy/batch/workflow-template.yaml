@@ -54,7 +54,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:69c49f6bca0cef20d74899a8f08a994da4867ec3
         # Set explicitly (rather than relying on the image ENTRYPOINT) so the
         # emissary executor never has to look the entrypoint up from a private
         # registry.
@@ -101,7 +101,7 @@ spec:
         # buries the message, so stop after the first attempt.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:69c49f6bca0cef20d74899a8f08a994da4867ec3
         command: ["econ-analysis"]
         args: []
         env:
@@ -150,7 +150,7 @@ spec:
         retryPolicy: Always
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:69c49f6bca0cef20d74899a8f08a994da4867ec3
         command: ["econ-analysis"]
         args:
           - --analyzer-version
@@ -209,7 +209,7 @@ spec:
         # cannot succeed.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:69c49f6bca0cef20d74899a8f08a994da4867ec3
         command: ["econ-aggregation"]
         args:
           - --decision
@@ -249,7 +249,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:69c49f6bca0cef20d74899a8f08a994da4867ec3
         command: ["econ-aggregation"]
         args: []
         env:

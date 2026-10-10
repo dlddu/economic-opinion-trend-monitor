@@ -14,7 +14,7 @@ spec:
           # CI owns this tag — do not edit it by hand. The tag is immutable, so the
           # default imagePullPolicy (IfNotPresent) is correct. Previews and e2e retag
           # it by image name via `images:`.
-          image: ghcr.io/dlddu/economic-opinion-trend-monitor:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+          image: ghcr.io/dlddu/economic-opinion-trend-monitor:69c49f6bca0cef20d74899a8f08a994da4867ec3
           env:
             - name: ECON_DATA_ROOT
               value: /data
