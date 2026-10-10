@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -46,8 +47,13 @@ func writeDebugLake(t *testing.T, dir string, analyses []string, runs, calls map
 
 func getDebug(t *testing.T, dir, query string) debugResponse {
 	t.Helper()
+	return getDebugFrom(t, New(store.New(dir)), query)
+}
+
+func getDebugFrom(t *testing.T, h *Handlers, query string) debugResponse {
+	t.Helper()
 	mux := http.NewServeMux()
-	New(store.New(dir)).Register(mux)
+	h.Register(mux)
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
@@ -222,8 +228,20 @@ func TestDebugTalliesRunSymptomsAcrossItsRecordsAndCalls(t *testing.T) {
 	}, map[string]string{"run-a": debugRunRecord},
 		map[string]string{"call-1": debugCallRecord, "call-3": failed})
 
-	symptoms := getDebug(t, dir, "?record_id=rec-1").Run.Symptoms
-	if symptoms.Records != 3 || symptoms.Calls != 2 {
+	h := New(store.New(dir))
+	pending := getDebugFrom(t, h, "?record_id=rec-1").Run.Symptoms
+	if pending.CallsTallied || pending.Calls != 0 || len(pending.CallOutcome) != 0 {
+		t.Errorf("before the first count the run must not show call numbers: %+v", pending)
+	}
+	if pending.Records != 3 {
+		t.Errorf("Silver totals do not wait for the call tally: %+v", pending)
+	}
+
+	if err := h.calls.Refresh(context.Background(), h.lake); err != nil {
+		t.Fatal(err)
+	}
+	symptoms := getDebugFrom(t, h, "?record_id=rec-1").Run.Symptoms
+	if !symptoms.CallsTallied || symptoms.Records != 3 || symptoms.Calls != 2 {
 		t.Fatalf("run totals must count only this run: %+v", symptoms)
 	}
 	if want := []debugTally{{"unanalyzed", 2}, {"analyzed", 1}}; !sameTallies(symptoms.AnalysisStatus, want) {

@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
@@ -68,6 +71,7 @@ type debugRun struct {
 type debugSymptoms struct {
 	Records        int          `json:"records"`
 	Calls          int          `json:"calls"`
+	CallsTallied   bool         `json:"calls_tallied"`
 	AnalysisStatus []debugTally `json:"analysis_status"`
 	CallOutcome    []debugTally `json:"call_outcome"`
 	NoCallReason   []debugTally `json:"no_call_reason"`
@@ -268,6 +272,27 @@ func projectCall(call gen.LlmCallRecord) *debugCall {
 	}
 }
 
+// KeepCallTally counts llm_call records now and then every interval until ctx ends. It runs
+// outside the scan gate: it reads only llm_call, which no gated request reads whole.
+func (h *Handlers) KeepCallTally(ctx context.Context, every time.Duration) {
+	for {
+		start, before := time.Now(), h.calls.Counted()
+		err := h.calls.Refresh(ctx, h.lake)
+		if ctx.Err() != nil {
+			return
+		}
+		if read := h.calls.Counted() - before; err != nil || read > 0 {
+			log.Printf("call tally: read=%d total=%d took=%dms err=%v",
+				read, h.calls.Counted(), time.Since(start).Milliseconds(), err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(every):
+		}
+	}
+}
+
 func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *runTally) *debugRun {
 	if run == nil {
 		return nil
@@ -275,12 +300,13 @@ func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *run
 	if silver == nil {
 		silver = &runTally{}
 	}
-	clock := clockOf(r)
-	clock.enter("tally")
-	before := h.calls.Counted()
-	_ = h.calls.Refresh(r.Context(), h.lake)
-	clock.note("tally_read=%d tally_total=%d", h.calls.Counted()-before, h.calls.Counted())
-	made, outcome := h.calls.Run(run.RunID)
+	// The tally is counted by KeepCallTally, never here: no request can wait out a first count.
+	tallied := h.calls.Complete()
+	clockOf(r).note("tally_complete=%t tally_total=%d", tallied, h.calls.Counted())
+	made, outcome := 0, map[string]int{}
+	if tallied {
+		made, outcome = h.calls.Run(run.RunID)
+	}
 	stages := run.Stages
 	if stages == nil {
 		stages = []gen.RunStage{}
@@ -295,6 +321,7 @@ func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *run
 		Symptoms: debugSymptoms{
 			Records:        silver.records,
 			Calls:          made,
+			CallsTallied:   tallied,
 			AnalysisStatus: tallies(silver.status),
 			CallOutcome:    tallies(outcome),
 			NoCallReason:   tallies(silver.noCall),

@@ -203,6 +203,9 @@ export function Debug() {
   const shownRows = diffOnly ? rows.filter((r) => !r.agrees) : rows;
   const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
+  // The server counts call records in the background after it starts; until the first count
+  // is whole it sends no call numbers, and a zero here would read as "no calls".
+  const callsTallied = run?.symptoms.calls_tallied !== false;
   const input = data?.input ?? null;
   const bodies = input?.versions ?? [];
   const latestBody = bodies.find((b) => b.latest) ?? null;
@@ -964,7 +967,9 @@ export function Debug() {
                       {run.symptoms.records}
                       <small>건</small>
                     </div>
-                    <div className="md">모델 호출 {run.symptoms.calls}건</div>
+                    <div className="md">
+                      {callsTallied ? `모델 호출 ${run.symptoms.calls}건` : "모델 호출 집계 중"}
+                    </div>
                   </div>
                   <div className="dbg-seclabel">분석 상태</div>
                   {run.symptoms.analysis_status.map((t) => (
@@ -991,7 +996,13 @@ export function Debug() {
                       </span>
                     </div>
                   ))}
-                  {run.symptoms.call_outcome.length > 0 && (
+                  {!callsTallied && (
+                    <>
+                      <div className="dbg-seclabel">호출 결과</div>
+                      <div className="meta">호출 기록을 세는 중입니다 — 잠시 뒤 다시 열면 보입니다</div>
+                    </>
+                  )}
+                  {callsTallied && run.symptoms.call_outcome.length > 0 && (
                     <>
                       <div className="dbg-seclabel">호출 결과</div>
                       {run.symptoms.call_outcome.map((t) => (
@@ -1109,7 +1120,7 @@ export function Debug() {
                       <td>실행</td>
                       <td>
                         {run
-                          ? `${run.run_id} · ${run.symptoms.records}건 중 호출 ${run.symptoms.calls}건 · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
+                          ? `${run.run_id} · ${run.symptoms.records}건 중 ${callsTallied ? `호출 ${run.symptoms.calls}건` : "호출 집계 중"} · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
                           : "실행 기록 없음"}
                       </td>
                     </tr>
