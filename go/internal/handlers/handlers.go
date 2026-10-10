@@ -63,13 +63,20 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 
 func (h *Handlers) oneScanAtATime(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Waiting here is part of what the caller sees: a pick queued behind another scan
+		// spends its proxy budget before its own scan starts.
+		clock := newStageClock()
+		clock.enter("gate")
+		r = r.WithContext(withStageClock(r.Context(), clock))
+		defer clock.report(r)
 		select {
 		case h.lakeScan <- struct{}{}:
 		case <-r.Context().Done():
 			return
 		}
 		defer func() { <-h.lakeScan }()
-		next(w, r)
+		clock.enter("handler")
+		next(&timedWriter{ResponseWriter: w, clock: clock}, r)
 	}
 }
 

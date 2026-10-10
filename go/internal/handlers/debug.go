@@ -87,6 +87,8 @@ const (
 
 func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 	requested := r.URL.Query().Get("record_id")
+	clock := clockOf(r)
+	clock.enter("silver")
 	scan := h.scanDebugSilver(r, requested)
 	if gone(r) {
 		return
@@ -101,6 +103,7 @@ func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clock.enter("calls")
 	rows := debugVersionsOf(scan.rows, h.callByID)
 	selected := rows[0]
 	for _, row := range rows {
@@ -109,8 +112,10 @@ func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	clock.enter("run")
 	run, _ := h.lake.PipelineRun(selected.RunID)
 	debugRun := h.debugRunOf(r, run, scan.runs[selected.RunID])
+	clock.enter("bronze")
 	input := h.debugInputOf(r, scan.recordID, scan.rows[0].SourceURL)
 	if gone(r) {
 		return
@@ -149,7 +154,10 @@ type debugSilverScan struct {
 func (h *Handlers) scanDebugSilver(r *http.Request, requested string) debugSilverScan {
 	scan := debugSilverScan{recordID: requested, runs: map[string]*runTally{}}
 	first := true
+	scanned := 0
+	defer func() { clockOf(r).note("silver_rows=%d", scanned) }()
 	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
+		scanned++
 		if first && requested == "" {
 			scan.recordID = a.RecordID
 		}
@@ -267,7 +275,11 @@ func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *run
 	if silver == nil {
 		silver = &runTally{}
 	}
+	clock := clockOf(r)
+	clock.enter("tally")
+	before := h.calls.Counted()
 	_ = h.calls.Refresh(r.Context(), h.lake)
+	clock.note("tally_read=%d tally_total=%d", h.calls.Counted()-before, h.calls.Counted())
 	made, outcome := h.calls.Run(run.RunID)
 	stages := run.Stages
 	if stages == nil {
