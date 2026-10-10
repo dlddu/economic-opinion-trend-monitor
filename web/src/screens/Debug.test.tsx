@@ -74,6 +74,7 @@ const RUN = {
   symptoms: {
     records: 14,
     calls: 12,
+    calls_tallied: true,
     analysis_status: [
       { name: "analyzed", count: 11 },
       { name: "unanalyzed", count: 3 },
@@ -196,6 +197,18 @@ it("puts the prompt, the raw reply and the owning run on one screen", async () =
   expect(text).toContain(String(RUN.symptoms.records));
   expect(text).toContain(RUN.stages[0].stage_name);
   expect(text).toContain(String(RUN.stages[0].input_count));
+});
+
+it("says the call numbers are still being counted instead of showing zero", async () => {
+  const counting = { ...RUN, symptoms: { ...RUN.symptoms, calls: 0, calls_tallied: false, call_outcome: [] } };
+  stub(response({ run: counting }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("모델 호출 집계 중"));
+  const card = cardTitled(container, "증상이 몰렸나");
+  expect(card?.textContent).toContain("호출 기록을 세는 중입니다");
+  expect(card?.textContent).not.toContain("모델 호출 0건");
+  expect(container.textContent).toContain(`${RUN.symptoms.records}건 중 호출 집계 중`);
 });
 
 it("flags a field where the final reply and the stored value disagree", async () => {

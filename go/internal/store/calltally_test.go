@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func callRecord(id, run, outcome string) string {
@@ -106,4 +108,113 @@ func TestLlmCallTallyResumesAfterACancelledRefreshWithoutDoubleCounting(t *testi
 		}
 	}
 	wantRun(t, tally, "run-a", 1, map[string]int{"parsed": 1})
+}
+
+func TestLlmCallTallyIsCompleteOnlyAfterAWholeRefresh(t *testing.T) {
+	dir := t.TempDir()
+	lake := New(dir)
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-1", callRecord("a-1", "run-a", "parsed"))
+	tally := NewLlmCallTally()
+	if tally.Complete() {
+		t.Fatal("a tally that has read nothing is not complete")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = tally.Refresh(ctx, lake)
+	if tally.Complete() {
+		t.Fatal("a cancelled first refresh is not complete")
+	}
+	if err := tally.Refresh(context.Background(), lake); err != nil {
+		t.Fatal(err)
+	}
+	if !tally.Complete() {
+		t.Fatal("a finished refresh is complete")
+	}
+}
+
+func TestLlmCallTallyCountsManyFilesAcrossItsReaders(t *testing.T) {
+	dir := t.TempDir()
+	const n = 3*tallyApplyEvery + 7
+	for i := range n {
+		id := fmt.Sprintf("a-%05d", i)
+		run, outcome := "run-a", "parsed"
+		if i%3 == 0 {
+			run, outcome = "run-b", "call_failed"
+		}
+		writeObjectRecord(t, dir, "llm_call", "call_id", id, callRecord(id, run, outcome))
+	}
+	tally := NewLlmCallTally()
+	if err := tally.Refresh(context.Background(), New(dir)); err != nil {
+		t.Fatal(err)
+	}
+	b := (n + 2) / 3
+	wantRun(t, tally, "run-a", n-b, map[string]int{"parsed": n - b})
+	wantRun(t, tally, "run-b", b, map[string]int{"call_failed": b})
+	if tally.Counted() != n {
+		t.Fatalf("Counted = %d, want %d", tally.Counted(), n)
+	}
+}
+
+func TestLlmCallTallyAnswersWhileARefreshIsReading(t *testing.T) {
+	tally := NewLlmCallTally()
+	tally.refresh.Lock() // a refresh in the middle of its reads
+	defer tally.refresh.Unlock()
+	done := make(chan struct{})
+	go func() {
+		tally.Run("run-a")
+		tally.Complete()
+		tally.Counted()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("readers waited for a refresh in progress")
+	}
+}
+
+func TestLlmCallTallySkipsARecordThatDoesNotDecode(t *testing.T) {
+	dir := t.TempDir()
+	lake := New(dir)
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-1", "not json")
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-2", `{"call_id":"a-2","run_id":7}`)
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-3", callRecord("a-3", "run-a", "parsed"))
+	tally := NewLlmCallTally()
+	for range 2 {
+		if err := tally.Refresh(context.Background(), lake); err != nil {
+			t.Fatalf("one bad record must not stop the count: %v", err)
+		}
+	}
+	if !tally.Complete() {
+		t.Fatal("a count past bad records is complete")
+	}
+	wantRun(t, tally, "run-a", 1, map[string]int{"parsed": 1})
+	if tally.Skipped() != 2 || tally.Counted() != 3 {
+		t.Fatalf("Skipped = %d, Counted = %d; want 2, 3 (bad records are read once)", tally.Skipped(), tally.Counted())
+	}
+}
+
+func TestLlmCallTallyRefreshesAlongsideReaders(t *testing.T) {
+	dir := t.TempDir()
+	for i := range 2 * tallyApplyEvery {
+		id := fmt.Sprintf("a-%05d", i)
+		writeObjectRecord(t, dir, "llm_call", "call_id", id, callRecord(id, "run-a", "parsed"))
+	}
+	tally := NewLlmCallTally()
+	done := make(chan error)
+	go func() { done <- tally.Refresh(context.Background(), New(dir)) }()
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantRun(t, tally, "run-a", 2*tallyApplyEvery, map[string]int{"parsed": 2 * tallyApplyEvery})
+			return
+		default:
+			if made, _ := tally.Run("run-a"); made > tally.Counted() {
+				t.Fatalf("Run saw %d calls with only %d counted", made, tally.Counted())
+			}
+		}
+	}
 }

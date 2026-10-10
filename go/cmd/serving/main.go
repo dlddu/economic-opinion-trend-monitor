@@ -46,6 +46,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go api.KeepCallTally(ctx, 2*time.Minute)
 
 	go func() {
 		log.Printf("serving on %s (data=%s web=%s)", *addr, *dataRoot, *webDir)
