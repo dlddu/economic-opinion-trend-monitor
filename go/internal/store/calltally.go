@@ -32,8 +32,9 @@ type LlmCallTally struct {
 }
 
 type callPartition struct {
-	seen  []uint64 // hashes of the file names already counted, sorted between refreshes
-	byRun map[string]map[gen.LlmCallOutcome]int
+	seen    []uint64 // hashes of the file names already counted, sorted between refreshes
+	byRun   map[string]map[gen.LlmCallOutcome]int
+	skipped int
 }
 
 func newCallPartition() *callPartition {
@@ -138,8 +139,9 @@ func (t *LlmCallTally) refreshPartition(ctx context.Context, root, name string) 
 }
 
 type countedCall struct {
-	name uint64
-	head LlmCallHead
+	name     uint64
+	head     LlmCallHead
+	unparsed bool
 }
 
 // count reads files into p, applying every tallyApplyEvery reads, so a cancelled count keeps
@@ -178,7 +180,12 @@ func (t *LlmCallTally) count(ctx context.Context, p *callPartition, dir string, 
 				if errors.Is(err, fs.ErrNotExist) {
 					continue
 				}
-				if err != nil {
+				var syntax *json.SyntaxError
+				var typeErr *json.UnmarshalTypeError
+				// Records are linked into place whole, so one that does not decode never will;
+				// failing on it would keep the tally from ever completing.
+				unparsed := errors.As(err, &syntax) || errors.As(err, &typeErr)
+				if err != nil && !unparsed {
 					select {
 					case failed <- err:
 					default:
@@ -187,7 +194,7 @@ func (t *LlmCallTally) count(ctx context.Context, p *callPartition, dir string, 
 					return
 				}
 				select {
-				case read <- countedCall{hashName(file), head}:
+				case read <- countedCall{hashName(file), head, unparsed}:
 				case <-reading.Done():
 					return
 				}
@@ -204,13 +211,17 @@ func (t *LlmCallTally) count(ctx context.Context, p *callPartition, dir string, 
 		t.mu.Lock()
 		defer t.mu.Unlock()
 		for _, c := range batch {
+			p.seen = append(p.seen, c.name)
+			if c.unparsed {
+				p.skipped++
+				continue
+			}
 			outcomes := p.byRun[c.head.RunID]
 			if outcomes == nil {
 				outcomes = map[gen.LlmCallOutcome]int{}
 				p.byRun[c.head.RunID] = outcomes
 			}
 			outcomes[c.head.CallOutcome]++
-			p.seen = append(p.seen, c.name)
 		}
 		batch = batch[:0]
 	}
@@ -257,6 +268,17 @@ func (t *LlmCallTally) Counted() int {
 	n := 0
 	for _, p := range t.parts {
 		n += len(p.seen)
+	}
+	return n
+}
+
+// Skipped reports how many counted files did not decode as an llm_call record.
+func (t *LlmCallTally) Skipped() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	n := 0
+	for _, p := range t.parts {
+		n += p.skipped
 	}
 	return n
 }

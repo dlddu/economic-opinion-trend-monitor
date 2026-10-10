@@ -173,15 +173,24 @@ func TestLlmCallTallyAnswersWhileARefreshIsReading(t *testing.T) {
 	}
 }
 
-func TestLlmCallTallyReportsAnUnreadableRecord(t *testing.T) {
+func TestLlmCallTallySkipsARecordThatDoesNotDecode(t *testing.T) {
 	dir := t.TempDir()
+	lake := New(dir)
 	writeObjectRecord(t, dir, "llm_call", "call_id", "a-1", "not json")
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-2", `{"call_id":"a-2","run_id":7}`)
+	writeObjectRecord(t, dir, "llm_call", "call_id", "a-3", callRecord("a-3", "run-a", "parsed"))
 	tally := NewLlmCallTally()
-	if err := tally.Refresh(context.Background(), New(dir)); err == nil {
-		t.Fatal("a record that does not decode must fail the refresh")
+	for range 2 {
+		if err := tally.Refresh(context.Background(), lake); err != nil {
+			t.Fatalf("one bad record must not stop the count: %v", err)
+		}
 	}
-	if tally.Complete() {
-		t.Fatal("a failed refresh is not complete")
+	if !tally.Complete() {
+		t.Fatal("a count past bad records is complete")
+	}
+	wantRun(t, tally, "run-a", 1, map[string]int{"parsed": 1})
+	if tally.Skipped() != 2 || tally.Counted() != 3 {
+		t.Fatalf("Skipped = %d, Counted = %d; want 2, 3 (bad records are read once)", tally.Skipped(), tally.Counted())
 	}
 }
 

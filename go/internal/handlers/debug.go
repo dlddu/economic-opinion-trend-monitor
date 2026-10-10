@@ -281,9 +281,11 @@ func (h *Handlers) KeepCallTally(ctx context.Context, every time.Duration) {
 		if ctx.Err() != nil {
 			return
 		}
-		if read := h.calls.Counted() - before; err != nil || read > 0 {
-			log.Printf("call tally: read=%d total=%d took=%dms err=%v",
-				read, h.calls.Counted(), time.Since(start).Milliseconds(), err)
+		// A recount after a file vanished can take minutes and still leave the total where it was.
+		took := time.Since(start)
+		if read := h.calls.Counted() - before; err != nil || read != 0 || took > 30*time.Second {
+			log.Printf("call tally: read=%d total=%d skipped=%d took=%dms err=%v",
+				read, h.calls.Counted(), h.calls.Skipped(), took.Milliseconds(), err)
 		}
 		select {
 		case <-ctx.Done():
