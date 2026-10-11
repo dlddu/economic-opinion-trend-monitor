@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { INDEX_NOT_READY, errorText } from "../api/indexState";
+import { IndexNotReady } from "./IndexNotReady";
 import type { Axis, ReprocessCompareRow, ReprocessResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 import { useTopbar } from "../shell/topbarSlot";
@@ -55,7 +57,7 @@ export function Reprocess() {
     api
       .reprocess(range, axis, source)
       .then((d) => active && setData(d))
-      .catch((e: unknown) => active && setError(String(e)));
+      .catch((e: unknown) => active && setError(errorText(e)));
     return () => {
       active = false;
     };
@@ -124,7 +126,8 @@ export function Reprocess() {
         예상 소요가 보이지 않으면 범위를 감으로 정하게 됩니다.
       </p>
 
-      {error && (
+      {error === INDEX_NOT_READY && <IndexNotReady />}
+      {error && error !== INDEX_NOT_READY && (
         <div className="note">
           <div>
             <b>API 오류:</b> {error} — Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.

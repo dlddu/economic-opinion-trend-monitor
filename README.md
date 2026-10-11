@@ -191,12 +191,14 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   로 발행하고 포인터 `/data/serving/index.current`만 옮긴다 — 다른 노드의 서빙이 열고 있는 파일을
   바꾸지 않으려고 매번 새 이름에 쓰고, 바뀐 지 1시간이 지난 옛 인덱스만 지운다. llm_call 파일은
   한 번 쓰이면 바뀌지 않으므로 앞 인덱스의 행을 그대로 가져오고 새 파일만 읽는다(첫 빌드만 전부
-  읽는다). 디버그 화면 API(`/api/debug`, `/api/debug/records`)는 레이크를 훑지 않고 이 인덱스를
+  읽는다). Bronze·Silver 를 읽는 화면 API(`/api/debug`, `/api/debug/records`, `/api/trace`,
+  `/api/contributions`, `/api/reprocess`)는 레이크를 훑지 않고 이 인덱스를
   `mode=ro&immutable=1`로 읽으며, 요청이 올 때 1초에 한 번까지 포인터를 다시 봐 새 인덱스로 옮겨 탄다. 인덱스가 아직
-  없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. 배포 직후
+  없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. Gold 만 읽는 화면(대시보드·
+  추세·비교·감성·공정성)은 인덱스와 무관하다. 배포 직후
   첫 인덱스는 다음 정시 파이프라인을 기다리거나 `entrypoint: index`로 워크플로를 한 번 제출해
   만든다(종료 핸들러가 한 번 더 돌지만 두 번째는 새 파일만 읽어 짧다). 인덱스 스키마는 `go/internal/servingindex/`(`SchemaVersion`)에 있고, 서빙은 다른 버전의
-  인덱스를 열지 않는다 — 버전을 올린 배포는 다음 `index` 단계까지 디버그 화면이 준비 중이다.
+  인덱스를 열지 않는다 — 버전을 올린 배포는 다음 `index` 단계까지 그 화면들이 준비 중이다.
 - 분석 스케줄은 `econ-pipeline-hourly`로 배선돼 가동 중이고, 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.

@@ -5,6 +5,7 @@ CREATE INDEX analysis_record ON analysis (record_id, seq);
 CREATE INDEX analysis_run ON analysis (run_id, analysis_status, no_call_reason);
 CREATE INDEX news_item_record ON news_item (record_id, seq);
 CREATE INDEX news_item_url ON news_item (source_url, collected_at);
+CREATE INDEX news_item_axis ON news_item (axis, collected_at);
 CREATE INDEX llm_call_file_id ON llm_call_file (call_id);
 
 -- The debug list's row per record: its newest analysis (the earliest-walked of equal times)
@@ -62,6 +63,18 @@ CREATE INDEX record_latest_run ON record_latest (run_id, analyzed_at DESC, recor
 CREATE INDEX record_latest_status ON record_latest (analysis_status, analyzed_at DESC, record_id);
 CREATE INDEX record_latest_outcome ON record_latest (call_outcome, analyzed_at DESC, record_id);
 CREATE INDEX record_latest_no_call ON record_latest (no_call_reason, analyzed_at DESC, record_id);
+
+-- How many distinct articles carried each body text, over every observation: an article is its
+-- source URL, or its record when it has none (econ_aggregation.aggregate.article_key). An empty
+-- hash is "no text kept", not a text they all share.
+CREATE TABLE body_share (
+  body_hash TEXT PRIMARY KEY,
+  shares    INTEGER NOT NULL
+) WITHOUT ROWID;
+
+INSERT INTO body_share
+SELECT body_hash, count(DISTINCT CASE WHEN source_url <> '' THEN source_url ELSE record_id END)
+FROM news_item WHERE body_hash <> '' GROUP BY body_hash;
 
 -- Calls per run and outcome, over every llm_call file that decodes.
 CREATE TABLE run_call (

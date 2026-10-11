@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ApiError, api } from "../api/client";
+import { api } from "../api/client";
+import { INDEX_NOT_READY, errorText } from "../api/indexState";
+import { IndexNotReady } from "./IndexNotReady";
 import type {
   DebugCall,
   DebugRecordsResponse,
@@ -111,23 +113,6 @@ function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[
     const repliedText = value === undefined ? null : asText(value);
     return { field, replied: repliedText, stored, agrees: repliedText === stored };
   });
-}
-
-const INDEX_NOT_READY = "index_not_ready";
-
-function errorText(e: unknown): string {
-  return e instanceof ApiError && e.code === INDEX_NOT_READY ? INDEX_NOT_READY : String(e);
-}
-
-function IndexNotReady() {
-  return (
-    <div className="note">
-      <div>
-        <b>인덱스 준비 중:</b> 판단 기록 인덱스가 아직 만들어지지 않았습니다 — 배치 파이프라인이 다음
-        실행을 마치면 열립니다.
-      </div>
-    </div>
-  );
 }
 
 export function Debug() {

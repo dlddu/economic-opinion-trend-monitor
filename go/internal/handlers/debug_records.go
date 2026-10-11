@@ -47,12 +47,17 @@ func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request, db *sql.
 	where, args := debugRecordsFilter(query, runID, symptom)
 	resp := debugRecordsResponse{Query: query, RunID: runID, Symptom: symptom, Limit: debugRecordsLimit}
 	clock.enter("count")
-	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM record_latest").Scan(&resp.Total); err != nil {
+	// The build counted the records: counting them here reads the whole table, seconds on a cold volume.
+	if err := db.QueryRowContext(ctx, "SELECT CAST(value AS INTEGER) FROM meta WHERE key = 'records'").
+		Scan(&resp.Total); err != nil {
 		return err
 	}
-	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM record_latest WHERE "+where, args...).
-		Scan(&resp.Matched); err != nil {
-		return err
+	resp.Matched = resp.Total
+	if where != "1" {
+		if err := db.QueryRowContext(ctx, "SELECT count(*) FROM record_latest WHERE "+where, args...).
+			Scan(&resp.Matched); err != nil {
+			return err
+		}
 	}
 	clock.enter("rows")
 	rows, err := debugRecordRows(ctx, db, where, args)

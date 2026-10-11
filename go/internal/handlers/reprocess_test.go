@@ -38,6 +38,7 @@ func analysis(id, version string, analyzed time.Duration, status string, subject
 
 func getReprocess(t *testing.T, dir, query string) reprocessResponse {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	h := New(store.New(dir))
 	h.now = func() time.Time { return reprocessNow }
@@ -261,11 +262,15 @@ func TestMentionSharesCountsCategoriesWhenAVersionHasThem(t *testing.T) {
 		{RecordID: "k1", AnalyzerVersion: "v3", AnalysisStatus: gen.AnalysisStatusAnalyzed, NarrativeSubjects: []string{"삼성전자"}, SubjectCategories: &categories},
 	}
 
-	before, _ := mentionShares(silver, "v2")
+	tally := map[string]*mentionTally{"v2": newMentionTally(), "v3": newMentionTally()}
+	for _, a := range silver {
+		tally[a.AnalyzerVersion].add(a)
+	}
+	before, _ := tally["v2"].shares()
 	if len(before) != 1 || before["삼성전자"] != 1 {
 		t.Errorf("v2 shares = %v, want 삼성전자 alone", before)
 	}
-	after, _ := mentionShares(silver, "v3")
+	after, _ := tally["v3"].shares()
 	if len(after) != 2 || after["반도체"] != 0.5 || after["기업 경영·실적"] != 0.5 {
 		t.Errorf("v3 shares = %v, want its two categories at half each", after)
 	}

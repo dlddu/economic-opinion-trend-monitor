@@ -85,6 +85,7 @@ func (f *fakeAPIServer) lastParams() (string, map[string]string) {
 
 func triggerServer(t *testing.T, dir string, c *argo.Client) *httptest.Server {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	h := New(store.New(dir))
 	h.now = func() time.Time { return reprocessNow }

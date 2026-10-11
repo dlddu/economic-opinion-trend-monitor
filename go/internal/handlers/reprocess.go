@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
 	"math"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -85,7 +88,9 @@ type compareRow struct {
 	Delta       float64 `json:"delta"`
 }
 
-func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
+// reprocess sizes a reprocessing run over a window of one axis's observations. The window can
+// hold most of the lake, so the index counts it and only per-version and per-cycle totals come back.
+func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	q := r.URL.Query()
 	rangeKey := q.Get("range")
 	window, ok := reprocessRanges[rangeKey]
@@ -95,46 +100,26 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 	axis := axisParam(r, "KR")
 	source := q.Get("source")
 	since := h.now().Add(-window)
+	ctx := r.Context()
+	clock := clockOf(r)
 
-	var inAxis []gen.NewsItem
-	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
-		if inWindow(*it, axis, since) {
-			inAxis = append(inAxis, *it)
-		}
-		return nil
-	})
-	if gone(r) {
-		return
+	win := newWindow(axis, source, since)
+	clock.enter("scope")
+	sources, err := windowSources(ctx, db, win)
+	if err != nil {
+		return err
 	}
-	scoped := inAxis
-	if source != "" {
-		scoped = nil
-		for _, it := range inAxis {
-			if it.SourceID == source {
-				scoped = append(scoped, it)
-			}
-		}
+	versions, err := windowVersions(ctx, db, win)
+	if err != nil {
+		return err
 	}
-
-	scopedIDs := make(map[string]bool, len(scoped))
-	for _, it := range scoped {
-		scopedIDs[it.RecordID] = true
-	}
-	silver := make([]gen.Analysis, 0, len(scoped))
-	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
-		if scopedIDs[a.RecordID] {
-			silver = append(silver, *a)
-		}
-		return nil
-	})
-	if gone(r) {
-		return
-	}
-
-	versions := versionsOf(silver)
 	target := q.Get("version")
 	if target == "" && len(versions) > 0 {
 		target = versions[len(versions)-1].AnalyzerVersion
+	}
+	buckets, err := scopeBuckets(ctx, db, win, target)
+	if err != nil {
+		return err
 	}
 
 	scope := reprocessScope{
@@ -142,127 +127,172 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request) {
 		Since:   since.UTC().Format(time.RFC3339),
 		Axis:    axis,
 		Source:  source,
-		Sources: sourcesOf(inAxis),
-		Buckets: bucketsOf(scoped, silver, target),
+		Sources: sources,
+		Buckets: buckets,
 	}
 	for _, b := range scope.Buckets {
 		scope.Total += b.Kept
 		scope.Already += b.Done
 		scope.Todo += b.Todo
 	}
-	scope.ThroughputPerMinute, scope.EtaMinutes = throughput(silver, target, scope.Todo)
+	clock.enter("versions")
+	scope.ThroughputPerMinute, scope.EtaMinutes, err = throughput(ctx, db, win, target, scope.Todo)
+	if err != nil {
+		return err
+	}
+	compare, err := compareVersions(ctx, db, win, versions, target)
+	if err != nil {
+		return err
+	}
 
 	writeJSON(w, http.StatusOK, reprocessResponse{
 		Scope:         scope,
 		TargetVersion: target,
 		Versions:      versions,
-		Compare:       compareVersions(silver, versions, target),
+		Compare:       compare,
 		Trigger:       h.reprocessTrigger(r),
 	})
+	return nil
 }
 
-// An observation whose collected_at cannot be read is left out rather than
-// guessed into the window.
-func inWindow(it gen.NewsItem, axis string, since time.Time) bool {
-	if string(it.Axis) != axis {
-		return false
-	}
-	at, err := time.Parse(time.RFC3339, it.CollectedAt)
-	return err == nil && !at.Before(since)
+// window is the observations a reprocessing run would cover: one axis's, collected at or after
+// since (as time.Parse reads collected_at — one it cannot read is left out rather than guessed
+// in), narrowed to one source when one is given. Sources lists the axis's sources whatever the
+// source filter says: the screen needs them all to offer a choice.
+type window struct {
+	axis, source string
+	since        time.Time
 }
 
-func sourcesOf(items []gen.NewsItem) []sourceRow {
-	count := map[string]int{}
-	for _, it := range items {
-		count[it.SourceID]++
-	}
-	out := make([]sourceRow, 0, len(count))
-	for id, n := range count {
-		out = append(out, sourceRow{SourceID: id, Kept: n})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].SourceID < out[j].SourceID })
-	return out
+func newWindow(axis, source string, since time.Time) window {
+	return window{axis: axis, source: source, since: since}
 }
 
-// bucketsOf groups the selection by collection cycle and marks, per cycle, how
-// many records Silver already carries at the target version. "Done" is a count
-// of records, not of Silver rows — a record analyzed twice at the same version
-// is still one record that needs no reprocessing.
-func bucketsOf(items []gen.NewsItem, silver []gen.Analysis, target string) []scopeBucket {
-	doneIDs := map[string]bool{}
+// inAxis matches the axis's observations in the window. The day before since's date bounds the
+// index walk: a parseable timestamp at or after since cannot carry an earlier date, whatever its offset.
+func (w window) inAxis() (string, []any) {
+	return `n.axis = ? AND n.collected_at >= ? AND rfc3339_nanos(n.collected_at) >= ?`,
+		[]any{w.axis, w.since.UTC().AddDate(0, 0, -1).Format("2006-01-02"), w.since.UnixNano()}
+}
+
+// scoped also applies the source filter.
+func (w window) scoped() (string, []any) {
+	where, args := w.inAxis()
+	if w.source != "" {
+		where += " AND n.source_id = ?"
+		args = append(args, w.source)
+	}
+	return where, args
+}
+
+func windowSources(ctx context.Context, db *sql.DB, w window) ([]sourceRow, error) {
+	where, args := w.inAxis()
+	rs, err := db.QueryContext(ctx, `SELECT n.source_id, count(*) FROM news_item AS n WHERE `+where+
+		` GROUP BY n.source_id ORDER BY n.source_id`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	out := []sourceRow{}
+	for rs.Next() {
+		var row sourceRow
+		if err := rs.Scan(&row.SourceID, &row.Kept); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rs.Err()
+}
+
+// windowRecords selects the analysis rows of the window's records: every row of every scoped
+// record, once each, however many times the record was observed.
+func windowRecords(w window) (string, []any) {
+	where, args := w.scoped()
+	return `a.record_id IN (SELECT n.record_id FROM news_item AS n WHERE ` + where + `)`, args
+}
+
+// windowVersions lists the analyzer versions the window's analyses carry, oldest last-analyzed
+// first. The newest by last_analyzed_at is the default target: it is the version the pipeline is
+// stamping right now.
+func windowVersions(ctx context.Context, db *sql.DB, w window) ([]versionRow, error) {
+	where, args := windowRecords(w)
+	rs, err := db.QueryContext(ctx, `SELECT a.analyzer_version, count(*), min(a.analyzed_at), max(a.analyzed_at)
+		FROM analysis AS a WHERE `+where+` GROUP BY a.analyzer_version
+		ORDER BY max(a.analyzed_at), a.analyzer_version`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	out := []versionRow{}
+	for rs.Next() {
+		var v versionRow
+		if err := rs.Scan(&v.AnalyzerVersion, &v.Records, &v.FirstAnalyzedAt, &v.LastAnalyzedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rs.Err()
+}
+
+// scopeBuckets groups the scoped observations by collection cycle and marks, per cycle, how many
+// belong to a record Silver already carries at the target version. "Done" counts records needing
+// no reprocessing, not Silver rows: a record analyzed twice at the same version is still done once.
+func scopeBuckets(ctx context.Context, db *sql.DB, w window, target string) ([]scopeBucket, error) {
+	where, args := w.scoped()
+	done, doneArgs := "0", []any{}
 	if target != "" {
-		for _, a := range silver {
-			if a.AnalyzerVersion == target {
-				doneIDs[a.RecordID] = true
-			}
-		}
-	}
-	byCycle := map[string]*scopeBucket{}
-	for _, it := range items {
-		b := byCycle[it.CollectionCycle]
-		if b == nil {
-			b = &scopeBucket{Cycle: it.CollectionCycle}
-			byCycle[it.CollectionCycle] = b
-		}
-		b.Kept++
-		if doneIDs[it.RecordID] {
-			b.Done++
-		}
-	}
-	out := make([]scopeBucket, 0, len(byCycle))
-	for _, b := range byCycle {
-		b.Todo = b.Kept - b.Done
-		out = append(out, *b)
+		done = `n.record_id IN (SELECT a.record_id FROM analysis AS a WHERE a.analyzer_version = ?)`
+		doneArgs = append(doneArgs, target)
 	}
 	// Cycle keys share one unit ("2026-09-21T09:00"), so lexical order is time order.
-	sort.Slice(out, func(i, j int) bool { return out[i].Cycle < out[j].Cycle })
-	return out
+	rs, err := db.QueryContext(ctx, `SELECT n.collection_cycle, count(*), sum(`+done+`) FROM news_item AS n
+		WHERE `+where+` GROUP BY n.collection_cycle ORDER BY n.collection_cycle`, append(doneArgs, args...)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	out := []scopeBucket{}
+	for rs.Next() {
+		var b scopeBucket
+		if err := rs.Scan(&b.Cycle, &b.Kept, &b.Done); err != nil {
+			return nil, err
+		}
+		b.Todo = b.Kept - b.Done
+		out = append(out, b)
+	}
+	return out, rs.Err()
 }
 
-// versionsOf lists the analyzer versions present, oldest last-analyzed first.
-// The newest by last_analyzed_at is the default target: it is the version the
-// pipeline is stamping right now.
-func versionsOf(silver []gen.Analysis) []versionRow {
-	byVersion := map[string]*versionRow{}
-	for _, a := range silver {
-		v := byVersion[a.AnalyzerVersion]
-		if v == nil {
-			v = &versionRow{AnalyzerVersion: a.AnalyzerVersion,
-				FirstAnalyzedAt: a.AnalyzedAt, LastAnalyzedAt: a.AnalyzedAt}
-			byVersion[a.AnalyzerVersion] = v
-		}
-		v.Records++
-		if a.AnalyzedAt < v.FirstAnalyzedAt {
-			v.FirstAnalyzedAt = a.AnalyzedAt
-		}
-		if a.AnalyzedAt > v.LastAnalyzedAt {
-			v.LastAnalyzedAt = a.AnalyzedAt
-		}
+// eachWindowAnalysis streams the window's analyses at the given versions in lake order.
+func eachWindowAnalysis(ctx context.Context, db *sql.DB, w window, versions []string, fn func(gen.Analysis) error) error {
+	where, args := windowRecords(w)
+	marks := strings.TrimSuffix(strings.Repeat("?,", len(versions)), ",")
+	for _, v := range versions {
+		args = append(args, v)
 	}
-	out := make([]versionRow, 0, len(byVersion))
-	for _, v := range byVersion {
-		out = append(out, *v)
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].LastAnalyzedAt != out[j].LastAnalyzedAt {
-			return out[i].LastAnalyzedAt < out[j].LastAnalyzedAt
-		}
-		return out[i].AnalyzerVersion < out[j].AnalyzerVersion
-	})
-	return out
+	return eachAnalysis(ctx, db, fn, strings.Replace(analysisColumns, "FROM analysis", "FROM analysis AS a", 1)+
+		` WHERE `+where+` AND a.analyzer_version IN (`+marks+`) ORDER BY a.seq`, args...)
 }
 
-// throughput reads the rate the target version was produced at, from the
-// analyzed_at spread of its records, and turns the remaining count into an
-// estimate. Both are nil unless at least two records span a positive interval.
-func throughput(silver []gen.Analysis, target string, todo int) (*float64, *float64) {
+// throughput reads the rate the target version was produced at, from the analyzed_at spread of
+// its records in the window, and turns the remaining count into an estimate. Both are nil unless
+// at least two records span a positive interval.
+func throughput(ctx context.Context, db *sql.DB, w window, target string, todo int) (*float64, *float64, error) {
+	where, args := windowRecords(w)
+	rs, err := db.QueryContext(ctx, `SELECT a.analyzed_at FROM analysis AS a WHERE `+where+
+		` AND a.analyzer_version = ?`, append(args, target)...)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rs.Close()
 	var first, last time.Time
 	n := 0
-	for _, a := range silver {
-		if a.AnalyzerVersion != target {
-			continue
+	for rs.Next() {
+		var analyzedAt string
+		if err := rs.Scan(&analyzedAt); err != nil {
+			return nil, nil, err
 		}
-		at, err := time.Parse(time.RFC3339, a.AnalyzedAt)
+		at, err := time.Parse(time.RFC3339, analyzedAt)
 		if err != nil {
 			continue
 		}
@@ -274,24 +304,27 @@ func throughput(silver []gen.Analysis, target string, todo int) (*float64, *floa
 		}
 		n++
 	}
+	if err := rs.Err(); err != nil {
+		return nil, nil, err
+	}
 	span := last.Sub(first).Minutes()
 	if n < 2 || span <= 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	perMinute := float64(n) / span
 	eta := math.Ceil(float64(todo) / perMinute)
-	return &perMinute, &eta
+	return &perMinute, &eta, nil
 }
 
 // compareVersions puts the newest two versions side by side: "after" is the
 // target version and "before" the newest other one.
-func compareVersions(silver []gen.Analysis, versions []versionRow, target string) reprocessCompare {
+func compareVersions(ctx context.Context, db *sql.DB, w window, versions []versionRow, target string) (reprocessCompare, error) {
 	if len(versions) == 0 {
-		return reprocessCompare{Available: false, Reason: "no-silver", Rows: []compareRow{}}
+		return reprocessCompare{Available: false, Reason: "no-silver", Rows: []compareRow{}}, nil
 	}
 	if len(versions) < 2 {
 		return reprocessCompare{Available: false, Reason: "single-version", AfterVersion: target,
-			Rows: []compareRow{}}
+			Rows: []compareRow{}}, nil
 	}
 	before, hasTarget := "", false
 	for i := len(versions) - 1; i >= 0; i-- {
@@ -305,11 +338,19 @@ func compareVersions(silver []gen.Analysis, versions []versionRow, target string
 		// The target is not among the versions Silver holds (an explicit
 		// ?version= nobody has run yet): nothing to put on the "after" side.
 		return reprocessCompare{Available: false, Reason: "single-version", AfterVersion: target,
-			Rows: []compareRow{}}
+			Rows: []compareRow{}}, nil
 	}
 
-	beforeShares, beforeUnanalyzed := mentionShares(silver, before)
-	afterShares, afterUnanalyzed := mentionShares(silver, target)
+	tally := map[string]*mentionTally{before: newMentionTally(), target: newMentionTally()}
+	err := eachWindowAnalysis(ctx, db, w, []string{before, target}, func(a gen.Analysis) error {
+		tally[a.AnalyzerVersion].add(a)
+		return nil
+	})
+	if err != nil {
+		return reprocessCompare{}, err
+	}
+	beforeShares, beforeUnanalyzed := tally[before].shares()
+	afterShares, afterUnanalyzed := tally[target].shares()
 	subjects := map[string]bool{}
 	for s := range beforeShares {
 		subjects[s] = true
@@ -335,37 +376,45 @@ func compareVersions(silver []gen.Analysis, versions []versionRow, target string
 		AfterVersion:    target,
 		Rows:            rows,
 		UnanalyzedShare: compareShare{Before: beforeUnanalyzed, After: afterUnanalyzed},
+	}, nil
+}
+
+// mentionTally counts, for one version, each grouping key's mentions (the keys Gold would count,
+// see groupingKeys) and how many of its records it did not classify. Records are counted once per
+// version even if Silver holds the same record twice at that version.
+type mentionTally struct {
+	mentions                   map[string]int
+	total, records, unanalyzed int
+	seen                       map[string]bool
+}
+
+func newMentionTally() *mentionTally {
+	return &mentionTally{mentions: map[string]int{}, seen: map[string]bool{}}
+}
+
+func (t *mentionTally) add(a gen.Analysis) {
+	if t.seen[a.RecordID] {
+		return
+	}
+	t.seen[a.RecordID] = true
+	t.records++
+	if a.AnalysisStatus != gen.AnalysisStatusAnalyzed {
+		t.unanalyzed++
+	}
+	for _, s := range groupingKeys(a) {
+		t.mentions[s]++
+		t.total++
 	}
 }
 
-// mentionShares returns, for one version, each grouping key's share of all the
-// mentions that version produced (the keys Gold would count, see groupingKeys), plus the fraction of its records it did not
-// classify. Records are counted once per version even if Silver holds the same
-// record twice at that version.
-func mentionShares(silver []gen.Analysis, version string) (map[string]float64, float64) {
-	mentions := map[string]int{}
-	total, records, unanalyzed := 0, 0, 0
-	seen := map[string]bool{}
-	for _, a := range silver {
-		if a.AnalyzerVersion != version || seen[a.RecordID] {
-			continue
-		}
-		seen[a.RecordID] = true
-		records++
-		if a.AnalysisStatus != gen.AnalysisStatusAnalyzed {
-			unanalyzed++
-		}
-		for _, s := range groupingKeys(a) {
-			mentions[s]++
-			total++
-		}
+// shares is each key's share of all the version's mentions, and its unclassified fraction.
+func (t *mentionTally) shares() (map[string]float64, float64) {
+	shares := make(map[string]float64, len(t.mentions))
+	for s, n := range t.mentions {
+		shares[s] = float64(n) / float64(t.total)
 	}
-	shares := make(map[string]float64, len(mentions))
-	for s, n := range mentions {
-		shares[s] = float64(n) / float64(total)
-	}
-	if records == 0 {
+	if t.records == 0 {
 		return shares, 0
 	}
-	return shares, float64(unanalyzed) / float64(records)
+	return shares, float64(t.unanalyzed) / float64(t.records)
 }

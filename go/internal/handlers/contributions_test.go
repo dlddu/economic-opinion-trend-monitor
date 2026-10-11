@@ -88,6 +88,7 @@ func writeContributionLake(t *testing.T, dir string) {
 
 func getContributions(t *testing.T, dir, query string) contributionsResponse {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	New(store.New(dir)).Register(mux)
 	srv := httptest.NewServer(mux)

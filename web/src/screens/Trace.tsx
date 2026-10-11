@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { INDEX_NOT_READY, errorText } from "../api/indexState";
+import { IndexNotReady } from "./IndexNotReady";
 import type { TraceResponse } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
@@ -48,7 +50,7 @@ export function Trace() {
     api
       .trace(query || undefined)
       .then((d) => active && setData(d))
-      .catch((e: unknown) => active && setError(String(e)));
+      .catch((e: unknown) => active && setError(errorText(e)));
     return () => {
       active = false;
     };
@@ -94,7 +96,8 @@ export function Trace() {
         분석 레코드를 거쳐 수집된 기사 한 건까지 내려갑니다.
       </p>
 
-      {error && (
+      {error === INDEX_NOT_READY && <IndexNotReady />}
+      {error && error !== INDEX_NOT_READY && (
         <div className="note">
           <div>
             <b>API 오류:</b> {error} — Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.
