@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"math"
 	"net/http"
 	"sort"
@@ -104,11 +105,12 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request, db *sql.DB)
 	clock := clockOf(r)
 
 	win := newWindow(axis, source, since)
-	clock.enter("scope")
+	clock.enter("sources")
 	sources, err := windowSources(ctx, db, win)
 	if err != nil {
 		return err
 	}
+	clock.enter("versions")
 	versions, err := windowVersions(ctx, db, win)
 	if err != nil {
 		return err
@@ -117,6 +119,7 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request, db *sql.DB)
 	if target == "" && len(versions) > 0 {
 		target = versions[len(versions)-1].AnalyzerVersion
 	}
+	clock.enter("buckets")
 	buckets, err := scopeBuckets(ctx, db, win, target)
 	if err != nil {
 		return err
@@ -135,11 +138,12 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request, db *sql.DB)
 		scope.Already += b.Done
 		scope.Todo += b.Todo
 	}
-	clock.enter("versions")
+	clock.enter("throughput")
 	scope.ThroughputPerMinute, scope.EtaMinutes, err = throughput(ctx, db, win, target, scope.Todo)
 	if err != nil {
 		return err
 	}
+	clock.enter("compare")
 	compare, err := compareVersions(ctx, db, win, versions, target)
 	if err != nil {
 		return err
@@ -264,16 +268,43 @@ func scopeBuckets(ctx context.Context, db *sql.DB, w window, target string) ([]s
 	return out, rs.Err()
 }
 
-// eachWindowAnalysis streams the window's analyses at the given versions, each record's in lake
-// order. Records come in id order: walking the record index needs no sort of the whole window.
-func eachWindowAnalysis(ctx context.Context, db *sql.DB, w window, versions []string, fn func(gen.Analysis) error) error {
+// tallyMentions feeds the window's analyses at each tallied version, each record's in lake order,
+// reading only what a tally counts. Records come in id order: walking the record index needs no
+// sort of the whole window.
+func tallyMentions(ctx context.Context, db *sql.DB, w window, tally map[string]*mentionTally) error {
 	where, args := windowRecords(w)
-	marks := strings.TrimSuffix(strings.Repeat("?,", len(versions)), ",")
-	for _, v := range versions {
+	marks := make([]string, 0, len(tally))
+	for v := range tally {
+		marks = append(marks, "?")
 		args = append(args, v)
 	}
-	return eachAnalysis(ctx, db, fn, strings.Replace(analysisColumns, "FROM analysis", "FROM analysis AS a", 1)+
-		` WHERE `+where+` AND a.analyzer_version IN (`+marks+`) ORDER BY a.record_id, a.seq`, args...)
+	rs, err := db.QueryContext(ctx, `SELECT a.record_id, a.analyzer_version, a.analysis_status,
+		a.narrative_subjects, a.subject_categories FROM analysis AS a
+		WHERE `+where+` AND a.analyzer_version IN (`+strings.Join(marks, ",")+`) ORDER BY a.record_id, a.seq`, args...)
+	if err != nil {
+		return err
+	}
+	defer rs.Close()
+	for rs.Next() {
+		var a gen.Analysis
+		var subjects string
+		var categories sql.NullString
+		if err := rs.Scan(&a.RecordID, &a.AnalyzerVersion, &a.AnalysisStatus, &subjects, &categories); err != nil {
+			return err
+		}
+		if err := json.Unmarshal([]byte(subjects), &a.NarrativeSubjects); err != nil {
+			return err
+		}
+		if categories.Valid {
+			var c []string
+			if err := json.Unmarshal([]byte(categories.String), &c); err != nil {
+				return err
+			}
+			a.SubjectCategories = &c
+		}
+		tally[a.AnalyzerVersion].add(a)
+	}
+	return rs.Err()
 }
 
 // throughput reads the rate the target version was produced at, from the analyzed_at spread of
@@ -344,11 +375,7 @@ func compareVersions(ctx context.Context, db *sql.DB, w window, versions []versi
 	}
 
 	tally := map[string]*mentionTally{before: newMentionTally(), target: newMentionTally()}
-	err := eachWindowAnalysis(ctx, db, w, []string{before, target}, func(a gen.Analysis) error {
-		tally[a.AnalyzerVersion].add(a)
-		return nil
-	})
-	if err != nil {
+	if err := tallyMentions(ctx, db, w, tally); err != nil {
 		return reprocessCompare{}, err
 	}
 	beforeShares, beforeUnanalyzed := tally[before].shares()

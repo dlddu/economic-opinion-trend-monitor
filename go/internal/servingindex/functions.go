@@ -52,7 +52,7 @@ func init() {
 		if err != nil {
 			return false, nil
 		}
-		since, err := time.Parse(time.RFC3339Nano, bound)
+		since, err := lastBound.parse(bound)
 		if err != nil {
 			return nil, err
 		}
@@ -64,4 +64,26 @@ func mustRegister(name string, nArgs int32, fn Function) {
 	if err := Register(name, nArgs, fn); err != nil {
 		panic(err)
 	}
+}
+
+// boundCache keeps the last bound parsed: a query passes the same one for every row it tests.
+type boundCache struct {
+	mu   sync.Mutex
+	text string
+	at   time.Time
+}
+
+var lastBound boundCache
+
+func (c *boundCache) parse(text string) (time.Time, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if text == c.text && text != "" {
+		return c.at, nil
+	}
+	at, err := time.Parse(time.RFC3339Nano, text)
+	if err == nil {
+		c.text, c.at = text, at
+	}
+	return at, err
 }
