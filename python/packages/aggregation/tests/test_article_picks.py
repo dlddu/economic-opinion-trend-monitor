@@ -1,6 +1,4 @@
-"""AC3.9 — the article list behind a Gold value is the picks that value counted.
-
-Every case builds the picks and ``build_subject_trends`` over the *same* input: the claim
+"""Every case builds the picks and ``build_subject_trends`` over the *same* input: the claim
 under test is that the list and the count agree, not that either matches a literal.
 """
 

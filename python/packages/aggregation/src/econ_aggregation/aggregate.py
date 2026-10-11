@@ -77,8 +77,7 @@ def _pick_of(item: dict, analysis: dict) -> Pick:
 class ArticlePicks:
     """One :class:`Pick` per article per bucket, fed one joined observation at a time.
 
-    The latest observation of an article in a bucket wins. The serving contributions
-    list (Go ``contributions``) mirrors this pick.
+    The latest observation of an article in a bucket wins.
     """
 
     def __init__(self, units: tuple[str, ...] = BUCKET_UNITS) -> None:
@@ -123,8 +122,6 @@ def article_picks(articles: Iterable[tuple[str, str, Pick]], unit: str) -> Itera
 
     Written beside SubjectTrend so the list behind a ``raw_count`` is the same picks, not a
     second calculation of them: the rows of one (subject, axis, bucket) number its raw_count.
-    An article counted under no subject (unanalyzed, or named none) is in no list, so it is
-    not written.
     """
     for axis, bucket, pick in articles:
         if not pick.keys:

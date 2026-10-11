@@ -57,12 +57,8 @@ type contributionsResponse struct {
 	Rows    []contributionRow    `json:"rows"`
 }
 
-// contributions lists the articles behind one Gold value. The aggregation writes them beside the
-// value (Gold article_pick), so the list is what the count counted, read rather than recomputed.
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	ctx := r.Context()
-	// An index built before the aggregation first wrote the picks would list nothing under
-	// every count: that is "not ready", not "no articles".
 	var written string
 	if err := db.QueryRowContext(ctx, "SELECT value FROM meta WHERE key = 'picks_written'").
 		Scan(&written); err != nil {
@@ -121,8 +117,7 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 	return nil
 }
 
-// pickedArticles reads the bucket's picks counted under subject, newest first because the reader
-// came here from a spike, with each pick's observation and how many articles shared its body.
+// pickedArticles lists newest first because the reader came here from a spike.
 func pickedArticles(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket, subject string) ([]contributionRow, error) {
 	rs, err := db.QueryContext(ctx, `SELECT p.record_id, p.source_id, p.collected_at,
 		coalesce(n.title, ''), coalesce(n.source_url, ''), coalesce(n.body_hash, ''),
