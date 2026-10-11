@@ -83,8 +83,6 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 		}
 	}
 
-	// byID is each record's last observation, kept only when that observation lies in the axis and
-	// bucket: a record id seen again later replaces the earlier observation, kept or not.
 	byID := map[string]gen.NewsItem{}
 	shares := map[string]int{}
 	inBucketWhere, inBucketArgs := bucketObservations(axis, unit, bucket)
@@ -318,7 +316,6 @@ func bucketBounds(unit gen.BucketUnit, bucket string) (lo, hi string, ok bool) {
 	return "", "", false
 }
 
-// eachBodyShare reads how many articles carried each body the bucket's observations show.
 func eachBodyShare(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket string, into map[string]int) error {
 	observed, args := bucketObservations(axis, unit, bucket)
 	rs, err := db.QueryContext(ctx, `SELECT body_hash, shares FROM body_share WHERE body_hash IN
