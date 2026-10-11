@@ -142,7 +142,6 @@ func (r *Reader) look() {
 	}
 }
 
-// miss logs a failure to move once per distinct failure, not once a second.
 func (r *Reader) miss(what string, err error) {
 	if msg := fmt.Sprintf("%s: %v", what, err); msg != r.lastMiss {
 		r.lastMiss = msg

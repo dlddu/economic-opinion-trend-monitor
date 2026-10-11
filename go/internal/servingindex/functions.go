@@ -44,7 +44,6 @@ func init() {
 	})
 	// rfc3339_at_or_after(ts, since) reads ts the way time.Parse(time.RFC3339, …) does and says
 	// whether it is not before since (RFC 3339 with nanoseconds); false when ts cannot be read.
-	// The comparison stays in Go: a year past 2262 does not fit in Unix nanoseconds.
 	mustRegister("rfc3339_at_or_after", 2, func(args []driver.Value) (driver.Value, error) {
 		s, _ := args[0].(string)
 		bound, _ := args[1].(string)

@@ -1,5 +1,3 @@
--- Derived tables and lookup indexes, run once the base tables are loaded.
-
 CREATE INDEX analysis_record ON analysis (record_id, seq);
 -- Covers the run panel's counts: a whole-corpus reprocess run is ~200 k rows.
 CREATE INDEX analysis_run ON analysis (run_id, analysis_status, no_call_reason);
@@ -8,8 +6,6 @@ CREATE INDEX news_item_url ON news_item (source_url, collected_at);
 CREATE INDEX news_item_axis ON news_item (axis, collected_at);
 CREATE INDEX llm_call_file_id ON llm_call_file (call_id);
 
--- The debug list's row per record: its newest analysis (the earliest-walked of equal times)
--- beside the title of its newest collection (likewise) and what the analysis's call came to.
 CREATE TABLE record_latest (
   record_id        TEXT PRIMARY KEY,
   record_id_lower  TEXT NOT NULL,
@@ -76,7 +72,6 @@ INSERT INTO body_share
 SELECT body_hash, count(DISTINCT CASE WHEN source_url <> '' THEN source_url ELSE record_id END)
 FROM news_item WHERE body_hash <> '' GROUP BY body_hash;
 
--- Calls per run and outcome, over every llm_call file that decodes.
 CREATE TABLE run_call (
   run_id       TEXT NOT NULL,
   call_outcome TEXT NOT NULL,
