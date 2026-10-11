@@ -36,4 +36,9 @@ echo "$body" | grep -q '"normalized":true' || { echo "[smoke] FAIL: normalized f
 records="$(curl -s "http://127.0.0.1:$PORT/api/debug/records")"
 echo "$records" | grep -q '"title":"\[한국은행 기준금리\]' || { echo "[smoke] FAIL: debug list missing the indexed record and its Bronze title"; echo "$records"; exit 1; }
 
+contrib="$(curl -s "http://127.0.0.1:$PORT/api/contributions?axis=KR")"
+raw="$(echo "$contrib" | sed -n 's/.*"raw_count":\([0-9]*\).*/\1/p')"
+total="$(echo "$contrib" | sed -n 's/.*"total":\([0-9]*\).*/\1/p')"
+{ [ -n "$raw" ] && [ "$raw" -gt 0 ] && [ "$raw" = "$total" ]; } || { echo "[smoke] FAIL: contribution list does not number its Gold raw count (Gold article_pick)"; echo "$contrib"; exit 1; }
+
 echo "[smoke] OK: Python Gold -> Go API end to end"

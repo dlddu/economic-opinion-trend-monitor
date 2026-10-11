@@ -8,20 +8,6 @@ import (
 
 type indexHandler func(w http.ResponseWriter, r *http.Request, db *sql.DB) error
 
-func (h *Handlers) oneAtATime(next indexHandler) indexHandler {
-	return func(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
-		clockOf(r).enter("queue")
-		select {
-		case h.heavy <- struct{}{}:
-		case <-r.Context().Done():
-			return nil
-		}
-		defer func() { <-h.heavy }()
-		clockOf(r).enter("handler")
-		return next(w, r, db)
-	}
-}
-
 // fromIndex times an index-backed request like a scan, without the scan gate: a query holds a
 // few pages, not the lake.
 func (h *Handlers) fromIndex(next indexHandler) http.HandlerFunc {

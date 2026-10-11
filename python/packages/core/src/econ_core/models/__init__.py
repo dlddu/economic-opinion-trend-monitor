@@ -21,6 +21,7 @@ from econ_core.models.enums import (
     Sentiment,
 )
 from econ_core.models.gold import (
+    ArticlePick,
     AxisSentiment,
     SentimentDistribution,
     SubjectSourceContribution,
@@ -40,6 +41,7 @@ __all__ = [
     "AXIS_VALUES",
     "Analysis",
     "AnalysisStatus",
+    "ArticlePick",
     "Axis",
     "AxisSentiment",
     "BUCKETUNIT_VALUES",

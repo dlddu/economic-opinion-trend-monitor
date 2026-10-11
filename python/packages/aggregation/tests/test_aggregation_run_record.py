@@ -91,6 +91,7 @@ def test_gold_read_cycle_by_cycle_equals_gold_built_over_the_whole_lake(
     import json
 
     from econ_aggregation.aggregate import (
+        build_article_picks_all_units,
         build_axis_sentiment_all_units,
         build_subject_trends_all_units,
     )
@@ -113,6 +114,7 @@ def test_gold_read_cycle_by_cycle_equals_gold_built_over_the_whole_lake(
         domain.DS_SUBJECT_SOURCE_CONTRIBUTION: build_subject_source_contributions_all_units(
             bronze, chosen
         ),
+        domain.DS_ARTICLE_PICK: build_article_picks_all_units(bronze, chosen),
     }
     for dataset, rows in expected.items():
         assert rows

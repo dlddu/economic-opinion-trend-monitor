@@ -29,7 +29,7 @@ import (
 
 // SchemaVersion names the shape of schema.sql and derive.sql. A reader refuses an index of
 // another version, so bump it with any change a query could notice.
-const SchemaVersion = "2"
+const SchemaVersion = "3"
 
 const (
 	// Dir is where the index lives under the lake root.
@@ -63,10 +63,13 @@ type Options struct {
 
 // Stats says what a build read and wrote.
 type Stats struct {
-	Name           string
-	Analyses       int
-	NewsItems      int
-	Records        int
+	Name         string
+	Analyses     int
+	NewsItems    int
+	Records      int
+	ArticlePicks int
+	// PicksWritten is false when the lake has no article_pick dataset yet.
+	PicksWritten   bool
 	CallFiles      int
 	CallsReused    int
 	CallsRead      int
@@ -155,6 +158,12 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 	}
 	opt.Log("news_item rows=%d took=%s", stats.NewsItems, since(start))
 	start = time.Now()
+	stats.PicksWritten = store.New(root).ArticlePicksWritten()
+	if stats.ArticlePicks, err = loadArticlePicks(ctx, conn, root); err != nil {
+		return stats, fmt.Errorf("article_pick: %w", err)
+	}
+	opt.Log("article_pick rows=%d took=%s", stats.ArticlePicks, since(start))
+	start = time.Now()
 	if err := loadCalls(ctx, conn, root, opt, &stats); err != nil {
 		return stats, fmt.Errorf("llm_call: %w", err)
 	}
@@ -178,6 +187,8 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 		"built_at":        opt.now().UTC().Format(time.RFC3339),
 		"analyses":        strconv.Itoa(stats.Analyses),
 		"news_items":      strconv.Itoa(stats.NewsItems),
+		"article_picks":   strconv.Itoa(stats.ArticlePicks),
+		"picks_written":   strconv.FormatBool(stats.PicksWritten),
 		"call_files":      strconv.Itoa(stats.CallFiles),
 		"calls_undecoded": strconv.Itoa(undecoded),
 		"records":         strconv.Itoa(stats.Records),
@@ -248,6 +259,25 @@ func loadNewsItems(ctx context.Context, conn *sql.Conn, root string) (int, error
 			_, err := ins.ExecContext(ctx, n, it.RecordID, it.SourceID, string(it.Axis), it.Rank, it.ViewCount,
 				it.Title, strings.ToLower(it.Title), it.SourceURL, it.BodyHash, it.BodyAvailable, it.CollectedAt,
 				it.CollectionCycle)
+			return err
+		})
+	})
+	return n, err
+}
+
+func loadArticlePicks(ctx context.Context, conn *sql.Conn, root string) (int, error) {
+	n := 0
+	err := inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO article_pick (seq, axis, bucket_unit, time_bucket,
+			record_id, source_id, collected_at, counted_subjects) VALUES (?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return store.New(root).EachArticlePick(ctx, func(p *gen.ArticlePick) error {
+			n++
+			_, err := ins.ExecContext(ctx, n, string(p.Axis), string(p.BucketUnit), p.TimeBucket, p.RecordID,
+				p.SourceID, p.CollectedAt, jsonText(p.CountedSubjects))
 			return err
 		})
 	})

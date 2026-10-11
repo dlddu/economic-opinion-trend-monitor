@@ -7,6 +7,7 @@ CREATE INDEX news_item_record ON news_item (record_id, seq);
 CREATE INDEX news_item_url ON news_item (source_url, collected_at);
 CREATE INDEX news_item_axis ON news_item (axis, collected_at);
 CREATE INDEX llm_call_file_id ON llm_call_file (call_id);
+CREATE INDEX article_pick_bucket ON article_pick (axis, bucket_unit, time_bucket);
 
 -- The debug list's row per record: its newest analysis (the earliest-walked of equal times)
 -- beside the title of its newest collection (likewise) and what the analysis's call came to.

@@ -69,6 +69,18 @@ func (l *Lake) SubjectSourceContributionsWhere(
 	return collect(ctx, l.path("gold", "subject_source_contribution"), keep)
 }
 
+// ArticlePicksWritten reports whether an aggregation has written the Gold article_pick dataset
+// at all: a lake aggregated before it existed has none, which is not "no articles".
+func (l *Lake) ArticlePicksWritten() bool {
+	_, err := os.Stat(l.path("gold", "article_pick"))
+	return err == nil
+}
+
+// EachArticlePick streams the Gold article_pick dataset to fn in file order.
+func (l *Lake) EachArticlePick(ctx context.Context, fn func(*gen.ArticlePick) error) error {
+	return stopped(eachJSONL(ctx, l.path("gold", "article_pick"), fn))
+}
+
 // AxisSentiments reads the Gold axis_sentiment dataset (empty if absent).
 func (l *Lake) AxisSentiments() ([]gen.AxisSentiment, error) {
 	return readJSONL[gen.AxisSentiment](l.path("gold", "axis_sentiment"))

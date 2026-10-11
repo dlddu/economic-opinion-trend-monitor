@@ -456,6 +456,29 @@ case "$debug_records" in
 esac
 echo "[e2e] serving index answers the debug list"
 
+# The contribution list is read from the aggregation's Gold article_pick through the index, so
+# its length must be the Gold raw_count it explains on every axis that has one.
+counted_axes=0
+for axis in KR US GLOBAL; do
+  contrib="$(curl -sf "http://127.0.0.1:$PORT/api/contributions?axis=$axis")" || {
+    echo "[e2e] FAIL: /api/contributions?axis=$axis did not answer 200 after econ-index ran" >&2
+    curl -s "http://127.0.0.1:$PORT/api/contributions?axis=$axis" >&2 || true
+    exit 1
+  }
+  raw="$(printf '%s' "$contrib" | sed -n 's/.*"raw_count":\([0-9]*\).*/\1/p')"
+  total="$(printf '%s' "$contrib" | sed -n 's/.*"total":\([0-9]*\).*/\1/p')"
+  if [ -z "$raw" ] || [ "$raw" != "$total" ]; then
+    echo "[e2e] FAIL: $axis lists $total article(s) for a raw count of $raw — $contrib" >&2
+    exit 1
+  fi
+  [ "$raw" -gt 0 ] && counted_axes=$((counted_axes + 1))
+done
+if [ "$counted_axes" -eq 0 ]; then
+  echo "[e2e] FAIL: no axis has a Gold value to list the articles of" >&2
+  exit 1
+fi
+echo "[e2e] contribution lists match their Gold raw counts on $counted_axes axis(es)"
+
 OPS_INGEST_LOG="$(run_batch_job econ-e2e-ingest-ops "$E2E_DIR/k8s/batch/ingest-job-ops.yaml")"
 case "$OPS_INGEST_LOG" in
   *"failed_sources=['e2e-ops-down']"*) ;;

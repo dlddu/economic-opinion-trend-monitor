@@ -18,7 +18,7 @@ from dataclasses import asdict
 from datetime import date
 from typing import NamedTuple
 
-from econ_core.models import AxisSentiment, SentimentDistribution, SubjectTrend
+from econ_core.models import ArticlePick, AxisSentiment, SentimentDistribution, SubjectTrend
 from econ_core.silver import grouping_keys
 
 DEFAULT_BUCKET_UNIT = "hour"
@@ -116,6 +116,30 @@ def bucket_articles(
     picks = ArticlePicks((unit,))
     picks.join(bronze, silver)
     return list(picks.articles(unit))
+
+
+def article_picks(articles: Iterable[tuple[str, str, Pick]], unit: str) -> Iterator[dict]:
+    """The Gold rows of the articles :func:`count_articles` counts, one per article per bucket.
+
+    Written beside SubjectTrend so the list behind a ``raw_count`` is the same picks, not a
+    second calculation of them: the rows of one (subject, axis, bucket) number its raw_count.
+    An article counted under no subject (unanalyzed, or named none) is in no list, so it is
+    not written.
+    """
+    for axis, bucket, pick in articles:
+        if not pick.keys:
+            continue
+        yield asdict(
+            ArticlePick(
+                axis=axis,
+                bucket_unit=unit,
+                time_bucket=bucket,
+                record_id=pick.record_id,
+                source_id=pick.source_id,
+                collected_at=pick.collected_at,
+                counted_subjects=list(pick.keys),
+            )
+        )
 
 
 Counts = dict[str, dict[str, dict[str, dict[str, int]]]]
@@ -242,6 +266,14 @@ def build_subject_trends_all_units(
     bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
 ) -> list[dict]:
     return [row for unit in units for row in build_subject_trends(bronze, silver, unit)]
+
+
+def build_article_picks_all_units(
+    bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
+) -> list[dict]:
+    return [
+        row for unit in units for row in article_picks(bucket_articles(bronze, silver, unit), unit)
+    ]
 
 
 def build_axis_sentiment_all_units(
