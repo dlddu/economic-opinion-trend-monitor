@@ -8,8 +8,6 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// The index keeps lake rows whole, so a query hands back the same records a scan decoded.
-
 const newsItemColumns = `SELECT record_id, source_id, axis, rank, view_count, title, source_url, body_hash,
 	body_available, collected_at, collection_cycle FROM news_item`
 

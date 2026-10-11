@@ -161,8 +161,7 @@ func (h *Handlers) reprocess(w http.ResponseWriter, r *http.Request, db *sql.DB)
 
 // window is the observations a reprocessing run would cover: one axis's, collected at or after
 // since (as time.Parse reads collected_at — one it cannot read is left out rather than guessed
-// in), narrowed to one source when one is given. Sources lists the axis's sources whatever the
-// source filter says: the screen needs them all to offer a choice.
+// in), narrowed to one source when one is given.
 type window struct {
 	axis, source string
 	since        time.Time
@@ -180,7 +179,6 @@ func (w window) inAxis() (string, []any) {
 		[]any{w.axis, w.since.UTC().AddDate(0, 0, -3).Format("2006-01-02"), w.since.Format(time.RFC3339Nano)}
 }
 
-// scoped also applies the source filter.
 func (w window) scoped() (string, []any) {
 	where, args := w.inAxis()
 	if w.source != "" {
@@ -436,7 +434,6 @@ func (t *mentionTally) add(a gen.Analysis) {
 	}
 }
 
-// shares is each key's share of all the version's mentions, and its unclassified fraction.
 func (t *mentionTally) shares() (map[string]float64, float64) {
 	shares := make(map[string]float64, len(t.mentions))
 	for s, n := range t.mentions {

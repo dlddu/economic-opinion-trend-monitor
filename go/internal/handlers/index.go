@@ -8,7 +8,6 @@ import (
 
 type indexHandler func(w http.ResponseWriter, r *http.Request, db *sql.DB) error
 
-// oneAtATime queues next behind any other request it wraps; a caller who leaves while queued is dropped.
 func (h *Handlers) oneAtATime(next indexHandler) indexHandler {
 	return func(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 		clockOf(r).enter("queue")

@@ -426,7 +426,6 @@ func shareOf(count, total int64) float64 {
 	return float64(count) / float64(total)
 }
 
-// trace walks one Bronze observation forward: its body, its first analysis, its collection.
 func (h *Handlers) trace(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	requested := r.URL.Query().Get("record_id")
 	ctx := r.Context()
@@ -465,8 +464,7 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request, db *sql.DB) err
 	return nil
 }
 
-// selectNewsItem picks the record's first observation, or the lake's first when none is asked
-// for, and names how it chose — falling back never reads like the record the caller asked for.
+// selectNewsItem names how it chose, so falling back never reads like the record the caller asked for.
 func selectNewsItem(ctx context.Context, db *sql.DB, requested string) (*gen.NewsItem, string, error) {
 	query := newsItemColumns + " ORDER BY seq LIMIT 1"
 	args := []any{}
@@ -489,7 +487,6 @@ func selectNewsItem(ctx context.Context, db *sql.DB, requested string) (*gen.New
 	return nil, "empty", nil
 }
 
-// firstAnalysis is the record's first analysis row in lake order, the one the trace shows.
 func firstAnalysis(ctx context.Context, db *sql.DB, recordID string) ([]gen.Analysis, error) {
 	return scanAnalyses(ctx, db, analysisColumns+" WHERE record_id = ? ORDER BY seq LIMIT 1", recordID)
 }
