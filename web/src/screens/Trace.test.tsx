@@ -219,3 +219,19 @@ it("offers no open button for a dead link or a non-http address", async () => {
   expect(odd.container.querySelector(".trace-open")).toBeNull();
   expect(odd.container.textContent).toContain("javascript:alert(1)");
 });
+
+it("says the index is being prepared instead of reporting an API failure", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      statusText: "Service Unavailable",
+      json: async () => ({ error: "index_not_ready" }),
+    })),
+  );
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain("인덱스 준비 중"));
+  expect(container.textContent).not.toContain("API 오류");
+});

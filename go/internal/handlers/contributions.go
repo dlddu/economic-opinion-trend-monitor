@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"net/http"
 	"sort"
 	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/servingindex"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -59,7 +63,8 @@ type contributionsResponse struct {
 
 // The join must stay the *same calculation* build_subject_trends runs — a second
 // way of computing it here disagrees with the number the list explains.
-func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
+	ctx := r.Context()
 	axis := axisParam(r, "KR")
 	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
 	unit := unitParam(r, plottedUnit(inAxis))
@@ -78,33 +83,29 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// byID keeps only observations the loop below would not skip. A record id seen
-	// again later still replaces the earlier observation, kept or not.
-	articles := bodyArticles{}
+	// byID is each record's last observation, kept only when that observation lies in the axis and
+	// bucket: a record id seen again later replaces the earlier observation, kept or not.
 	byID := map[string]gen.NewsItem{}
-	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
-		articles.add(*it)
-		if string(it.Axis) == axis && bucketLabel(it.CollectedAt, unit) == bucket {
-			byID[it.RecordID] = *it
-		} else {
-			delete(byID, it.RecordID)
-		}
+	shares := map[string]int{}
+	inBucketWhere, inBucketArgs := bucketObservations(axis, unit, bucket)
+	err := eachNewsItem(ctx, db, func(it gen.NewsItem) error {
+		byID[it.RecordID] = it
 		return nil
-	})
-	var analyses []gen.Analysis
-	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
-		if _, ok := byID[a.RecordID]; ok {
-			analyses = append(analyses, *a)
-		}
-		return nil
-	})
-	if gone(r) {
-		return
+	}, newsItemColumns+" AS n WHERE "+inBucketWhere, inBucketArgs...)
+	if err != nil {
+		return err
+	}
+	if err := eachBodyShare(ctx, db, axis, unit, bucket, shares); err != nil {
+		return err
+	}
+	analyses, err := scanAnalyses(ctx, db, analysisColumns+" WHERE record_id IN (SELECT n.record_id FROM news_item AS n WHERE "+
+		inBucketWhere+") ORDER BY seq", inBucketArgs...)
+	if err != nil {
+		return err
 	}
 	decisions, _ := h.lake.ReprocessDecisions()
 	version := servingVersion(decisions)
 	served := selectServing(analyses, version)
-	shares := articles.shares()
 
 	// Mirrors the pick econ_aggregation.aggregate.bucket_articles makes before it
 	// counts, so the subject filter runs on the same analysis the Gold count read.
@@ -178,6 +179,7 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request) {
 		Sources: sourceTally(all),
 		Rows:    rows,
 	})
+	return nil
 }
 
 // pickContributionSubject falls back to the leading subject only for an *absent*
@@ -277,25 +279,73 @@ func articleKey(item gen.NewsItem) string {
 	return item.RecordID
 }
 
-type bodyArticles map[string]map[string]bool
-
-// add skips an empty body hash: it is "no text kept", not a text they all share.
-func (b bodyArticles) add(it gen.NewsItem) {
-	if it.BodyHash == "" {
-		return
+// bucketObservations matches the observations the list starts from: each record's last
+// observation, when it lies in the axis and bucket. bucket_label is the handlers' own bucketLabel
+// and decides; a collected_at range, when the label gives one, only narrows the index walk.
+func bucketObservations(axis string, unit gen.BucketUnit, bucket string) (string, []any) {
+	where := `n.axis = ?`
+	args := []any{axis}
+	if lo, hi, ok := bucketBounds(unit, bucket); ok {
+		where += ` AND n.collected_at >= ? AND n.collected_at < ?`
+		args = append(args, lo, hi)
 	}
-	if b[it.BodyHash] == nil {
-		b[it.BodyHash] = map[string]bool{}
-	}
-	b[it.BodyHash][articleKey(it)] = true
+	where += ` AND bucket_label(n.collected_at, ?) = ?
+		AND n.seq = (SELECT max(m.seq) FROM news_item AS m WHERE m.record_id = n.record_id)`
+	return where, append(args, string(unit), bucket)
 }
 
-func (b bodyArticles) shares() map[string]int {
-	out := make(map[string]int, len(b))
-	for hash, keys := range b {
-		out[hash] = len(keys)
+// bucketBounds is a collected_at range holding every timestamp bucketLabel puts in bucket: an
+// hour or a day is a prefix, a week its seven dates. ok is false when no plain range does.
+func bucketBounds(unit gen.BucketUnit, bucket string) (lo, hi string, ok bool) {
+	switch unit {
+	case gen.BucketUnitHour, gen.BucketUnitDay:
+		if bucket == "" || bucket[len(bucket)-1] == 0xff {
+			return "", "", false
+		}
+		next := []byte(bucket)
+		next[len(next)-1]++
+		return bucket, string(next), true
+	case gen.BucketUnitWeek:
+		var year, week int
+		if _, err := fmt.Sscanf(bucket, "%d-W%d", &year, &week); err != nil || year < 1 || year > 9998 {
+			return "", "", false
+		}
+		// ISO week 1 holds 4 January; its Monday starts the year's weeks.
+		jan4 := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
+		monday := jan4.AddDate(0, 0, -((int(jan4.Weekday())+6)%7)+(week-1)*7)
+		return monday.Format("2006-01-02"), monday.AddDate(0, 0, 7).Format("2006-01-02"), true
 	}
-	return out
+	return "", "", false
+}
+
+// eachBodyShare reads how many articles carried each body the bucket's observations show.
+func eachBodyShare(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket string, into map[string]int) error {
+	observed, args := bucketObservations(axis, unit, bucket)
+	rs, err := db.QueryContext(ctx, `SELECT body_hash, shares FROM body_share WHERE body_hash IN
+		(SELECT n.body_hash FROM news_item AS n WHERE `+observed+`)`, args...)
+	if err != nil {
+		return err
+	}
+	defer rs.Close()
+	for rs.Next() {
+		var hash string
+		var n int
+		if err := rs.Scan(&hash, &n); err != nil {
+			return err
+		}
+		into[hash] = n
+	}
+	return rs.Err()
+}
+
+func init() {
+	if err := servingindex.Register("bucket_label", 2, func(args []driver.Value) (driver.Value, error) {
+		at, _ := args[0].(string)
+		unit, _ := args[1].(string)
+		return bucketLabel(at, gen.BucketUnit(unit)), nil
+	}); err != nil {
+		panic(err)
+	}
 }
 
 // sourceTally is the per-collector breakdown of the *unfiltered* list.

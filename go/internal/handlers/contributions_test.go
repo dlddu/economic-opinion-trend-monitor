@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -88,6 +89,7 @@ func writeContributionLake(t *testing.T, dir string) {
 
 func getContributions(t *testing.T, dir, query string) contributionsResponse {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	New(store.New(dir)).Register(mux)
 	srv := httptest.NewServer(mux)
@@ -351,6 +353,32 @@ func TestContributionsFindsArticlesByTheKeysGoldCountedThemUnder(t *testing.T) {
 		}
 		for _, id := range tc.want {
 			rowByRecord(t, got.Rows, id)
+		}
+	}
+}
+
+func TestBucketBoundsHoldEveryTimestampTheLabelTakes(t *testing.T) {
+	for _, c := range []struct {
+		unit         gen.BucketUnit
+		bucket       string
+		lo, hi       string
+		ok           bool
+		insideSample string
+	}{
+		{gen.BucketUnitHour, "2026-10-11T23", "2026-10-11T23", "2026-10-11T24", true, "2026-10-11T23:59:59+09:00"},
+		{gen.BucketUnitDay, "2026-12-31", "2026-12-31", "2026-12-32", true, "2026-12-31T23:00:00Z"},
+		{gen.BucketUnitWeek, "2026-W53", "2026-12-28", "2027-01-04", true, "2027-01-03T10:00:00Z"},
+		{gen.BucketUnitWeek, "2027-W01", "2027-01-04", "2027-01-11", true, "2027-01-10T10:00:00Z"},
+		{gen.BucketUnitWeek, "9999-W52", "", "", false, "9999-12-31T23:59:59Z"},
+		{gen.BucketUnitDay, "", "", "", false, "x"},
+		{gen.BucketUnitWeek, "garbage", "", "", false, "x"},
+	} {
+		lo, hi, ok := bucketBounds(c.unit, c.bucket)
+		if lo != c.lo || hi != c.hi || ok != c.ok {
+			t.Errorf("bucketBounds(%s, %q) = %q %q %v, want %q %q %v", c.unit, c.bucket, lo, hi, ok, c.lo, c.hi, c.ok)
+		}
+		if ok && bucketLabel(c.insideSample, c.unit) == c.bucket && (c.insideSample < lo || c.insideSample >= hi) {
+			t.Errorf("%s %q: %q is in the bucket but outside [%q, %q)", c.unit, c.bucket, c.insideSample, lo, hi)
 		}
 	}
 }

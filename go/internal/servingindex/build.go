@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"database/sql/driver"
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
@@ -22,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"modernc.org/sqlite"
+	_ "modernc.org/sqlite"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
@@ -30,7 +29,7 @@ import (
 
 // SchemaVersion names the shape of schema.sql and derive.sql. A reader refuses an index of
 // another version, so bump it with any change a query could notice.
-const SchemaVersion = "1"
+const SchemaVersion = "2"
 
 const (
 	// Dir is where the index lives under the lake root.
@@ -127,24 +126,8 @@ func newName(now time.Time) (string, error) {
 	return filePrefix + now.UTC().Format("20060102T150405Z") + "-" + hex.EncodeToString(b[:]) + fileSuffix, nil
 }
 
-var (
-	registerLower sync.Once
-	registerErr   error
-)
-
 func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 	var stats Stats
-	registerLower.Do(func() {
-		// SQLite's lower() folds ASCII only; the list search lowercases like the handlers do.
-		registerErr = sqlite.RegisterDeterministicScalarFunction("go_lower", 1,
-			func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
-				s, _ := args[0].(string)
-				return strings.ToLower(s), nil
-			})
-	})
-	if registerErr != nil {
-		return stats, registerErr
-	}
 	db, err := sql.Open("sqlite", "file:"+path+
 		"?_pragma=journal_mode(OFF)&_pragma=synchronous(OFF)&_pragma=cache_size(-65536)")
 	if err != nil {
@@ -197,6 +180,7 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 		"news_items":      strconv.Itoa(stats.NewsItems),
 		"call_files":      strconv.Itoa(stats.CallFiles),
 		"calls_undecoded": strconv.Itoa(undecoded),
+		"records":         strconv.Itoa(stats.Records),
 	}
 	for k, v := range meta {
 		if _, err := conn.ExecContext(ctx, "INSERT INTO meta (key, value) VALUES (?, ?)", k, v); err != nil {

@@ -2,6 +2,8 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"sort"
@@ -20,19 +22,21 @@ type Handlers struct {
 	argo    *argo.Client
 	now     func() time.Time
 	trigger triggerProbe
-	// lakeScan admits one full Bronze/Silver scan at a time: overlapping scans
-	// (a screen's parallel fetches, re-sent while earlier ones still ran) are what ran the pod out of memory.
-	lakeScan chan struct{}
-	index    *servingindex.Reader
+	// index is the batch-built serving index the Bronze/Silver screens read instead of scanning
+	// the lake: a scan per request is what ran the pod out of memory.
+	index *servingindex.Reader
+	// heavy admits one contribution list at a time: a week's list decodes ~10 k analyses in Go
+	// (~70 MiB measured on the prod lake), two of which would not fit the pod together.
+	heavy chan struct{}
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.
 func New(lake *store.Lake) *Handlers {
 	return &Handlers{
-		lake:     lake,
-		now:      time.Now,
-		lakeScan: make(chan struct{}, 1),
-		index:    servingindex.NewReader(lake.Root),
+		lake:  lake,
+		now:   time.Now,
+		index: servingindex.NewReader(lake.Root),
+		heavy: make(chan struct{}, 1),
 	}
 }
 
@@ -50,35 +54,16 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/compare", h.compare)
 	mux.HandleFunc("GET /api/sentiment", h.sentiment)
 	mux.HandleFunc("GET /api/fairness", h.fairness)
-	mux.HandleFunc("GET /api/contributions", h.oneScanAtATime(h.contributions))
+	mux.HandleFunc("GET /api/contributions", h.fromIndex(h.oneAtATime(h.contributions)))
 	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
-	mux.HandleFunc("GET /api/trace", h.oneScanAtATime(h.trace))
-	mux.HandleFunc("GET /api/reprocess", h.oneScanAtATime(h.reprocess))
+	mux.HandleFunc("GET /api/trace", h.fromIndex(h.trace))
+	mux.HandleFunc("GET /api/reprocess", h.fromIndex(h.reprocess))
 	mux.HandleFunc("GET /api/debug", h.fromIndex(h.debug))
 	mux.HandleFunc("GET /api/debug/records", h.fromIndex(h.debugRecords))
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)
 	mux.HandleFunc("POST /api/reprocess/publish", h.reprocessPublish)
-}
-
-func (h *Handlers) oneScanAtATime(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Waiting here is part of what the caller sees: a pick queued behind another scan
-		// spends its proxy budget before its own scan starts.
-		clock := newStageClock()
-		clock.enter("gate")
-		r = r.WithContext(withStageClock(r.Context(), clock))
-		defer clock.report(r)
-		select {
-		case h.lakeScan <- struct{}{}:
-		case <-r.Context().Done():
-			return
-		}
-		defer func() { <-h.lakeScan }()
-		clock.enter("handler")
-		next(&timedWriter{ResponseWriter: w, clock: clock}, r)
-	}
 }
 
 func gone(r *http.Request) bool {
@@ -441,11 +426,13 @@ func shareOf(count, total int64) float64 {
 	return float64(count) / float64(total)
 }
 
-func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
+// trace walks one Bronze observation forward: its body, its first analysis, its collection.
+func (h *Handlers) trace(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	requested := r.URL.Query().Get("record_id")
-	item, selection := h.selectNewsItem(r, requested)
-	if gone(r) {
-		return
+	ctx := r.Context()
+	item, selection, err := selectNewsItem(ctx, db, requested)
+	if err != nil {
+		return err
 	}
 	if item == nil {
 		writeJSON(w, http.StatusOK, traceResponse{
@@ -454,20 +441,13 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 			Found:     false,
 			Crumb:     lineageCrumb(false, false),
 		})
-		return
+		return nil
 	}
 
 	body, _ := h.lake.NewsBody(item.BodyHash)
-	var first []gen.Analysis
-	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
-		if a.RecordID != item.RecordID {
-			return nil
-		}
-		first = append(first, *a)
-		return store.ErrStop
-	})
-	if gone(r) {
-		return
+	first, err := firstAnalysis(ctx, db, item.RecordID)
+	if err != nil {
+		return err
 	}
 
 	bronze := bronzeSection(*item, body)
@@ -482,29 +462,36 @@ func (h *Handlers) trace(w http.ResponseWriter, r *http.Request) {
 		Silver:    silver,
 		Ingestion: ingestionSection(*item),
 	})
+	return nil
 }
 
-// selectNewsItem names how the record was chosen, so falling back to the first
-// observation never reads like the record the caller asked for.
-func (h *Handlers) selectNewsItem(r *http.Request, requested string) (*gen.NewsItem, string) {
-	var item *gen.NewsItem
-	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
-		if requested != "" && it.RecordID != requested {
-			return nil
-		}
-		found := *it
-		item = &found
-		return store.ErrStop
-	})
-	switch {
-	case item != nil && requested != "":
-		return item, "requested"
-	case item != nil:
-		return item, "auto"
-	case requested != "":
-		return nil, "requested-missing"
+// selectNewsItem picks the record's first observation, or the lake's first when none is asked
+// for, and names how it chose — falling back never reads like the record the caller asked for.
+func selectNewsItem(ctx context.Context, db *sql.DB, requested string) (*gen.NewsItem, string, error) {
+	query := newsItemColumns + " ORDER BY seq LIMIT 1"
+	args := []any{}
+	if requested != "" {
+		query = newsItemColumns + " WHERE record_id = ? ORDER BY seq LIMIT 1"
+		args = append(args, requested)
 	}
-	return nil, "empty"
+	items, err := scanNewsItems(ctx, db, query, args...)
+	if err != nil {
+		return nil, "", err
+	}
+	switch {
+	case len(items) > 0 && requested != "":
+		return &items[0], "requested", nil
+	case len(items) > 0:
+		return &items[0], "auto", nil
+	case requested != "":
+		return nil, "requested-missing", nil
+	}
+	return nil, "empty", nil
+}
+
+// firstAnalysis is the record's first analysis row in lake order, the one the trace shows.
+func firstAnalysis(ctx context.Context, db *sql.DB, recordID string) ([]gen.Analysis, error) {
+	return scanAnalyses(ctx, db, analysisColumns+" WHERE record_id = ? ORDER BY seq LIMIT 1", recordID)
 }
 
 func bronzeSection(item gen.NewsItem, body *gen.NewsBody) traceBronze {

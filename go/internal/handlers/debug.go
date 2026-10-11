@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
@@ -158,36 +157,7 @@ type debugSelection struct {
 }
 
 func indexedAnalyses(ctx context.Context, db *sql.DB, recordID string) ([]gen.Analysis, error) {
-	rs, err := db.QueryContext(ctx, `SELECT record_id, source_url, target_countries, narrative_subjects,
-		sentiment, analysis_status, confidence, analyzed_at, analyzer_version, run_id, call_id, no_call_reason
-		FROM analysis WHERE record_id = ? ORDER BY analyzed_at DESC, seq`, recordID)
-	if err != nil {
-		return nil, err
-	}
-	defer rs.Close()
-	var out []gen.Analysis
-	for rs.Next() {
-		var a gen.Analysis
-		var countries, subjects string
-		var sentiment, callID, noCall sql.NullString
-		if err := rs.Scan(&a.RecordID, &a.SourceURL, &countries, &subjects, &sentiment, &a.AnalysisStatus,
-			&a.Confidence, &a.AnalyzedAt, &a.AnalyzerVersion, &a.RunID, &callID, &noCall); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal([]byte(countries), &a.TargetCountries); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal([]byte(subjects), &a.NarrativeSubjects); err != nil {
-			return nil, err
-		}
-		if sentiment.Valid {
-			s := gen.Sentiment(sentiment.String)
-			a.Sentiment = &s
-		}
-		a.CallID, a.NoCallReason = nullable(callID), nullable(noCall)
-		out = append(out, a)
-	}
-	return out, rs.Err()
+	return scanAnalyses(ctx, db, analysisColumns+" WHERE record_id = ? ORDER BY analyzed_at DESC, seq", recordID)
 }
 
 // callLookup reads one llm_call record by call_id. A record kept in memory per

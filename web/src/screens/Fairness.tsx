@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import { INDEX_NOT_READY, errorText } from "../api/indexState";
+import { IndexNotReady } from "./IndexNotReady";
 import type {
   Axis,
   ContributionsResponse,
@@ -109,7 +111,7 @@ export function Fairness() {
     api
       .contributions(axis, subject, bucketUnit, bucket, source)
       .then((d) => active && setContrib(d))
-      .catch((e: unknown) => active && setContribError(String(e)));
+      .catch((e: unknown) => active && setContribError(errorText(e)));
     return () => {
       active = false;
     };
@@ -466,7 +468,8 @@ export function Fairness() {
                 </label>
               </div>
 
-              {contribError && (
+              {contribError === INDEX_NOT_READY && <IndexNotReady />}
+              {contribError && contribError !== INDEX_NOT_READY && (
                 <div className="note">
                   <div>
                     <b>기여 기사 조회 실패:</b> {contribError}

@@ -764,6 +764,7 @@ func writeLineage(t *testing.T, dir string, items, bodies, analyses string) {
 
 func getTrace(t *testing.T, dir, query string) traceResponse {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	New(store.New(dir)).Register(mux)
 	srv := httptest.NewServer(mux)

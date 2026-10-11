@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -24,11 +25,14 @@ func captureLog(t *testing.T) *bytes.Buffer {
 
 func TestStageClockNamesTheStageAnAbortCut(t *testing.T) {
 	logs := captureLog(t)
-	h := New(store.New(t.TempDir()))
+	dir := t.TempDir()
+	indexLake(t, dir)
+	h := New(store.New(dir))
 	ctx, cancel := context.WithCancel(context.Background())
-	slow := h.oneScanAtATime(func(w http.ResponseWriter, r *http.Request) {
+	slow := h.fromIndex(func(w http.ResponseWriter, r *http.Request, _ *sql.DB) error {
 		clockOf(r).enter("tally")
 		cancel()
+		return nil
 	})
 	slow(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/debug?record_id=x", nil).WithContext(ctx))
 
