@@ -37,6 +37,8 @@ Bronze는 관측한 그대로 보존한다).
 - **`article`**: 피드 본문이 없거나 300자 미만(요약)일 때만 원문 링크 페이지를 한 번 열어 본문을 추출한다.
   추출은 사이트별 셀렉터 없이, 링크가 아닌 텍스트가 가장 많은 블록을 고른다. 페이지가 열리지 않거나
   쓸 만한 텍스트(200자 이상이면서 피드 본문보다 긴 것)가 없으면 피드 본문을 그대로 두고 소스를 실패로 만들지 않는다.
+- **`article_always`**: 피드 본문 길이와 상관없이 매번 원문 링크 페이지를 열고, 추출한 텍스트가 피드 본문보다 길 때만 채택한다.
+  피드가 기사 앞부분(리드)만 주는데 그 길이가 300자를 넘는 소스용이다. 실패 처리는 `article` 과 같다.
 
 | 소스 | 값 | 근거 (2026-10-11 점검) |
 |---|---|---|
@@ -44,9 +46,10 @@ Bronze는 관측한 그대로 보존한다).
 | yonhap-economy | article | 피드 본문이 잘린 요약(중앙값 83자) |
 | fed-press | article | 피드 본문이 제목과 같은 한 문장 |
 | bbc-business | article | 피드 본문이 한 문장 요약, 기사 페이지는 무료 공개 |
-| nyt-business · wsj-markets · marketwatch-top · ft-global-economy | feed | 요약뿐이지만 기사 페이지가 구독제 |
-| imf-mediacenter · worldbank-press | feed | 피드에 전문이 들어 있음 |
-| guardian-economics | feed | 피드 본문이 300자 이상이라 `article` 이어도 페이지를 열 일이 없음 |
+| nyt-business | feed | 요약뿐이고 기사 페이지가 403 으로 막힘. **NYT API 로 전환 예정** — Most Popular API 의 `mostviewed` 가 조회수 순위를 주지만(AC1.2), API 는 제목·요약만 주고 본문은 주지 않는다. 키당 하루 500회·분당 5회 한도 |
+| wsj-markets · marketwatch-top · ft-global-economy | feed | 요약뿐이고 기사 페이지가 401/403 으로 막힘(구독제) |
+| imf-mediacenter · worldbank-press | feed | 피드에 전문이 들어 있음(기사 페이지 본문과 같은 내용) |
+| guardian-economics | article_always | 피드 본문은 리드만(중앙값 1,235자), 기사 페이지는 전문(중앙값 3,983자). 리드가 300자를 넘어 `article` 로는 페이지를 열지 않는다 |
 
 ## Acceptance Criteria
 

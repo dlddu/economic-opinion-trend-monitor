@@ -143,6 +143,32 @@ def test_feed_body_long_enough_is_kept_without_fetching_the_page() -> None:
     assert LONG_URL not in fetcher.calls
 
 
+def test_article_always_fetches_even_a_long_feed_body_and_keeps_the_longer_text() -> None:
+    split_page = (FIXTURES / "article_split_blocks.html").read_bytes()
+    fetcher = _fetcher()
+    fetcher.mapping[LONG_URL] = split_page
+    pairs = {
+        item.source_url: body
+        for item, body in collect_feed(_config("article_always"), fetcher, CYCLE, COLLECTED_AT)
+    }
+    assert LONG_URL in fetcher.calls
+    assert pairs[LONG_URL] == extract_article_text(split_page)
+
+    # A lead-only feed body that is already longer than the page text stays.
+    short_page = b"<html><body><div>" + b"Page text that is shorter. " * 9 + b"</div></body></html>"
+    fetcher = _fetcher()
+    fetcher.mapping[LONG_URL] = short_page
+    stats = IngestStats()
+    pairs = {
+        item.source_url: body
+        for item, body in collect_feed(
+            _config("article_always"), fetcher, CYCLE, COLLECTED_AT, stats=stats
+        )
+    }
+    assert pairs[LONG_URL].startswith("This entry's description is long enough")
+    assert stats.article_kept_feed_body == 1
+
+
 def test_feed_source_never_fetches_article_pages() -> None:
     fetcher = _fetcher()
     items = list(collect_feed(_config("feed"), fetcher, CYCLE, COLLECTED_AT))
@@ -206,6 +232,7 @@ def test_body_extraction_defaults_to_feed_and_is_validated(tmp_path: Path) -> No
         encoding="utf-8",
     )
     assert [c.body_extraction for c in load_feed_configs(path)] == ["feed", "article"]
+    assert FeedConfig("s", "KR", FEED_URL, body_extraction="article_always").body_extraction
 
 
 def test_every_default_source_declares_its_body_extraction() -> None:

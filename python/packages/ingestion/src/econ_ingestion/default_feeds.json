@@ -9,5 +9,5 @@
   { "source_id": "worldbank-press", "axis": "GLOBAL", "format": "worldbank-json", "feed_url": "https://search.worldbank.org/api/v2/news?format=json&rows=100&lang_exact=English&displayconttype_exact=Press%20Release&srt=lnchdt&order=desc", "limit": 100, "body_extraction": "feed" },
   { "source_id": "bbc-business", "axis": "GLOBAL", "feed_url": "https://feeds.bbci.co.uk/news/business/rss.xml", "limit": 100, "body_extraction": "article" },
   { "source_id": "ft-global-economy", "axis": "GLOBAL", "feed_url": "https://www.ft.com/global-economy?format=rss", "limit": 100, "body_extraction": "feed" },
-  { "source_id": "guardian-economics", "axis": "GLOBAL", "feed_url": "https://www.theguardian.com/business/economics/rss", "limit": 100, "body_extraction": "feed" }
+  { "source_id": "guardian-economics", "axis": "GLOBAL", "feed_url": "https://www.theguardian.com/business/economics/rss", "limit": 100, "body_extraction": "article_always" }
 ]

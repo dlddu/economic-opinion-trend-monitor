@@ -30,7 +30,7 @@ class FetchError(RuntimeError):
 
 FEED_FORMATS = ("rss", "worldbank-json")
 
-BODY_EXTRACTION_MODES = ("feed", "article")
+BODY_EXTRACTION_MODES = ("feed", "article", "article_always")
 
 ARTICLE_MIN_FEED_CHARS = 300
 
@@ -230,12 +230,12 @@ def _fetch_with_retry(config: FeedConfig, fetcher: Fetcher, retries: int) -> byt
 
 
 def _with_article_body(
-    article: ParsedArticle, fetcher: Fetcher, stats: IngestStats
+    article: ParsedArticle, fetcher: Fetcher, stats: IngestStats, *, always: bool
 ) -> ParsedArticle:
     """One attempt, no retry: a page that fails keeps the feed body (possibly none), so an
     unreachable site degrades to the pre-extraction record instead of failing the source.
     """
-    if len(article.body) >= ARTICLE_MIN_FEED_CHARS:
+    if not always and len(article.body) >= ARTICLE_MIN_FEED_CHARS:
         return article
     stats.article_fetches += 1
     try:
@@ -265,9 +265,10 @@ def collect_feed(
     ranked = sorted(_PARSERS[config.format](raw), key=lambda a: a.view_count, reverse=True)[
         : config.limit
     ]
-    if config.body_extraction == "article":
+    if config.body_extraction != "feed":
         stats = stats if stats is not None else IngestStats()
-        ranked = [_with_article_body(a, fetcher, stats) for a in ranked]
+        always = config.body_extraction == "article_always"
+        ranked = [_with_article_body(a, fetcher, stats, always=always) for a in ranked]
     for rank, article in enumerate(ranked, start=1):
         body = article.body if article.body_available else None
         item = NewsItem(

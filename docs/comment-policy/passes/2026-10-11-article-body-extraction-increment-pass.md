@@ -3,14 +3,14 @@
 창 = `2497886`→ 이 PR(`feat/ingestion-article-body-extraction`). 이 PR 이 소스별 `body_extraction` 과 기사 페이지 본문
 추출(`econ_ingestion/article.py`)을 들이며 늘린 주석만 판정한다. 기존 행의 옛 판정 줄과 근거는 움직이지 않았다.
 
-## 결과 — 작성분 중 제거 11 · 유지 20
+## 결과 — 작성분 중 제거 11 · 유지 21
 
 | 파일 · 표면 | 판정 전 → 후 | 처분 |
 |---|---|---|
 | `python/packages/ingestion/src/econ_ingestion/article.py` · L | 6 → 3 (신설) | 제거 3 · 유지 3 |
 | `python/packages/ingestion/src/econ_ingestion/article.py` · D | 10 → 7 (신설) | 제거 4(개작) · 유지 7 |
 | `python/packages/ingestion/src/econ_ingestion/article.py` · E | 1 → 1 (신설) | 유지 1 |
-| `python/packages/ingestion/tests/test_article.py` · L | 5 → 1 (신설) | 제거 4 · 유지 1 |
+| `python/packages/ingestion/tests/test_article.py` · L | 6 → 2 (신설) | 제거 4 · 유지 2 |
 | `python/packages/ingestion/tests/test_article.py` · D | 1 → 1 (신설) | 유지 1 |
 | `python/packages/ingestion/tests/test_article.py` · E | 5 → 4 (신설) | 제거 1 · 유지 4 |
 | `python/packages/ingestion/src/econ_ingestion/feeds.py` · L | 1 → 1 | 작성 3줄 제거 (증분 0) |
@@ -42,6 +42,7 @@
   한 건이 그 기사의 본문 확보를 통째로 날린다.
 - `test_article.py` L — 요약 피드 픽스처 1줄: `SCF_URL` 의 피드 본문이 비어 있지 않은데도 교체되는 이유(제목 반복 = 요약)를 알려,
   임계값을 바꾸는 사람이 이 단언을 오해하지 않게 한다.
+- `test_article.py` L — `article_always` 테스트 후반 머리 1줄: 같은 테스트 안에서 단언이 「페이지 채택」에서 「피드 리드 유지」로 뒤집히는 이유(리드가 페이지 텍스트보다 길다)를 알려, 픽스처 길이를 바꾸는 사람이 단언을 오해하지 않게 한다.
 - `test_article.py` D — 모듈 요약: doc 주석 수준.
 - `test_article.py` E — 4줄(본문 안 소제목 유지 · 본문 안 링크 텍스트 유지 · 목록 항목 유지 · 페이지는 재시도 없이 1회): 각 단언이 지키는
   추출기·수집기 동작을 가리킨다 — 링크 밀도 감점이나 `_BREAK_TAGS` 를 손볼 때 무엇이 깨지는지 이 줄이 알려 준다.
