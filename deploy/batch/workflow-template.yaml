@@ -278,12 +278,10 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    # Derives the serving index from the lake and swaps it in for the serving
-    # Pod. It runs the serving image, whose Go readers define the order the
-    # screens show rows in. Read-only over the lake but for its own files under
-    # /data/serving; a retry rebuilds from scratch and is always safe. The mutex
-    # keeps a scheduled run and an operator's reprocess from publishing over
-    # each other out of order.
+    # Runs the serving image, whose Go readers define the order the screens show
+    # rows in. Read-only over the lake but for its own files under /data/serving;
+    # a retry rebuilds from scratch and is always safe. The mutex keeps a scheduled
+    # run and an operator's reprocess from publishing over each other out of order.
     - name: index
       synchronization:
         mutexes:

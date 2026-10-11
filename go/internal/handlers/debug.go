@@ -89,8 +89,7 @@ const (
 	exchangeUnrecorded = "unrecorded"
 )
 
-// debug walks one record back to its analyses, their model calls, the run and the Bronze input.
-// The index finds the rows; a call, a run and a body are each one object read from the lake.
+// debug finds its rows in the index; a call, a run and a body are each one object read from the lake.
 func (h *Handlers) debug(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	requested := r.URL.Query().Get("record_id")
 	ctx := r.Context()
@@ -158,7 +157,6 @@ type debugSelection struct {
 	how   string
 }
 
-// indexedAnalyses reads a record's analyses newest first, the earliest-walked of equal times first.
 func indexedAnalyses(ctx context.Context, db *sql.DB, recordID string) ([]gen.Analysis, error) {
 	rs, err := db.QueryContext(ctx, `SELECT record_id, source_url, target_countries, narrative_subjects,
 		sentiment, analysis_status, confidence, analyzed_at, analyzer_version, run_id, call_id, no_call_reason
@@ -270,8 +268,6 @@ func projectCall(call gen.LlmCallRecord) *debugCall {
 	}
 }
 
-// debugRunOf is the run panel: the run record from the lake, and what its analyses and its
-// model calls came to, counted in the index.
 func debugRunOf(ctx context.Context, db *sql.DB, run *gen.PipelineRun) (*debugRun, error) {
 	if run == nil {
 		return nil, nil

@@ -6,11 +6,10 @@ import (
 	"net/http"
 )
 
-// indexHandler answers from the serving index the batch publishes, not from a lake scan.
 type indexHandler func(w http.ResponseWriter, r *http.Request, db *sql.DB) error
 
 // fromIndex times an index-backed request like a scan, without the scan gate: a query holds a
-// few pages, not the lake. Until the batch has published an index it answers 503 index_not_ready.
+// few pages, not the lake.
 func (h *Handlers) fromIndex(next indexHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clock := newStageClock()

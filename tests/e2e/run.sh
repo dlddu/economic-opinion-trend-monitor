@@ -386,7 +386,6 @@ run_aggregation_stack() {
 # The rollup root re-stamps the baseline root's corpus, so it must run after it.
 chain_aggregation() {
   run_aggregation_stack "" /data/aggregation baseline
-  # The root serving reads: index it as the batch does after a run, so the debug API answers.
   local index_log
   index_log="$(run_batch_job econ-e2e-index "$E2E_DIR/k8s/batch/index-job.yaml")"
   case "$index_log" in
@@ -446,8 +445,7 @@ if [ "${#failed_chains[@]}" -gt 0 ]; then
   exit 1
 fi
 
-# No spec opens the debug screen, so check here that serving reads the index the chain built:
-# without one the debug API answers 503 index_not_ready.
+# No spec opens the debug screen: this is the only check that serving reads the index the chain built.
 debug_records="$(curl -sf "http://127.0.0.1:$PORT/api/debug/records")" || {
   echo "[e2e] FAIL: /api/debug/records did not answer 200 after econ-index ran" >&2
   curl -s "http://127.0.0.1:$PORT/api/debug/records" >&2 || true

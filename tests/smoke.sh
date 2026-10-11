@@ -25,7 +25,6 @@ echo "[smoke] lake: $DATA  port: $PORT"
 test -s "$DATA/gold/subject_trend.jsonl" || { echo "[smoke] FAIL: no Gold produced"; exit 1; }
 
 (cd "$ROOT/go" && go build -o bin/serving ./cmd/serving && go build -o bin/econ-index ./cmd/econ-index)
-# The batch's last step: index the Python-written lake for the debug screen.
 "$ROOT/go/bin/econ-index" -data "$DATA"
 "$ROOT/go/bin/serving" -addr ":$PORT" -data "$DATA" -web "$DATA/no-web" &
 SRV=$!
