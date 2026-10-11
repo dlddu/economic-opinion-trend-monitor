@@ -63,8 +63,8 @@ Bronze는 관측한 그대로 보존한다).
 
 | 소스 | 뺀 날 | 사유 (2026-10-11 점검) |
 |---|---|---|
-| nyt-business | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 403 으로 막힘. NYT Most Popular API 도 제목·요약만 주고 본문은 주지 않는다 |
-| wsj-markets · marketwatch-top · ft-global-economy | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 401/403 으로 막힘(구독제) |
+| nyt-business | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 403 으로 막힘(6건 중 6건). NYT Most Popular API 도 제목·요약만 주고 본문은 주지 않는다 |
+| wsj-markets · marketwatch-top · ft-global-economy | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 막힘(6건 중 6건 — WSJ·MarketWatch 401, FT 403) |
 
 뺀 소스가 이미 남긴 Bronze 관측·본문과 그 분석 결과는 지우지 않는다(V5 — Bronze 는 관측한 그대로 보존).
 뺀 주기부터 그 소스의 새 관측이 생기지 않을 뿐이다.
