@@ -9,6 +9,31 @@ from econ_core.models.enums import Axis, BucketUnit
 
 
 @dataclass(kw_only=True)
+class ArticlePick:
+    """Gold record — one article as SubjectTrend counted it: per (axis, time bucket) the latest observation of each article, with the subjects it was counted under. The rows of one (subject, axis, time bucket) are exactly the articles behind that SubjectTrend.raw_count (AC3.9), so the contribution list is read, not recomputed."""
+
+    axis: Axis
+    bucket_unit: BucketUnit
+    time_bucket: str
+    record_id: str
+    source_id: str
+    collected_at: str
+    counted_subjects: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> ArticlePick:
+        return cls(
+            axis=d["axis"],
+            bucket_unit=d["bucket_unit"],
+            time_bucket=d["time_bucket"],
+            record_id=d["record_id"],
+            source_id=d["source_id"],
+            collected_at=d["collected_at"],
+            counted_subjects=list(d.get("counted_subjects", [])),
+        )
+
+
+@dataclass(kw_only=True)
 class AxisSentiment:
     """Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6)."""
 

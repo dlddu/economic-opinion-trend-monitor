@@ -23,6 +23,7 @@ DS_LLM_CALL = "llm_call"
 DS_SUBJECT_TREND = "subject_trend"
 DS_SUBJECT_SOURCE_CONTRIBUTION = "subject_source_contribution"
 DS_AXIS_SENTIMENT = "axis_sentiment"
+DS_ARTICLE_PICK = "article_pick"
 
 #: The fixed categories an article's narrative subjects are filed under. Free-form
 #: subjects split one day's articles over hundreds of keys, so a share of any one of

@@ -195,7 +195,10 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   `/api/contributions`, `/api/reprocess`)는 레이크를 훑지 않고 이 인덱스를
   `mode=ro&immutable=1`로 읽으며, 요청이 올 때 1초에 한 번까지 포인터를 다시 봐 새 인덱스로 옮겨 탄다. 인덱스가 아직
   없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. Gold 만 읽는 화면(대시보드·
-  추세·비교·감성)과 공정성 화면의 Gold 표는 인덱스와 무관하다 — 공정성 화면의 기여 기사 목록만 인덱스를 읽는다. 배포 직후
+  추세·비교·감성)과 공정성 화면의 Gold 표는 인덱스와 무관하다 — 공정성 화면의 기여 기사 목록만 인덱스를 읽는다. 그 목록은
+  집계가 `subject_trend`와 함께 쓰는 Gold `article_pick`(원시 카운트가 센 기사 그대로, 단위·버킷마다 기사별 최신 관측
+  하나)을 인덱스에 실은 것이라 서빙은 다시 계산하지 않고 읽기만 한다. `article_pick`이 생기기 전의 레이크로 만든
+  인덱스에서는 기여 목록만 「인덱스 준비 중」이고, 다음 `aggregate` 뒤의 인덱스부터 보인다. 배포 직후
   첫 인덱스는 다음 정시 파이프라인을 기다리거나 `entrypoint: index`로 워크플로를 한 번 제출해
   만든다(종료 핸들러가 한 번 더 돌지만 두 번째는 새 파일만 읽어 짧다). 인덱스 스키마는 `go/internal/servingindex/`(`SchemaVersion`)에 있고, 서빙은 다른 버전의
   인덱스를 열지 않는다 — 버전을 올린 배포는 다음 `index` 단계까지 그 화면들이 준비 중이다.

@@ -3,14 +3,10 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
-	"fmt"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
-	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/servingindex"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -61,12 +57,24 @@ type contributionsResponse struct {
 	Rows    []contributionRow    `json:"rows"`
 }
 
-// The join must stay the *same calculation* build_subject_trends runs — a second
-// way of computing it here disagrees with the number the list explains.
+// contributions lists the articles behind one Gold value. The aggregation writes them beside the
+// value (Gold article_pick), so the list is what the count counted, read rather than recomputed.
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	ctx := r.Context()
+	// An index built before the aggregation first wrote the picks would list nothing under
+	// every count: that is "not ready", not "no articles".
+	var written string
+	if err := db.QueryRowContext(ctx, "SELECT value FROM meta WHERE key = 'picks_written'").
+		Scan(&written); err != nil {
+		return err
+	}
+	if written != "true" {
+		clockOf(r).note("picks=absent")
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "index_not_ready"})
+		return nil
+	}
 	axis := axisParam(r, "KR")
-	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
+	inAxis, _ := h.lake.SubjectTrendsWhere(ctx, inAxisTrend(axis))
 	unit := unitParam(r, plottedUnit(inAxis))
 	bucket := r.URL.Query().Get("time_bucket")
 	if bucket == "" {
@@ -83,84 +91,17 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 		}
 	}
 
-	byID := map[string]gen.NewsItem{}
-	shares := map[string]int{}
-	inBucketWhere, inBucketArgs := bucketObservations(axis, unit, bucket)
-	err := eachNewsItem(ctx, db, func(it gen.NewsItem) error {
-		byID[it.RecordID] = it
-		return nil
-	}, newsItemColumns+" AS n WHERE "+inBucketWhere, inBucketArgs...)
+	all, err := pickedArticles(ctx, db, axis, unit, bucket, subject)
 	if err != nil {
 		return err
 	}
-	if err := eachBodyShare(ctx, db, axis, unit, bucket, shares); err != nil {
-		return err
-	}
-	analyses, err := scanAnalyses(ctx, db, analysisColumns+" WHERE record_id IN (SELECT n.record_id FROM news_item AS n WHERE "+
-		inBucketWhere+") ORDER BY seq", inBucketArgs...)
-	if err != nil {
-		return err
-	}
-	decisions, _ := h.lake.ReprocessDecisions()
-	version := servingVersion(decisions)
-	served := selectServing(analyses, version)
-
-	// Mirrors the pick econ_aggregation.aggregate.bucket_articles makes before it
-	// counts, so the subject filter runs on the same analysis the Gold count read.
-	type observed struct {
-		item     gen.NewsItem
-		analysis gen.Analysis
-	}
-	latest := map[string]observed{}
-	for _, a := range served {
-		item, ok := byID[a.RecordID]
-		if !ok || string(item.Axis) != axis {
-			continue
-		}
-		if bucketLabel(item.CollectedAt, unit) != bucket {
-			continue
-		}
-		key := articleKey(item)
-		seen, ok := latest[key]
-		if !ok || item.CollectedAt > seen.item.CollectedAt ||
-			(item.CollectedAt == seen.item.CollectedAt && item.RecordID > seen.item.RecordID) {
-			latest[key] = observed{item, a}
-		}
-	}
-
-	all := make([]contributionRow, 0, len(latest))
-	for _, o := range latest {
-		item := o.item
-		if !contains(groupingKeys(o.analysis), subject) {
-			continue
-		}
-		n := shares[item.BodyHash]
-		all = append(all, contributionRow{
-			RecordID:      item.RecordID,
-			SourceID:      item.SourceID,
-			Title:         item.Title,
-			SourceURL:     item.SourceURL,
-			CollectedAt:   item.CollectedAt,
-			BodyHash:      item.BodyHash,
-			BodyAvailable: item.BodyAvailable,
-			BodyDuplicate: n > 1,
-			BodyShares:    n,
-		})
-	}
-	// Newest first because the reader came here from a spike.
-	sort.SliceStable(all, func(i, j int) bool {
-		if all[i].CollectedAt != all[j].CollectedAt {
-			return all[i].CollectedAt > all[j].CollectedAt
-		}
-		return all[i].RecordID < all[j].RecordID
-	})
-
 	rows := make([]contributionRow, 0, len(all))
 	for _, row := range all {
 		if source == "" || row.SourceID == source {
 			rows = append(rows, row)
 		}
 	}
+	decisions, _ := h.lake.ReprocessDecisions()
 
 	writeJSON(w, http.StatusOK, contributionsResponse{
 		Basis: contributionsBasis{
@@ -172,12 +113,41 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 			RawCount:        rawCount,
 			Total:           len(all),
 			Listed:          len(rows),
-			AnalyzerVersion: version,
+			AnalyzerVersion: servingVersion(decisions),
 		},
 		Sources: sourceTally(all),
 		Rows:    rows,
 	})
 	return nil
+}
+
+// pickedArticles reads the bucket's picks counted under subject, newest first because the reader
+// came here from a spike, with each pick's observation and how many articles shared its body.
+func pickedArticles(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket, subject string) ([]contributionRow, error) {
+	rs, err := db.QueryContext(ctx, `SELECT p.record_id, p.source_id, p.collected_at,
+		coalesce(n.title, ''), coalesce(n.source_url, ''), coalesce(n.body_hash, ''),
+		coalesce(n.body_available, 0), coalesce(b.shares, 0)
+		FROM article_pick AS p
+		LEFT JOIN news_item AS n ON n.seq = (SELECT max(m.seq) FROM news_item AS m WHERE m.record_id = p.record_id)
+		LEFT JOIN body_share AS b ON b.body_hash = n.body_hash
+		WHERE p.axis = ? AND p.bucket_unit = ? AND p.time_bucket = ?
+		  AND EXISTS (SELECT 1 FROM json_each(p.counted_subjects) WHERE value = ?)
+		ORDER BY p.collected_at DESC, p.record_id`, axis, string(unit), bucket, subject)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	out := []contributionRow{}
+	for rs.Next() {
+		var row contributionRow
+		if err := rs.Scan(&row.RecordID, &row.SourceID, &row.CollectedAt, &row.Title, &row.SourceURL,
+			&row.BodyHash, &row.BodyAvailable, &row.BodyShares); err != nil {
+			return nil, err
+		}
+		row.BodyDuplicate = row.BodyShares > 1
+		out = append(out, row)
+	}
+	return out, rs.Err()
 }
 
 // pickContributionSubject falls back to the leading subject only for an *absent*
@@ -202,147 +172,6 @@ func servingVersion(decisions []store.ReprocessDecision) string {
 		return ""
 	}
 	return decisions[len(decisions)-1].AnalyzerVersion
-}
-
-// selectServing mirrors econ_core.silver.select_serving.
-func selectServing(analyses []gen.Analysis, version string) []gen.Analysis {
-	order := make([]string, 0, len(analyses))
-	byRecord := map[string][]gen.Analysis{}
-	for _, a := range analyses {
-		if _, seen := byRecord[a.RecordID]; !seen {
-			order = append(order, a.RecordID)
-		}
-		byRecord[a.RecordID] = append(byRecord[a.RecordID], a)
-	}
-	out := make([]gen.Analysis, 0, len(order))
-	for _, id := range order {
-		rows := byRecord[id]
-		pick := -1
-		if version != "" {
-			for i, a := range rows {
-				if a.AnalyzerVersion == version {
-					pick = i
-					break
-				}
-			}
-		}
-		if pick < 0 {
-			pick = 0
-			for i, a := range rows {
-				if a.AnalyzedAt > rows[pick].AnalyzedAt ||
-					(a.AnalyzedAt == rows[pick].AnalyzedAt && a.AnalyzerVersion > rows[pick].AnalyzerVersion) {
-					pick = i
-				}
-			}
-		}
-		out = append(out, rows[pick])
-	}
-	return out
-}
-
-// bucketLabel cuts a collection timestamp down to its bucket label, the forward
-// direction of bucketStart and a transcription of the aggregation's `_bucket`.
-// An unreadable timestamp matches no bucket: the record is left out, not guessed at.
-func bucketLabel(collectedAt string, unit gen.BucketUnit) string {
-	switch unit {
-	case gen.BucketUnitHour:
-		if len(collectedAt) < 13 {
-			return ""
-		}
-		return collectedAt[:13]
-	case gen.BucketUnitDay:
-		if len(collectedAt) < 10 {
-			return ""
-		}
-		return collectedAt[:10]
-	case gen.BucketUnitWeek:
-		if len(collectedAt) < 10 {
-			return ""
-		}
-		day, err := time.Parse("2006-01-02", collectedAt[:10])
-		if err != nil {
-			return ""
-		}
-		year, week := day.ISOWeek()
-		return fmt.Sprintf("%d-W%02d", year, week)
-	}
-	return ""
-}
-
-// articleKey mirrors econ_aggregation.aggregate.article_key.
-func articleKey(item gen.NewsItem) string {
-	if item.SourceURL != "" {
-		return item.SourceURL
-	}
-	return item.RecordID
-}
-
-// bucketObservations matches the observations the list starts from: each record's last
-// observation, when it lies in the axis and bucket. bucket_label is the handlers' own bucketLabel
-// and decides; a collected_at range, when the label gives one, only narrows the index walk.
-func bucketObservations(axis string, unit gen.BucketUnit, bucket string) (string, []any) {
-	where := `n.axis = ?`
-	args := []any{axis}
-	if lo, hi, ok := bucketBounds(unit, bucket); ok {
-		where += ` AND n.collected_at >= ? AND n.collected_at < ?`
-		args = append(args, lo, hi)
-	}
-	where += ` AND bucket_label(n.collected_at, ?) = ?
-		AND n.seq = (SELECT max(m.seq) FROM news_item AS m WHERE m.record_id = n.record_id)`
-	return where, append(args, string(unit), bucket)
-}
-
-// bucketBounds is a collected_at range holding every timestamp bucketLabel puts in bucket: an
-// hour or a day is a prefix, a week its seven dates. ok is false when no plain range does.
-func bucketBounds(unit gen.BucketUnit, bucket string) (lo, hi string, ok bool) {
-	switch unit {
-	case gen.BucketUnitHour, gen.BucketUnitDay:
-		if bucket == "" || bucket[len(bucket)-1] == 0xff {
-			return "", "", false
-		}
-		next := []byte(bucket)
-		next[len(next)-1]++
-		return bucket, string(next), true
-	case gen.BucketUnitWeek:
-		var year, week int
-		if _, err := fmt.Sscanf(bucket, "%d-W%d", &year, &week); err != nil || year < 1 || year > 9998 {
-			return "", "", false
-		}
-		// ISO week 1 holds 4 January; its Monday starts the year's weeks.
-		jan4 := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
-		monday := jan4.AddDate(0, 0, -((int(jan4.Weekday())+6)%7)+(week-1)*7)
-		return monday.Format("2006-01-02"), monday.AddDate(0, 0, 7).Format("2006-01-02"), true
-	}
-	return "", "", false
-}
-
-func eachBodyShare(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket string, into map[string]int) error {
-	observed, args := bucketObservations(axis, unit, bucket)
-	rs, err := db.QueryContext(ctx, `SELECT body_hash, shares FROM body_share WHERE body_hash IN
-		(SELECT n.body_hash FROM news_item AS n WHERE `+observed+`)`, args...)
-	if err != nil {
-		return err
-	}
-	defer rs.Close()
-	for rs.Next() {
-		var hash string
-		var n int
-		if err := rs.Scan(&hash, &n); err != nil {
-			return err
-		}
-		into[hash] = n
-	}
-	return rs.Err()
-}
-
-func init() {
-	if err := servingindex.Register("bucket_label", 2, func(args []driver.Value) (driver.Value, error) {
-		at, _ := args[0].(string)
-		unit, _ := args[1].(string)
-		return bucketLabel(at, gen.BucketUnit(unit)), nil
-	}); err != nil {
-		panic(err)
-	}
 }
 
 // sourceTally is the per-collector breakdown of the *unfiltered* list.
@@ -371,13 +200,4 @@ func groupingKeys(a gen.Analysis) []string {
 		return *a.SubjectCategories
 	}
 	return a.NarrativeSubjects
-}
-
-func contains(values []string, want string) bool {
-	for _, v := range values {
-		if v == want {
-			return true
-		}
-	}
-	return false
 }

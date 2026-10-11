@@ -15,6 +15,7 @@ from econ_core import LakeStore, domain, open_store, runlog, silver
 from econ_aggregation.aggregate import (
     BUCKET_UNITS,
     ArticlePicks,
+    article_picks,
     axis_sentiment,
     count_articles,
     subject_trends,
@@ -104,6 +105,11 @@ def _aggregate(
 
     counts = {unit: count_articles(picks.articles(unit)) for unit in BUCKET_UNITS}
     sentiment = [row for unit in BUCKET_UNITS for row in axis_sentiment(picks.articles(unit), unit)]
+    n_picks = store.write_records(
+        domain.GOLD,
+        domain.DS_ARTICLE_PICK,
+        (row for unit in BUCKET_UNITS for row in article_picks(picks.articles(unit), unit)),
+    )
     del picks
 
     # Every run emits all three bucket units (AC3.3). They share one dataset
@@ -124,7 +130,7 @@ def _aggregate(
     print(
         f"aggregation: read {n_chosen} silver (joined to {n_bronze} bronze), "
         f"wrote {n_trend} subject_trend + {n_sent} axis_sentiment "
-        f"+ {n_contrib} subject_source_contribution gold records "
+        f"+ {n_contrib} subject_source_contribution + {n_picks} article_pick gold records "
         f"across {len(BUCKET_UNITS)} bucket units ({', '.join(BUCKET_UNITS)})"
     )
     print(
@@ -134,9 +140,10 @@ def _aggregate(
     print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_TREND)}")
     print(f"  -> {store.path(domain.GOLD, domain.DS_AXIS_SENTIMENT)}")
     print(f"  -> {store.path(domain.GOLD, domain.DS_SUBJECT_SOURCE_CONTRIBUTION)}")
+    print(f"  -> {store.path(domain.GOLD, domain.DS_ARTICLE_PICK)}")
 
     stage.input_count = n_silver
-    stage.output_count = n_trend + n_sent + n_contrib
+    stage.output_count = n_trend + n_sent + n_contrib + n_picks
     stage.count("served", n_chosen)
     stage.count("superseded", n_silver - n_chosen)
     print(f"  run={run_id} stage=aggregation")

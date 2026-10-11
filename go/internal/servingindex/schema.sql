@@ -41,6 +41,19 @@ CREATE TABLE news_item (
   collection_cycle TEXT NOT NULL
 );
 
+-- Gold's article picks (contracts/gold/article_pick.avsc): the articles behind each SubjectTrend
+-- raw_count, as the aggregation counted them. counted_subjects is JSON text.
+CREATE TABLE article_pick (
+  seq              INTEGER PRIMARY KEY,
+  axis             TEXT NOT NULL,
+  bucket_unit      TEXT NOT NULL,
+  time_bucket      TEXT NOT NULL,
+  record_id        TEXT NOT NULL,
+  source_id        TEXT NOT NULL,
+  collected_at     TEXT NOT NULL,
+  counted_subjects TEXT NOT NULL
+);
+
 -- One row per llm_call object file, keyed by its path under silver/llm_call. Files are written
 -- once, so a build copies the previous index's rows for files still listed and reads only new
 -- ones. A file that does not decode keeps a row with decoded = 0 and is never read again.

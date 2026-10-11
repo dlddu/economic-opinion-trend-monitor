@@ -1,0 +1,44 @@
+{
+  "type": "record",
+  "name": "ArticlePick",
+  "namespace": "econ.gold",
+  "doc": "Gold record — one article as SubjectTrend counted it: per (axis, time bucket) the latest observation of each article, with the subjects it was counted under. The rows of one (subject, axis, time bucket) are exactly the articles behind that SubjectTrend.raw_count (AC3.9), so the contribution list is read, not recomputed.",
+  "x-layer": "gold",
+  "fields": [
+    {
+      "name": "axis",
+      "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
+      "doc": "Source axis (AC3.4, AC3.7)."
+    },
+    {
+      "name": "bucket_unit",
+      "type": { "type": "enum", "name": "BucketUnit", "symbols": ["hour", "day", "week"] },
+      "doc": "Time bucket unit; each unit picks its own latest observation per article (AC3.3)."
+    },
+    {
+      "name": "time_bucket",
+      "type": "string",
+      "doc": "Bucket label, e.g. 2026-06-23T14 (AC3.3)."
+    },
+    {
+      "name": "record_id",
+      "type": "string",
+      "doc": "The picked Bronze observation (AC2.6) — the article's latest in the bucket."
+    },
+    {
+      "name": "source_id",
+      "type": "string",
+      "doc": "Collection source of the picked observation (AC1.5)."
+    },
+    {
+      "name": "collected_at",
+      "type": "string",
+      "doc": "Collection time of the picked observation, ISO-8601 UTC (AC1.5)."
+    },
+    {
+      "name": "counted_subjects",
+      "type": { "type": "array", "items": "string" },
+      "doc": "The grouping keys the article was counted under in SubjectTrend, each once (AC3.2)."
+    }
+  ]
+}

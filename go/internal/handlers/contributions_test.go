@@ -7,15 +7,16 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
 // The Gold below is the aggregation's own output — Bronze/Silver fed through
-// econ_core.silver.select_serving + build_subject_trends_all_units, pasted in.
-// Hand-fitting it to this handler would make the sum identities prove nothing.
+// econ_core.silver.select_serving + build_subject_trends_all_units and
+// build_article_picks_all_units, pasted in. The list is read from the picks, so
+// hand-fitting them to this handler would make the sum identities prove nothing.
 //
 // What the rows are arranged to hold, for KR / hour / 2026-06-23T14:
 //
@@ -57,6 +58,28 @@ const (
 {"subject": "삼성전자", "axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "raw_count": 5, "normalized_share": 0.6667, "delta": 0.0, "spark": [0.6667]}
 {"subject": "환율", "axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "raw_count": 2, "normalized_share": 0.3333, "delta": 0.0, "spark": [0.3333]}
 {"subject": "삼성전자", "axis": "US", "bucket_unit": "week", "time_bucket": "2026-W26", "raw_count": 1, "normalized_share": 1.0, "delta": 0.0, "spark": [1.0]}`
+
+	contribPicks = `{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r1", "source_id": "kr_wire", "collected_at": "2026-06-23T14:05:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r2", "source_id": "kr_wire", "collected_at": "2026-06-23T14:10:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r3", "source_id": "kr_wire", "collected_at": "2026-06-23T14:20:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r4", "source_id": "kr_daily", "collected_at": "2026-06-23T14:40:00Z", "counted_subjects": ["삼성전자", "환율"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r5", "source_id": "kr_daily", "collected_at": "2026-06-23T14:50:00Z", "counted_subjects": ["환율"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T13", "record_id": "r6", "source_id": "kr_wire", "collected_at": "2026-06-23T13:30:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "US", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r7", "source_id": "us_wire", "collected_at": "2026-06-23T14:15:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r1", "source_id": "kr_wire", "collected_at": "2026-06-23T14:05:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r2", "source_id": "kr_wire", "collected_at": "2026-06-23T14:10:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r3", "source_id": "kr_wire", "collected_at": "2026-06-23T14:20:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r4", "source_id": "kr_daily", "collected_at": "2026-06-23T14:40:00Z", "counted_subjects": ["삼성전자", "환율"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r5", "source_id": "kr_daily", "collected_at": "2026-06-23T14:50:00Z", "counted_subjects": ["환율"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r6", "source_id": "kr_wire", "collected_at": "2026-06-23T13:30:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "US", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "r7", "source_id": "us_wire", "collected_at": "2026-06-23T14:15:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r1", "source_id": "kr_wire", "collected_at": "2026-06-23T14:05:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r2", "source_id": "kr_wire", "collected_at": "2026-06-23T14:10:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r3", "source_id": "kr_wire", "collected_at": "2026-06-23T14:20:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r4", "source_id": "kr_daily", "collected_at": "2026-06-23T14:40:00Z", "counted_subjects": ["삼성전자", "환율"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r5", "source_id": "kr_daily", "collected_at": "2026-06-23T14:50:00Z", "counted_subjects": ["환율"]}
+{"axis": "KR", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r6", "source_id": "kr_wire", "collected_at": "2026-06-23T13:30:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "US", "bucket_unit": "week", "time_bucket": "2026-W26", "record_id": "r7", "source_id": "us_wire", "collected_at": "2026-06-23T14:15:00Z", "counted_subjects": ["삼성전자"]}`
 )
 
 const (
@@ -70,8 +93,10 @@ func writeContributionLake(t *testing.T, dir string) {
 	if err := os.MkdirAll(gold, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(contribGold+"\n"), 0o644); err != nil {
-		t.Fatal(err)
+	for name, content := range map[string]string{"subject_trend": contribGold, "article_pick": contribPicks} {
+		if err := os.WriteFile(filepath.Join(gold, name+".jsonl"), []byte(content+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	for _, ds := range []struct{ dataset, content string }{
 		{"bronze/news_item", contribBronze},
@@ -269,7 +294,8 @@ func TestContributionsAnswersAnUnknownSubjectWithAnEmptyList(t *testing.T) {
 	}
 }
 
-// The Gold is build_subject_trends_all_units' output for this lake, day unit, pasted in.
+// The Gold is build_subject_trends_all_units' and build_article_picks_all_units' output for
+// this lake, day unit, pasted in.
 func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *testing.T) {
 	dir := t.TempDir()
 	bronze := `{"record_id": "a13", "source_id": "kr_wire", "axis": "KR", "rank": 1, "view_count": 1, "title": "삼성전자 1보", "source_url": "https://wire.example/a", "body_hash": "ha1", "body_available": true, "collected_at": "2026-06-23T13:00:00Z", "collection_cycle": "2026-06-23T13"}
@@ -282,8 +308,11 @@ func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *
 {"record_id": "b14", "analysis_status": "analyzed", "sentiment": "neutral", "target_countries": ["KR"], "narrative_subjects": ["환율"], "confidence": 0.9, "analyzed_at": "2026-06-23T14:10:00Z", "analyzer_version": "v1"}`
 	gold := `{"subject": "삼성전자", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}
 {"subject": "환율", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}`
+	picks := `{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "a14", "source_id": "kr_wire", "collected_at": "2026-06-23T14:00:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "b14", "source_id": "kr_wire", "collected_at": "2026-06-23T14:00:00Z", "counted_subjects": ["환율"]}`
 	for path, content := range map[string]string{
 		"gold/subject_trend.jsonl":             gold,
+		"gold/article_pick.jsonl":              picks,
 		"bronze/news_item/hour=all/data.jsonl": bronze,
 		"silver/analysis/hour=all/data.jsonl":  silver,
 	} {
@@ -311,7 +340,7 @@ func TestContributionsListsAReobservedArticleOnceThroughItsLatestObservation(t *
 	}
 }
 
-// The Gold is build_subject_trends' output for this lake, day unit, pasted in. c1
+// The Gold is build_subject_trends' and article_picks' output for this lake, day unit, pasted in. c1
 // and c2 carry categories, c3 was written before categories existed.
 func TestContributionsFindsArticlesByTheKeysGoldCountedThemUnder(t *testing.T) {
 	dir := t.TempDir()
@@ -324,8 +353,12 @@ func TestContributionsFindsArticlesByTheKeysGoldCountedThemUnder(t *testing.T) {
 	gold := `{"subject": "반도체", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 2, "normalized_share": 0.5, "delta": 0.0, "spark": [0.5]}
 {"subject": "기업 경영·실적", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.25, "delta": 0.0, "spark": [0.25]}
 {"subject": "삼성전자", "axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "raw_count": 1, "normalized_share": 0.25, "delta": 0.0, "spark": [0.25]}`
+	picks := `{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "c1", "source_id": "kr_wire", "collected_at": "2026-06-23T14:00:00Z", "counted_subjects": ["반도체", "기업 경영·실적"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "c2", "source_id": "kr_wire", "collected_at": "2026-06-23T14:00:00Z", "counted_subjects": ["반도체"]}
+{"axis": "KR", "bucket_unit": "day", "time_bucket": "2026-06-23", "record_id": "c3", "source_id": "kr_wire", "collected_at": "2026-06-23T14:00:00Z", "counted_subjects": ["삼성전자"]}`
 	for path, content := range map[string]string{
 		"gold/subject_trend.jsonl":             gold,
+		"gold/article_pick.jsonl":              picks,
 		"bronze/news_item/hour=all/data.jsonl": bronze,
 		"silver/analysis/hour=all/data.jsonl":  silver,
 	} {
@@ -357,28 +390,45 @@ func TestContributionsFindsArticlesByTheKeysGoldCountedThemUnder(t *testing.T) {
 	}
 }
 
-func TestBucketBoundsHoldEveryTimestampTheLabelTakes(t *testing.T) {
-	for _, c := range []struct {
-		unit         gen.BucketUnit
-		bucket       string
-		lo, hi       string
-		ok           bool
-		insideSample string
-	}{
-		{gen.BucketUnitHour, "2026-10-11T23", "2026-10-11T23", "2026-10-11T24", true, "2026-10-11T23:59:59+09:00"},
-		{gen.BucketUnitDay, "2026-12-31", "2026-12-31", "2026-12-32", true, "2026-12-31T23:00:00Z"},
-		{gen.BucketUnitWeek, "2026-W53", "2026-12-28", "2027-01-04", true, "2027-01-03T10:00:00Z"},
-		{gen.BucketUnitWeek, "2027-W01", "2027-01-04", "2027-01-11", true, "2027-01-10T10:00:00Z"},
-		{gen.BucketUnitWeek, "9999-W52", "", "", false, "9999-12-31T23:59:59Z"},
-		{gen.BucketUnitDay, "", "", "", false, "x"},
-		{gen.BucketUnitWeek, "garbage", "", "", false, "x"},
-	} {
-		lo, hi, ok := bucketBounds(c.unit, c.bucket)
-		if lo != c.lo || hi != c.hi || ok != c.ok {
-			t.Errorf("bucketBounds(%s, %q) = %q %q %v, want %q %q %v", c.unit, c.bucket, lo, hi, ok, c.lo, c.hi, c.ok)
-		}
-		if ok && bucketLabel(c.insideSample, c.unit) == c.bucket && (c.insideSample < lo || c.insideSample >= hi) {
-			t.Errorf("%s %q: %q is in the bucket but outside [%q, %q)", c.unit, c.bucket, c.insideSample, lo, hi)
-		}
+// The list is read from the picks, not re-derived from Bronze/Silver: here the picks disagree
+// with what the lake would give, and the list follows the picks. r9 has no Bronze row left.
+func TestContributionsListsTheArticlesGoldPicked(t *testing.T) {
+	dir := t.TempDir()
+	writeContributionLake(t, dir)
+	picks := `{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r3", "source_id": "kr_wire", "collected_at": "2026-06-23T14:20:00Z", "counted_subjects": ["삼성전자"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r9", "source_id": "kr_daily", "collected_at": "2026-06-23T14:59:00Z", "counted_subjects": ["환율", "삼성전자"]}
+{"axis": "KR", "bucket_unit": "hour", "time_bucket": "2026-06-23T14", "record_id": "r5", "source_id": "kr_daily", "collected_at": "2026-06-23T14:50:00Z", "counted_subjects": ["환율"]}`
+	if err := os.WriteFile(filepath.Join(dir, "gold", "article_pick.jsonl"), []byte(picks+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := getContributions(t, dir, "?axis=KR&subject="+url.QueryEscape(contribSubject))
+
+	if len(got.Rows) != 2 || got.Rows[0].RecordID != "r9" || got.Rows[1].RecordID != "r3" {
+		t.Fatalf("want r9 then r3 (newest first), got %+v", got.Rows)
+	}
+	if r9 := got.Rows[0]; r9.SourceID != "kr_daily" || r9.Title != "" || r9.BodyShares != 0 {
+		t.Fatalf("a pick with no Bronze row must still list, bare: %+v", r9)
+	}
+	if r3 := got.Rows[1]; r3.Title == "" || !r3.BodyDuplicate {
+		t.Fatalf("a pick must carry its Bronze title and body reuse: %+v", r3)
+	}
+}
+
+func TestContributionsWaitForAnIndexBuiltWithThePicks(t *testing.T) {
+	dir := t.TempDir()
+	writeContributionLake(t, dir)
+	if err := os.Remove(filepath.Join(dir, "gold", "article_pick.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	indexLake(t, dir)
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/contributions?axis=KR", nil))
+
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "index_not_ready") {
+		t.Fatalf("a lake never aggregated with picks must read as not ready, got %d %s", rec.Code, rec.Body.String())
 	}
 }

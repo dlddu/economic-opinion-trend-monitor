@@ -2,6 +2,17 @@
 
 package gen
 
+// ArticlePick Gold record — one article as SubjectTrend counted it: per (axis, time bucket) the latest observation of each article, with the subjects it was counted under. The rows of one (subject, axis, time bucket) are exactly the articles behind that SubjectTrend.raw_count (AC3.9), so the contribution list is read, not recomputed.
+type ArticlePick struct {
+	Axis            Axis       `json:"axis"`
+	BucketUnit      BucketUnit `json:"bucket_unit"`
+	TimeBucket      string     `json:"time_bucket"`
+	RecordID        string     `json:"record_id"`
+	SourceID        string     `json:"source_id"`
+	CollectedAt     string     `json:"collected_at"`
+	CountedSubjects []string   `json:"counted_subjects"`
+}
+
 // AxisSentiment Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6).
 type AxisSentiment struct {
 	Axis          Axis                  `json:"axis"`
