@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"hash/fnv"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -29,6 +30,9 @@ type LlmCallTally struct {
 	mu       sync.Mutex
 	parts    map[string]*callPartition
 	complete bool
+	// yield, when set, is read-held around each listing and file read: a holder of the write
+	// side pauses the count, so a scan and a count never add up in the pod's memory.
+	yield *sync.RWMutex
 }
 
 type callPartition struct {
@@ -47,9 +51,26 @@ const tallyReaders = 16
 
 const tallyApplyEvery = 1024
 
+// tallyListBatch is how many directory entries a refresh lists at once. Listing the whole
+// directory first held 238 k names through the count.
+const tallyListBatch = 4096
+
 // NewLlmCallTally returns an empty tally; the first Refresh reads every llm_call record.
 func NewLlmCallTally() *LlmCallTally {
 	return &LlmCallTally{parts: map[string]*callPartition{}}
+}
+
+// YieldTo makes refreshes pause while g is write-locked. Set it before the first Refresh.
+func (t *LlmCallTally) YieldTo(g *sync.RWMutex) {
+	t.yield = g
+}
+
+func (t *LlmCallTally) paused() func() {
+	if t.yield == nil {
+		return func() {}
+	}
+	t.yield.RLock()
+	return t.yield.RUnlock
 }
 
 // Refresh counts the llm_call records written since the last refresh.
@@ -92,10 +113,6 @@ func (t *LlmCallTally) Refresh(ctx context.Context, l *Lake) error {
 
 func (t *LlmCallTally) refreshPartition(ctx context.Context, root, name string) error {
 	dir := filepath.Join(root, name)
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return err
-	}
 	t.mu.Lock()
 	p := t.parts[name]
 	if p == nil {
@@ -104,37 +121,62 @@ func (t *LlmCallTally) refreshPartition(ctx context.Context, root, name string) 
 	}
 	t.mu.Unlock()
 
-	var fresh []string
-	kept := 0
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		if _, ok := slices.BinarySearch(p.seen, hashName(entry.Name())); ok {
-			kept++
-		} else {
-			fresh = append(fresh, entry.Name())
-		}
-	}
-	if kept < len(p.seen) {
-		// A counted file is gone, so its counts are in byRun with no way to take them out.
-		// Recount aside and swap, so readers keep the old counts until the new ones are whole.
-		next := newCallPartition()
-		var all []string
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
-				all = append(all, entry.Name())
+	counted, kept := len(p.seen), 0
+	err := t.eachListed(dir, func(names []string) error {
+		var fresh []string
+		for _, n := range names {
+			// A name is listed once per pass, so a hit is a file counted before this pass.
+			if _, ok := slices.BinarySearch(p.seen, hashName(n)); ok {
+				kept++
+			} else {
+				fresh = append(fresh, n)
 			}
 		}
-		if err := t.count(ctx, next, dir, all); err != nil {
+		return t.count(ctx, p, dir, fresh)
+	})
+	if err != nil || kept == counted {
+		return err
+	}
+	// A counted file is gone, so its counts are in byRun with no way to take them out.
+	// Recount aside and swap, so readers keep the old counts until the new ones are whole.
+	next := newCallPartition()
+	if err := t.eachListed(dir, func(names []string) error { return t.count(ctx, next, dir, names) }); err != nil {
+		return err
+	}
+	t.mu.Lock()
+	t.parts[name] = next
+	t.mu.Unlock()
+	return nil
+}
+
+func (t *LlmCallTally) eachListed(dir string, fn func(names []string) error) error {
+	f, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for {
+		resume := t.paused()
+		entries, err := f.ReadDir(tallyListBatch)
+		resume()
+		names := make([]string, 0, len(entries))
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+				names = append(names, entry.Name())
+			}
+		}
+		if len(names) > 0 {
+			if err := fn(names); err != nil {
+				return err
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
 			return err
 		}
-		t.mu.Lock()
-		t.parts[name] = next
-		t.mu.Unlock()
-		return nil
 	}
-	return t.count(ctx, p, dir, fresh)
 }
 
 type countedCall struct {
@@ -146,7 +188,7 @@ type countedCall struct {
 // count reads files into p, applying every tallyApplyEvery reads, so a cancelled count keeps
 // what it read and the next refresh resumes after it.
 func (t *LlmCallTally) count(ctx context.Context, p *callPartition, dir string, files []string) error {
-	if err := ctx.Err(); err != nil {
+	if err := ctx.Err(); err != nil || len(files) == 0 {
 		return err
 	}
 	reading, stop := context.WithCancel(ctx)
@@ -175,7 +217,9 @@ func (t *LlmCallTally) count(ctx context.Context, p *callPartition, dir string, 
 				if reading.Err() != nil {
 					return
 				}
+				resume := t.paused()
 				head, err := readCallHead(&buf, filepath.Join(dir, file))
+				resume()
 				if errors.Is(err, fs.ErrNotExist) {
 					continue
 				}

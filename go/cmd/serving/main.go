@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,6 +27,7 @@ func main() {
 	dataRoot := flag.String("data", envOr("ECON_DATA_ROOT", "../data"), "data lake root")
 	webDir := flag.String("web", envOr("ECON_WEB_DIR", "../web/dist"), "web build directory to serve")
 	flag.Parse()
+	applyMemoryLimit()
 
 	lake := store.New(*dataRoot)
 	api := handlers.New(lake)
@@ -62,6 +66,32 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("graceful shutdown failed: %v", err)
 	}
+}
+
+// applyMemoryLimit gives the Go runtime the pod's memory limit, which it cannot see: by default
+// it lets the heap grow to twice what is live, so a scan holding half the limit ends in an OOM
+// kill. The soft limit is 80% of the cgroup's, leaving the rest for memory the heap does not count.
+func applyMemoryLimit() {
+	if os.Getenv("GOMEMLIMIT") != "" {
+		return
+	}
+	raw, err := os.ReadFile("/sys/fs/cgroup/memory.max")
+	if err != nil {
+		return
+	}
+	if limit, ok := softMemoryLimit(string(raw)); ok {
+		debug.SetMemoryLimit(limit)
+		log.Printf("memory: cgroup limit %s → Go soft limit %d MiB", strings.TrimSpace(string(raw)), limit>>20)
+	}
+}
+
+// softMemoryLimit reads a cgroup v2 memory.max value; "max" means no limit.
+func softMemoryLimit(memoryMax string) (int64, bool) {
+	limit, err := strconv.ParseInt(strings.TrimSpace(memoryMax), 10, 64)
+	if err != nil || limit <= 0 {
+		return 0, false
+	}
+	return limit / 10 * 8, true
 }
 
 func envOr(key, fallback string) string {

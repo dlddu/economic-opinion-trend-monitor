@@ -251,3 +251,26 @@ func TestDebugRecordsAnswersAnEmptyLake(t *testing.T) {
 		t.Errorf("rows must serialize as [], not null: %v", got.Rows)
 	}
 }
+
+func TestDebugRecordsShowsAndSearchesTheNewestCollectedTitle(t *testing.T) {
+	dir := t.TempDir()
+	writeRecordsLake(t, dir,
+		[]string{recordsAnalysis("rec-1", "v2", "analyzed", "run-a", "2026-09-28T00:01:30Z", `"call_id":null`)},
+		[]string{
+			recordsNewsItem("rec-1", "고친 제목", "src-b", "2026-09-28T00:00:40Z"),
+			recordsNewsItem("rec-1", "처음 제목", "src-a", "2026-09-28T00:00:10Z"),
+			recordsNewsItem("rec-1", "같은 시각 뒤 제목", "src-c", "2026-09-28T00:00:40Z"),
+		}, nil)
+
+	got := getDebugRecords(t, dir, "")
+	if len(got.Rows) != 1 || got.Rows[0].Title != "고친 제목" || got.Rows[0].SourceID != "src-b" ||
+		got.Rows[0].CollectedAt != "2026-09-28T00:00:40Z" {
+		t.Fatalf("row = %+v, want the newest collection (first of equal times)", got.Rows)
+	}
+	if hit := getDebugRecords(t, dir, "?q=%EA%B3%A0%EC%B9%9C"); hit.Matched != 1 { // 고친
+		t.Errorf("the shown title must be searchable: matched %d", hit.Matched)
+	}
+	if stale := getDebugRecords(t, dir, "?q=%EC%B2%98%EC%9D%8C"); stale.Matched != 0 { // 처음
+		t.Errorf("an older title must not match: matched %d", stale.Matched)
+	}
+}
