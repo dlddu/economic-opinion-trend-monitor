@@ -168,11 +168,12 @@ func newWindow(axis, source string, since time.Time) window {
 	return window{axis: axis, source: source, since: since}
 }
 
-// inAxis matches the axis's observations in the window. The day before since's date bounds the
-// index walk: a parseable timestamp at or after since cannot carry an earlier date, whatever its offset.
+// inAxis matches the axis's observations in the window. A date three days before since's bounds
+// the index walk: time.Parse takes offsets up to 24:60, so a timestamp at or after since carries a
+// date at most two days earlier.
 func (w window) inAxis() (string, []any) {
-	return `n.axis = ? AND n.collected_at >= ? AND rfc3339_nanos(n.collected_at) >= ?`,
-		[]any{w.axis, w.since.UTC().AddDate(0, 0, -1).Format("2006-01-02"), w.since.UnixNano()}
+	return `n.axis = ? AND n.collected_at >= ? AND rfc3339_at_or_after(n.collected_at, ?)`,
+		[]any{w.axis, w.since.UTC().AddDate(0, 0, -3).Format("2006-01-02"), w.since.Format(time.RFC3339Nano)}
 }
 
 // scoped also applies the source filter.
@@ -241,7 +242,7 @@ func scopeBuckets(ctx context.Context, db *sql.DB, w window, target string) ([]s
 	where, args := w.scoped()
 	done, doneArgs := "0", []any{}
 	if target != "" {
-		done = `n.record_id IN (SELECT a.record_id FROM analysis AS a WHERE a.analyzer_version = ?)`
+		done = `EXISTS (SELECT 1 FROM analysis AS a WHERE a.record_id = n.record_id AND a.analyzer_version = ?)`
 		doneArgs = append(doneArgs, target)
 	}
 	// Cycle keys share one unit ("2026-09-21T09:00"), so lexical order is time order.
@@ -263,7 +264,8 @@ func scopeBuckets(ctx context.Context, db *sql.DB, w window, target string) ([]s
 	return out, rs.Err()
 }
 
-// eachWindowAnalysis streams the window's analyses at the given versions in lake order.
+// eachWindowAnalysis streams the window's analyses at the given versions, each record's in lake
+// order. Records come in id order: walking the record index needs no sort of the whole window.
 func eachWindowAnalysis(ctx context.Context, db *sql.DB, w window, versions []string, fn func(gen.Analysis) error) error {
 	where, args := windowRecords(w)
 	marks := strings.TrimSuffix(strings.Repeat("?,", len(versions)), ",")
@@ -271,7 +273,7 @@ func eachWindowAnalysis(ctx context.Context, db *sql.DB, w window, versions []st
 		args = append(args, v)
 	}
 	return eachAnalysis(ctx, db, fn, strings.Replace(analysisColumns, "FROM analysis", "FROM analysis AS a", 1)+
-		` WHERE `+where+` AND a.analyzer_version IN (`+marks+`) ORDER BY a.seq`, args...)
+		` WHERE `+where+` AND a.analyzer_version IN (`+marks+`) ORDER BY a.record_id, a.seq`, args...)
 }
 
 // throughput reads the rate the target version was produced at, from the analyzed_at spread of

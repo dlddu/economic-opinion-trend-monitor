@@ -275,3 +275,34 @@ func TestMentionSharesCountsCategoriesWhenAVersionHasThem(t *testing.T) {
 		t.Errorf("v3 shares = %v, want its two categories at half each", after)
 	}
 }
+
+// time.Parse reads offsets up to 24:60 and years past 2262; the window keeps what it keeps.
+func TestReprocessWindowReadsTimestampsTheWayTimeParseDoes(t *testing.T) {
+	dir := t.TempDir()
+	at := func(id, collected string) string {
+		return `{"record_id":"` + id + `","source_id":"s","axis":"KR","rank":1,"view_count":1,"title":"t",` +
+			`"source_url":"https://ex.test/` + id + `","body_hash":"h","body_available":true,` +
+			`"collected_at":"` + collected + `","collection_cycle":"c"}`
+	}
+	writeLineage(t, dir, strings.Join([]string{
+		// 2026-09-14T00:31Z: inside a week back from 2026-09-21T00:30Z, though it reads two days earlier.
+		at("far-offset", "2026-09-12T23:31:00-24:60"),
+		at("far-future", "2300-01-01T00:00:00Z"),
+		at("unreadable", "yesterday"),
+		at("stale", "2026-09-14T00:29:59Z"),
+	}, "\n"), "", "")
+	indexLake(t, dir)
+	h := New(store.New(dir))
+	h.now = func() time.Time { return time.Date(2026, 9, 21, 0, 30, 0, 0, time.UTC) }
+	mux := http.NewServeMux()
+	h.Register(mux)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/reprocess?range=7d&axis=KR", nil))
+	var rp reprocessResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &rp); err != nil {
+		t.Fatalf("%d %s: %v", rec.Code, rec.Body.String(), err)
+	}
+	if rp.Scope.Total != 2 {
+		t.Fatalf("total = %d, want the far offset and the far future only", rp.Scope.Total)
+	}
+}

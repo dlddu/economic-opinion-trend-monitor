@@ -25,6 +25,9 @@ type Handlers struct {
 	// index is the batch-built serving index the Bronze/Silver screens read instead of scanning
 	// the lake: a scan per request is what ran the pod out of memory.
 	index *servingindex.Reader
+	// heavy admits one contribution list at a time: a week's list decodes ~10 k analyses in Go
+	// (~70 MiB measured on the prod lake), two of which would not fit the pod together.
+	heavy chan struct{}
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.
@@ -33,6 +36,7 @@ func New(lake *store.Lake) *Handlers {
 		lake:  lake,
 		now:   time.Now,
 		index: servingindex.NewReader(lake.Root),
+		heavy: make(chan struct{}, 1),
 	}
 }
 
@@ -50,7 +54,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/compare", h.compare)
 	mux.HandleFunc("GET /api/sentiment", h.sentiment)
 	mux.HandleFunc("GET /api/fairness", h.fairness)
-	mux.HandleFunc("GET /api/contributions", h.fromIndex(h.contributions))
+	mux.HandleFunc("GET /api/contributions", h.fromIndex(h.oneAtATime(h.contributions)))
 	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
 	mux.HandleFunc("GET /api/trace", h.fromIndex(h.trace))
 	mux.HandleFunc("GET /api/reprocess", h.fromIndex(h.reprocess))

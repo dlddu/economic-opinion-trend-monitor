@@ -42,17 +42,21 @@ func init() {
 		s, _ := args[0].(string)
 		return strings.ToLower(s), nil
 	})
-	// rfc3339_nanos reads a timestamp the way time.Parse(time.RFC3339, …) does; NULL when it cannot.
-	mustRegister("rfc3339_nanos", 1, func(args []driver.Value) (driver.Value, error) {
-		s, ok := args[0].(string)
-		if !ok {
-			return nil, nil
-		}
+	// rfc3339_at_or_after(ts, since) reads ts the way time.Parse(time.RFC3339, …) does and says
+	// whether it is not before since (RFC 3339 with nanoseconds); false when ts cannot be read.
+	// The comparison stays in Go: a year past 2262 does not fit in Unix nanoseconds.
+	mustRegister("rfc3339_at_or_after", 2, func(args []driver.Value) (driver.Value, error) {
+		s, _ := args[0].(string)
+		bound, _ := args[1].(string)
 		at, err := time.Parse(time.RFC3339, s)
 		if err != nil {
-			return nil, nil
+			return false, nil
 		}
-		return at.UnixNano(), nil
+		since, err := time.Parse(time.RFC3339Nano, bound)
+		if err != nil {
+			return nil, err
+		}
+		return !at.Before(since), nil
 	})
 }
 
