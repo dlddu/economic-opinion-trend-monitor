@@ -282,8 +282,6 @@ func text(s *string) any {
 	return *s
 }
 
-// loadCalls fills llm_call_file: the previous index's rows for files still listed, then a read
-// of each file it did not have.
 func loadCalls(ctx context.Context, conn *sql.Conn, root string, opt Options, stats *Stats) error {
 	if _, err := conn.ExecContext(ctx, `CREATE TEMP TABLE listing (
 		path TEXT PRIMARY KEY, call_id TEXT NOT NULL, canonical INTEGER NOT NULL) WITHOUT ROWID`); err != nil {
@@ -391,8 +389,6 @@ func listCalls(ctx context.Context, conn *sql.Conn, dir string, listed *int) err
 	return nil
 }
 
-// reuse copies the previous index's rows for files still listed. An index that cannot be
-// opened or is of another version is skipped: every file is then read.
 func reuse(ctx context.Context, conn *sql.Conn, dir string, opt Options) (int, error) {
 	name, err := readPointer(dir)
 	if err != nil {
