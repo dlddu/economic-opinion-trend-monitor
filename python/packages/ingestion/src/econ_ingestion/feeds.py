@@ -6,7 +6,7 @@ import hashlib
 import json
 import urllib.request
 from collections.abc import Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Protocol
 from xml.etree import ElementTree as ET
@@ -14,6 +14,7 @@ from xml.etree import ElementTree as ET
 from econ_core.domain import body_hash
 from econ_core.models import AXIS_VALUES, Axis, NewsBody, NewsItem
 
+from econ_ingestion.article import MIN_ARTICLE_CHARS, extract_article_text
 from econ_ingestion.sources import IngestStats
 
 
@@ -29,13 +30,21 @@ class FetchError(RuntimeError):
 
 FEED_FORMATS = ("rss", "worldbank-json")
 
+# Where a source's article body comes from: the feed entry itself ("feed"), or the linked
+# article page when the entry's own body is missing or shorter than ARTICLE_MIN_FEED_CHARS.
+BODY_EXTRACTION_MODES = ("feed", "article")
+
+# A feed body shorter than this is a teaser, not an article, for "article" sources.
+ARTICLE_MIN_FEED_CHARS = 300
+
 
 @dataclass(frozen=True)
 class FeedConfig:
     """One configured feed source.
 
     ``worldbank-json`` exists because the World Bank publishes no usable RSS/Atom;
-    its search API is parsed instead.
+    its search API is parsed instead. ``body_extraction`` records per source whether the
+    feed carries the article text or the article page has to be fetched for it.
     """
 
     source_id: str
@@ -43,12 +52,18 @@ class FeedConfig:
     feed_url: str
     limit: int = 100
     format: str = "rss"
+    body_extraction: str = "feed"
 
     def __post_init__(self) -> None:
         if self.axis not in AXIS_VALUES:
             raise ValueError(f"unknown axis {self.axis!r} (expected one of {AXIS_VALUES})")
         if self.format not in FEED_FORMATS:
             raise ValueError(f"unknown format {self.format!r} (expected one of {FEED_FORMATS})")
+        if self.body_extraction not in BODY_EXTRACTION_MODES:
+            raise ValueError(
+                f"unknown body_extraction {self.body_extraction!r} "
+                f"(expected one of {BODY_EXTRACTION_MODES})"
+            )
         if self.limit < 1:
             raise ValueError(f"limit must be >= 1, got {self.limit}")
 
@@ -85,6 +100,7 @@ def load_feed_configs(path: str | Path) -> list[FeedConfig]:
             feed_url=entry["feed_url"],
             limit=int(entry.get("limit", 100)),
             format=entry.get("format", "rss"),
+            body_extraction=entry.get("body_extraction", "feed"),
         )
         for entry in data
     ]
@@ -217,6 +233,29 @@ def _fetch_with_retry(config: FeedConfig, fetcher: Fetcher, retries: int) -> byt
     raise FetchError(f"source {config.source_id!r} failed after retries: {last}") from last
 
 
+def _with_article_body(
+    article: ParsedArticle, fetcher: Fetcher, stats: IngestStats
+) -> ParsedArticle:
+    """Replace a missing/teaser feed body with the linked page's article text.
+
+    One attempt, no retry: a page that fails keeps the feed body (possibly none), so an
+    unreachable site degrades to the pre-extraction record instead of failing the source.
+    """
+    if len(article.body) >= ARTICLE_MIN_FEED_CHARS:
+        return article
+    stats.article_fetches += 1
+    try:
+        text = extract_article_text(fetcher(article.url))
+    except Exception:  # transport-defined failure
+        stats.article_failures += 1
+        return article
+    if len(text) < MIN_ARTICLE_CHARS or len(text) <= len(article.body):
+        stats.article_failures += 1
+        return article
+    stats.article_extracted += 1
+    return replace(article, body=text, body_available=True)
+
+
 def collect_feed(
     config: FeedConfig,
     fetcher: Fetcher,
@@ -224,6 +263,7 @@ def collect_feed(
     collected_at: str,
     *,
     retries: int = 2,
+    stats: IngestStats | None = None,
 ) -> Iterator[tuple[NewsItem, str | None]]:
     """Fetch + parse one feed into ranked, top-N-capped ``(NewsItem, body)`` pairs."""
     raw = _fetch_with_retry(config, fetcher, retries)
@@ -231,6 +271,9 @@ def collect_feed(
     ranked = sorted(_PARSERS[config.format](raw), key=lambda a: a.view_count, reverse=True)[
         : config.limit
     ]
+    if config.body_extraction == "article":
+        stats = stats if stats is not None else IngestStats()
+        ranked = [_with_article_body(a, fetcher, stats) for a in ranked]
     for rank, article in enumerate(ranked, start=1):
         body = article.body if article.body_available else None
         item = NewsItem(
@@ -269,7 +312,9 @@ def run_feed_ingestion(
     stats = IngestStats()
     for config in configs:
         try:
-            produced = list(collect_feed(config, fetcher, cycle, collected_at, retries=retries))
+            produced = list(
+                collect_feed(config, fetcher, cycle, collected_at, retries=retries, stats=stats)
+            )
         except FetchError as exc:
             stats.failed_sources.append(config.source_id)
             stats.failure_reasons[config.source_id] = str(exc)

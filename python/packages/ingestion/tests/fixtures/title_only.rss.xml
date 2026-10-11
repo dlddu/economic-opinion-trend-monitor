@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Title-only wire</title>
+    <link>https://news.example/titles</link>
+    <item>
+      <title>디지털 인재 양성 지원금 94% 수도권에</title>
+      <link>https://news.example/titles/kdt</link>
+      <author>reporter@news.example</author>
+      <pubDate>Sun, 11 Oct 2026 09:45:01 +0900</pubDate>
+    </item>
+    <item>
+      <title>Board releases survey results</title>
+      <link>https://news.example/titles/scf</link>
+      <description>Board releases survey results</description>
+    </item>
+    <item>
+      <title>A feed entry that already carries its article</title>
+      <link>https://news.example/titles/long</link>
+      <description>This entry's description is long enough to be the article itself, so the article page is never fetched for it. It keeps going with a second sentence to make the point, then a third one that adds detail about the subject, and a fourth that wraps up the paragraph. A fifth sentence pushes it comfortably over the threshold.</description>
+    </item>
+  </channel>
+</rss>

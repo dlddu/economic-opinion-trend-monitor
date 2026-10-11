@@ -28,6 +28,26 @@
 해시는 본문 원문 바이트 그대로에 대해 계산하며 정규화하지 않는다(정규화는 Silver의 몫 —
 Bronze는 관측한 그대로 보존한다).
 
+### 본문 확보 경로: 소스별 `body_extraction`
+
+피드 항목에 기사 전문이 들어 있는지는 소스마다 다르다. 그래서 피드 설정(`default_feeds.json`)의
+소스마다 `body_extraction` 을 명시한다.
+
+- **`feed`**: 피드 항목의 본문(`content:encoded` → `description` → `summary`)만 쓴다. 기사 페이지는 열지 않는다.
+- **`article`**: 피드 본문이 없거나 300자 미만(요약)일 때만 원문 링크 페이지를 한 번 열어 본문을 추출한다.
+  추출은 사이트별 셀렉터 없이, 링크가 아닌 텍스트가 가장 많은 블록을 고른다. 페이지가 열리지 않거나
+  쓸 만한 텍스트(200자 이상이면서 피드 본문보다 긴 것)가 없으면 피드 본문을 그대로 두고 소스를 실패로 만들지 않는다.
+
+| 소스 | 값 | 근거 (2026-10-11 점검) |
+|---|---|---|
+| hankyung-economy | article | 피드 항목에 본문 요소가 없음(제목·링크·작성자·날짜만) — 본문 0건 |
+| yonhap-economy | article | 피드 본문이 잘린 요약(중앙값 83자) |
+| fed-press | article | 피드 본문이 제목과 같은 한 문장 |
+| bbc-business | article | 피드 본문이 한 문장 요약, 기사 페이지는 무료 공개 |
+| nyt-business · wsj-markets · marketwatch-top · ft-global-economy | feed | 요약뿐이지만 기사 페이지가 구독제 |
+| imf-mediacenter · worldbank-press | feed | 피드에 전문이 들어 있음 |
+| guardian-economics | feed | 피드 본문이 300자 이상이라 `article` 이어도 페이지를 열 일이 없음 |
+
 ## Acceptance Criteria
 
 ### AC1.1: 정기 수집 스케줄링 (주기 설정 가능)
