@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// stageClock times the stages of one lake-scanning request. It reports them twice: as a
+// stageClock times the stages of one lake-scanning or index-backed request. It reports them twice: as a
 // Server-Timing header the browser shows beside the request, and as one log line written even
 // when the client gave up — the line names the stage the abort cut short, which is what a
 // request cut at the proxy's timeout otherwise leaves blank.
@@ -38,7 +38,11 @@ func withStageClock(ctx context.Context, c *stageClock) context.Context {
 }
 
 func clockOf(r *http.Request) *stageClock {
-	c, _ := r.Context().Value(stageClockKey{}).(*stageClock)
+	return clockIn(r.Context())
+}
+
+func clockIn(ctx context.Context) *stageClock {
+	c, _ := ctx.Value(stageClockKey{}).(*stageClock)
 	return c
 }
 

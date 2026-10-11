@@ -1,7 +1,9 @@
 package handlers
 
 import (
-	"net/http"
+	"context"
+	"database/sql"
+	"errors"
 	"sort"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
@@ -24,47 +26,48 @@ type debugBodyVersion struct {
 	Latest         bool   `json:"latest"`
 }
 
-// urlHint is the source URL Silver carries for the record: one Bronze pass collects the record and
-// the hint's observations together, and only a record whose own URL differs from the hint costs a
-// second pass.
-func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debugInput {
-	var item *gen.NewsItem
-	var observed []gen.NewsItem
-	_ = h.lake.EachNewsItem(r.Context(), func(it *gen.NewsItem) error {
-		if item == nil && it.RecordID == recordID {
-			found := *it
-			item = &found
-		}
-		if urlHint != "" && it.SourceURL == urlHint {
-			observed = append(observed, *it)
-		}
-		return nil
-	})
-	if item == nil {
-		return nil
+// debugInputOf is what the analysis read: the record's first Bronze observation, and every body
+// version its article showed across all observations of the same URL, oldest first.
+func (h *Handlers) debugInputOf(ctx context.Context, db *sql.DB, recordID string) (*debugInput, error) {
+	var item gen.NewsItem
+	err := db.QueryRowContext(ctx, `SELECT title, source_url, body_available, body_hash FROM news_item
+		WHERE record_id = ? ORDER BY seq LIMIT 1`, recordID).
+		Scan(&item.Title, &item.SourceURL, &item.BodyAvailable, &item.BodyHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	if urlHint == "" || item.SourceURL != urlHint {
-		clockOf(r).enter("bronze_again")
-		observed = observed[:0]
-		_ = h.lake.EachNewsItem(r.Context(), func(other *gen.NewsItem) error {
-			if other.SourceURL == item.SourceURL {
-				observed = append(observed, *other)
-			}
-			return nil
-		})
+	rs, err := db.QueryContext(ctx, `SELECT body_hash FROM news_item WHERE source_url = ?
+		ORDER BY collected_at, seq`, item.SourceURL)
+	if err != nil {
+		return nil, err
 	}
-	sort.SliceStable(observed, func(i, j int) bool { return observed[i].CollectedAt < observed[j].CollectedAt })
+	var hashes []string
+	for rs.Next() {
+		var hash string
+		if err := rs.Scan(&hash); err != nil {
+			rs.Close()
+			return nil, err
+		}
+		hashes = append(hashes, hash)
+	}
+	rs.Close()
+	if err := rs.Err(); err != nil {
+		return nil, err
+	}
 
-	clockOf(r).enter("bodies")
+	clockIn(ctx).enter("bodies")
 	seen := make(map[string]bool)
 	versions := make([]debugBodyVersion, 0, 1)
-	for _, obs := range observed {
-		if obs.BodyHash == "" || seen[obs.BodyHash] {
+	for _, hash := range hashes {
+		if hash == "" || seen[hash] {
 			continue
 		}
-		seen[obs.BodyHash] = true
-		body, _ := h.lake.NewsBody(obs.BodyHash)
+		seen[hash] = true
+		body, _ := h.lake.NewsBody(hash)
 		if body == nil {
 			continue
 		}
@@ -87,5 +90,5 @@ func (h *Handlers) debugInputOf(r *http.Request, recordID, urlHint string) *debu
 		BodyAvailable: item.BodyAvailable,
 		BodyHash:      item.BodyHash,
 		Versions:      versions,
-	}
+	}, nil
 }

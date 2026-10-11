@@ -27,6 +27,7 @@
 | MA2 | `go/gen/**` | `contracts/` 에서 생성된 Go 레코드 타입 — 서빙이 Gold 를 디코딩하는 형이다. 손으로 고치면 계약과 갈라진다 |
 | MA3 | `python/packages/core/src/econ_core/models/**` | `contracts/` 에서 생성된 Python 레코드 타입 — 배치 3단이 레이크에 쓰는 형이다 |
 | MA4 | 배치 생산자 `python/packages/{ingestion,analysis,aggregation}/src/**/*.py` 에서 **추가·삭제된 줄**(주석 줄 제외)이 계약 필드에 값을 채운다 — `field=value`(키워드 인자) 또는 `"field": value`. 필드 이름은 판정 때 `contracts/` 의 Avro `fields` · JSON Schema `properties` 에서 읽는다. 테스트(`**/tests/**` · `**/test_*.py` · `**/*_test.go`)는 보지 않는다 | 스키마가 그대로여도 저장되는 값의 형식이 바뀔 수 있다(예: `bucket_unit=unit` 의 단위 표기). 계약에 일반명 필드(`status`·`count`)를 들이면 이 케이스가 무관한 생산자 수정까지 끌어온다 — 새 필드 이름은 한정형으로 짓는다 |
+| MA6 | Go 가 레이크 볼륨에 쓰는 코드 — `go/internal/servingindex/**` · `go/cmd/econ-index/**` | 배치의 `index` 단계가 공유 볼륨의 `serving/` 아래에 서빙 인덱스를 발행하고 유예가 지난 옛 인덱스를 지운다. 인덱스 자체는 레이크에서 다시 만들 수 있는 파생물이지만, 지우는 범위가 `serving/` 의 자기 이름 밖으로 새면 레이크를 잃고, 발행 순서(새 이름에 쓰고 포인터만 옮기기)가 깨지면 다른 노드의 서빙이 바뀌는 파일을 읽는다 |
 | MA5 | 판정기·워크플로·정책 자신 — `scripts/check-data-format-change.py` · `.github/workflows/review-gate.yml` · `docs/econ-opinion-monitor-review-policy.md` | 워크플로가 `pull_request_target` 이라 PR 은 **base 쪽 판정기**로 판정된다 — PR 이 규칙을 고쳐 자기를 통과시킬 수는 없지만, 그 변경 자체(케이스를 줄이거나 자기 경로를 빼는 편집)는 옛 판정기가 보지 못한 채 다음 PR 부터 효력을 가진다. 그래서 이 세 파일의 변경은 사람 눈에 올린다 |
 
 ## 위험 표면
@@ -53,6 +54,8 @@ contracts/*/*.avsc
 contracts/*/*.schema.json
 contracts/codegen.py
 go/gen/*.go
+go/internal/servingindex/*.go
+go/cmd/econ-index/*.go
 python/packages/core/src/econ_core/models/*.py
 python/packages/ingestion/src/**/*.py
 python/packages/analysis/src/**/*.py
@@ -70,7 +73,7 @@ docs/econ-opinion-monitor-review-policy.md
 |---|---|---|---|
 | `python/packages/core/src/econ_core/storage.py` 직렬화(JSONL) · 파티션 경로 · replace/merge 의미(`write_records`·`merge_records`·`read_records`·`open_store`) | 형식이 바뀌면 이미 쌓인 레이크를 읽지 못하지만, 파일 단위로 케이스를 걸면 형식과 무관한 수정마다 울린다 | 파티션 파일이 JSONL 이 아니게 되거나 직렬화 라이브러리가 들어온다 — `git grep -c 'PARTITION_FILE = "data.jsonl"' -- python/packages/core/src/econ_core/storage.py` 가 0, 또는 `git grep -nE '^(import\|from) (pyarrow\|fastavro\|avro\|pandas\|polars\|duckdb\|sqlite3)([[:space:].]\|$)' -- python/packages go` 1건 이상 | 코드 리뷰 |
 | `python/packages/core/src/econ_core/domain.py` 레이어·데이터셋(`DS_*`) 이름 · `body_hash` 콘텐츠 주소 | 이름을 바꾸면 기존 파티션이 고아가 되지만 데이터셋 추가·상수 정리와 구별되지 않는다. 레이어는 `contracts/codegen.py` 도 `bronze\|silver\|gold` 로 하드코딩한다 | 레이어가 셋에서 바뀐다 — `git grep -cE '^[A-Z]+ = "[a-z]+"$' -- python/packages/core/src/econ_core/domain.py` 가 3 이 아니다 | 코드 리뷰 |
-| `go/internal/store/` · `go/internal/handlers/` 의 `go/gen` 소비(Gold 리더 · 경로 · 디코딩) | 서빙은 레이크를 **읽기만** 한다 — 리더가 틀리면 화면이 깨질 뿐 저장된 데이터는 그대로다 | Go 쪽이 레이크에 쓰기 시작한다 — `git grep -nE 'os\.(Create\|WriteFile\|OpenFile)\(' -- 'go/**/*.go' ':!*_test.go'` 1건 이상 | 코드 리뷰 |
+| `go/internal/store/` · `go/internal/handlers/` 의 `go/gen` 소비(Gold 리더 · 경로 · 디코딩) | 서빙은 레이크를 **읽기만** 한다 — 리더가 틀리면 화면이 깨질 뿐 저장된 데이터는 그대로다. 레이크에 쓰는 Go 코드는 MA6 의 서빙 인덱스 빌더뿐이다(2026-10-11 연장: 옛 재개 조건이 그 빌더로 참이 되어 케이스로 옮기고 조건에서 뺐다) | 서빙 인덱스 빌더 밖의 Go 가 레이크에 쓰기 시작한다 — `git grep -nE 'os\.(Create\|WriteFile\|OpenFile\|Remove\|RemoveAll\|Rename)\(' -- 'go/**/*.go' ':!*_test.go' ':!go/internal/servingindex/**' ':!go/cmd/econ-index/**'` 1건 이상 | 코드 리뷰 |
 | `data/` 로컬 레이크 디렉터리 구조 | 로컬 개발용 빈 골격(`.gitkeep` 셋)이고 운영 레이크는 볼륨에 있다 | 골격 밖 파일이 커밋된다 — `git ls-files data \| wc -l` 가 3 이 아니다 | 코드 리뷰 |
 | `deploy/` 의 레이크 볼륨 · 마운트(`batch-pvc.yaml` · `claimName` · `ECON_DATA_ROOT`) | 볼륨을 바꾸면 배치가 빈 레이크를 보지만, 매니페스트 수정 대부분은 무관하고 프리뷰·e2e 가 같은 모양을 먼저 돈다 | 운영 볼륨이 둘 이상이 되거나 claim 이름이 바뀐다 — `git grep -l 'kind: PersistentVolumeClaim' -- deploy` 가 2파일 이상, 또는 `git grep -c 'claimName: econ-batch-data' -- deploy/overlays/prod/kustomization.yaml` 가 2 가 아니다 | 코드 리뷰 |
 

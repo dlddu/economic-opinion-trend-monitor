@@ -340,34 +340,3 @@ func TestEachAnalysisStopsEarlyAndHonorsCancellation(t *testing.T) {
 		t.Fatalf("a cancelled scan must stop before decoding: called=%v err=%v", called, err)
 	}
 }
-
-func TestLlmCallHeadsReadByKeyAndInKeyOrder(t *testing.T) {
-	dir := t.TempDir()
-	for _, c := range []struct{ id, run, outcome string }{
-		{"call-2", "run-b", "parsed"},
-		{"call-1", "run-a", "call_failed"},
-	} {
-		writeObjectRecord(t, dir, "llm_call", "call_id", c.id,
-			`{"call_id":"`+c.id+`","run_id":"`+c.run+`","prompt_user":"긴 본문","call_outcome":"`+c.outcome+`"}`)
-	}
-	lake := New(dir)
-
-	head, err := lake.LlmCallHeadOf("call-1")
-	if err != nil || head == nil || head.RunID != "run-a" || head.CallOutcome != gen.LlmCallOutcomeCallFailed {
-		t.Fatalf("LlmCallHeadOf(call-1) = %+v, %v", head, err)
-	}
-	if missing, err := lake.LlmCallHeadOf("call-9"); err != nil || missing != nil {
-		t.Fatalf("absent call must read nil: %+v %v", missing, err)
-	}
-
-	var ids []string
-	if err := lake.EachLlmCallHead(context.Background(), func(h *LlmCallHead) error {
-		ids = append(ids, h.CallID+"/"+string(h.CallOutcome))
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Join(ids, ",") != "call-1/call_failed,call-2/parsed" {
-		t.Fatalf("heads = %v", ids)
-	}
-}

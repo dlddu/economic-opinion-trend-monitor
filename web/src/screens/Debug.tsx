@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type {
   DebugCall,
   DebugRecordsResponse,
@@ -113,6 +113,24 @@ function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[
   });
 }
 
+// The debug API reads an index the batch builds after each run; before the first build it says so.
+const INDEX_NOT_READY = "index_not_ready";
+
+function errorText(e: unknown): string {
+  return e instanceof ApiError && e.code === INDEX_NOT_READY ? INDEX_NOT_READY : String(e);
+}
+
+function IndexNotReady() {
+  return (
+    <div className="note">
+      <div>
+        <b>인덱스 준비 중:</b> 판단 기록 인덱스가 아직 만들어지지 않았습니다 — 배치 파이프라인이 다음
+        실행을 마치면 열립니다.
+      </div>
+    </div>
+  );
+}
+
 export function Debug() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("record_id")?.trim() ?? "";
@@ -147,7 +165,7 @@ export function Debug() {
     api
       .debugRecords(listQuery, runFilter, symptom, controller.signal)
       .then((d) => active && setList(d))
-      .catch((e: unknown) => active && setListError(String(e)));
+      .catch((e: unknown) => active && setListError(errorText(e)));
     return () => {
       active = false;
       controller.abort();
@@ -177,7 +195,7 @@ export function Debug() {
     api
       .debug(query || undefined, controller.signal)
       .then((d) => active && setData(d))
-      .catch((e: unknown) => active && setError(String(e)));
+      .catch((e: unknown) => active && setError(errorText(e)));
     return () => {
       active = false;
       controller.abort();
@@ -203,7 +221,6 @@ export function Debug() {
   const shownRows = diffOnly ? rows.filter((r) => !r.agrees) : rows;
   const listRows = list?.rows ?? [];
   const run = data?.run ?? null;
-  const callsTallied = run?.symptoms.calls_tallied !== false;
   const input = data?.input ?? null;
   const bodies = input?.versions ?? [];
   const latestBody = bodies.find((b) => b.latest) ?? null;
@@ -228,7 +245,8 @@ export function Debug() {
         무엇을 받고 무엇을 답했는지, 그리고 그 판단이 속한 실행 전체가 어땠는지.
       </p>
 
-      {error && (
+      {error === INDEX_NOT_READY && <IndexNotReady />}
+      {error && error !== INDEX_NOT_READY && (
         <div className="note">
           <div>
             <b>API 오류:</b> {error} — Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.
@@ -318,7 +336,8 @@ export function Debug() {
                 </div>
               </div>
             )}
-            {listError && (
+            {listError === INDEX_NOT_READY && <IndexNotReady />}
+            {listError && listError !== INDEX_NOT_READY && (
               <div className="note">
                 <div>
                   <b>API 오류:</b> {listError}
@@ -966,7 +985,7 @@ export function Debug() {
                       <small>건</small>
                     </div>
                     <div className="md">
-                      {callsTallied ? `모델 호출 ${run.symptoms.calls}건` : "모델 호출 집계 중"}
+                      모델 호출 {run.symptoms.calls}건
                     </div>
                   </div>
                   <div className="dbg-seclabel">분석 상태</div>
@@ -994,13 +1013,7 @@ export function Debug() {
                       </span>
                     </div>
                   ))}
-                  {!callsTallied && (
-                    <>
-                      <div className="dbg-seclabel">호출 결과</div>
-                      <div className="meta">호출 기록을 세는 중입니다 — 잠시 뒤 다시 열면 보입니다</div>
-                    </>
-                  )}
-                  {callsTallied && run.symptoms.call_outcome.length > 0 && (
+                  {run.symptoms.call_outcome.length > 0 && (
                     <>
                       <div className="dbg-seclabel">호출 결과</div>
                       {run.symptoms.call_outcome.map((t) => (
@@ -1118,7 +1131,7 @@ export function Debug() {
                       <td>실행</td>
                       <td>
                         {run
-                          ? `${run.run_id} · ${run.symptoms.records}건 중 ${callsTallied ? `호출 ${run.symptoms.calls}건` : "호출 집계 중"} · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
+                          ? `${run.run_id} · ${run.symptoms.records}건 중 호출 ${run.symptoms.calls}건 · 상태 ${run.symptoms.analysis_status.map((t) => `${t.name} ${t.count}`).join(" · ")}`
                           : "실행 기록 없음"}
                       </td>
                     </tr>

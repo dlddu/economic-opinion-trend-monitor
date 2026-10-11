@@ -1,0 +1,50 @@
+# The serving image carries econ-index (Dockerfile), the step the batch runs after every
+# stage that writes Silver or Gold (deploy/batch: the `index` template). It builds the
+# serving index over the root serving reads, so the debug screen's API answers from it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: econ-e2e-index
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      containers:
+        - name: index
+          image: econ-monitor:e2e
+          imagePullPolicy: Never
+          command: ["/app/econ-index"]
+          args: []
+          env:
+            - name: ECON_DATA_ROOT
+              value: /data/aggregation
+            - name: TMPDIR
+              value: /tmp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: econ-e2e-batch-data
+        - name: tmp
+          emptyDir: {}
