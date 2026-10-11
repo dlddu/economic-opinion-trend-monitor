@@ -54,9 +54,6 @@ def _config(mode: str) -> FeedConfig:
     return FeedConfig("title-wire", "KR", FEED_URL, body_extraction=mode)
 
 
-# --- extractor ---------------------------------------------------------------
-
-
 def test_extracts_br_separated_body_and_drops_page_chrome() -> None:
     text = extract_article_text((FIXTURES / "article_br_body.html").read_bytes())
 
@@ -72,7 +69,6 @@ def test_extracts_br_separated_body_and_drops_page_chrome() -> None:
         "금융",
     ):
         assert chrome not in text, chrome
-    # <br> paragraphs stay separate lines; no blank lines or runs of spaces survive.
     assert "\n\n" not in text and "  " not in text
     assert len(text.splitlines()) >= 4
 
@@ -84,7 +80,7 @@ def test_extracts_paragraph_body_and_ignores_link_heavy_menu() -> None:
     assert "Real median family income rose 7 percent" in text  # list items kept
     assert "summary report (PDF)" in text  # inline link inside the body is still text
     assert "Monetary Policy" not in text and "Payment Systems" not in text
-    assert " " not in text  # &nbsp; normalized
+    assert " " not in text
 
 
 def test_page_without_body_text_yields_empty() -> None:
@@ -98,9 +94,6 @@ def test_decode_honours_declared_charset_and_falls_back_to_cp949() -> None:
     assert body in decode_html(declared.encode("cp949"))
     undeclared = f"<html><body>{body}</body></html>"
     assert body in decode_html(undeclared.encode("cp949"))
-
-
-# --- collection --------------------------------------------------------------
 
 
 def test_article_source_takes_the_page_body_when_the_feed_has_none() -> None:
@@ -123,7 +116,11 @@ def test_article_source_takes_the_page_body_when_the_feed_has_none() -> None:
     assert scf_body is not None and scf_body.startswith("The Board on Friday released")
     assert len(scf_body) >= MIN_ARTICLE_CHARS
 
-    assert (stats.article_fetches, stats.article_extracted, stats.article_failures) == (2, 2, 0)
+    assert (stats.article_fetches, stats.article_extracted, stats.article_kept_feed_body) == (
+        2,
+        2,
+        0,
+    )
 
 
 def test_feed_body_long_enough_is_kept_without_fetching_the_page() -> None:
@@ -154,7 +151,11 @@ def test_unreachable_article_page_keeps_the_feed_record_and_does_not_fail_the_so
     kdt = next(i for i in items if i["source_url"] == KDT_URL)
     assert kdt["body_available"] is False and kdt["body_hash"] == ""
     assert fetcher.calls.count(KDT_URL) == 1  # one attempt, no retry for pages
-    assert (stats.article_fetches, stats.article_extracted, stats.article_failures) == (2, 1, 1)
+    assert (stats.article_fetches, stats.article_extracted, stats.article_kept_feed_body) == (
+        2,
+        1,
+        1,
+    )
     assert {b["body_hash"] for b in bodies} >= {
         i["body_hash"] for i in items if i["body_available"]
     }
@@ -171,10 +172,7 @@ def test_page_without_usable_text_keeps_the_feed_body() -> None:
         )
     }
     assert pairs[SCF_URL] == "Board releases survey results"
-    assert stats.article_failures == 1
-
-
-# --- config ------------------------------------------------------------------
+    assert stats.article_kept_feed_body == 1
 
 
 def test_body_extraction_defaults_to_feed_and_is_validated(tmp_path: Path) -> None:

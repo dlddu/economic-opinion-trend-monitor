@@ -1,10 +1,7 @@
 """Article-page text extraction for feeds whose entries carry little or no body.
 
-Some feeds publish only a title (Hankyung) or a one-line teaser (Fed); the article text
-lives on the linked page. This module turns that page's HTML into plain text without a
-per-site selector: it picks the block container holding the most non-link text, which is
-where an article body sits on a news page (navigation, related-news lists and footers
-are either dropped by tag or lose on link density). Stdlib only, like the feed parsers.
+There is no per-site selector: the block container holding the most non-link text wins,
+so a site redesign degrades the score instead of silently matching nothing.
 """
 
 from __future__ import annotations
@@ -13,7 +10,6 @@ import re
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
-# Subtrees that never hold article text.
 _SKIP_TAGS = frozenset(
     {
         "script",
@@ -34,10 +30,8 @@ _SKIP_TAGS = frozenset(
     }
 )
 
-# Containers: text inside them (outside a nested container) is scored for them.
 _CONTAINER_TAGS = frozenset({"body", "main", "article", "section", "div", "td"})
 
-# Paragraph-level breaks inside a container.
 _BREAK_TAGS = frozenset(
     {"p", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "tr", "dd", "dt"}
 )

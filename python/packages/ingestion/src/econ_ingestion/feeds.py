@@ -30,11 +30,8 @@ class FetchError(RuntimeError):
 
 FEED_FORMATS = ("rss", "worldbank-json")
 
-# Where a source's article body comes from: the feed entry itself ("feed"), or the linked
-# article page when the entry's own body is missing or shorter than ARTICLE_MIN_FEED_CHARS.
 BODY_EXTRACTION_MODES = ("feed", "article")
 
-# A feed body shorter than this is a teaser, not an article, for "article" sources.
 ARTICLE_MIN_FEED_CHARS = 300
 
 
@@ -43,8 +40,7 @@ class FeedConfig:
     """One configured feed source.
 
     ``worldbank-json`` exists because the World Bank publishes no usable RSS/Atom;
-    its search API is parsed instead. ``body_extraction`` records per source whether the
-    feed carries the article text or the article page has to be fetched for it.
+    its search API is parsed instead.
     """
 
     source_id: str
@@ -236,9 +232,7 @@ def _fetch_with_retry(config: FeedConfig, fetcher: Fetcher, retries: int) -> byt
 def _with_article_body(
     article: ParsedArticle, fetcher: Fetcher, stats: IngestStats
 ) -> ParsedArticle:
-    """Replace a missing/teaser feed body with the linked page's article text.
-
-    One attempt, no retry: a page that fails keeps the feed body (possibly none), so an
+    """One attempt, no retry: a page that fails keeps the feed body (possibly none), so an
     unreachable site degrades to the pre-extraction record instead of failing the source.
     """
     if len(article.body) >= ARTICLE_MIN_FEED_CHARS:
@@ -247,10 +241,10 @@ def _with_article_body(
     try:
         text = extract_article_text(fetcher(article.url))
     except Exception:  # transport-defined failure
-        stats.article_failures += 1
+        stats.article_kept_feed_body += 1
         return article
     if len(text) < MIN_ARTICLE_CHARS or len(text) <= len(article.body):
-        stats.article_failures += 1
+        stats.article_kept_feed_body += 1
         return article
     stats.article_extracted += 1
     return replace(article, body=text, body_available=True)

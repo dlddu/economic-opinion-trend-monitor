@@ -135,7 +135,7 @@ def _collect(
     if stats.article_fetches:
         print(
             f"  article_pages: fetched={stats.article_fetches} "
-            f"extracted={stats.article_extracted} kept_feed_body={stats.article_failures}"
+            f"extracted={stats.article_extracted} kept_feed_body={stats.article_kept_feed_body}"
         )
 
     stage.input_count = len(items) + stats.duplicates
