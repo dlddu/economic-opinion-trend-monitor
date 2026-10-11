@@ -46,10 +46,28 @@ Bronze는 관측한 그대로 보존한다).
 | yonhap-economy | article | 피드 본문이 잘린 요약(중앙값 83자) |
 | fed-press | article | 피드 본문이 제목과 같은 한 문장 |
 | bbc-business | article | 피드 본문이 한 문장 요약, 기사 페이지는 무료 공개 |
-| nyt-business | feed | 요약뿐이고 기사 페이지가 403 으로 막힘. **NYT API 로 전환 예정** — Most Popular API 의 `mostviewed` 가 조회수 순위를 주지만(AC1.2), API 는 제목·요약만 주고 본문은 주지 않는다. 키당 하루 500회·분당 5회 한도 |
-| wsj-markets · marketwatch-top · ft-global-economy | feed | 요약뿐이고 기사 페이지가 401/403 으로 막힘(구독제) |
 | imf-mediacenter · worldbank-press | feed | 피드에 전문이 들어 있음(기사 페이지 본문과 같은 내용) |
 | guardian-economics | article_always | 피드 본문은 리드만(중앙값 1,235자), 기사 페이지는 전문(중앙값 3,983자). 리드가 300자를 넘어 `article` 로는 페이지를 열지 않는다 |
+
+### 소스 편입 기준: 기사 전문을 받을 수 있는 소스만
+
+기본 피드 목록(`default_feeds.json`)에는 **기사 전문을 받을 수 있는 소스만** 둔다 — 피드 항목에 전문이
+들어 있거나(`feed`), 원문 링크 페이지에서 전문이 추출되는(`article` · `article_always`) 소스다.
+제목·요약만 얻을 수 있는 소스는 넣지 않는다. AC1.4 가 저장하기로 한 것은 원문 전체이고, 요약만
+저장된 기사는 분석도 요약만 보고 한다.
+
+새 소스는 실제 피드와 실제 기사 페이지로 수집해 본문 길이를 잰 뒤 넣고, 그 결과를 위 표의 근거 칸에 적는다.
+`feed` 는 피드 본문이 기사 페이지 본문과 같은 내용일 때만 쓴다.
+
+이 기준으로 뺀 소스:
+
+| 소스 | 뺀 날 | 사유 (2026-10-11 점검) |
+|---|---|---|
+| nyt-business | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 403 으로 막힘. NYT Most Popular API 도 제목·요약만 주고 본문은 주지 않는다 |
+| wsj-markets · marketwatch-top · ft-global-economy | 2026-10-12 | 피드 본문이 요약뿐이고 기사 페이지가 401/403 으로 막힘(구독제) |
+
+뺀 소스가 이미 남긴 Bronze 관측·본문과 그 분석 결과는 지우지 않는다(V5 — Bronze 는 관측한 그대로 보존).
+뺀 주기부터 그 소스의 새 관측이 생기지 않을 뿐이다.
 
 ## Acceptance Criteria
 
