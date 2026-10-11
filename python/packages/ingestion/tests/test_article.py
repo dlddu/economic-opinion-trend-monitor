@@ -83,6 +83,16 @@ def test_extracts_paragraph_body_and_ignores_link_heavy_menu() -> None:
     assert " " not in text
 
 
+def test_body_split_into_same_class_blocks_is_joined_in_page_order() -> None:
+    text = extract_article_text((FIXTURES / "article_split_blocks.html").read_bytes())
+    lines = text.splitlines()
+
+    assert lines[0].startswith("The president announced a deal")
+    assert lines[2].startswith("An investment strategist said")
+    assert lines[-1] == "The average diesel price is still well above last year's level."
+    assert "A tanker at port" not in text and "Related:" not in text
+
+
 def test_page_without_body_text_yields_empty() -> None:
     assert extract_article_text(b"<html><body><nav><a href='/'>Home</a></nav></body></html>") == ""
     assert extract_article_text(b"") == ""

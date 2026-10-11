@@ -3,12 +3,12 @@
 창 = `2497886`→ 이 PR(`feat/ingestion-article-body-extraction`). 이 PR 이 소스별 `body_extraction` 과 기사 페이지 본문
 추출(`econ_ingestion/article.py`)을 들이며 늘린 주석만 판정한다. 기존 행의 옛 판정 줄과 근거는 움직이지 않았다.
 
-## 결과 — 작성분 중 제거 11 · 유지 17
+## 결과 — 작성분 중 제거 11 · 유지 20
 
 | 파일 · 표면 | 판정 전 → 후 | 처분 |
 |---|---|---|
-| `python/packages/ingestion/src/econ_ingestion/article.py` · L | 5 → 2 (신설) | 제거 3 · 유지 2 |
-| `python/packages/ingestion/src/econ_ingestion/article.py` · D | 8 → 5 (신설) | 제거 4(개작) · 유지 5 |
+| `python/packages/ingestion/src/econ_ingestion/article.py` · L | 6 → 3 (신설) | 제거 3 · 유지 3 |
+| `python/packages/ingestion/src/econ_ingestion/article.py` · D | 10 → 7 (신설) | 제거 4(개작) · 유지 7 |
 | `python/packages/ingestion/src/econ_ingestion/article.py` · E | 1 → 1 (신설) | 유지 1 |
 | `python/packages/ingestion/tests/test_article.py` · L | 5 → 1 (신설) | 제거 4 · 유지 1 |
 | `python/packages/ingestion/tests/test_article.py` · D | 1 → 1 (신설) | 유지 1 |
@@ -31,11 +31,13 @@
 ## 유지 목록 (필요 사유)
 
 - `article.py` L — `MIN_ARTICLE_CHARS` 머리 1줄: 값을 낮추면 사진 설명·한 줄 캡션이 본문으로 채택된다는 것이 이 값의 근거다.
+- `article.py` L — `_MAX_JOINED_LINK_SHARE` 머리 1줄: 본문과 같은 class 로 꾸민 관련기사 링크 목록이 본문에 섞이지 않게 하는 상한이라는 근거 — 지우면 이 값을 올려도 되는지 판단할 근거가 사라진다.
 - `article.py` L — `handle_endtag` 의 짝 맞춤 1줄: 실제 기사 HTML 에는 닫히지 않은 태그·짝 없는 닫는 태그가 흔하고, 이 되감기를
   단순 pop 으로 바꾸면 스택이 어긋나 본문 텍스트가 엉뚱한 컨테이너 점수로 간다.
 - `article.py` D — 모듈 요약 1줄과 공개 함수 요약 2줄: doc 주석 수준.
 - `article.py` D — 모듈 본문 2줄(사이트별 셀렉터를 두지 않는 이유): 셀렉터를 더하러 온 사람이 사이트 개편 때 조용히 0건이 되는
   실패 모드를 다시 들이지 않게 한다.
+- `article.py` D — 모듈 본문 2줄(같은 서명 블록을 잇는 이유): 2026-10-11 실사이트 점검에서 BBC 본문이 이미지 사이 블록 4개로 나뉘어 한 블록만 잡혔다 — 「최고 점수 블록 하나」로 단순화하면 분할형 사이트의 앞부분이 조용히 빠진다.
 - `article.py` E — 넓은 `except Exception` 1줄: 파서 예외가 나도 그때까지 읽은 컨테이너로 점수를 매기려는 의도 — 좁히면 깨진 마크업
   한 건이 그 기사의 본문 확보를 통째로 날린다.
 - `test_article.py` L — 요약 피드 픽스처 1줄: `SCF_URL` 의 피드 본문이 비어 있지 않은데도 교체되는 이유(제목 반복 = 요약)를 알려,

@@ -1,7 +1,9 @@
 """Article-page text extraction for feeds whose entries carry little or no body.
 
 There is no per-site selector: the block container holding the most non-link text wins,
-so a site redesign degrades the score instead of silently matching nothing.
+so a site redesign degrades the score instead of silently matching nothing. Sites that
+split one body into several blocks between images (BBC) give every block the same tag
+and class, so blocks sharing the winner's signature are joined back in page order.
 """
 
 from __future__ import annotations
@@ -44,12 +46,16 @@ _VOID_TAGS = frozenset(
 # Below this many characters the "article" is more likely a stray caption than a body.
 MIN_ARTICLE_CHARS = 200
 
+# A same-signature block mostly made of links is a teaser list styled like the body.
+_MAX_JOINED_LINK_SHARE = 0.3
+
 _CHARSET_RE = re.compile(rb"""<meta[^>]+charset\s*=\s*["']?\s*([A-Za-z0-9_\-]+)""", re.I)
 _SPACES_RE = re.compile(r"[ \t\r\f\v ​]+")
 
 
 @dataclass
 class _Container:
+    signature: tuple[str, str]
     parts: list[str] = field(default_factory=list)
     text_chars: int = 0
     link_chars: int = 0
@@ -87,7 +93,8 @@ class _ArticleParser(HTMLParser):
             return
         container = None
         if tag in _CONTAINER_TAGS:
-            container = _Container()
+            css_class = " ".join((dict(attrs).get("class") or "").split())
+            container = _Container(signature=(tag, css_class))
             self.containers.append(container)
         if tag == "a":
             self.link_depth += 1
@@ -153,4 +160,16 @@ def extract_article_text(raw: bytes) -> str:
     best = max(parser.containers, key=lambda c: c.score)
     if best.score <= 0:
         return ""
-    return _normalize(best.parts)
+    if not best.signature[1]:
+        return _normalize(best.parts)
+    blocks = [
+        c
+        for c in parser.containers
+        if c is best
+        or (
+            c.signature == best.signature
+            and c.score > 0
+            and c.link_chars <= _MAX_JOINED_LINK_SHARE * c.text_chars
+        )
+    ]
+    return _normalize([part for block in blocks for part in (*block.parts, "\n")])
