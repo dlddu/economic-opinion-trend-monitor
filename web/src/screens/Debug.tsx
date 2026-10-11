@@ -113,7 +113,6 @@ function compareRows(version: DebugVersion, call: DebugCall | null): CompareRow[
   });
 }
 
-// The debug API reads an index the batch builds after each run; before the first build it says so.
 const INDEX_NOT_READY = "index_not_ready";
 
 function errorText(e: unknown): string {

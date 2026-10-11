@@ -84,7 +84,6 @@ func applyMemoryLimit() {
 	}
 }
 
-// softMemoryLimit reads a cgroup v2 memory.max value; "max" means no limit.
 func softMemoryLimit(memoryMax string) (int64, bool) {
 	limit, err := strconv.ParseInt(strings.TrimSpace(memoryMax), 10, 64)
 	if err != nil || limit <= 0 {

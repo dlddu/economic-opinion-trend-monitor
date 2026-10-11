@@ -12,11 +12,8 @@ import (
 	"time"
 )
 
-// publish copies the built index onto the volume under its own name, then points readers at it.
 // A file is never replaced in place: a reader on another node holding the old one open would
 // read a file that changed under it, so each build gets a new name and only the pointer moves.
-// The replaced index's mtime is set to the moment it was replaced, which is what sweep's grace
-// counts from.
 func publish(dir, local, name string, now time.Time) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -73,8 +70,6 @@ func writeWhole(path string, fill func(io.Writer) error) error {
 	return err
 }
 
-// sweep removes indexes other than current replaced before cutoff, and temporary files a
-// failed build left. It touches nothing in dir but its own index and temporary names.
 func sweep(dir, current string, cutoff time.Time) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -107,7 +102,6 @@ func isIndexName(name string) bool {
 		!strings.ContainsAny(name, `/\`)
 }
 
-// readPointer names the current index file in dir.
 func readPointer(dir string) (string, error) {
 	raw, err := os.ReadFile(filepath.Join(dir, pointerName))
 	if err != nil {

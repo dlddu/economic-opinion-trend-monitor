@@ -23,8 +23,7 @@ type Handlers struct {
 	// lakeScan admits one full Bronze/Silver scan at a time: overlapping scans
 	// (a screen's parallel fetches, re-sent while earlier ones still ran) are what ran the pod out of memory.
 	lakeScan chan struct{}
-	// index is the batch-built serving index the debug screen reads instead of scanning.
-	index *servingindex.Reader
+	index    *servingindex.Reader
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.

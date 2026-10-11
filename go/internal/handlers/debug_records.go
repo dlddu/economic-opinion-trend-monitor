@@ -37,8 +37,6 @@ type debugRecordsResponse struct {
 	Rows      []debugRecordRow `json:"rows"`
 }
 
-// debugRecords lists one row per record — its newest analysis — newest first, from the index's
-// record_latest table: what used to be a Silver pass and two Bronze passes per request.
 func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	runID := strings.TrimSpace(r.URL.Query().Get("run_id"))
@@ -68,8 +66,6 @@ func (h *Handlers) debugRecords(w http.ResponseWriter, r *http.Request, db *sql.
 	return nil
 }
 
-// debugRecordsFilter matches the record id or the shown title for q, case-folded, and a symptom
-// as group:name — an unknown group or a symptom without one matches nothing.
 func debugRecordsFilter(query, runID, symptom string) (string, []any) {
 	conds := []string{"1"}
 	var args []any
@@ -94,7 +90,6 @@ func debugRecordsFilter(query, runID, symptom string) (string, []any) {
 	return strings.Join(conds, " AND "), args
 }
 
-// symptomColumn maps a symptom group to the record_latest column it reads.
 var symptomColumn = map[string]string{
 	"analysis_status": "analysis_status",
 	"call_outcome":    "call_outcome",

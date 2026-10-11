@@ -1,6 +1,3 @@
-# The serving image carries econ-index (Dockerfile), the step the batch runs after every
-# stage that writes Silver or Gold (deploy/batch: the `index` template). It builds the
-# serving index over the root serving reads, so the debug screen's API answers from it.
 apiVersion: batch/v1
 kind: Job
 metadata:

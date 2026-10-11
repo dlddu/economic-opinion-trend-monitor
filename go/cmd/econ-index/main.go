@@ -1,5 +1,5 @@
 // Command econ-index builds the serving index from the data lake and publishes it beside the
-// lake for the serving pod. The batch runs it after every stage that writes Bronze or Silver.
+// lake for the serving pod.
 package main
 
 import (

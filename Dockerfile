@@ -11,8 +11,6 @@ RUN npm run build
 FROM golang:1.24 AS build
 WORKDIR /src/go
 COPY go/ ./
-# econ-index ships in this image so the batch builds the serving index with the
-# same lake readers the serving screens use (deploy/batch: the `index` template).
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ ./cmd/serving ./cmd/econ-index
 
 FROM gcr.io/distroless/static-debian12:nonroot

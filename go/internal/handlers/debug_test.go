@@ -46,7 +46,6 @@ func writeDebugLake(t *testing.T, dir string, analyses []string, runs, calls map
 	}
 }
 
-// indexLake builds the serving index over a fixture lake, as the batch does after a run.
 func indexLake(t *testing.T, dir string) {
 	t.Helper()
 	if _, err := servingindex.Build(context.Background(), dir, servingindex.Options{Scratch: t.TempDir()}); err != nil {
