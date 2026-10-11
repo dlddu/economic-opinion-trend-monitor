@@ -155,13 +155,13 @@ func TestBuildKeepsAReplacedIndexForTheGracePeriodAfterItWasReplaced(t *testing.
 		t.Fatal(err)
 	}
 
-	second := build(t, root, Options{now: now, Grace: time.Hour})
+	second := build(t, root, Options{now: now, Grace: time.Hour}) // replaces first now
 	if _, err := os.Stat(filepath.Join(dir, first.Name)); err != nil {
 		t.Fatalf("an index replaced just now must stay for its readers: %v", err)
 	}
 
 	clock = clock.Add(90 * time.Minute)
-	third := build(t, root, Options{now: now, Grace: time.Hour})
+	third := build(t, root, Options{now: now, Grace: time.Hour}) // first replaced 90 min ago, second now
 	left := map[string]bool{}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -258,6 +258,7 @@ func TestReaderIsNotReadyWithoutAnIndexOfItsVersion(t *testing.T) {
 	if _, err := NewReader(root).Acquire(); !errors.Is(err, ErrNotReady) {
 		t.Fatalf("an index of another version: err = %v, want ErrNotReady", err)
 	}
+	// The next build cannot reuse it either, and reads every call file again.
 	if stats := build(t, root, Options{}); stats.CallsReused != 0 || stats.CallsRead != 3 {
 		t.Fatalf("build over an index of another version = %+v", stats)
 	}

@@ -19,7 +19,7 @@
 |---|---|---|
 | `Dockerfile` · L | 4 → 2 | 제거 2 |
 | `deploy/batch/workflow-template.yaml` · L | 34 → 32 | 유지 7(4줄 개작) · 제거 2 |
-| `go/cmd/econ-index/main.go` · L | 2 → 2 | 유지 2(틀린 절을 걷어 개작) |
+| `go/cmd/econ-index/main.go` · L | 2 → 2 | 유지 2(틀린 절을 걷어 개작) — **적용 이월** |
 | `go/cmd/serving/main.go` · L | 8 → 7 | 유지 3 · 제거 1 |
 | `go/internal/handlers/debug.go` · L | 7 → 3 | 유지 1(개작) · 제거 4 |
 | `go/internal/handlers/debug_input.go` · L | 2 → 2 | 유지 2 |
@@ -28,11 +28,11 @@
 | `go/internal/handlers/handlers.go` · L | 100 → 99 | 제거 1 |
 | `go/internal/handlers/index.go` · L | 3 → 2 | 유지 2(개작) · 제거 1 |
 | `go/internal/handlers/stages.go` · L | 6 → 6 | 유지 1 |
-| `go/internal/servingindex/build.go` · L | 27 → 23 | 유지 23 · 제거 4 |
-| `go/internal/servingindex/build_test.go` · L | 3 → 2 | 유지 2 · 제거 1 |
-| `go/internal/servingindex/derive.sql` · L | 7 → 3 | 유지 3 · 제거 4 |
-| `go/internal/servingindex/publish.go` · L | 12 → 6 | 유지 6(1줄 개작) · 제거 6 |
-| `go/internal/servingindex/reader.go` · L | 19 → 18 | 유지 18 · 제거 1 |
+| `go/internal/servingindex/build.go` · L | 27 → (23) | 유지 23 · 제거 4 — **적용 이월** |
+| `go/internal/servingindex/build_test.go` · L | 3 → (2) | 유지 2 · 제거 1 — **적용 이월** |
+| `go/internal/servingindex/derive.sql` · L | 7 → (3) | 유지 3 · 제거 4 — **적용 이월** |
+| `go/internal/servingindex/publish.go` · L | 12 → (6) | 유지 6(1줄 개작) · 제거 6 — **적용 이월** |
+| `go/internal/servingindex/reader.go` · L | 19 → (18) | 유지 18 · 제거 1 — **적용 이월** |
 | `go/internal/servingindex/schema.sql` · L | 8 → 8 | 유지 8 |
 | `go/internal/store/store.go` · L | 37 → 37 | 유지 1 |
 | `tests/e2e/k8s/batch/index-job.yaml` · L | 3 → 0 | 제거 3 (행 삭제) |
@@ -41,14 +41,28 @@
 | `web/src/api/client.ts` · L | 13 → 13 | 유지 3 |
 | `web/src/screens/Debug.tsx` · L | 13 → 12 | 유지 1 · 제거 1 |
 | `go/internal/handlers/debug_records_test.go` · E | 2 → 2 | 유지 2 |
-| `go/internal/servingindex/build_test.go` · E | 2 → 0 | 제거 2 (행 삭제) |
+| `go/internal/servingindex/build_test.go` · E | 2 → (0) | 제거 2 — **적용 이월**(적용되면 행 삭제) |
 | `go/internal/servingindex/reader.go` · E | 1 → 1 | 유지 1 |
 
-diff 는 주석 줄만 지우거나 다시 접는다. 비주석 줄 변경은 셋뿐이고 토큰은 바뀌지 않는다 — E 두 줄은 줄 끝 주석만 걷었고,
-`handlers.go` 의 `index` 필드는 위 주석이 빠지자 `gofmt` 가 정렬 공백을 다시 맞췄고, `derive.sql` 은 머리 주석과 그 뒤
-빈 줄을 함께 걷었다.
+## 적용 이월 — MA6 사람 게이트
+
+#248 은 리뷰 게이트 판정기(`scripts/check-data-format-change.py`)에 **MA6** 을 더했다 —
+`go/internal/servingindex/**`·`go/cmd/econ-index/**` 는 레이크 볼륨에 쓰는 코드라 **주석만 바꿔도** 경로 단위로
+`format_changed=true` 가 되고 `review/manual-approval` 이 사람 승인 뒤에만 초록이 된다. 이 패스는 그 두 경로의 증분
+**72줄(L 70 · E 2)도 판정은 끝냈지만**(위 표의 「적용 이월」 7행 — 제거 18 · 개작 2) 소스에는 손대지 않았다. 원장 행은
+줄 수·지문이 그대로이고 판정 칸은 `—` 로 남으며, 결과 칸에 이 판정을 적어 두었다. 이 판정대로 적용하는 다음 슬라이스는
+사람 승인(MA6)을 받는 단독 PR 이고, 적용하면 그 7행이 `완료` 로 오른다(`build_test.go` E 행은 삭제).
+같은 경로의 `schema.sql` L 8줄과 `reader.go` E 1줄은 전부 유지라 소스 변경이 없으므로 이 패스에서 `완료` 다.
+
+이 PR 이 소스에 적용한 것은 나머지 **48줄(L 46 · E 2)**의 판정 — 제거 24 · 개작 4 — 이다.
+
+diff 는 주석 줄만 지우거나 다시 접는다. 비주석 줄 변경은 하나뿐이고 토큰은 바뀌지 않는다 — `handlers.go` 의 `index`
+필드는 위 주석이 빠지자 `gofmt` 가 정렬 공백을 다시 맞췄다.
 
 ## 제거
+
+이 절과 다음 절은 129줄 전체의 판정이다 — `go/internal/servingindex/**`·`go/cmd/econ-index/**` 항목은 위 「적용 이월」대로 아직 소스에 적용하지 않았다.
+
 
 - **틀린 주석** — `econ-index` 패키지 주석의 「The batch runs it after every stage that writes Bronze or Silver.」와
   `tests/e2e/k8s/batch/index-job.yaml` 머리의 「the step the batch runs after every stage that writes Silver or Gold」:
