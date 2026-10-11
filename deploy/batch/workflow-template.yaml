@@ -1,8 +1,9 @@
 # `ingest` and `pipeline` are driven by the CronWorkflows; `reprocess` and
 # `publish` are submitted by the serving Pod (deploy/base/rbac.yaml), and the
 # operator input they take arrives as the `arguments.parameters` defaults below.
-# Every entrypoint that writes Silver or Gold ends with `index`, which rebuilds
-# the serving index the debug screen reads.
+# Whatever the entrypoint, and whether it succeeded or failed, the workflow exits through
+# `index`, which rebuilds the serving index the debug screen reads — a run that
+# failed halfway is the one an operator most needs to look at.
 # The `image:` tags in this file are CI-owned — do not edit them by hand
 # (README 「운영 고정(`pin` job)」).
 apiVersion: argoproj.io/v1alpha1
@@ -11,6 +12,7 @@ metadata:
   name: econ-batch-pipeline
 spec:
   entrypoint: ingest
+  onExit: index
   serviceAccountName: econ-batch
   arguments:
     parameters:
@@ -93,8 +95,6 @@ spec:
             template: analyze
         - - name: aggregate
             template: aggregate
-        - - name: index
-            template: index
 
     - name: analyze
       retryStrategy:
@@ -145,17 +145,10 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    - name: reprocess
-      steps:
-        - - name: analyze
-            template: reprocess-analyze
-        - - name: index
-            template: index
-
     # Retrying is safe even though every call is billable: the CLI checkpoints
     # every `batch` records and skips what the target version already covers,
     # so a retry resumes instead of starting over.
-    - name: reprocess-analyze
+    - name: reprocess
       retryStrategy:
         limit: "3"
         retryPolicy: Always
@@ -211,15 +204,8 @@ spec:
           - name: tmp
             mountPath: /tmp
 
-    - name: publish
-      steps:
-        - - name: aggregate
-            template: publish-aggregate
-        - - name: index
-            template: index
-
     # Nothing is re-analyzed here, so a retry is safe.
-    - name: publish-aggregate
+    - name: publish
       retryStrategy:
         limit: "3"
         retryPolicy: Always

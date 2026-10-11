@@ -21,6 +21,7 @@ npm-debug.log*
 /data/bronze/*
 /data/silver/*
 /data/gold/*
+/data/serving/
 !/data/bronze/.gitkeep
 !/data/silver/.gitkeep
 !/data/gold/.gitkeep

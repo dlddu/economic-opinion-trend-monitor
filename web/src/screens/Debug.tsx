@@ -245,7 +245,8 @@ export function Debug() {
         무엇을 받고 무엇을 답했는지, 그리고 그 판단이 속한 실행 전체가 어땠는지.
       </p>
 
-      {error === INDEX_NOT_READY && <IndexNotReady />}
+      {/* The list says it below when it is not ready either; once is enough. */}
+      {error === INDEX_NOT_READY && listError !== INDEX_NOT_READY && <IndexNotReady />}
       {error && error !== INDEX_NOT_READY && (
         <div className="note">
           <div>

@@ -33,7 +33,6 @@ export class ApiError extends Error {
     readonly code: string | null,
   ) {
     super(message);
-    this.name = "ApiError";
   }
 }
 

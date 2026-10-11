@@ -32,7 +32,7 @@
 
 ## 위험 표면
 
-케이스의 위험이 코드에 나타나는 모양. reconciler as-is 지문이 이 블록에 걸리는 (파일, 토큰) 집합을 잰다 — 새 파일이 표면이 되거나 토큰이 바뀌면 지문이 움직여 이 정책이 다시 판정된다. 걸리는 파일은 전부 위 케이스에 덮이거나 아래 「의도적 제외」에 있어야 한다. 마지막 두 `ere` 줄은 제외의 재개 조건을 심은 트립와이어라 지금은 걸리는 곳이 없다.
+케이스의 위험이 코드에 나타나는 모양. reconciler as-is 지문이 이 블록에 걸리는 (파일, 토큰) 집합을 잰다 — 새 파일이 표면이 되거나 토큰이 바뀌면 지문이 움직여 이 정책이 다시 판정된다. 걸리는 파일은 전부 위 케이스에 덮이거나 아래 「의도적 제외」에 있어야 한다. 마지막 두 `ere` 줄은 제외의 재개 조건을 심은 트립와이어다 — 앞 줄은 지금 걸리는 곳이 없고, 뒷줄은 MA6 의 서빙 인덱스 빌더(`go/internal/servingindex/`)에만 걸린다.
 
 ```surface
 scope: contracts go python/packages deploy
@@ -42,7 +42,7 @@ ere: ^from econ_core\.models(\.[a-z]+)? import|/go/gen"
 ere: def (write_records|merge_records|read_records|open_store)\(|^DS_[A-Z_]+ = |PARTITION_FILE = "[^"]*"
 ere: kind: PersistentVolumeClaim|claimName: [a-z0-9-]+
 ere: ^(import|from) (pyarrow|fastavro|avro|pandas|polars|duckdb|sqlite3)([[:space:].]|$)
-ere: os\.(Create|WriteFile|OpenFile)\(
+ere: os\.(Create|WriteFile|OpenFile|Remove|RemoveAll|Rename)\(
 ```
 
 ## 앵커

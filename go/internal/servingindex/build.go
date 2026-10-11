@@ -109,7 +109,7 @@ func Build(ctx context.Context, root string, opt Options) (Stats, error) {
 	}
 	stats.Name = name
 	dir := filepath.Join(root, Dir)
-	if err := publish(dir, local, name); err != nil {
+	if err := publish(dir, local, name, opt.now()); err != nil {
 		return stats, err
 	}
 	removed, err := sweep(dir, name, opt.now().Add(-opt.Grace))
@@ -127,21 +127,23 @@ func newName(now time.Time) (string, error) {
 	return filePrefix + now.UTC().Format("20060102T150405Z") + "-" + hex.EncodeToString(b[:]) + fileSuffix, nil
 }
 
-var registerLower sync.Once
+var (
+	registerLower sync.Once
+	registerErr   error
+)
 
 func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 	var stats Stats
-	var regErr error
 	registerLower.Do(func() {
 		// SQLite's lower() folds ASCII only; the list search lowercases like the handlers do.
-		regErr = sqlite.RegisterDeterministicScalarFunction("go_lower", 1,
+		registerErr = sqlite.RegisterDeterministicScalarFunction("go_lower", 1,
 			func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
 				s, _ := args[0].(string)
 				return strings.ToLower(s), nil
 			})
 	})
-	if regErr != nil {
-		return stats, regErr
+	if registerErr != nil {
+		return stats, registerErr
 	}
 	db, err := sql.Open("sqlite", "file:"+path+
 		"?_pragma=journal_mode(OFF)&_pragma=synchronous(OFF)&_pragma=cache_size(-65536)")
@@ -183,6 +185,10 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 		return stats, err
 	}
 	opt.Log("derived records=%d took=%s", stats.Records, since(start))
+	var undecoded int
+	if err := conn.QueryRowContext(ctx, "SELECT count(*) FROM llm_call_file WHERE decoded = 0").Scan(&undecoded); err != nil {
+		return stats, err
+	}
 
 	meta := map[string]string{
 		"schema_version":  SchemaVersion,
@@ -190,7 +196,7 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 		"analyses":        strconv.Itoa(stats.Analyses),
 		"news_items":      strconv.Itoa(stats.NewsItems),
 		"call_files":      strconv.Itoa(stats.CallFiles),
-		"calls_undecoded": strconv.Itoa(stats.CallsUndecoded),
+		"calls_undecoded": strconv.Itoa(undecoded),
 	}
 	for k, v := range meta {
 		if _, err := conn.ExecContext(ctx, "INSERT INTO meta (key, value) VALUES (?, ?)", k, v); err != nil {
@@ -359,7 +365,7 @@ func listCalls(ctx context.Context, conn *sql.Conn, dir string, listed *int) err
 						continue
 					}
 					id := strings.TrimSuffix(e.Name(), ".json")
-					canonical := id != "" && partition.Name() == "call_id_prefix="+id[:1]
+					canonical := lookupKey(id) && partition.Name() == "call_id_prefix="+id[:1]
 					if _, err := tx.ExecContext(ctx, "INSERT INTO temp.listing VALUES (?, ?, ?)",
 						partition.Name()+"/"+e.Name(), id, canonical); err != nil {
 						return err
@@ -413,6 +419,11 @@ func reuse(ctx context.Context, conn *sql.Conn, dir string, opt Options) (int, e
 	}
 	n, err := res.RowsAffected()
 	return int(n), err
+}
+
+// lookupKey mirrors the keys store.Lake opens an object by: any other name is never looked up.
+func lookupKey(id string) bool {
+	return id != "" && !strings.HasPrefix(id, ".") && !strings.ContainsAny(id, `/\`)
 }
 
 type listedCall struct {

@@ -1,8 +1,10 @@
 package servingindex
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,17 +15,27 @@ import (
 // publish copies the built index onto the volume under its own name, then points readers at it.
 // A file is never replaced in place: a reader on another node holding the old one open would
 // read a file that changed under it, so each build gets a new name and only the pointer moves.
-func publish(dir, local, name string) error {
+// The replaced index's mtime is set to the moment it was replaced, which is what sweep's grace
+// counts from.
+func publish(dir, local, name string, now time.Time) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	if err := copyWhole(local, filepath.Join(dir, name)); err != nil {
 		return err
 	}
-	return writeWhole(filepath.Join(dir, pointerName), func(w io.Writer) error {
+	previous, _ := readPointer(dir)
+	err := writeWhole(filepath.Join(dir, pointerName), func(w io.Writer) error {
 		_, err := fmt.Fprintln(w, name)
 		return err
 	})
+	if err != nil || previous == "" || previous == name {
+		return err
+	}
+	if err := os.Chtimes(filepath.Join(dir, previous), now, now); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 func copyWhole(src, dst string) error {
@@ -61,7 +73,7 @@ func writeWhole(path string, fill func(io.Writer) error) error {
 	return err
 }
 
-// sweep removes indexes other than current last changed before cutoff, and temporary files a
+// sweep removes indexes other than current replaced before cutoff, and temporary files a
 // failed build left. It touches nothing in dir but its own index and temporary names.
 func sweep(dir, current string, cutoff time.Time) ([]string, error) {
 	entries, err := os.ReadDir(dir)
@@ -111,6 +123,10 @@ func readPointer(dir string) (string, error) {
 // readOnlyURI opens a published index without locks or journal files: the volume is shared
 // over NFS, where SQLite's locks are not to be trusted, and a published index never changes.
 func readOnlyURI(path string) string {
+	// A relative path would land in the URI's authority, which SQLite refuses.
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
 	u := url.URL{Scheme: "file", Path: path, RawQuery: "mode=ro&immutable=1"}
 	return u.String()
 }

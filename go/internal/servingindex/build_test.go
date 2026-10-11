@@ -142,41 +142,65 @@ func TestBuildJoinsOnlyTheCallFileALookupWouldOpen(t *testing.T) {
 	}
 }
 
-func TestBuildKeepsAReplacedIndexForTheGracePeriodOnly(t *testing.T) {
+func TestBuildKeepsAReplacedIndexForTheGracePeriodAfterItWasReplaced(t *testing.T) {
 	root := lake(t)
 	clock := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	now := func() time.Time { return clock }
-	first := build(t, root, Options{now: now})
 	dir := filepath.Join(root, Dir)
+	first := build(t, root, Options{now: now, Grace: time.Hour})
 	writeFile(t, filepath.Join(dir, "notes.txt"), "not ours")
-	old := clock.Add(-2 * time.Hour)
-	if err := os.Chtimes(filepath.Join(dir, first.Name), old, old); err != nil {
+	// Published long before it is replaced: the grace counts from the replacement, not from this.
+	long := clock.Add(-24 * time.Hour)
+	if err := os.Chtimes(filepath.Join(dir, first.Name), long, long); err != nil {
 		t.Fatal(err)
 	}
 
-	clock = clock.Add(30 * time.Minute)
-	second := build(t, root, Options{now: now, Grace: time.Hour})
-	third := build(t, root, Options{now: now, Grace: time.Hour})
+	second := build(t, root, Options{now: now, Grace: time.Hour}) // replaces first now
+	if _, err := os.Stat(filepath.Join(dir, first.Name)); err != nil {
+		t.Fatalf("an index replaced just now must stay for its readers: %v", err)
+	}
 
-	names, err := filepath.Glob(filepath.Join(dir, "*"))
+	clock = clock.Add(90 * time.Minute)
+	third := build(t, root, Options{now: now, Grace: time.Hour}) // first replaced 90 min ago, second now
+	left := map[string]bool{}
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var left []string
-	for _, n := range names {
-		left = append(left, filepath.Base(n))
+	for _, e := range entries {
+		left[e.Name()] = true
 	}
-	got := strings.Join(left, ",")
-	if strings.Contains(got, first.Name) {
-		t.Errorf("an index replaced longer than the grace ago must go: %s", got)
+	if left[first.Name] {
+		t.Errorf("an index replaced longer than the grace ago must go: %v", left)
 	}
 	for _, keep := range []string{second.Name, third.Name, "notes.txt", pointerName} {
-		if !strings.Contains(got, keep) {
-			t.Errorf("%s must stay: %s", keep, got)
+		if !left[keep] {
+			t.Errorf("%s must stay: %v", keep, left)
 		}
 	}
 	if name, err := readPointer(dir); err != nil || name != third.Name {
 		t.Errorf("pointer = %s %v, want the newest build %s", name, err, third.Name)
+	}
+}
+
+func TestReaderOpensAnIndexUnderARelativeRoot(t *testing.T) {
+	root := lake(t)
+	build(t, root, Options{})
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rel, err := filepath.Rel(wd, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snap, err := NewReader(rel).Acquire()
+	if err != nil {
+		t.Fatalf("relative root %s: %v", rel, err)
+	}
+	snap.Release()
+	if stats := build(t, rel, Options{}); stats.CallsReused != 3 {
+		t.Fatalf("a build under a relative root must still reuse the previous index: %+v", stats)
 	}
 }
 

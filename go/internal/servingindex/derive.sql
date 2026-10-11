@@ -1,7 +1,8 @@
 -- Derived tables and lookup indexes, run once the base tables are loaded.
 
 CREATE INDEX analysis_record ON analysis (record_id, seq);
-CREATE INDEX analysis_run ON analysis (run_id);
+-- Covers the run panel's counts: a whole-corpus reprocess run is ~200 k rows.
+CREATE INDEX analysis_run ON analysis (run_id, analysis_status, no_call_reason);
 CREATE INDEX news_item_record ON news_item (record_id, seq);
 CREATE INDEX news_item_url ON news_item (source_url, collected_at);
 CREATE INDEX llm_call_file_id ON llm_call_file (call_id);
@@ -54,8 +55,13 @@ LEFT JOIN (
 LEFT JOIN llm_call_file AS c ON c.call_id = a.call_id AND c.canonical = 1 AND c.decoded = 1
 WHERE a.pick = 1;
 
-CREATE INDEX record_latest_recent ON record_latest (analyzed_at DESC, record_id);
+-- The list walks one of these in its own order and stops at the page: every filter's column
+-- leads an index, and the search's lowered texts ride along so a search reads no table rows.
+CREATE INDEX record_latest_recent ON record_latest (analyzed_at DESC, record_id, record_id_lower, title_lower);
 CREATE INDEX record_latest_run ON record_latest (run_id, analyzed_at DESC, record_id);
+CREATE INDEX record_latest_status ON record_latest (analysis_status, analyzed_at DESC, record_id);
+CREATE INDEX record_latest_outcome ON record_latest (call_outcome, analyzed_at DESC, record_id);
+CREATE INDEX record_latest_no_call ON record_latest (no_call_reason, analyzed_at DESC, record_id);
 
 -- Calls per run and outcome, over every llm_call file that decodes.
 CREATE TABLE run_call (

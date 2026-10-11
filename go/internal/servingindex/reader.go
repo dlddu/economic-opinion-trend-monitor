@@ -21,15 +21,21 @@ const recheckEvery = time.Second
 
 // Reader opens whichever index the pointer names, moving to a newer one as the batch publishes
 // it. A request holds a Snapshot for its queries, and a replaced index closes once none does.
+//
+// Looking for a newer index reads the shared volume, so it happens outside mu: a slow read
+// delays the one request that looks, while the rest keep the index they have.
 type Reader struct {
 	dir   string
 	every time.Duration
 	now   func() time.Time
 
-	mu       sync.Mutex
-	cur      *handle
-	checked  time.Time
-	lastMiss string
+	// looking is held by the one request reading the pointer and opening what it names.
+	looking  sync.Mutex
+	lastMiss string // guarded by looking
+
+	mu      sync.Mutex
+	cur     *handle
+	checked time.Time
 }
 
 type handle struct {
@@ -57,11 +63,21 @@ type Snapshot struct {
 // Acquire returns the newest index the reader can open, or ErrNotReady.
 func (r *Reader) Acquire() (*Snapshot, error) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	if now := r.now(); r.cur == nil || now.Sub(r.checked) >= r.every {
-		r.checked = now
-		r.follow()
+	have, due := r.cur != nil, r.now().Sub(r.checked) >= r.every
+	r.mu.Unlock()
+	switch {
+	case !have:
+		// Nothing to serve from yet: wait for a look already under way rather than answer not-ready.
+		r.looking.Lock()
+		r.look()
+		r.looking.Unlock()
+	case due && r.looking.TryLock():
+		r.look()
+		r.looking.Unlock()
 	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.cur == nil {
 		return nil, ErrNotReady
 	}
@@ -79,8 +95,22 @@ func (s *Snapshot) Release() {
 	}
 }
 
-// follow moves to the index the pointer names. Whatever goes wrong, a reader keeps the index it has.
-func (r *Reader) follow() {
+// look moves to the index the pointer names, at most once per interval; the caller holds
+// looking. Whatever goes wrong, the reader keeps the index it has.
+func (r *Reader) look() {
+	r.mu.Lock()
+	now := r.now()
+	if now.Sub(r.checked) < r.every {
+		r.mu.Unlock()
+		return
+	}
+	r.checked = now
+	current := ""
+	if r.cur != nil {
+		current = r.cur.name
+	}
+	r.mu.Unlock()
+
 	name, err := readPointer(r.dir)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -88,7 +118,7 @@ func (r *Reader) follow() {
 		}
 		return
 	}
-	if r.cur != nil && r.cur.name == name {
+	if name == current {
 		return
 	}
 	h, err := open(filepath.Join(r.dir, name))
@@ -99,6 +129,9 @@ func (r *Reader) follow() {
 	h.name = name
 	log.Printf("serving index: opened %s (built %s)", name, h.builtAt)
 	r.lastMiss = ""
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	old := r.cur
 	r.cur = h
 	if old != nil {
