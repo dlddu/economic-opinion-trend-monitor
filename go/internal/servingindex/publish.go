@@ -70,6 +70,7 @@ func writeWhole(path string, fill func(io.Writer) error) error {
 	return err
 }
 
+// sweep touches nothing in dir but its own index and temporary names.
 func sweep(dir, current string, cutoff time.Time) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -117,7 +118,6 @@ func readPointer(dir string) (string, error) {
 // readOnlyURI opens a published index without locks or journal files: the volume is shared
 // over NFS, where SQLite's locks are not to be trusted, and a published index never changes.
 func readOnlyURI(path string) string {
-	// A relative path would land in the URI's authority, which SQLite refuses.
 	if abs, err := filepath.Abs(path); err == nil {
 		path = abs
 	}

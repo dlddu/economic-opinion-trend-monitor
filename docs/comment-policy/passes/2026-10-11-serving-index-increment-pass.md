@@ -13,7 +13,7 @@
 (`go/cmd/serving/main_test.go` · `go/internal/servingindex/build_test.go` · `go/internal/handlers/debug_records_test.go` ·
 `web/src/screens/Debug.test.tsx` 인덱스 준비 중 단정) · `deploy/batch/workflow-template.yaml` 의 `onExit: index`.
 
-## 결과 — 129줄 중 제거 42 · 유지 87(개작 5 포함)
+## 결과 — 129줄 중 제거 42 · 유지 87(개작 6 포함)
 
 | 파일 · 표면 | 판정 전 → 후 | 증분 처분 |
 |---|---|---|
@@ -31,7 +31,7 @@
 | `go/internal/servingindex/build.go` · L | 27 → 23 | 유지 23 · 제거 4 |
 | `go/internal/servingindex/build_test.go` · L | 3 → 2 | 유지 2 · 제거 1 |
 | `go/internal/servingindex/derive.sql` · L | 7 → 3 | 유지 3 · 제거 4 |
-| `go/internal/servingindex/publish.go` · L | 12 → 6 | 유지 6 · 제거 6 |
+| `go/internal/servingindex/publish.go` · L | 12 → 6 | 유지 6(1줄 개작) · 제거 6 |
 | `go/internal/servingindex/reader.go` · L | 19 → 18 | 유지 18 · 제거 1 |
 | `go/internal/servingindex/schema.sql` · L | 8 → 8 | 유지 8 |
 | `go/internal/store/store.go` · L | 37 → 37 | 유지 1 |
@@ -62,12 +62,13 @@ diff 는 주석 줄만 지우거나 다시 접는다. 비주석 줄 변경은 �
   `debug.go` 의 `debug` 첫 줄 · `indexedAnalyses`(`ORDER BY analyzed_at DESC, seq`) · `debugRunOf`(세 `countBy`) ·
   `handlers.go` `index` 필드 · `index.go` `indexHandler` 와 「503 index_not_ready」 절 · `debug_test.go` `indexLake` ·
   `build.go` `loadCalls`·`reuse`(로그 문구가 같은 말을 한다) · `publish.go` `publish` 첫 줄·`readPointer` ·
-  `reader.go` `miss` · `derive.sql` 머리·`record_latest`(창 함수 SQL)·`run_call`(`WHERE decoded = 1 GROUP BY`) ·
+  `reader.go` `miss` · `publish.go` `sweep` 첫 문장 · `derive.sql` 머리·`record_latest`(창 함수 SQL)·`run_call`(`WHERE decoded = 1 GROUP BY`) ·
   `smoke.sh`·`run.sh` 의 인덱스 잡 위 1줄(바로 아래 명령·FAIL 문구) · `Debug.tsx` `INDEX_NOT_READY` 위 1줄(아래
   `IndexNotReady` 카피) · `build_test.go` 단정 위 1줄과 줄 끝 시계 주석 2(E).
 - **테스트가 붉게 지키는 명제** — `softMemoryLimit` 의 「"max" 는 무제한」(`TestSoftMemoryLimitIsFourFifthsOfTheCgroupLimit`
   가 `max`·빈값·0 을 단정) · `publish` 의 「교체된 인덱스 mtime = 교체 시각」 2줄
-  (`TestBuildKeepsAReplacedIndexForTheGracePeriodAfterItWasReplaced`) · `sweep` 2줄(같은 테스트의 `notes.txt` 생존 단정).
+  (`TestBuildKeepsAReplacedIndexForTheGracePeriodAfterItWasReplaced` — 설정 줄을 지우면 FAIL 실측) · `readOnlyURI` 의
+  「상대 경로는 URI authority 로 가 SQLite 가 거부」(`TestReaderOpensAnIndexUnderARelativeRoot` — `filepath.Abs` 를 빼면 FAIL 실측).
 - **템플릿 이름·명령의 재진술** — `workflow-template.yaml` `index` 머리 첫 문장(「인덱스를 만들어 바꿔 끼운다」).
   나머지 세 문장은 유지하고 4줄로 다시 접었다.
 
@@ -91,13 +92,14 @@ diff 는 주석 줄만 지우거나 다시 접는다. 비주석 줄 변경은 �
   미러 · 동시성 가드**다:
   SQLite `lower()` 는 ASCII 만 접는다 · ATTACH 와 임시 목록은 한 연결에 산다 · 행마다 동기화하지 않게 한 트랜잭션 ·
   `listCalls` 와 `lookupKey` 가 `store.Lake` 의 파일·키 규칙의 미러 · 병렬 읽기(공유 볼륨 왕복) · 통째로 링크되는 기록이라
-  한 번 못 푼 것은 영영 못 푼다 · 제자리 교체 금지(다른 노드 리더) · `writeWhole` 원자 교체 · NFS 위 SQLite 잠금 불신 ·
-  상대 경로는 URI authority 로 가 SQLite 가 거부 · `recheckEvery` 비용·지연 상한 · 공유 볼륨 읽기를 `mu` 밖에서 ·
+  한 번 못 푼 것은 영영 못 푼다 · 제자리 교체 금지(다른 노드 리더) · `writeWhole` 원자 교체 · `sweep` 은 자기 이름만 지운다
+  (개작 1줄 — 공유 볼륨이고, `ours` 판정을 `true` 로 풀어도 테스트는 초록이다: `notes.txt` 는 가짜 시계 덕에 살아남는다) ·
+  NFS 위 SQLite 잠금 불신 · `recheckEvery` 비용·지연 상한 · 공유 볼륨 읽기를 `mu` 밖에서 ·
   `looking` 소유 규약(E 1 포함) · 첫 요청은 진행 중인 조회를 기다린다(`TryLock` 으로 바꾸면 기동 직후 거짓 not-ready) ·
   `look` 호출 전제 · 연결별 페이지 캐시 · `analysis_run` 이 덮는 집계 규모 · `record_latest_*` 커버링 인덱스 ·
   `schema.sql` 의 `seq` 동률 규칙(스캔과 같아야 한다)·JSON 텍스트 필드·`llm_call_file` write-once·`canonical` 미러.
-- `build_test.go` 2줄 — 조회가 열지 않는 파티션 픽스처의 의도 · 「grace 는 교체 시점부터」 단정을 공허하지 않게 하는
-  `Chtimes` 근거(지우고 `Chtimes` 를 빼도 테스트는 초록이다).
+- `build_test.go` 2줄 — 조회가 열지 않는 파티션 픽스처의 의도 · 「grace 는 교체 시점부터」를 재는 `Chtimes` 설정의 의도
+  (그 설정 줄을 빼도 테스트는 초록이다 — 그때 `publish` 회귀를 잡는 것은 가짜 시계와 실제 mtime 의 어긋남뿐이다).
 - `store.go` `LlmCallHead` 첫 줄 — export doc.
 - `run.sh` 1줄(개작) — 디버그 화면을 여는 spec 이 없어 이 검사가 유일하다. 지우면 커버리지가 조용히 빠진다.
 - `client.ts` 3줄 — `ApiError` export doc 2 · 빈 `catch` 의 의도 1(비 JSON 실패는 상태 줄만 남긴다).
