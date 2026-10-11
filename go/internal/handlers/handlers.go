@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/argo"
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/servingindex"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -23,22 +23,18 @@ type Handlers struct {
 	// lakeScan admits one full Bronze/Silver scan at a time: overlapping scans
 	// (a screen's parallel fetches, re-sent while earlier ones still ran) are what ran the pod out of memory.
 	lakeScan chan struct{}
-	// scanning is write-held by an admitted scan; the call tally read-holds it per file, so the
-	// background count pauses while a scan runs instead of adding to its memory.
-	scanning sync.RWMutex
-	calls    *store.LlmCallTally
+	// index is the batch-built serving index the debug screen reads instead of scanning.
+	index *servingindex.Reader
 }
 
 // New builds Handlers backed by the given lake, with no workflow trigger.
 func New(lake *store.Lake) *Handlers {
-	h := &Handlers{
+	return &Handlers{
 		lake:     lake,
 		now:      time.Now,
 		lakeScan: make(chan struct{}, 1),
-		calls:    store.NewLlmCallTally(),
+		index:    servingindex.NewReader(lake.Root),
 	}
-	h.calls.YieldTo(&h.scanning)
-	return h
 }
 
 // WithArgo attaches the workflow client the reprocess POST routes submit through.
@@ -59,8 +55,8 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
 	mux.HandleFunc("GET /api/trace", h.oneScanAtATime(h.trace))
 	mux.HandleFunc("GET /api/reprocess", h.oneScanAtATime(h.reprocess))
-	mux.HandleFunc("GET /api/debug", h.oneScanAtATime(h.debug))
-	mux.HandleFunc("GET /api/debug/records", h.oneScanAtATime(h.debugRecords))
+	mux.HandleFunc("GET /api/debug", h.fromIndex(h.debug))
+	mux.HandleFunc("GET /api/debug/records", h.fromIndex(h.debugRecords))
 	mux.HandleFunc("GET /api/reprocess/runs", h.reprocessRuns)
 	mux.HandleFunc("POST /api/reprocess/sample", h.reprocessSample)
 	mux.HandleFunc("POST /api/reprocess/run", h.reprocessRun)
@@ -81,8 +77,6 @@ func (h *Handlers) oneScanAtATime(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		defer func() { <-h.lakeScan }()
-		h.scanning.Lock()
-		defer h.scanning.Unlock()
 		clock.enter("handler")
 		next(&timedWriter{ResponseWriter: w, clock: clock}, r)
 	}

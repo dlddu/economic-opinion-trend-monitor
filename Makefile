@@ -9,7 +9,7 @@ GEN_PATHS  := go/gen python/packages/core/src/econ_core/models
         build build-go build-web \
         test test-py test-go test-web test-cross e2e \
         lint lint-py lint-go lint-web lint-scenario-mapping lint-comment-ledger \
-        fmt run clean
+        fmt index run clean
 
 help: ## Show this help
 	@echo "Economic Opinion Trend Monitor — make targets:"
@@ -33,8 +33,8 @@ gen-check: gen ## Fail if committed generated code is stale (CI guard)
 
 build: build-go build-web ## Build serving binary + web bundle
 
-build-go: ## Compile the Go serving binary into go/bin/serving
-	cd $(GO_DIR) && go build -o bin/serving ./cmd/serving
+build-go: ## Compile the Go serving binary and the serving-index builder into go/bin/
+	cd $(GO_DIR) && go build -o bin/ ./cmd/serving ./cmd/econ-index
 
 build-web: ## Build the React frontend into web/dist
 	cd $(WEB_DIR) && npm run build
@@ -77,6 +77,9 @@ lint-comment-ledger: ## comment ledger invariants (docs/comment-policy/ledger.md
 fmt: ## Auto-format Python + Go
 	cd $(PYTHON_DIR) && uv run ruff format . && uv run ruff check --fix .
 	cd $(GO_DIR) && gofmt -w .
+
+index: ## Build the serving index over the local lake (data/) — the debug screen reads it
+	cd $(GO_DIR) && go run ./cmd/econ-index
 
 run: ## Run the serving binary (serves API + web/dist if built)
 	cd $(GO_DIR) && go run ./cmd/serving

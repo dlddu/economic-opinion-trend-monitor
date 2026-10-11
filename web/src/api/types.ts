@@ -428,7 +428,6 @@ export interface DebugTally {
 export interface DebugSymptoms {
   records: number;
   calls: number;
-  calls_tallied?: boolean;
   analysis_status: DebugTally[];
   call_outcome: DebugTally[];
   no_call_reason: DebugTally[];

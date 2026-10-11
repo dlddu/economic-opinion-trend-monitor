@@ -24,12 +24,17 @@ echo "[smoke] lake: $DATA  port: $PORT"
 )
 test -s "$DATA/gold/subject_trend.jsonl" || { echo "[smoke] FAIL: no Gold produced"; exit 1; }
 
-(cd "$ROOT/go" && go build -o bin/serving ./cmd/serving)
+(cd "$ROOT/go" && go build -o bin/serving ./cmd/serving && go build -o bin/econ-index ./cmd/econ-index)
+# The batch's last step: index the Python-written lake for the debug screen.
+"$ROOT/go/bin/econ-index" -data "$DATA"
 "$ROOT/go/bin/serving" -addr ":$PORT" -data "$DATA" -web "$DATA/no-web" &
 SRV=$!
 
 body="$(curl -s --retry 20 --retry-delay 1 --retry-connrefused "http://127.0.0.1:$PORT/api/dashboard?axis=KR")"
 echo "$body" | grep -q '한국은행 기준금리' || { echo "[smoke] FAIL: subject missing in response"; echo "$body"; exit 1; }
 echo "$body" | grep -q '"normalized":true' || { echo "[smoke] FAIL: normalized flag missing"; echo "$body"; exit 1; }
+
+records="$(curl -s "http://127.0.0.1:$PORT/api/debug/records")"
+echo "$records" | grep -q '"title":"\[한국은행 기준금리\]' || { echo "[smoke] FAIL: debug list missing the indexed record and its Bronze title"; echo "$records"; exit 1; }
 
 echo "[smoke] OK: Python Gold -> Go API end to end"

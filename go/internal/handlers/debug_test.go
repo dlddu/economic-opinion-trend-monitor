@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/servingindex"
 	"github.com/dlddu/economic-opinion-trend-monitor/go/internal/store"
 )
 
@@ -45,8 +46,17 @@ func writeDebugLake(t *testing.T, dir string, analyses []string, runs, calls map
 	}
 }
 
+// indexLake builds the serving index over a fixture lake, as the batch does after a run.
+func indexLake(t *testing.T, dir string) {
+	t.Helper()
+	if _, err := servingindex.Build(context.Background(), dir, servingindex.Options{Scratch: t.TempDir()}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func getDebug(t *testing.T, dir, query string) debugResponse {
 	t.Helper()
+	indexLake(t, dir)
 	return getDebugFrom(t, New(store.New(dir)), query)
 }
 
@@ -228,20 +238,8 @@ func TestDebugTalliesRunSymptomsAcrossItsRecordsAndCalls(t *testing.T) {
 	}, map[string]string{"run-a": debugRunRecord},
 		map[string]string{"call-1": debugCallRecord, "call-3": failed})
 
-	h := New(store.New(dir))
-	pending := getDebugFrom(t, h, "?record_id=rec-1").Run.Symptoms
-	if pending.CallsTallied || pending.Calls != 0 || len(pending.CallOutcome) != 0 {
-		t.Errorf("before the first count the run must not show call numbers: %+v", pending)
-	}
-	if pending.Records != 3 {
-		t.Errorf("Silver totals do not wait for the call tally: %+v", pending)
-	}
-
-	if err := h.calls.Refresh(context.Background(), h.lake); err != nil {
-		t.Fatal(err)
-	}
-	symptoms := getDebugFrom(t, h, "?record_id=rec-1").Run.Symptoms
-	if !symptoms.CallsTallied || symptoms.Records != 3 || symptoms.Calls != 2 {
+	symptoms := getDebug(t, dir, "?record_id=rec-1").Run.Symptoms
+	if symptoms.Records != 3 || symptoms.Calls != 2 {
 		t.Fatalf("run totals must count only this run: %+v", symptoms)
 	}
 	if want := []debugTally{{"unanalyzed", 2}, {"analyzed", 1}}; !sameTallies(symptoms.AnalysisStatus, want) {
@@ -302,5 +300,24 @@ func TestDebugKeepsTheRunNilWhenTheRunRecordIsAbsent(t *testing.T) {
 	got := getDebug(t, dir, "?record_id=rec-1")
 	if !got.Found || got.Run != nil {
 		t.Errorf("a missing run record must read as absent, not as an empty run: %+v", got.Run)
+	}
+}
+
+func TestDebugSaysTheIndexIsNotReadyBeforeTheBatchBuildsOne(t *testing.T) {
+	dir := t.TempDir()
+	writeDebugLake(t, dir, []string{analysisRow("rec-1", "v2", "analyzed", "run-a", `"call_id":"call-1"`)}, nil, nil)
+	mux := http.NewServeMux()
+	New(store.New(dir)).Register(mux)
+	for _, target := range []string{"/api/debug?record_id=rec-1", "/api/debug/records"} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+		if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"index_not_ready"`) {
+			t.Errorf("%s = %d %s, want 503 index_not_ready", target, rec.Code, rec.Body.String())
+		}
+	}
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/health", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("health must not wait for the index: %d", rec.Code)
 	}
 }

@@ -52,6 +52,7 @@ func writeRecordsLake(t *testing.T, dir string, analyses, items []string, calls 
 
 func getDebugRecords(t *testing.T, dir, query string) debugRecordsResponse {
 	t.Helper()
+	indexLake(t, dir)
 	mux := http.NewServeMux()
 	New(store.New(dir)).Register(mux)
 	srv := httptest.NewServer(mux)

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"database/sql"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
@@ -71,7 +72,6 @@ type debugRun struct {
 type debugSymptoms struct {
 	Records        int          `json:"records"`
 	Calls          int          `json:"calls"`
-	CallsTallied   bool         `json:"calls_tallied"`
 	AnalysisStatus []debugTally `json:"analysis_status"`
 	CallOutcome    []debugTally `json:"call_outcome"`
 	NoCallReason   []debugTally `json:"no_call_reason"`
@@ -89,50 +89,68 @@ const (
 	exchangeUnrecorded = "unrecorded"
 )
 
-func (h *Handlers) debug(w http.ResponseWriter, r *http.Request) {
+// debug walks one record back to its analyses, their model calls, the run and the Bronze input.
+// The index finds the rows; a call, a run and a body are each one object read from the lake.
+func (h *Handlers) debug(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
 	requested := r.URL.Query().Get("record_id")
+	ctx := r.Context()
 	clock := clockOf(r)
 	clock.enter("silver")
-	scan := h.scanDebugSilver(r, requested)
-	if gone(r) {
-		return
+	recordID := requested
+	if requested == "" {
+		err := db.QueryRowContext(ctx, "SELECT record_id FROM analysis ORDER BY seq LIMIT 1").Scan(&recordID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
 	}
-	if !scan.selection.found {
+	analyses, err := indexedAnalyses(ctx, db, recordID)
+	if err != nil {
+		return err
+	}
+	selection := debugSelection{len(analyses) > 0, "requested"}
+	switch {
+	case len(analyses) > 0 && requested == "":
+		selection.how = "auto"
+	case len(analyses) == 0 && requested != "":
+		selection.how = "requested-missing"
+	case len(analyses) == 0:
+		selection.how = "empty"
+	}
+	if !selection.found {
 		writeJSON(w, http.StatusOK, debugResponse{
 			RecordID:  requested,
-			Selection: scan.selection.how,
+			Selection: selection.how,
 			Found:     false,
 			Versions:  []debugVersion{},
 		})
-		return
+		return nil
 	}
 
 	clock.enter("calls")
-	rows := debugVersionsOf(scan.rows, h.callByID)
+	rows := debugVersionsOf(analyses, h.callByID)
 	selected := rows[0]
-	for _, row := range rows {
-		if row.Selected {
-			selected = row
-		}
-	}
 
 	clock.enter("run")
 	run, _ := h.lake.PipelineRun(selected.RunID)
-	debugRun := h.debugRunOf(r, run, scan.runs[selected.RunID])
+	debugRun, err := debugRunOf(ctx, db, run)
+	if err != nil {
+		return err
+	}
 	clock.enter("bronze")
-	input := h.debugInputOf(r, scan.recordID, scan.rows[0].SourceURL)
-	if gone(r) {
-		return
+	input, err := h.debugInputOf(ctx, db, recordID)
+	if err != nil {
+		return err
 	}
 
 	writeJSON(w, http.StatusOK, debugResponse{
-		RecordID:  scan.recordID,
-		Selection: scan.selection.how,
+		RecordID:  recordID,
+		Selection: selection.how,
 		Found:     true,
 		Versions:  rows,
 		Run:       debugRun,
 		Input:     input,
 	})
+	return nil
 }
 
 type debugSelection struct {
@@ -140,58 +158,38 @@ type debugSelection struct {
 	how   string
 }
 
-// runTally is what the run panel counts over Silver, kept per run so the one
-// Silver pass that finds the record also has the counts for whichever run it picks.
-type runTally struct {
-	records int
-	status  map[string]int
-	noCall  map[string]int
-}
-
-type debugSilverScan struct {
-	recordID  string
-	selection debugSelection
-	rows      []gen.Analysis
-	runs      map[string]*runTally
-}
-
-func (h *Handlers) scanDebugSilver(r *http.Request, requested string) debugSilverScan {
-	scan := debugSilverScan{recordID: requested, runs: map[string]*runTally{}}
-	first := true
-	scanned := 0
-	defer func() { clockOf(r).note("silver_rows=%d", scanned) }()
-	_ = h.lake.EachAnalysis(r.Context(), func(a *gen.Analysis) error {
-		scanned++
-		if first && requested == "" {
-			scan.recordID = a.RecordID
-		}
-		first = false
-		if a.RecordID == scan.recordID {
-			scan.rows = append(scan.rows, *a)
-		}
-		t := scan.runs[a.RunID]
-		if t == nil {
-			t = &runTally{status: map[string]int{}, noCall: map[string]int{}}
-			scan.runs[a.RunID] = t
-		}
-		t.records++
-		t.status[string(a.AnalysisStatus)]++
-		if a.NoCallReason != nil {
-			t.noCall[*a.NoCallReason]++
-		}
-		return nil
-	})
-	switch {
-	case len(scan.rows) > 0 && requested != "":
-		scan.selection = debugSelection{true, "requested"}
-	case len(scan.rows) > 0:
-		scan.selection = debugSelection{true, "auto"}
-	case requested != "":
-		scan.selection = debugSelection{false, "requested-missing"}
-	default:
-		scan.selection = debugSelection{false, "empty"}
+// indexedAnalyses reads a record's analyses newest first, the earliest-walked of equal times first.
+func indexedAnalyses(ctx context.Context, db *sql.DB, recordID string) ([]gen.Analysis, error) {
+	rs, err := db.QueryContext(ctx, `SELECT record_id, source_url, target_countries, narrative_subjects,
+		sentiment, analysis_status, confidence, analyzed_at, analyzer_version, run_id, call_id, no_call_reason
+		FROM analysis WHERE record_id = ? ORDER BY analyzed_at DESC, seq`, recordID)
+	if err != nil {
+		return nil, err
 	}
-	return scan
+	defer rs.Close()
+	var out []gen.Analysis
+	for rs.Next() {
+		var a gen.Analysis
+		var countries, subjects string
+		var sentiment, callID, noCall sql.NullString
+		if err := rs.Scan(&a.RecordID, &a.SourceURL, &countries, &subjects, &sentiment, &a.AnalysisStatus,
+			&a.Confidence, &a.AnalyzedAt, &a.AnalyzerVersion, &a.RunID, &callID, &noCall); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(countries), &a.TargetCountries); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(subjects), &a.NarrativeSubjects); err != nil {
+			return nil, err
+		}
+		if sentiment.Valid {
+			s := gen.Sentiment(sentiment.String)
+			a.Sentiment = &s
+		}
+		a.CallID, a.NoCallReason = nullable(callID), nullable(noCall)
+		out = append(out, a)
+	}
+	return out, rs.Err()
 }
 
 // callLookup reads one llm_call record by call_id. A record kept in memory per
@@ -272,42 +270,32 @@ func projectCall(call gen.LlmCallRecord) *debugCall {
 	}
 }
 
-// KeepCallTally counts llm_call records now and then every interval until ctx ends. It runs
-// outside the scan gate: it reads only llm_call, which no gated request reads whole.
-func (h *Handlers) KeepCallTally(ctx context.Context, every time.Duration) {
-	for {
-		start, before := time.Now(), h.calls.Counted()
-		err := h.calls.Refresh(ctx, h.lake)
-		if ctx.Err() != nil {
-			return
-		}
-		// A recount after a file vanished can take minutes and still leave the total where it was.
-		took := time.Since(start)
-		if read := h.calls.Counted() - before; err != nil || read != 0 || took > 30*time.Second {
-			log.Printf("call tally: read=%d total=%d skipped=%d took=%dms err=%v",
-				read, h.calls.Counted(), h.calls.Skipped(), took.Milliseconds(), err)
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(every):
-		}
-	}
-}
-
-func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *runTally) *debugRun {
+// debugRunOf is the run panel: the run record from the lake, and what its analyses and its
+// model calls came to, counted in the index.
+func debugRunOf(ctx context.Context, db *sql.DB, run *gen.PipelineRun) (*debugRun, error) {
 	if run == nil {
-		return nil
+		return nil, nil
 	}
-	if silver == nil {
-		silver = &runTally{}
+	status, err := countBy(ctx, db, `SELECT analysis_status, count(*) FROM analysis
+		WHERE run_id = ? GROUP BY analysis_status`, run.RunID)
+	if err != nil {
+		return nil, err
 	}
-	// The tally is counted by KeepCallTally, never here: no request can wait out a first count.
-	tallied := h.calls.Complete()
-	clockOf(r).note("tally_complete=%t tally_total=%d", tallied, h.calls.Counted())
-	made, outcome := 0, map[string]int{}
-	if tallied {
-		made, outcome = h.calls.Run(run.RunID)
+	noCall, err := countBy(ctx, db, `SELECT no_call_reason, count(*) FROM analysis
+		WHERE run_id = ? AND no_call_reason IS NOT NULL GROUP BY no_call_reason`, run.RunID)
+	if err != nil {
+		return nil, err
+	}
+	outcome, err := countBy(ctx, db, "SELECT call_outcome, calls FROM run_call WHERE run_id = ?", run.RunID)
+	if err != nil {
+		return nil, err
+	}
+	records, calls := 0, 0
+	for _, n := range status {
+		records += n
+	}
+	for _, n := range outcome {
+		calls += n
 	}
 	stages := run.Stages
 	if stages == nil {
@@ -321,14 +309,31 @@ func (h *Handlers) debugRunOf(r *http.Request, run *gen.PipelineRun, silver *run
 		RunStatus:    string(run.RunStatus),
 		Stages:       stages,
 		Symptoms: debugSymptoms{
-			Records:        silver.records,
-			Calls:          made,
-			CallsTallied:   tallied,
-			AnalysisStatus: tallies(silver.status),
+			Records:        records,
+			Calls:          calls,
+			AnalysisStatus: tallies(status),
 			CallOutcome:    tallies(outcome),
-			NoCallReason:   tallies(silver.noCall),
+			NoCallReason:   tallies(noCall),
 		},
+	}, nil
+}
+
+func countBy(ctx context.Context, db *sql.DB, query string, args ...any) (map[string]int, error) {
+	rs, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
 	}
+	defer rs.Close()
+	counts := map[string]int{}
+	for rs.Next() {
+		var name string
+		var n int
+		if err := rs.Scan(&name, &n); err != nil {
+			return nil, err
+		}
+		counts[name] += n
+	}
+	return counts, rs.Err()
 }
 
 func tallies(counts map[string]int) []debugTally {

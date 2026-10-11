@@ -24,10 +24,29 @@ import type {
 
 const BASE = "/api";
 
+// ApiError keeps the status and the `{error}` code a read route answered with, so a screen can
+// tell a state it explains (the debug index not built yet) from a failure.
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null,
+  ) {
+    super(message);
+  }
+}
+
 export async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = signal ? await fetch(`${BASE}${path}`, { signal }) : await fetch(`${BASE}${path}`);
   if (!res.ok) {
-    throw new Error(`GET ${BASE}${path} -> ${res.status} ${res.statusText}`);
+    let code: string | null = null;
+    try {
+      const err = (await res.json()) as { error?: unknown };
+      if (typeof err.error === "string") code = err.error;
+    } catch {
+      // A non-JSON failure keeps the status line alone.
+    }
+    throw new ApiError(`GET ${BASE}${path} -> ${res.status} ${res.statusText}`, res.status, code);
   }
   return (await res.json()) as T;
 }

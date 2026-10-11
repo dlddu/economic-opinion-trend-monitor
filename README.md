@@ -175,7 +175,7 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   스테이지가 실제로 되는지 확인한다. 현재 두 개가 있고 **동시에 하나만 돈다**:
   `econ-ingestion-hourly`(수집만, 현재 suspend — 켜는 순간부터 `default_feeds.json`의 모든
   엔드포인트로 매시간 실제 HTTP 요청)와 `econ-pipeline-hourly`(`ingest -> analyze ->
-  aggregate`, 가동 중 — 수집에 더해 본문이 있는 매 항목이 LLM 엔드포인트로 나간다). 한쪽을
+  aggregate`, 종료 시 `index` — 가동 중 — 수집에 더해 본문이 있는 매 항목이 LLM 엔드포인트로 나간다). 한쪽을
   켤 때는 다른 쪽을 먼저 suspend한다.
 - 배치와 서빙은 **한 클레임(`econ-batch-data`, RWX)을 공유**한다. 파이프라인이 매시간
   Bronze→Silver→Gold를 그 볼륨에 쓰고, 서빙은 같은 볼륨의 Gold를 읽기 전용으로 읽는다 —
@@ -185,6 +185,18 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   StorageClass의 RWX access point였고, 복사는 파일·실패 지점·시차만 더하기 때문이다.
   집계가 Gold를 다시 쓰는 수 초 동안 동시 요청이 잘린 줄을 읽을 수 있는 창은 남아 있다
   (`LocalFsStore.write_records`가 truncate+write — 원자적 교체는 후속).
+- **서빙 인덱스**: `econ-batch-pipeline` 워크플로는 진입점이 무엇이든, 성공하든 실패하든 종료
+  핸들러(`onExit`)로 `index` 단계를 돈다 — 중간에 실패한 실행이 디버그 화면이 가장 필요한 때다. 서빙
+  이미지의 `econ-index`가 레이크에서 SQLite 인덱스를 만들어 `/data/serving/index-<시각>-<난수>.sqlite`
+  로 발행하고 포인터 `/data/serving/index.current`만 옮긴다 — 다른 노드의 서빙이 열고 있는 파일을
+  바꾸지 않으려고 매번 새 이름에 쓰고, 바뀐 지 1시간이 지난 옛 인덱스만 지운다. llm_call 파일은
+  한 번 쓰이면 바뀌지 않으므로 앞 인덱스의 행을 그대로 가져오고 새 파일만 읽는다(첫 빌드만 전부
+  읽는다). 디버그 화면 API(`/api/debug`, `/api/debug/records`)는 레이크를 훑지 않고 이 인덱스를
+  `mode=ro&immutable=1`로 읽으며, 요청이 올 때 1초에 한 번까지 포인터를 다시 봐 새 인덱스로 옮겨 탄다. 인덱스가 아직
+  없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. 배포 직후
+  첫 인덱스는 다음 정시 파이프라인을 기다리거나 `entrypoint: index`로 워크플로를 한 번 제출해
+  만든다(종료 핸들러가 한 번 더 돌지만 두 번째는 새 파일만 읽어 짧다). 인덱스 스키마는 `go/internal/servingindex/`(`SchemaVersion`)에 있고, 서빙은 다른 버전의
+  인덱스를 열지 않는다 — 버전을 올린 배포는 다음 `index` 단계까지 디버그 화면이 준비 중이다.
 - 분석 스케줄은 `econ-pipeline-hourly`로 배선돼 가동 중이고, 그 분석 스테이지는
   `econ-llm` Secret의 `api-key`를 요구한다 — `ghcr`와 마찬가지로 external-secrets가
   네임스페이스에 주입하며 이 레포에는 없다. 집계 스케줄과 원격 스토리지는 후속 작업이다.

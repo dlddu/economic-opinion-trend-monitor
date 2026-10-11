@@ -149,22 +149,12 @@ func (l *Lake) LlmCall(callID string) (*gen.LlmCallRecord, error) {
 	return readObject[gen.LlmCallRecord](l, "silver", "llm_call", "call_id", callID)
 }
 
-// LlmCallHead is the part of an llm_call record a tally or a list row reads.
+// LlmCallHead is the part of an llm_call record the serving index keeps per call.
 // Decoding only it leaves the prompt and reply text — nearly all of a record — unallocated.
 type LlmCallHead struct {
 	CallID      string             `json:"call_id"`
 	RunID       string             `json:"run_id"`
 	CallOutcome gen.LlmCallOutcome `json:"call_outcome"`
-}
-
-// LlmCallHeadOf reads one llm_call record's head by call_id (nil if absent).
-func (l *Lake) LlmCallHeadOf(callID string) (*LlmCallHead, error) {
-	return readObject[LlmCallHead](l, "silver", "llm_call", "call_id", callID)
-}
-
-// EachLlmCallHead streams the head of every llm_call record to fn, in call_id file-name order.
-func (l *Lake) EachLlmCallHead(ctx context.Context, fn func(*LlmCallHead) error) error {
-	return stopped(eachObjects(ctx, l.objectDir("silver", "llm_call"), fn))
 }
 
 // partitionFile mirrors econ_core.storage.PARTITION_FILE.

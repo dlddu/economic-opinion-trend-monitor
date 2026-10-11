@@ -40,12 +40,14 @@ func TestStageClockNamesTheStageAnAbortCut(t *testing.T) {
 
 func TestStageClockStampsServerTiming(t *testing.T) {
 	captureLog(t)
-	h := New(store.New(t.TempDir()))
+	dir := t.TempDir()
+	indexLake(t, dir)
+	h := New(store.New(dir))
 	rec := httptest.NewRecorder()
-	h.oneScanAtATime(h.debug)(rec, httptest.NewRequest(http.MethodGet, "/api/debug", nil))
+	h.fromIndex(h.debug)(rec, httptest.NewRequest(http.MethodGet, "/api/debug", nil))
 
 	timing := rec.Header().Get("Server-Timing")
-	for _, stage := range []string{"gate;dur=", "silver;dur="} {
+	for _, stage := range []string{"open;dur=", "silver;dur="} {
 		if !strings.Contains(timing, stage) {
 			t.Fatalf("Server-Timing = %q, missing %s", timing, stage)
 		}

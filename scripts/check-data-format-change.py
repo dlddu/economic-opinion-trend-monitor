@@ -19,6 +19,8 @@ SENSITIVE_PATHS: list[tuple[str, str, str]] = [
     ("MA1", "contracts/**", "스키마 계약(contracts/) — JSON Schema·Avro·코드젠"),
     ("MA2", "go/gen/**", "contracts 에서 생성된 Go 레코드 타입"),
     ("MA3", "python/packages/core/src/econ_core/models/**", "contracts 에서 생성된 Python 레코드 타입"),
+    ("MA6", "go/internal/servingindex/**", "레이크 볼륨에 쓰는 Go 코드 — 서빙 인덱스 발행·옛 인덱스 삭제"),
+    ("MA6", "go/cmd/econ-index/**", "레이크 볼륨에 쓰는 Go 코드 — 서빙 인덱스 빌드 진입점"),
     ("MA5", ".github/workflows/review-gate.yml", "리뷰 게이트 워크플로 자체"),
     ("MA5", "scripts/check-data-format-change.py", "리뷰 게이트 판정기 자체"),
     ("MA5", POLICY, "수동 승인 정책 문서 자체"),

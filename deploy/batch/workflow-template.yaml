@@ -1,6 +1,9 @@
 # `ingest` and `pipeline` are driven by the CronWorkflows; `reprocess` and
 # `publish` are submitted by the serving Pod (deploy/base/rbac.yaml), and the
 # operator input they take arrives as the `arguments.parameters` defaults below.
+# Whatever the entrypoint, and whether it succeeded or failed, the workflow exits through
+# `index`, which rebuilds the serving index the debug screen reads — a run that
+# failed halfway is the one an operator most needs to look at.
 # The `image:` tags in this file are CI-owned — do not edit them by hand
 # (README 「운영 고정(`pin` job)」).
 apiVersion: argoproj.io/v1alpha1
@@ -9,6 +12,7 @@ metadata:
   name: econ-batch-pipeline
 spec:
   entrypoint: ingest
+  onExit: index
   serviceAccountName: econ-batch
   arguments:
     parameters:
@@ -263,6 +267,45 @@ spec:
             memory: 128Mi
           limits:
             memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: tmp
+            mountPath: /tmp
+
+    # Derives the serving index from the lake and swaps it in for the serving
+    # Pod. It runs the serving image, whose Go readers define the order the
+    # screens show rows in. Read-only over the lake but for its own files under
+    # /data/serving; a retry rebuilds from scratch and is always safe. The mutex
+    # keeps a scheduled run and an operator's reprocess from publishing over
+    # each other out of order.
+    - name: index
+      synchronization:
+        mutexes:
+          - name: econ-serving-index
+      retryStrategy:
+        limit: "3"
+        retryPolicy: Always
+      container:
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        command: ["/app/econ-index"]
+        args: []
+        env:
+          - name: ECON_DATA_ROOT
+            value: /data
+          - name: TMPDIR
+            value: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
