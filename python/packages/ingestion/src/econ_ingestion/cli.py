@@ -132,6 +132,11 @@ def _collect(
     )
     for source_id, reason in stats.failure_reasons.items():
         print(f"  failed_source {source_id}: {reason}")
+    if stats.article_fetches:
+        print(
+            f"  article_pages: fetched={stats.article_fetches} "
+            f"extracted={stats.article_extracted} kept_feed_body={stats.article_kept_feed_body}"
+        )
 
     stage.input_count = len(items) + stats.duplicates
     stage.output_count = written

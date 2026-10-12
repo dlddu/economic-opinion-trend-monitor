@@ -139,6 +139,9 @@ class IngestStats:
     duplicates: int = 0
     failed_sources: list[str] = field(default_factory=list)
     failure_reasons: dict[str, str] = field(default_factory=dict)
+    article_fetches: int = 0
+    article_extracted: int = 0
+    article_kept_feed_body: int = 0
 
 
 def run_ingestion(
