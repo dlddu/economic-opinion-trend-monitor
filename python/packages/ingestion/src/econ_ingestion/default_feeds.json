@@ -1,9 +1,20 @@
 [
   { "source_id": "yonhap-economy", "axis": "KR", "feed_url": "https://www.yna.co.kr/rss/economy.xml", "limit": 100, "body_extraction": "article" },
   { "source_id": "hankyung-economy", "axis": "KR", "feed_url": "https://www.hankyung.com/feed/economy", "limit": 100, "body_extraction": "article" },
+  { "source_id": "mk-economy", "axis": "KR", "feed_url": "https://www.mk.co.kr/rss/30100041/", "limit": 100, "body_extraction": "article" },
+  { "source_id": "donga-economy", "axis": "KR", "feed_url": "https://rss.donga.com/economy.xml", "limit": 100, "body_extraction": "article_always" },
+  { "source_id": "khan-economy", "axis": "KR", "feed_url": "https://www.khan.co.kr/rss/rssdata/economy_news.xml", "limit": 100, "body_extraction": "article" },
+  { "source_id": "hani-economy", "axis": "KR", "feed_url": "https://www.hani.co.kr/rss/economy/", "limit": 100, "body_extraction": "article" },
   { "source_id": "fed-press", "axis": "US", "feed_url": "https://www.federalreserve.gov/feeds/press_all.xml", "limit": 100, "body_extraction": "article" },
+  { "source_id": "cnbc-top", "axis": "US", "feed_url": "https://www.cnbc.com/id/100003114/device/rss/rss.html", "limit": 100, "body_extraction": "article" },
+  { "source_id": "npr-economy", "axis": "US", "feed_url": "https://feeds.npr.org/1017/rss.xml", "limit": 100, "body_extraction": "article_always" },
+  { "source_id": "abc-business", "axis": "US", "feed_url": "https://abcnews.go.com/abcnews/businessheadlines", "limit": 100, "body_extraction": "article" },
+  { "source_id": "fox-business-economy", "axis": "US", "feed_url": "https://moxie.foxbusiness.com/google-publisher/economy.xml", "limit": 100, "body_extraction": "feed" },
   { "source_id": "imf-mediacenter", "axis": "GLOBAL", "feed_url": "https://mediacenter.imf.org/rss", "limit": 100, "body_extraction": "feed" },
   { "source_id": "worldbank-press", "axis": "GLOBAL", "format": "worldbank-json", "feed_url": "https://search.worldbank.org/api/v2/news?format=json&rows=100&lang_exact=English&displayconttype_exact=Press%20Release&srt=lnchdt&order=desc", "limit": 100, "body_extraction": "feed" },
   { "source_id": "bbc-business", "axis": "GLOBAL", "feed_url": "https://feeds.bbci.co.uk/news/business/rss.xml", "limit": 100, "body_extraction": "article" },
-  { "source_id": "guardian-economics", "axis": "GLOBAL", "feed_url": "https://www.theguardian.com/business/economics/rss", "limit": 100, "body_extraction": "article_always" }
+  { "source_id": "guardian-economics", "axis": "GLOBAL", "feed_url": "https://www.theguardian.com/business/economics/rss", "limit": 100, "body_extraction": "article_always" },
+  { "source_id": "dw-business", "axis": "GLOBAL", "feed_url": "https://rss.dw.com/rdf/rss-en-bus", "limit": 100, "body_extraction": "article" },
+  { "source_id": "cna-business", "axis": "GLOBAL", "feed_url": "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=6936", "limit": 100, "body_extraction": "article" },
+  { "source_id": "euronews-business", "axis": "GLOBAL", "feed_url": "https://www.euronews.com/rss?level=theme&name=business", "limit": 100, "body_extraction": "article" }
 ]
