@@ -35,9 +35,8 @@ module.exports = {
     shape('topic-axis', 'SELECT');
     shape('gapthresh', 'INPUT', 'number');
     shape('alias-merge', 'INPUT', 'checkbox');
-    shape('verdict-memo', 'TEXTAREA');
-    t.is([...d.querySelectorAll('input[name="verdict"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
-      true, '(d) 결론 컨트롤이 전부 실제 <input type=radio> 다');
+    t.is([...d.querySelectorAll('input[name="show-axis"]')].every(e => e.tagName === 'INPUT' && e.type === 'checkbox'),
+      true, '(d) 표시할 축 컨트롤이 전부 실제 <input type=checkbox> 다');
 
     t.is(d.getElementById('src-axis') !== d.getElementById('topic-axis'), true,
       '(d) 출처 축과 대상 축이 별개의 <select> 로 분리돼 있다');
@@ -103,9 +102,20 @@ module.exports = {
     walkToPick(t, w, d);
     pickFirstOutlier(t, w, d);
     t.click(w, d.getElementById('cta-4'));
-    const memo = d.getElementById('verdict-memo');
-    memo.value = '타이핑 확인'; t.fire(w, memo, 'input');
-    t.is(memo.value, '타이핑 확인', '(d) <textarea> 에 타이핑이 반영된다');
+    const chartBefore = d.getElementById('trendchart').innerHTML;
+    const legendBefore = d.querySelectorAll('#trend-legend > span').length;
+    // 고른 대상이 모든 축에 있지는 않다 — 범례에 실제로 그려진 축 하나를 끈다.
+    const drawnLabel = (d.querySelector('#trend-legend > span')?.textContent || '').trim();
+    const kr = [...d.querySelectorAll('input[name="show-axis"]')]
+      .find(c => c.parentElement.textContent.trim() === drawnLabel);
+    if (!kr) { t.bad(`(d) 범례의 축 「${drawnLabel}」 에 대응하는 표시 체크박스가 없다`); return; }
+    kr.checked = false; t.fire(w, kr, 'change');
+    t.is(d.getElementById('trendchart').innerHTML !== chartBefore, true,
+      '(d) <input type=checkbox> 로 축을 끄면 축별 시계열이 실제로 바뀐다');
+    t.is(d.querySelectorAll('#trend-legend > span').length, legendBefore - 1,
+      '(d) 끈 축은 범례에서도 빠진다');
+    kr.checked = true; t.fire(w, kr, 'change');
+    t.is(d.getElementById('trendchart').innerHTML, chartBefore, '(d) 축을 다시 켜면 차트가 되돌아온다');
   },
 
   async states(t) {
@@ -157,23 +167,6 @@ module.exports = {
       t.is(t.shown(d, 'alias-merged'), true, '(e) alias-merged — 통합을 켜면 통합 전후 표기 상태에 도달');
       alias.checked = false; t.fire(w, alias, 'change');
       t.is(t.shown(d, 'alias-merged'), false, '(e) alias-merged — 통합을 끄면 해소된다');
-    }
-    {
-      const { w, d } = t.boot();
-      walkToPick(t, w, d);
-      pickFirstOutlier(t, w, d);
-      t.click(w, d.getElementById('cta-4'));
-      t.fire(w, d.getElementById('verdict-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), true, '(e) invalid — 빈 제출이 검증 실패 상태에 도달');
-      t.is(t.shown(d, 'recorded'), false, '(e) invalid — 검증 실패 시 성공 상태가 아니다');
-      d.querySelector('input[name="verdict"]').checked = true;
-      t.fire(w, d.getElementById('verdict-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), true, '(e) invalid — 결론만 있고 메모가 비면 여전히 실패');
-      const memo = d.getElementById('verdict-memo');
-      memo.value = '한국 축만 T-4부터 벌어졌고 미국·전세계는 평탄';
-      t.fire(w, d.getElementById('verdict-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), false, '(e) recorded — 채워서 제출하면 검증 실패가 해소된다');
-      t.is(t.shown(d, 'recorded'), true, '(e) recorded — 온도차 기록 성공 상태에 도달');
     }
   },
 

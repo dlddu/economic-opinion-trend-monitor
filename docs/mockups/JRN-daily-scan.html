@@ -799,62 +799,9 @@ details.meta table.tbl{margin-top:10px}
 
         </div>
         <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-shortlist" id="cta-4">
-            오늘 볼 대상 추리기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint">본 것 중 오늘 챙길 것만 남깁니다.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 5 · 오늘 볼 대상 추리기 ============ -->
-      <section class="jstep" id="STP-shortlist" data-step="STP-shortlist" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-7">
-            <div class="card-h"><h3>오늘 챙길 대상</h3><span class="sub">2~3개만 남기고 세션을 닫습니다</span></div>
-            <div class="card-b">
-              <form id="shortlist-form">
-                <div class="fld">
-                  <span class="fl">후보</span>
-                  <div id="cand-list"></div>
-                </div>
-                <label class="fld" style="margin-top:18px">
-                  <span class="fl">브리핑 메모</span>
-                  <textarea id="shortlist-memo" name="shortlist-memo" placeholder="왜 오늘 이것을 챙기는지 한 줄로 적어 두세요."></textarea>
-                </label>
-                <div class="stepact" style="margin-top:16px">
-                  <button type="submit" class="btn pri" id="shortlist-submit">추림 확정하고 닫기</button>
-                  <span class="hint" id="pickcount">0개 선택</span>
-                </div>
-              </form>
-
-              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-                <div id="invalid-msg">후보를 하나 이상 고르고 메모를 채워야 확정됩니다.</div>
-              </div>
-
-              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
-                <div>
-                  <b>오늘 볼 대상을 추렸습니다.</b>
-                  <span id="recorded-what"></span>
-                  <div class="bhint" style="margin-top:6px">이 추림은 <b>이 세션 안에서만</b> 유지됩니다 &mdash; 제품 안에 담아 두는 워치리스트는 아직 없습니다.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card col-5">
-            <div class="card-h"><h3>이번 스캔 요약</h3><span class="sub">닫을 때의 조건이 다음 진입에 복원됩니다</span></div>
-            <div class="card-b" id="scan-summary"></div>
-
-            <div class="card-b" style="border-top:1px solid var(--line)">
-              <div class="bhint" style="margin-bottom:8px">목록만 보고 오늘은 접어도, 다음 진입에서 이 조건 그대로 열립니다.</div>
-              <a class="btn sm" id="br-4" href="#STP-open-brief"
-                 data-goto="JRN-daily-scan#STP-open-brief">저장 없이 닫고 이 조건으로 다시 열기</a>
-            </div>
-          </div>
-
+          <a class="btn sm" id="br-4" href="#STP-open-brief"
+             data-goto="JRN-daily-scan#STP-open-brief">닫고 이 조건으로 다시 열기</a>
+          <span class="hint">닫을 때의 조건이 다음 진입에 복원됩니다.</span>
         </div>
       </section>
 
@@ -870,7 +817,6 @@ details.meta table.tbl{margin-top:10px}
             <li class="jr-item" data-rail="STP-scan-delta"><button type="button" class="jr-btn" data-goto-step="STP-scan-delta"><span class="jr-n">2</span><span class="jr-t">어제 대비 변화 훑기</span><span class="jr-id mono">STP-scan-delta</span></button></li>
             <li class="jr-item" data-rail="STP-adjust-window"><button type="button" class="jr-btn" data-goto-step="STP-adjust-window"><span class="jr-n">3</span><span class="jr-t">기간·단위 조정</span><span class="jr-id mono">STP-adjust-window</span></button></li>
             <li class="jr-item" data-rail="STP-drill-trend"><button type="button" class="jr-btn" data-goto-step="STP-drill-trend"><span class="jr-n">4</span><span class="jr-t">대상 추세 상세 열기</span><span class="jr-id mono">STP-drill-trend</span></button></li>
-            <li class="jr-item" data-rail="STP-shortlist"><button type="button" class="jr-btn" data-goto-step="STP-shortlist"><span class="jr-n">5</span><span class="jr-t">오늘 볼 대상 추리기</span><span class="jr-id mono">STP-shortlist</span></button></li>
           </ol>
           <div class="jstep-f" style="margin-top:6px">
             <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
@@ -884,7 +830,6 @@ details.meta table.tbl{margin-top:10px}
               <tr><td class="mono">STP-scan-delta</td><td>순위와 증감을 훑어 새로 올라온 대상·급락한 대상을 찾는다</td><td>증감 표시(CMP-delta)</td><td class="mono">&mdash;</td></tr>
               <tr><td class="mono">STP-adjust-window</td><td>시간/일/주 단위를 바꿔 일시적 스파이크인지 지속 추세인지 가늠한다</td><td>기간·단위 컨트롤(CMP-seg 의 자리를 실제 폼 요소가 대신한다)</td><td class="mono">AC3.3</td></tr>
               <tr><td class="mono">STP-drill-trend</td><td>눈에 걸린 대상을 골라 시계열 추세 차트를 연다</td><td>라인 차트(PAT-line-chart), 상위 대상 비교 테이블(CMP-table), 범례(CMP-legend)</td><td class="mono">AC3.5 · AC3.2</td></tr>
-              <tr><td class="mono">STP-shortlist</td><td>2~3개 대상을 추리고 세션을 닫는다</td><td>추림 폼 / 제품 외부(사용자 개인 메모)</td><td class="mono">&mdash;</td></tr>
             </tbody>
           </table>
 
@@ -894,14 +839,13 @@ details.meta table.tbl{margin-top:10px}
               <tr><td>밤사이 수집이 실패해 데이터가 비었음</td><td>화면 1 · 수집 없음 배너</td><td class="mono">STP-scan-delta</td></tr>
               <tr><td>급등 대상이 신뢰되지 않음</td><td>화면 2 · 급등 진위 확인 이탈</td><td class="mono">JRN-spike-verification · STP-notice-spike</td></tr>
               <tr><td>축 간 차이가 궁금해짐</td><td>화면 3 · 3축 비교 이탈</td><td class="mono">JRN-axis-contrast · STP-open-compare</td></tr>
-              <tr><td>중도 이탈 (목록만 보고 종료)</td><td>화면 5 · 저장 없이 닫기</td><td class="mono">STP-open-brief</td></tr>
+              <tr><td>중도 이탈 (목록만 보고 종료)</td><td>화면 4 · 닫고 이 조건으로 다시 열기</td><td class="mono">STP-open-brief</td></tr>
             </tbody>
           </table>
 
-          <p style="margin-top:14px"><b>범위 밖으로 둔 것</b> &mdash; <span class="mono">STP-shortlist</span> 의 페인포인트인
-             관심 대상 북마크·워치리스트는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹한 항목이다.
-             이 프로토타입은 그 기능을 만들지 않고, 단계가 정의한 「추리고 세션을 닫는다」까지만 그린다
-             &mdash; 추림은 세션 안에서만 유지된다.</p>
+          <p style="margin-top:14px"><b>범위 밖으로 둔 것</b> &mdash; 오늘 볼 대상을 제품 안에 추려 담는 표면(추림 폼,
+             북마크·워치리스트)은 두지 않는다. 여정은 추세 상세를 연 화면 4에서 끝나고, 추린 대상은 사용자가
+             제품 밖에 적어 둔다 &mdash; 여정 문서 「범위 밖」 참조.</p>
 
           <div class="mapstrip" style="margin-top:16px">
             <span class="lab">visualizes</span>
@@ -910,7 +854,6 @@ details.meta table.tbl{margin-top:10px}
             <span class="chip"><b>STP-scan-delta</b></span>
             <span class="chip"><b>STP-adjust-window</b></span>
             <span class="chip"><b>STP-drill-trend</b></span>
-            <span class="chip"><b>STP-shortlist</b></span>
             <span class="chip v"><b>V1</b> 시계열 추세 가시화</span>
             <span class="chip">AC3.2 · AC3.3 · AC3.5</span>
           </div>
@@ -973,8 +916,7 @@ var state = {
   onlyNew: false,
   range: '7',
   unit: 'day',
-  target: null,
-  shortlist: []
+  target: null
 };
 
 function rows(){
@@ -1225,66 +1167,9 @@ function drawTrend(){
     + '<th class="num">구간 평균</th><th class="num">변화</th></tr></thead><tbody>' + tbl + '</tbody>';
 }
 
-/* ---------------- 화면 5 · 오늘 볼 대상 추리기 ---------------- */
-function renderCandidates(){
-  var list = rows().slice(0, 5);
-  if(state.target && list.indexOf(state.target) < 0) list = [state.target].concat(list).slice(0, 5);
-  $('cand-list').innerHTML = list.length
-    ? list.map(function(r, i){
-        var on = state.target && state.target.name === r.name;
-        return '<label class="chk" style="display:flex;margin-top:8px">'
-          + '<input type="checkbox" class="cand" name="cand" value="' + esc(r.name) + '"'
-          + (on ? ' checked' : '') + ' /> ' + esc(r.name)
-          + ' <span class="meta" style="color:var(--ink-3)">· ' + r.share.toFixed(1) + '%</span>'
-          + '</label>';
-      }).join('')
-    : '<div class="emptybox">추릴 후보가 없습니다 — 축을 바꿔 다시 훑어 보세요.</div>';
-  Array.prototype.forEach.call(document.querySelectorAll('input.cand'), function(c){
-    c.addEventListener('change', updateCount);
-  });
-  updateCount();
-  renderSummary();
-}
-
-function picked(){
-  return Array.prototype.filter.call(document.querySelectorAll('input.cand'), function(c){
-    return c.checked;
-  }).map(function(c){ return c.value; });
-}
-function updateCount(){
-  $('pickcount').textContent = picked().length + '개 선택';
-}
-
-function renderSummary(){
-  $('scan-summary').innerHTML =
-      '<div class="kv"><span class="k">축</span><span class="v">' + AXES[state.axis].label + '</span></div>'
-    + '<div class="kv"><span class="k">기간 · 단위</span><span class="v">' + rangeLabel() + ' · ' + unitLabel() + '</span></div>'
-    + '<div class="kv"><span class="k">비교 기준</span><span class="v">' + BASIS[state.basis].label + '</span></div>'
-    + '<div class="kv"><span class="k">상세로 내려간 대상</span><span class="v">'
-    + (state.target ? esc(state.target.name) : '없음') + '</span></div>';
-}
-
-function submitShortlist(e){
-  if(e) e.preventDefault();
-  var sel = picked();
-  var memo = $('shortlist-memo').value.trim();
-  if(!sel.length || !memo){
-    $('invalid-msg').textContent = !sel.length
-      ? '후보를 하나 이상 고르세요 — 아무것도 남기지 않으면 오늘 볼 것이 없습니다.'
-      : '왜 오늘 이것을 챙기는지 한 줄이라도 적어야 내일의 자신이 읽을 수 있습니다.';
-    show($('s-invalid'), true);
-    show($('s-recorded'), false);
-    return;
-  }
-  show($('s-invalid'), false);
-  state.shortlist = sel;
-  $('recorded-what').textContent = sel.join(' · ') + ' — ' + sel.length + '개를 오늘 볼 대상으로 남겼습니다.';
-  show($('s-recorded'), true);
-}
-
 /* ---------------- 여정 워커 ---------------- */
 (function(){
-  var order = ['STP-open-brief','STP-scan-delta','STP-adjust-window','STP-drill-trend','STP-shortlist'];
+  var order = ['STP-open-brief','STP-scan-delta','STP-adjust-window','STP-drill-trend'];
   var secs = {}, rails = {};
   order.forEach(function(id){
     secs[id] = document.getElementById(id);
@@ -1307,7 +1192,6 @@ function submitShortlist(e){
     if(nextBtn) nextBtn.disabled = (i === order.length - 1);
     if(id === 'STP-adjust-window') renderWindow();
     if(id === 'STP-drill-trend') drawTrend();
-    if(id === 'STP-shortlist') renderCandidates();
     if(push && location.hash !== '#' + id) location.hash = '#' + id;
   }
   window.__journeyGo = go;
@@ -1387,14 +1271,10 @@ function submitShortlist(e){
   $('tr-marks').addEventListener('change', drawTrend);
   $('trend-form').addEventListener('submit', function(e){ e.preventDefault(); });
 
-  $('shortlist-memo').addEventListener('input', function(){});
-  $('shortlist-form').addEventListener('submit', submitShortlist);
-
   renderBrief();
   renderDelta();
   renderWindow();
   drawTrend();
-  renderCandidates();
   fromHash();
 })();
 </script>

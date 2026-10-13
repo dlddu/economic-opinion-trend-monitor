@@ -4,7 +4,6 @@ import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
-import tokensCss from "../tokens/tokens.css?raw";
 
 function renderTrend(entry = "/trend") {
   return render(
@@ -163,14 +162,6 @@ describe("Trend", () => {
     expect(labels).toEqual(["2.0%", "1.5%", "1.0%", "0.5%", "0"]);
   });
 
-  it("ships a [hidden] rule that outranks the banners' own display", () => {
-    // 배너는 `hidden` 속성으로 숨기는데 `.trend-sl-banner` 가 `display` 를 스스로 선언해 UA 의
-    // `[hidden]{display:none}` 을 이긴다. jsdom 은 `!important` 를 캐스케이드에 반영하지 않아
-    // 계산된 스타일로는 이 결함을 볼 수 없으므로, 막아 주는 규칙이 토큰에 있는지를 직접 본다.
-    expect(tokensCss).toMatch(/\.trend-sl-banner\s*\{[^}]*display:\s*block/);
-    expect(tokensCss).toMatch(/(^|\n)\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
-  });
-
   it("draws the picked subject alone until 겹쳐 보기 is opted into", async () => {
     stubTrend([response()]);
     const { container } = renderTrend();
@@ -279,146 +270,7 @@ describe("Trend", () => {
     expect(container.querySelectorAll(".seg button")).toHaveLength(3);
   });
 
-  it("offers every compared subject as a shortlist candidate, with the drilled one pre-picked", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
-
-    const boxes = Array.from(
-      container.querySelectorAll<HTMLInputElement>(".trend-sl-cand input"),
-    );
-    expect(boxes.map((b) => b.value)).toEqual(["기준금리", "삼성전자"]);
-    expect(boxes.map((b) => b.checked)).toEqual([true, false]);
-    expect(container.querySelector(".trend-sl-count")?.textContent).toBe("1개 선택");
-  });
-
-  it("names which half of the shortlist form is missing instead of one blanket message", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
-    const form = container.querySelector(".trend-sl-form") as HTMLFormElement;
-    const err = container.querySelector(".trend-sl-banner.err") as HTMLElement;
-    const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
-    expect(err.hidden).toBe(true);
-
-    fireEvent.submit(form);
-    expect(err.hidden).toBe(false);
-    expect(err.textContent).toContain("왜 오늘 이것을 챙기는지 한 줄이라도");
-    expect(good.hidden).toBe(true);
-
-    fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
-      target: { value: "금리 결정 주간이라 하루 더 본다" },
-    });
-    fireEvent.click(container.querySelectorAll(".trend-sl-cand input")[0]);
-    fireEvent.submit(form);
-    expect(err.hidden).toBe(false);
-    expect(err.textContent).toContain("후보를 하나 이상 고르세요");
-  });
-
-  it("records the shortlist for the session and says so, without claiming a watchlist", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelectorAll(".trend-sl-cand")).toHaveLength(2));
-    fireEvent.click(container.querySelectorAll(".trend-sl-cand input")[1]);
-    fireEvent.change(container.querySelector("textarea") as HTMLTextAreaElement, {
-      target: { value: "반도체 수출 지표 발표 전" },
-    });
-    expect(container.querySelector(".trend-sl-count")?.textContent).toBe("2개 선택");
-
-    fireEvent.submit(container.querySelector(".trend-sl-form") as HTMLFormElement);
-
-    const good = container.querySelector(".trend-sl-banner.good") as HTMLElement;
-    expect(good.hidden).toBe(false);
-    expect(good.textContent).toContain("오늘 볼 대상을 추렸습니다.");
-    expect(good.textContent).toContain("기준금리 · 삼성전자 — 2개를 오늘 볼 대상으로 남겼습니다.");
-    expect(good.textContent).toContain("이 세션 안에서만");
-    expect(good.textContent).toContain("워치리스트는 아직 없습니다");
-    expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
-  });
-
-  it("offers the 온도차 판별 form with the mockup's three verdicts and memo prompt", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
-
-    const card = container.querySelector(".trend-vd-form")?.closest(".card") as HTMLElement;
-    expect(card.querySelector("h3")?.textContent).toBe("온도차 판별");
-    expect(card.querySelector(".sub")?.textContent).toBe("한 문장으로 설명할 수 있는 상태로 마칩니다");
-
-    const radios = Array.from(card.querySelectorAll<HTMLInputElement>(".trend-vd-radio input"));
-    expect(radios.map((r) => r.value)).toEqual(["persistent", "transient", "none"]);
-    expect(radios.map((r) => r.checked)).toEqual([false, false, false]);
-    expect(
-      Array.from(card.querySelectorAll(".trend-vd-radio")).map((el) => el.textContent?.trim()),
-    ).toEqual([
-      "지속적인 온도차다 — 기간 내내 격차가 유지된다",
-      "이번 구간만의 격차다 — 최근 며칠에만 벌어졌다",
-      "차이 없음 — 축 간 관심사가 사실상 같다",
-    ]);
-    const memo = card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement;
-    expect(memo.placeholder).toBe("어느 축이 언제부터 얼마나 벌어졌는지 적어 두세요.");
-    expect(card.querySelector(".trend-sl-submit")?.textContent?.trim()).toBe("온도차 기록");
-    expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
-    expect((card.querySelector(".trend-sl-banner.good") as HTMLElement).hidden).toBe(true);
-  });
-
-  it("names which half of the 온도차 판별 form is missing, as the mockup's submitVerdict does", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
-    const form = container.querySelector(".trend-vd-form") as HTMLFormElement;
-    const card = form.closest(".card") as HTMLElement;
-    const err = card.querySelector(".trend-sl-banner.err") as HTMLElement;
-    const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
-
-    fireEvent.submit(form);
-    expect(err.hidden).toBe(false);
-    expect(err.textContent).toBe("결론을 하나 고르세요.");
-    expect(good.hidden).toBe(true);
-
-    fireEvent.click(card.querySelectorAll(".trend-vd-radio input")[0]);
-    fireEvent.change(card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement, {
-      target: { value: "   " },
-    });
-    fireEvent.submit(form);
-    expect(err.hidden).toBe(false);
-    expect(err.textContent).toBe(
-      "근거 메모를 적어야 기록됩니다 — 어느 축이 언제부터 벌어졌는지가 결론의 실체입니다.",
-    );
-    expect(good.hidden).toBe(true);
-    // 추림 폼의 배너는 이 폼의 제출에 반응하지 않는다 — 두 기록은 별개다.
-    expect((container.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
-  });
-
-  it("records the 온도차 verdict for the session with the mockup's banner wording", async () => {
-    stubTrend([response()]);
-    const { container } = renderTrend();
-
-    await waitFor(() => expect(container.querySelector(".trend-vd-form")).not.toBeNull());
-    const form = container.querySelector(".trend-vd-form") as HTMLFormElement;
-    const card = form.closest(".card") as HTMLElement;
-
-    fireEvent.click(card.querySelectorAll(".trend-vd-radio input")[1]);
-    fireEvent.change(card.querySelector("textarea[name='verdict-memo']") as HTMLTextAreaElement, {
-      target: { value: "US 축만 이번 주 화요일부터 8%p 벌어졌다" },
-    });
-    fireEvent.submit(form);
-
-    const good = card.querySelector(".trend-sl-banner.good") as HTMLElement;
-    expect(good.hidden).toBe(false);
-    expect(good.textContent).toContain("온도차를 기록했습니다.");
-    expect(good.textContent).toContain("이번 구간만의 격차으로 판별했습니다.");
-    expect((card.querySelector(".trend-sl-banner.err") as HTMLElement).hidden).toBe(true);
-    expect(Object.keys(localStorage)).toEqual(["econ-monitor:trend:view"]);
-    expect(sessionStorage.length).toBe(0);
-  });
-
-  it("reopens on the conditions the reader left, as the scan summary promises", async () => {
+  it("reopens on the conditions the reader left", async () => {
     const urls = stubTrend([response(), response("삼성전자")]);
     const first = renderTrend();
 
@@ -434,13 +286,7 @@ describe("Trend", () => {
     expect(urls[2]).toContain(`subject=${encodeURIComponent("삼성전자")}`);
 
     await waitFor(() =>
-      expect(again.container.querySelector(".trend-sl-cand")).not.toBeNull(),
-    );
-    const summary = Array.from(again.container.querySelectorAll(".kv")).map(
-      (kv) => kv.textContent ?? "",
-    );
-    expect(summary.some((row) => row.includes("상세로 내려간 대상") && row.includes("삼성전자"))).toBe(
-      true,
+      expect(again.container.querySelector("table.tbl tr.click.on")?.textContent).toContain("삼성전자"),
     );
   });
 
