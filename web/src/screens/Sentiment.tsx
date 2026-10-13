@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { fairnessPath } from "./fairnessPath";
 import { api } from "../api/client";
 import type {
   Axis,
@@ -240,7 +241,7 @@ export function Sentiment() {
                   분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로
                   넘기세요.
                 </p>
-                <Link className="btn ghost" to="/fairness">
+                <Link className="btn ghost" to={fairnessPath(axis)}>
                   정규화 비율로 다시 확인 →
                 </Link>
               </div>

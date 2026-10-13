@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { fairnessPath } from "./fairnessPath";
+import { SpikeCheck } from "./SpikeCheck";
 import { api } from "../api/client";
 import type {
   AxisScope,
@@ -383,6 +385,19 @@ export function Dashboard() {
                   </button>
                 ))}
             </div>
+
+            <div className="dash-banner warn" data-testid="spike-entry">
+              <WarnIcon />
+              <div>
+                <b>못 보던 대상이 갑자기 올라왔다면</b> 수집량 차이일 수 있습니다. 정규화와 원문을 먼저
+                확인하세요.
+                <div className="dash-actions">
+                  <Link className="btn sm" to={fairnessPath(axis, target)}>
+                    급등의 진위부터 확인 →
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -423,6 +438,8 @@ export function Dashboard() {
             )}
           </div>
         </div>
+        <SpikeCheck axis={axis} axisLabel={axisLabel(axis)} />
+
         <div className="card col-12">
           <div className="card-h">
             <h3>기간 순위</h3>
@@ -531,6 +548,8 @@ export function Dashboard() {
             <span className="mono">STP-open-brief</span>·<span className="mono">STP-scan-delta</span>·
             <span className="mono">STP-adjust-window</span>. 같은 여정의{" "}
             <span className="mono">STP-drill-trend</span> 는 순위 행을 눌러 여는 추세 상세 화면이 맡는다.
+            「튀는 값」 카드는 <b>JRN-spike-verification</b> 의 첫 단계{" "}
+            <span className="mono">STP-notice-spike</span> 이고, 고른 대상을 들고 공정성 화면으로 넘어간다.
           </p>
           <MapStrip
             style={{ marginTop: 16 }}

@@ -1,11 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { fireEvent, render, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { Fairness } from "./Fairness";
 import type {
   ContributionsResponse,
   FairnessResponse,
   SourceContributionsResponse,
+  SpikesResponse,
 } from "../api/types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -126,35 +127,104 @@ function sourceContributions(rows = [SPLIT_WIRE, SPLIT_DAILY]): SourceContributi
   };
 }
 
+const NEW_SUBJECT = "처음 보는 대상";
+
+function spikesResponse(baseline: SpikesResponse["basis"]["baseline"] = "7d"): SpikesResponse {
+  return {
+    axis: "KR",
+    basis: {
+      bucket_unit: "hour",
+      time_bucket: "2026-06-23T14",
+      baseline,
+      baseline_buckets: ["2026-06-23T12", "2026-06-23T13"],
+      has_baseline: true,
+      threshold: 1.5,
+    },
+    rows: [
+      {
+        rank: 1,
+        subject: SKEWED.subject,
+        raw_count: SKEWED.raw_count,
+        normalized_share: SKEWED.normalized_share,
+        baseline_raw: 20,
+        baseline_share: 0.2,
+        raw_multiple: 3,
+        normalized_multiple: 1.25,
+        is_new: false,
+        spike: true,
+        normalized_away: true,
+      },
+      {
+        rank: 2,
+        subject: EVEN.subject,
+        raw_count: EVEN.raw_count,
+        normalized_share: EVEN.normalized_share,
+        baseline_raw: 40,
+        baseline_share: 0.5,
+        raw_multiple: 1,
+        normalized_multiple: 1.5,
+        is_new: false,
+        spike: false,
+        normalized_away: false,
+      },
+      {
+        rank: 3,
+        subject: NEW_SUBJECT,
+        raw_count: 2,
+        normalized_share: 0.01,
+        baseline_raw: 0,
+        baseline_share: 0,
+        raw_multiple: null,
+        normalized_multiple: null,
+        is_new: true,
+        spike: false,
+        normalized_away: false,
+      },
+    ],
+  };
+}
+
 function stubFairness(
   body: FairnessResponse = response(),
   articles: (url: string) => ContributionsResponse = (url) =>
     contributions(new URL(url, "http://x").searchParams.get("source") ?? ""),
   split: SourceContributionsResponse = sourceContributions(),
+  spikes: (url: string) => SpikesResponse = (url) =>
+    spikesResponse(new URL(url, "http://x").searchParams.get("baseline") === "30d" ? "30d" : "7d"),
 ) {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string) => ({
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: async () => {
-        // `/source-contributions` 가 `/contributions` 를 부분 문자열로 포함하므로
-        // 이 분기 순서가 곧 라우팅이다 — 뒤집으면 소스 카드가 기사 응답을 읽는다.
-        if (url.includes("/source-contributions")) return split;
-        if (url.includes("/contributions")) return articles(url);
-        return body;
-      },
-    })),
+  const fetch = vi.fn(async (url: string) => ({
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    json: async () => {
+      // `/source-contributions` 가 `/contributions` 를 부분 문자열로 포함하므로
+      // 이 분기 순서가 곧 라우팅이다 — 뒤집으면 소스 카드가 기사 응답을 읽는다.
+      if (url.includes("/source-contributions")) return split;
+      if (url.includes("/contributions")) return articles(url);
+      if (url.includes("/spikes")) return spikes(url);
+      return body;
+    },
+  }));
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+}
+
+function Location() {
+  const loc = useLocation();
+  return <output data-testid="location">{loc.pathname + loc.search}</output>;
+}
+
+function renderFairness(entry = "/fairness") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Fairness />
+      <Location />
+    </MemoryRouter>,
   );
 }
 
-function renderFairness() {
-  return render(
-    <MemoryRouter>
-      <Fairness />
-    </MemoryRouter>,
-  );
+function requested(fetch: ReturnType<typeof stubFairness>, path: string): string[] {
+  return fetch.mock.calls.map(([url]) => String(url)).filter((url) => url.startsWith(`/api${path}`));
 }
 
 async function testid(container: HTMLElement, id: string): Promise<HTMLElement> {
@@ -404,4 +474,97 @@ it("opens the list on the leading subject and follows the picked one", async () 
     expect(container.querySelector(".art-card .sub")?.textContent).toContain(SKEWED.subject),
   );
   expect(pick.getAttribute("aria-pressed")).toBe("true");
+});
+
+it("opens on the axis and subject the link carried", async () => {
+  const fetch = stubFairness();
+  const { container } = renderFairness(
+    `/fairness?axis=US&subject=${encodeURIComponent(SKEWED.subject)}`,
+  );
+
+  await waitFor(() =>
+    expect(container.querySelector(".art-card .sub")?.textContent).toContain(SKEWED.subject),
+  );
+  expect(requested(fetch, "/fairness")).toEqual(["/api/fairness?axis=US"]);
+  expect(requested(fetch, "/spikes")).toEqual(["/api/spikes?axis=US&baseline=7d"]);
+  expect(container.querySelector(".seg .on")?.textContent).toBe("미국");
+});
+
+it("drops the subject when the axis is switched", async () => {
+  stubFairness();
+  const { container } = renderFairness(
+    `/fairness?axis=KR&subject=${encodeURIComponent(SKEWED.subject)}&baseline=30d`,
+  );
+
+  await waitFor(() => expect(container.querySelectorAll("tbody tr").length).toBe(2));
+  const us = [...container.querySelectorAll(".seg button")].find(
+    (b) => b.textContent === "미국",
+  ) as HTMLElement;
+  fireEvent.click(us);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe(
+      "/fairness?axis=US&baseline=30d",
+    ),
+  );
+});
+
+it("reads the usual-level column in the counting mode on screen", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  await waitFor(() =>
+    expect(rowFor(container, SKEWED.subject).querySelector(".delta")?.textContent).toBe("×1.3"),
+  );
+  fireEvent.click(container.querySelector(".norm-toggle") as HTMLElement);
+  await waitFor(() =>
+    expect(rowFor(container, SKEWED.subject).querySelector(".delta")?.textContent).toBe("×3.0"),
+  );
+});
+
+it("says the spike is gone after normalization, only while the normalized count is on screen", async () => {
+  stubFairness();
+  const { container } = renderFairness(`/fairness?subject=${encodeURIComponent(SKEWED.subject)}`);
+
+  const banner = await testid(container, "spike-normalized-away");
+  expect(banner.textContent).toContain("정규화하면 급등이 사라집니다");
+  expect(banner.textContent).toContain("×3.0");
+  expect(banner.textContent).toContain("×1.3");
+
+  fireEvent.click(container.querySelector(".norm-toggle") as HTMLElement);
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="spike-normalized-away"]')).toBeNull(),
+  );
+});
+
+it("reads the usual level the dashboard compared against from the link", async () => {
+  const fetch = stubFairness();
+  const { container } = renderFairness("/fairness?axis=KR&baseline=30d");
+
+  await waitFor(() =>
+    expect(requested(fetch, "/spikes")).toEqual(["/api/spikes?axis=KR&baseline=30d"]),
+  );
+  await waitFor(() =>
+    expect(
+      [...container.querySelectorAll(".kv")].find((kv) => kv.textContent?.startsWith("평소 기준"))
+        ?.textContent,
+    ).toBe("평소 기준최근 30일 평균"),
+  );
+});
+
+it("picks a subject into the link so the check can be shared", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  await waitFor(() => expect(container.querySelectorAll("tbody tr").length).toBe(2));
+  const pick = [...container.querySelectorAll(".art-pick")].find(
+    (b) => b.textContent === SKEWED.subject,
+  ) as HTMLElement;
+  fireEvent.click(pick);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toBe(
+      `/fairness?axis=KR&subject=${new URLSearchParams({ s: SKEWED.subject }).toString().slice(2)}`,
+    ),
+  );
 });

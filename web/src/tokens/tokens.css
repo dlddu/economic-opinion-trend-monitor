@@ -1063,6 +1063,10 @@ a {
   align-content: start;
 }
 
+.trend-spike-exit {
+  margin-top: 10px;
+}
+
 /* `.col-*` 와 겹쳐 적는 것은 파일 뒤쪽의 공용 `1180px` 규칙보다 우선하기 위해서다. */
 @media (max-width: 1180px) {
   .col-3.trend-side {
@@ -1450,6 +1454,27 @@ button.norm-toggle {
   font-size: 24px;
 }
 
+.fair-sp-banner {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 14px;
+}
+
+.fair-sp-banner.warn {
+  background: var(--accent-soft);
+  border: 1px solid var(--line-3);
+  color: var(--ink);
+}
+
+.fair-sp-banner b {
+  font-weight: 700;
+}
+
 .art-pick {
   background: none;
   border: 0;
@@ -1812,6 +1837,154 @@ tr.fair-picked td {
   margin-top: 8px;
   display: flex;
   gap: 8px;
+}
+
+.dash-sp-controls {
+  display: flex;
+  gap: 18px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.dash-sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 190px;
+}
+
+.dash-sp-label {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.dash-sp-field select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+.dash-sp-field select:focus {
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.dash-sp-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 116px 92px 56px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+  font: inherit;
+  color: inherit;
+}
+
+.dash-sp-row:last-child {
+  border-bottom: none;
+}
+
+.dash-sp-row:hover {
+  background: var(--panel-2);
+}
+
+.dash-sp-row[aria-pressed="true"] {
+  background: var(--primary-soft);
+}
+
+.dash-sp-row .rk {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: right;
+  font-weight: 500;
+}
+
+.dash-sp-row .nm {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-sp-row .meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.dash-sp-row .dlt {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dash-sp-row .dlt.up {
+  color: var(--pos);
+}
+
+.dash-sp-row .dlt.fl {
+  color: var(--neu);
+}
+
+.dash-sp-lede {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+
+.dash-sp-advance {
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .dash-sp-row {
+    grid-template-columns: 20px minmax(0, 1fr) 88px;
+    grid-template-areas: "rk nm dlt" ". meta tag";
+    row-gap: 7px;
+    column-gap: 10px;
+  }
+  .dash-sp-row .rk {
+    grid-area: rk;
+  }
+  .dash-sp-row .nm {
+    grid-area: nm;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    min-width: 0;
+  }
+  .dash-sp-row .meta {
+    grid-area: meta;
+    text-align: left;
+  }
+  .dash-sp-row .dlt {
+    grid-area: dlt;
+  }
+  .dash-sp-row > .rk ~ .rk {
+    grid-area: tag;
+    font-size: 11px;
+  }
 }
 
 .dash-radios {

@@ -219,6 +219,6 @@ describe("분리 전후 비율 전환", () => {
     const links = [...card.querySelectorAll("a")];
     expect(links.length).toBe(1);
     expect(links[0].textContent).toContain("정규화 비율로 다시 확인");
-    expect(links[0].getAttribute("href")).toBe("/fairness");
+    expect(links[0].getAttribute("href")).toBe("/fairness?axis=KR");
   });
 });

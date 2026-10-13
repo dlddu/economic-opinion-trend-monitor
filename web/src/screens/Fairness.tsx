@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { INDEX_NOT_READY, errorText } from "../api/indexState";
 import { IndexNotReady } from "./IndexNotReady";
@@ -9,6 +9,9 @@ import type {
   FairnessResponse,
   FairnessRow,
   SourceContributionsResponse,
+  SpikeBaseline,
+  SpikeRow,
+  SpikesResponse,
 } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
@@ -39,30 +42,38 @@ function pct(x: number, digits = 1): string {
   return `${(x * 100).toFixed(digits)}%`;
 }
 
-function deltaClass(d: number): string {
-  if (d > 0.05) return "up";
-  if (d < -0.05) return "dn";
-  return "fl";
-}
-
-function deltaLabel(d: number): string {
-  if (d > 0.05) return `▲ ${d.toFixed(1)}%p`;
-  if (d < -0.05) return `▼ ${Math.abs(d).toFixed(1)}%p`;
-  return "—";
-}
-
 function shareIn(row: FairnessRow, mode: Mode): number {
   return mode === "normalized" ? row.normalized_share : row.raw_share;
+}
+
+function multipleIn(row: SpikeRow, mode: Mode): number | null {
+  return mode === "normalized" ? row.normalized_multiple : row.raw_multiple;
+}
+
+function multipleClass(m: number | null, threshold: number): string {
+  return m !== null && m >= threshold ? "up" : "fl";
+}
+
+function multipleLabel(row: SpikeRow | undefined, m: number | null): string {
+  if (m !== null) return `×${m.toFixed(1)}`;
+  return row?.is_new ? "신규" : "—";
+}
+
+function axisFrom(value: string | null): Axis {
+  return value === "US" || value === "GLOBAL" ? value : "KR";
 }
 
 const ALL_SOURCES = "";
 
 export function Fairness() {
-  const [axis, setAxis] = useState<Axis>("KR");
+  const [params, setParams] = useSearchParams();
+  const axis = axisFrom(params.get("axis"));
+  const baseline: SpikeBaseline = params.get("baseline") === "30d" ? "30d" : "7d";
+  const picked = params.get("subject") ?? "";
   const [mode, setMode] = useState<Mode>("normalized");
   const [data, setData] = useState<FairnessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string>("");
+  const [spikes, setSpikes] = useState<SpikesResponse | null>(null);
   const [source, setSource] = useState<string>(ALL_SOURCES);
   const [dupOnly, setDupOnly] = useState(false);
   const [contrib, setContrib] = useState<ContributionsResponse | null>(null);
@@ -70,11 +81,27 @@ export function Fairness() {
   const [split, setSplit] = useState<SourceContributionsResponse | null>(null);
   const [splitError, setSplitError] = useState<string | null>(null);
 
+  function writeParams(next: { axis?: Axis; subject?: string }) {
+    const out = new URLSearchParams({ axis: next.axis ?? axis });
+    const subject = next.subject ?? (next.axis ? "" : picked);
+    if (subject) out.set("subject", subject);
+    if (baseline !== "7d") out.set("baseline", baseline);
+    setParams(out, { replace: true });
+  }
+
+  function setAxis(next: Axis) {
+    if (next !== axis) writeParams({ axis: next });
+  }
+
+  function setPicked(subject: string) {
+    writeParams({ subject });
+    setSource(ALL_SOURCES);
+  }
+
   useEffect(() => {
     let active = true;
     setData(null);
     setError(null);
-    setPicked("");
     setSource(ALL_SOURCES);
     api
       .fairness(axis)
@@ -84,6 +111,18 @@ export function Fairness() {
       active = false;
     };
   }, [axis]);
+
+  useEffect(() => {
+    let active = true;
+    setSpikes(null);
+    api
+      .spikes(axis, baseline)
+      .then((d) => active && setSpikes(d))
+      .catch(() => active && setSpikes(null));
+    return () => {
+      active = false;
+    };
+  }, [axis, baseline]);
 
   const axisDef = AXES.find((a) => a.id === axis) ?? AXES[0];
   const unitLabel = data ? (UNIT_LABEL[data.basis.bucket_unit] ?? data.basis.bucket_unit) : "";
@@ -136,6 +175,14 @@ export function Fairness() {
   const rawAdds = Boolean(split) && split?.basis.raw_total === split?.basis.raw_count;
   const normAdds = Boolean(split) && split?.basis.normalized_total === split?.basis.normalized_share;
 
+  const threshold = spikes?.basis.threshold ?? 1.5;
+  const spikeOf = new Map((spikes?.rows ?? []).map((r) => [r.subject, r]));
+  const current = spikeOf.get(subject);
+  const rowMultiple = (s: string): number | null => {
+    const row = spikeOf.get(s);
+    return row ? multipleIn(row, mode) : null;
+  };
+
   const articles = (contrib?.rows ?? []).filter((row) => !dupOnly || row.body_duplicate);
   const sources = contrib?.sources ?? [];
   // 목록이 그 값을 설명하는지는 건수 등식으로만 말할 수 있다(AC3.10). 좁히기 전
@@ -173,9 +220,8 @@ export function Fairness() {
       </div>
 
       <p className="lede">
-        평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다.{" "}
-        <span className="b">많이 다뤄진 것</span>과 <span className="b">한 곳에서 많이 쏟아진 것</span>을
-        먼저 갈라야 합니다 — 같은 대상을 두 방식으로 각각 세어 나란히 놓습니다.
+        같은 대상을 두 방식으로 각각 세어 나란히 놓고 수집원과 기사까지 내려갑니다 — 정규화 이후에도 남는
+        급등인지, 한 곳에서 쏟아진 것인지를 차례로 가릅니다.
       </p>
 
       {/* CMP-note — 표기 원칙. */}
@@ -239,10 +285,7 @@ export function Fairness() {
                             type="button"
                             className={`art-pick${r.subject === subject ? " on" : ""}`}
                             aria-pressed={r.subject === subject}
-                            onClick={() => {
-                              setPicked(r.subject);
-                              setSource(ALL_SOURCES);
-                            }}
+                            onClick={() => setPicked(r.subject)}
                           >
                             {r.subject}
                           </button>
@@ -268,12 +311,29 @@ export function Fairness() {
                         </td>
                         <td className="num">
                           {/* CMP-delta */}
-                          <span className={`delta ${deltaClass(r.delta)}`}>{deltaLabel(r.delta)}</span>
+                          <span className={`delta ${multipleClass(rowMultiple(r.subject), threshold)}`}>
+                            {multipleLabel(spikeOf.get(r.subject), rowMultiple(r.subject))}
+                          </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                {mode === "normalized" &&
+                  current?.normalized_away &&
+                  current.raw_multiple !== null &&
+                  current.normalized_multiple !== null && (
+                    <div className="fair-sp-banner warn" data-testid="spike-normalized-away">
+                      <div>
+                        <b>정규화하면 급등이 사라집니다.</b> {current.subject}은 원시 건수로는 ×
+                        {current.raw_multiple.toFixed(1)}이지만 정규화 비율로 보면 ×
+                        {current.normalized_multiple.toFixed(1)}입니다. 그 축의 수집 자체가 늘어난 것이지 이
+                        대상에 관심이 몰린 것이 아닙니다 — 원문까지 내려가지 않고 <b>“편중”</b>으로 닫아도 되는
+                        갈래입니다.
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -313,6 +373,10 @@ export function Fairness() {
                   <div className="kv">
                     <span className="k">원시 총 건수</span>
                     <span className="v mono">{data.basis.raw_total}건</span>
+                  </div>
+                  <div className="kv">
+                    <span className="k">평소 기준</span>
+                    <span className="v">최근 {baseline === "30d" ? 30 : 7}일 평균</span>
                   </div>
                   <div className="kv">
                     <span className="k">정규화 기준</span>

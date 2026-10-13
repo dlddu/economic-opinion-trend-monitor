@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { fairnessPath } from "./fairnessPath";
 import { api } from "../api/client";
 import type { AxisScope, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -273,6 +274,13 @@ export function Trend() {
                   </span>{" "}
                   직전 {unitLabel} 대비
                 </div>
+                {selected && (
+                  <div className="trend-spike-exit">
+                    <Link className="btn sm" to={fairnessPath(axis, selected.subject)}>
+                      급등의 진위 확인 →
+                    </Link>
+                  </div>
+                )}
               </div>
 
               <div className="note">
