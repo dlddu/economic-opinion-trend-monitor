@@ -29,7 +29,7 @@ import (
 
 // SchemaVersion names the shape of schema.sql and derive.sql. A reader refuses an index of
 // another version, so bump it with any change a query could notice.
-const SchemaVersion = "4"
+const SchemaVersion = "5"
 
 const (
 	// Dir is where the index lives under the lake root.
@@ -68,6 +68,8 @@ type Stats struct {
 	NewsItems    int
 	Records      int
 	ArticlePicks int
+	// Gold rows copied: subject_trend, subject_source_contribution, axis_sentiment.
+	SubjectTrends, SourceContributions, AxisSentiments int
 	// PicksWritten is false when the lake has no article_pick dataset yet.
 	PicksWritten   bool
 	CallFiles      int
@@ -164,6 +166,12 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 	}
 	opt.Log("article_pick rows=%d took=%s", stats.ArticlePicks, since(start))
 	start = time.Now()
+	if err := loadGold(ctx, conn, root, &stats); err != nil {
+		return stats, err
+	}
+	opt.Log("gold subject_trend=%d subject_source_contribution=%d axis_sentiment=%d took=%s",
+		stats.SubjectTrends, stats.SourceContributions, stats.AxisSentiments, since(start))
+	start = time.Now()
 	if err := loadCalls(ctx, conn, root, opt, &stats); err != nil {
 		return stats, fmt.Errorf("llm_call: %w", err)
 	}
@@ -189,6 +197,7 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 		"news_items":      strconv.Itoa(stats.NewsItems),
 		"article_picks":   strconv.Itoa(stats.ArticlePicks),
 		"picks_written":   strconv.FormatBool(stats.PicksWritten),
+		"subject_trends":  strconv.Itoa(stats.SubjectTrends),
 		"call_files":      strconv.Itoa(stats.CallFiles),
 		"calls_undecoded": strconv.Itoa(undecoded),
 		"records":         strconv.Itoa(stats.Records),
@@ -282,6 +291,68 @@ func loadArticlePicks(ctx context.Context, conn *sql.Conn, root string) (int, er
 		})
 	})
 	return n, err
+}
+
+func loadGold(ctx context.Context, conn *sql.Conn, root string, stats *Stats) error {
+	lake := store.New(root)
+	err := inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO subject_trend (seq, subject, axis, bucket_unit,
+			time_bucket, raw_count, normalized_share, delta, spark) VALUES (?,?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return lake.EachSubjectTrend(ctx, func(t *gen.SubjectTrend) error {
+			stats.SubjectTrends++
+			spark, err := json.Marshal(t.Spark)
+			if err != nil {
+				return err
+			}
+			_, err = ins.ExecContext(ctx, stats.SubjectTrends, t.Subject, string(t.Axis), string(t.BucketUnit),
+				t.TimeBucket, t.RawCount, t.NormalizedShare, t.Delta, string(spark))
+			return err
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("subject_trend: %w", err)
+	}
+	err = inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO subject_source_contribution (seq, subject, axis,
+			bucket_unit, time_bucket, source_id, raw_count, raw_share, normalized_contribution)
+			VALUES (?,?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return lake.EachSubjectSourceContribution(ctx, func(c *gen.SubjectSourceContribution) error {
+			stats.SourceContributions++
+			_, err := ins.ExecContext(ctx, stats.SourceContributions, c.Subject, string(c.Axis),
+				string(c.BucketUnit), c.TimeBucket, c.SourceID, c.RawCount, c.RawShare, c.NormalizedContribution)
+			return err
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("subject_source_contribution: %w", err)
+	}
+	err = inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO axis_sentiment (seq, axis, bucket_unit, time_bucket,
+			positive, neutral, negative, mixed, unanalyzed, analyzed_total) VALUES (?,?,?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return lake.EachAxisSentiment(ctx, func(s *gen.AxisSentiment) error {
+			stats.AxisSentiments++
+			d := s.Distribution
+			_, err := ins.ExecContext(ctx, stats.AxisSentiments, string(s.Axis), string(s.BucketUnit),
+				s.TimeBucket, d.Positive, d.Neutral, d.Negative, d.Mixed, d.Unanalyzed, s.AnalyzedTotal)
+			return err
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("axis_sentiment: %w", err)
+	}
+	return nil
 }
 
 func jsonText(v []string) string {

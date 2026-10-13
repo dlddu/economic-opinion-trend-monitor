@@ -55,6 +55,46 @@ CREATE TABLE article_pick (
   counted_subjects TEXT NOT NULL
 );
 
+-- Gold's aggregates (contracts/gold/*.avsc) for the Gold screens, so a screen asks for one axis,
+-- unit or bucket instead of decoding the whole file, and reads them from the same build as the
+-- article picks. spark is JSON text.
+CREATE TABLE subject_trend (
+  seq              INTEGER PRIMARY KEY,
+  subject          TEXT NOT NULL,
+  axis             TEXT NOT NULL,
+  bucket_unit      TEXT NOT NULL,
+  time_bucket      TEXT NOT NULL,
+  raw_count        INTEGER NOT NULL,
+  normalized_share REAL NOT NULL,
+  delta            REAL NOT NULL,
+  spark            TEXT NOT NULL
+);
+
+CREATE TABLE subject_source_contribution (
+  seq                     INTEGER PRIMARY KEY,
+  subject                 TEXT NOT NULL,
+  axis                    TEXT NOT NULL,
+  bucket_unit             TEXT NOT NULL,
+  time_bucket             TEXT NOT NULL,
+  source_id               TEXT NOT NULL,
+  raw_count               INTEGER NOT NULL,
+  raw_share               REAL NOT NULL,
+  normalized_contribution REAL NOT NULL
+);
+
+CREATE TABLE axis_sentiment (
+  seq            INTEGER PRIMARY KEY,
+  axis           TEXT NOT NULL,
+  bucket_unit    TEXT NOT NULL,
+  time_bucket    TEXT NOT NULL,
+  positive       REAL NOT NULL,
+  neutral        REAL NOT NULL,
+  negative       REAL NOT NULL,
+  mixed          REAL NOT NULL,
+  unanalyzed     REAL NOT NULL,
+  analyzed_total INTEGER NOT NULL
+);
+
 -- One row per llm_call object file, keyed by its path under silver/llm_call. Files are written
 -- once, so a build copies the previous index's rows for files still listed and reads only new
 -- ones. A file that does not decode keeps a row with decoded = 0 and is never read again.

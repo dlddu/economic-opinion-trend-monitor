@@ -70,13 +70,8 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 		return nil
 	}
 	axis := axisParam(r, "KR")
-	inAxis, _ := h.lake.SubjectTrendsWhere(ctx, inAxisTrend(axis))
-	unit := unitParam(r, plottedUnit(inAxis))
-	bucket := r.URL.Query().Get("time_bucket")
-	if bucket == "" {
-		bucket = latestBucketOf(inAxis, unit)
-	}
-	inBucket := trendsInBucket(inAxis, bucket, unit)
+	// The value and its articles come from one index build, so the list numbers the count beside it.
+	unit, bucket, inBucket := latestValues(r, indexGold{db}, axis, unitParam(r, ""), r.URL.Query().Get("time_bucket"))
 	subject := pickContributionSubject(inBucket, r.URL.Query().Get("subject"))
 	source := r.URL.Query().Get("source")
 
