@@ -260,16 +260,19 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request, gold goldSource
 	axis := axisParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
-	// Only the axis's finest unit is drawn, so only it is read: Gold grows every batch run, and
-	// holding every axis and unit at once is what got serving OOM-killed.
-	units, err := gold.trendUnits(r.Context(), axis)
+	// Only the axis's finest unit is drawn, and of it only the subjects the chart keeps: Gold grows
+	// every batch run, and an axis's every row is what a chart read before.
+	ctx := r.Context()
+	units, err := gold.trendUnits(ctx, axis)
 	goldFailed(r, err)
 	unit := finestUnit(units)
-	inUnit, err := gold.trends(r.Context(), trendQuery{axis: axis, unit: unit, everyBucket: true})
+	buckets, err := gold.trendBuckets(ctx, axis, unit)
+	goldFailed(r, err)
+	kept := trendSubjectsKept(r, gold, axis, unit, buckets, requested)
+	rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, subjects: kept})
 	goldFailed(r, err)
 
-	buckets := distinctBuckets(inUnit)
-	series := seriesBySubject(inUnit, buckets)
+	series := seriesBySubject(rows, buckets)
 	selected := pickSubject(series, requested)
 	series = limitSeries(series, selected, trendSeriesLimit)
 
@@ -309,7 +312,7 @@ func (h *Handlers) compare(w http.ResponseWriter, r *http.Request, gold goldSour
 			bucket = s.TimeBucket
 		}
 	}
-	inBucket, err := gold.trends(ctx, trendQuery{unit: unit, bucket: bucket})
+	inBucket, err := gold.trends(ctx, trendQuery{unit: unit, buckets: []string{bucket}})
 	goldFailed(r, err)
 
 	axes := []string{"KR", "US", "GLOBAL"}
@@ -585,9 +588,39 @@ func latestValues(
 		bucket, err = gold.latestTrendBucket(ctx, axis, unit)
 		goldFailed(r, err)
 	}
-	rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, bucket: bucket})
+	rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, buckets: []string{bucket}})
 	goldFailed(r, err)
 	return unit, bucket, rows
+}
+
+// trendSubjectsKept names the series the trend chart keeps, chosen as seriesBySubject, pickSubject
+// and limitSeries choose them over every subject — by share in the latest bucket, then by first
+// row — but from the latest bucket and the subject list alone, so only the kept rows are read.
+func trendSubjectsKept(
+	r *http.Request, gold goldSource, axis string, unit gen.BucketUnit, buckets []string, requested string,
+) []string {
+	if len(buckets) == 0 {
+		return []string{}
+	}
+	ctx := r.Context()
+	head, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, buckets: buckets[len(buckets)-1:]})
+	goldFailed(r, err)
+	share := make(map[string]float64, len(head))
+	for _, t := range head {
+		share[t.Subject] = t.NormalizedShare
+	}
+	order, err := gold.trendSubjects(ctx, axis, unit)
+	goldFailed(r, err)
+	ranked := make([]trendSeries, 0, len(order))
+	for _, subject := range order {
+		ranked = append(ranked, trendSeries{Subject: subject, LatestShare: share[subject]})
+	}
+	sort.SliceStable(ranked, func(i, j int) bool { return ranked[i].LatestShare > ranked[j].LatestShare })
+	kept := []string{}
+	for _, s := range limitSeries(ranked, pickSubject(ranked, requested), trendSeriesLimit) {
+		kept = append(kept, s.Subject)
+	}
+	return kept
 }
 
 func countUnselected(series []trendSeries) int {

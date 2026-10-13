@@ -72,20 +72,27 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSo
 	}
 	unit := unitParam(r, defaultDashUnit)
 
-	// Another axis only lifts the anchor, so of the other axes only their latest bucket is read.
+	// Another axis only lifts the anchor, so of the other axes only their latest bucket is read, and
+	// of this axis only the rows of the buckets the window shows.
 	ctx := r.Context()
-	trends, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, everyBucket: true})
+	buckets, err := gold.trendBuckets(ctx, axis, unit)
 	goldFailed(r, err)
 	everyAxisLatest, err := gold.latestTrendBucket(ctx, "", unit)
 	goldFailed(r, err)
 	sentiments, err := gold.axisSentiments(ctx)
 	goldFailed(r, err)
-	writeJSON(w, http.StatusOK, buildDashboard(trends, sentiments, everyAxisLatest, axis, rangeKey, unit))
+	inWindow := func(window []string) []gen.SubjectTrend {
+		rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, buckets: window})
+		goldFailed(r, err)
+		return rows
+	}
+	writeJSON(w, http.StatusOK, buildDashboard(buckets, inWindow, sentiments, everyAxisLatest, axis, rangeKey, unit))
 }
 
-// everyAxisLatest is the latest subject_trend bucket of unit on any axis: the anchor starts there.
+// buckets are axis's subject_trend buckets of unit, inWindow reads its rows in the given buckets,
+// and everyAxisLatest is the latest subject_trend bucket of unit on any axis: the anchor starts there.
 func buildDashboard(
-	trends []gen.SubjectTrend, sentiments []gen.AxisSentiment,
+	buckets []string, inWindow func(window []string) []gen.SubjectTrend, sentiments []gen.AxisSentiment,
 	everyAxisLatest, axis, rangeKey string, unit gen.BucketUnit,
 ) dashboardResponse {
 	resp := dashboardResponse{
@@ -98,23 +105,12 @@ func buildDashboard(
 	// Everything below reads one unit: bucket keys only order within a unit.
 	anchor := everyAxisLatest
 	axisBuckets := map[string]bool{}
-	shares := map[string]map[string]gen.SubjectTrend{}
 	sentAt := map[string]gen.AxisSentiment{}
-	for _, t := range trends {
-		if t.BucketUnit != unit {
-			continue
+	for _, b := range buckets {
+		axisBuckets[b] = true
+		if b > anchor {
+			anchor = b
 		}
-		if t.TimeBucket > anchor {
-			anchor = t.TimeBucket
-		}
-		if string(t.Axis) != axis {
-			continue
-		}
-		axisBuckets[t.TimeBucket] = true
-		if shares[t.TimeBucket] == nil {
-			shares[t.TimeBucket] = map[string]gen.SubjectTrend{}
-		}
-		shares[t.TimeBucket][t.Subject] = t
 	}
 	for _, s := range sentiments {
 		if s.BucketUnit != unit {
@@ -153,6 +149,13 @@ func buildDashboard(
 		resp.Basis.HasBaseline = true
 	}
 
+	shares := map[string]map[string]gen.SubjectTrend{}
+	for _, t := range inWindow(window) {
+		if shares[t.TimeBucket] == nil {
+			shares[t.TimeBucket] = map[string]gen.SubjectTrend{}
+		}
+		shares[t.TimeBucket][t.Subject] = t
+	}
 	resp.Summary = summarize(sentAt, anchor, prev)
 	resp.TopSubjects = rankAnchor(shares, window, anchor, prev)
 	return resp
