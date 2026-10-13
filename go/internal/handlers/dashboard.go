@@ -89,8 +89,6 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSo
 	writeJSON(w, http.StatusOK, buildDashboard(buckets, inWindow, sentiments, everyAxisLatest, axis, rangeKey, unit))
 }
 
-// buckets are axis's subject_trend buckets of unit, inWindow reads its rows in the given buckets,
-// and everyAxisLatest is the latest subject_trend bucket of unit on any axis: the anchor starts there.
 func buildDashboard(
 	buckets []string, inWindow func(window []string) []gen.SubjectTrend, sentiments []gen.AxisSentiment,
 	everyAxisLatest, axis, rangeKey string, unit gen.BucketUnit,

@@ -54,7 +54,7 @@ type goldHandler func(w http.ResponseWriter, r *http.Request, gold goldSource)
 
 // fromGold serves a Gold screen from the published index, or from the lake's Gold files while
 // there is none (before the first build, or between a deploy that bumps the schema and the next
-// build), so these screens never wait on the index. The X-Gold-Source header says which.
+// build), so these screens never wait on the index.
 func (h *Handlers) fromGold(next goldHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		snap, err := h.index.Acquire()
@@ -172,10 +172,8 @@ func (g *lakeGold) axisSentiments(context.Context) ([]gen.AxisSentiment, error) 
 	return g.lake.AxisSentiments()
 }
 
-// indexGold answers from the serving index's copy of Gold.
 type indexGold struct{ db *sql.DB }
 
-// axisUnitWhere is the condition for unit on axis ("" = any axis).
 func axisUnitWhere(axis string, unit gen.BucketUnit) (string, []any) {
 	if axis == "" {
 		return "bucket_unit = ?", []any{string(unit)}
