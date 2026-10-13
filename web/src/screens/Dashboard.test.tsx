@@ -288,7 +288,7 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     );
     const note = container.querySelector(".note.info")!;
     expect(note.querySelector("svg.ic")).not.toBeNull();
-    expect(note.textContent).toContain("닫을 때의 축·기간이 그대로 복원되어");
+    expect(note.textContent).toContain("닫을 때의 축·기간·단위가 그대로 복원되어");
   });
 
   it("narrows the rank list by the search term without re-querying serving", async () => {
@@ -529,7 +529,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
   });
 });
 
-describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
+describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", () => {
   function card(container: HTMLElement, title: string): HTMLElement {
     const head = [...container.querySelectorAll(".card-h")].find(
       (h) => h.querySelector("h3")?.textContent === title,
@@ -545,18 +545,18 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
 
   function pickUnit(container: HTMLElement, unit: string) {
     fireEvent.click(
-      card(container, "기간 · 단위").querySelector<HTMLInputElement>(`input[name="unit"][value="${unit}"]`)!,
+      card(container, "오늘의 조회 조건").querySelector<HTMLInputElement>(`input[name="unit"][value="${unit}"]`)!,
     );
   }
 
   function pickRange(container: HTMLElement, range: string) {
-    fireEvent.change(card(container, "기간 · 단위").querySelector('select[name="range"]')!, {
+    fireEvent.change(card(container, "오늘의 조회 조건").querySelector('select[name="range"]')!, {
       target: { value: range },
     });
   }
 
   function apply(container: HTMLElement) {
-    fireEvent.submit(card(container, "기간 · 단위").querySelector("form")!);
+    fireEvent.submit(card(container, "오늘의 조회 조건").querySelector("form")!);
   }
 
   it("draws the form the journey promises, opened on the window the brief restored", async () => {
@@ -568,9 +568,12 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
-    const form = card(container, "기간 · 단위");
-    expect(form.className).toBe("card col-5");
-    expect(form.querySelector(".card-h .sub")?.textContent).toBe("일시적 튐인지 지속 추세인지 가늠합니다");
+    expect([...container.querySelectorAll(".card-h h3")].map((h) => h.textContent)).not.toContain("기간 · 단위");
+    const form = card(container, "오늘의 조회 조건");
+    expect(form.className).toBe("card col-4");
+    expect(
+      [...form.querySelectorAll(".dash-brief-label")].map((l) => l.textContent),
+    ).toEqual(["축", "기간", "집계 단위", "대상 찾기"]);
     const select = form.querySelector<HTMLSelectElement>('select[name="range"]')!;
     expect([...select.options].map((o) => o.textContent)).toEqual(["최근 24시간", "최근 7일", "최근 30일"]);
     expect(select.value).toBe("30d");
@@ -579,7 +582,7 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
     expect(radios.map((r) => r.checked)).toEqual([false, false, true]);
     expect(form.querySelector('button[type="submit"]')?.textContent).toBe("기간 적용");
     expect(form.querySelector(".dash-hint")?.textContent).toBe("고른 대상은 그대로 유지됩니다.");
-    expect(form.querySelector(".note")?.textContent).toBe(
+    expect(card(container, "단위별 순위").querySelector(".note")?.textContent).toBe(
       "단위를 바꾸면 순위가 뒤집힐 수 있습니다. 방금 고른 대상은 그대로 강조되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.",
     );
   });
@@ -638,7 +641,7 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
 
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
     const table = card(container, "단위별 순위");
-    expect(table.className).toBe("card col-7");
+    expect(table.className).toBe("card col-12");
     expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 일 단위");
     expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d · day");
     expect([...table.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
@@ -702,7 +705,7 @@ describe("Dashboard — 기간 · 단위 · 단위별 순위", () => {
     );
     expect(marked).toHaveLength(1);
     expect(marked[0].style.background).toBe("var(--primary-soft)");
-    expect(card(container, "기간 · 단위").querySelector('[data-state="keep-note"]')?.textContent).toBe(
+    expect(card(container, "단위별 순위").querySelector('[data-state="keep-note"]')?.textContent).toBe(
       "‘삼성전자’ 으로 강조",
     );
     expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
