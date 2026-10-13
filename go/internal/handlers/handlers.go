@@ -572,8 +572,6 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 	return rows
 }
 
-// latestValues settles the one bucket a value screen shows for axis: unit, else the finest the
-// axis has; bucket, else the axis's latest in that unit. It returns that bucket's subject_trend rows.
 func latestValues(
 	r *http.Request, gold goldSource, axis string, unit gen.BucketUnit, bucket string,
 ) (gen.BucketUnit, string, []gen.SubjectTrend) {
