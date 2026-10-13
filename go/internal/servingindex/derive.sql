@@ -6,6 +6,10 @@ CREATE INDEX news_item_url ON news_item (source_url, collected_at);
 CREATE INDEX news_item_axis ON news_item (axis, collected_at);
 CREATE INDEX llm_call_file_id ON llm_call_file (call_id);
 CREATE INDEX article_pick_bucket ON article_pick (axis, bucket_unit, time_bucket);
+CREATE INDEX subject_trend_axis ON subject_trend (axis, bucket_unit, time_bucket);
+CREATE INDEX subject_trend_unit ON subject_trend (bucket_unit, time_bucket);
+CREATE INDEX subject_source_contribution_value
+  ON subject_source_contribution (axis, bucket_unit, time_bucket, subject);
 
 CREATE TABLE record_latest (
   record_id        TEXT PRIMARY KEY,

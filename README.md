@@ -183,12 +183,12 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   켤 때는 다른 쪽을 먼저 suspend한다.
 - 배치와 서빙은 **한 클레임(`econ-batch-data`, RWX)을 공유**한다. 파이프라인이 매시간
   Bronze→Silver→Gold를 그 볼륨에 쓰고, 서빙은 같은 볼륨의 Gold를 읽기 전용으로 읽는다 —
-  Gold 리더가 요청마다 파일을 여니 재시작 없이 다음 집계부터 화면에 반영된다. 서빙 전용
+  재시작 없이 다음 집계부터 화면에 반영된다(아래 서빙 인덱스가 있으면 그 인덱스가 발행된 뒤). 서빙 전용
   클레임을 따로 두던 시절(파이프라인이 수집 전용이라 Gold를 쓰는 단계가 없던 때)의 분리는
   2026-09-21에 걷었다: 복사 단계 대신 공유를 택한 것은 두 클레임이 이미 같은 `efs`
   StorageClass의 RWX access point였고, 복사는 파일·실패 지점·시차만 더하기 때문이다.
-  집계가 Gold를 다시 쓰는 수 초 동안 동시 요청이 잘린 줄을 읽을 수 있는 창은 남아 있다
-  (`LocalFsStore.write_records`가 truncate+write — 원자적 교체는 후속).
+  인덱스 없이 파일을 직접 읽는 동안에는 집계가 Gold를 다시 쓰는 수 초 사이 동시 요청이 잘린 줄을 읽을 수
+  있는 창이 남아 있다(`LocalFsStore.write_records`가 truncate+write). 인덱스는 한 빌드가 통째로 바뀌므로 이 창이 없다.
 - **서빙 인덱스**: `econ-batch-pipeline` 워크플로는 진입점이 무엇이든, 성공하든 실패하든 종료
   핸들러(`onExit`)로 `index` 단계를 돈다 — 중간에 실패한 실행이 디버그 화면이 가장 필요한 때다. 서빙
   이미지의 `econ-index`가 레이크에서 SQLite 인덱스를 만들어 `/data/serving/index-<시각>-<난수>.sqlite`
@@ -198,8 +198,12 @@ kubectl apply -k deploy/overlays/prod   # 또는 Flux Kustomization의 path로 �
   읽는다). Bronze·Silver 를 읽는 화면 API(`/api/debug`, `/api/debug/records`, `/api/trace`,
   `/api/contributions`, `/api/reprocess`)는 레이크를 훑지 않고 이 인덱스를
   `mode=ro&immutable=1`로 읽으며, 요청이 올 때 1초에 한 번까지 포인터를 다시 봐 새 인덱스로 옮겨 탄다. 인덱스가 아직
-  없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. Gold 만 읽는 화면(대시보드·
-  추세·비교·감성)과 공정성 화면의 Gold 표는 인덱스와 무관하다 — 공정성 화면의 기여 기사 목록만 인덱스를 읽는다. 그 목록은
+  없으면 `503 {"error":"index_not_ready"}`이고 화면은 「인덱스 준비 중」을 보인다. Gold 화면(대시보드·
+  추세·비교·감성·공정성·소스별 기여)도 인덱스에 실린 Gold 사본(`subject_trend`·`subject_source_contribution`·
+  `axis_sentiment`)에서 필요한 축·단위·버킷만 읽는다 — 47MB 파일을 요청마다 통째로 디코드하지 않는다. 다만 이 화면들은
+  인덱스를 기다리지 않는다: 인덱스가 없거나 버전이 다르면 레이크의 Gold 파일을 예전처럼 읽고(응답 헤더
+  `X-Gold-Source: lake`), 있으면 그 인덱스를 읽는다(`index`). 그래서 집계가 Gold를 다시 쓴 뒤 화면에 반영되는
+  시점은 그 실행의 종료 핸들러가 인덱스를 발행할 때(수 분)다. 공정성 화면의 기여 기사 목록은 인덱스만 읽는다. 그 목록은
   집계가 `subject_trend`와 함께 쓰는 Gold `article_pick`(원시 카운트가 센 기사 그대로, 단위·버킷마다 기사별 최신 관측
   하나)을 인덱스에 실은 것이라 서빙은 다시 계산하지 않고 읽기만 한다. `article_pick`이 생기기 전의 레이크로 만든
   인덱스에서는 기여 목록만 「인덱스 준비 중」이고, 다음 `aggregate` 뒤의 인덱스부터 보인다. 배포 직후

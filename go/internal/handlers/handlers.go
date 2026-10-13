@@ -45,13 +45,13 @@ func (h *Handlers) WithArgo(c *argo.Client) *Handlers {
 // Register wires every API route onto mux (Go 1.22 method+path patterns).
 func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/health", h.health)
-	mux.HandleFunc("GET /api/dashboard", h.dashboard)
-	mux.HandleFunc("GET /api/trend", h.trend)
-	mux.HandleFunc("GET /api/compare", h.compare)
-	mux.HandleFunc("GET /api/sentiment", h.sentiment)
-	mux.HandleFunc("GET /api/fairness", h.fairness)
+	mux.HandleFunc("GET /api/dashboard", h.fromGold(h.dashboard))
+	mux.HandleFunc("GET /api/trend", h.fromGold(h.trend))
+	mux.HandleFunc("GET /api/compare", h.fromGold(h.compare))
+	mux.HandleFunc("GET /api/sentiment", h.fromGold(h.sentiment))
+	mux.HandleFunc("GET /api/fairness", h.fromGold(h.fairness))
 	mux.HandleFunc("GET /api/contributions", h.fromIndex(h.contributions))
-	mux.HandleFunc("GET /api/source-contributions", h.sourceContributions)
+	mux.HandleFunc("GET /api/source-contributions", h.fromGold(h.sourceContributions))
 	mux.HandleFunc("GET /api/trace", h.fromIndex(h.trace))
 	mux.HandleFunc("GET /api/reprocess", h.fromIndex(h.reprocess))
 	mux.HandleFunc("GET /api/debug", h.fromIndex(h.debug))
@@ -256,30 +256,17 @@ func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) trend(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
-	// Filter while reading, not after: Gold grows every batch run, and holding
-	// every axis and unit at once is what got serving OOM-killed.
-	var finest gen.BucketUnit
-	rows, _ := h.lake.SubjectTrendsWhere(r.Context(), func(t *gen.SubjectTrend) bool {
-		if string(t.Axis) != axis {
-			return false
-		}
-		if finest == "" || unitRank(t.BucketUnit) < unitRank(finest) {
-			finest = t.BucketUnit
-		}
-		return t.BucketUnit == finest
-	})
-
-	unit := plottedUnit(rows)
-	inUnit := rows[:0]
-	for _, t := range rows {
-		if t.BucketUnit == unit {
-			inUnit = append(inUnit, t)
-		}
-	}
+	// Only the axis's finest unit is drawn, so only it is read: Gold grows every batch run, and
+	// holding every axis and unit at once is what got serving OOM-killed.
+	units, err := gold.trendUnits(r.Context(), axis)
+	goldFailed(r, err)
+	unit := finestUnit(units)
+	inUnit, err := gold.trends(r.Context(), trendQuery{axis: axis, unit: unit, everyBucket: true})
+	goldFailed(r, err)
 
 	buckets := distinctBuckets(inUnit)
 	series := seriesBySubject(inUnit, buckets)
@@ -302,12 +289,28 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request) {
 // compare filters every axis to one bucket, the latest in Gold, so an axis with
 // no data there comes back as an empty column instead of borrowing an older
 // bucket and setting a stale column beside a fresh one.
-func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
-	trends, _ := h.lake.SubjectTrends()
-	sentiments, _ := h.lake.AxisSentiments()
-
-	bucket, unit := latestBucket(trends, sentiments)
-	inBucket := trendsInBucket(trends, bucket, unit)
+func (h *Handlers) compare(w http.ResponseWriter, r *http.Request, gold goldSource) {
+	// The basis is the newest bucket of the finest unit present, and the unit is settled first:
+	// bucket keys only compare within a unit ("2026-W26" sorts above "2026-06-23T14" because 'W'
+	// outranks '0'), so a plain maximum over mixed rows would label a week rollup the latest hour.
+	ctx := r.Context()
+	sentiments, err := gold.axisSentiments(ctx)
+	goldFailed(r, err)
+	present, err := gold.trendUnits(ctx, "")
+	goldFailed(r, err)
+	for _, s := range sentiments {
+		present[s.BucketUnit] = true
+	}
+	unit := finestUnit(present)
+	bucket, err := gold.latestTrendBucket(ctx, "", unit)
+	goldFailed(r, err)
+	for _, s := range sentiments {
+		if s.BucketUnit == unit && s.TimeBucket > bucket {
+			bucket = s.TimeBucket
+		}
+	}
+	inBucket, err := gold.trends(ctx, trendQuery{unit: unit, bucket: bucket})
+	goldFailed(r, err)
 
 	axes := []string{"KR", "US", "GLOBAL"}
 	columns := make([]map[string]any, 0, len(axes))
@@ -328,9 +331,10 @@ func (h *Handlers) compare(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
-	rows, _ := h.lake.AxisSentiments()
+	rows, err := gold.axisSentiments(r.Context())
+	goldFailed(r, err)
 
 	unit := sentimentUnit(rows)
 	inUnit := make([]gen.AxisSentiment, 0, len(rows))
@@ -362,13 +366,9 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
-	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
-
-	unit := plottedUnit(inAxis)
-	bucket := latestBucketOf(inAxis, unit)
-	inBucket := trendsInBucket(inAxis, bucket, unit)
+	unit, bucket, inBucket := latestValues(r, gold, axis, "", "")
 
 	var rawTotal int64
 	for _, t := range inBucket {
@@ -400,20 +400,6 @@ func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request) {
 		},
 		Rows: rows,
 	})
-}
-
-func inAxisTrend(axis string) func(*gen.SubjectTrend) bool {
-	return func(t *gen.SubjectTrend) bool { return string(t.Axis) == axis }
-}
-
-func latestBucketOf(rows []gen.SubjectTrend, unit gen.BucketUnit) string {
-	var bucket string
-	for _, t := range rows {
-		if t.BucketUnit == unit && t.TimeBucket > bucket {
-			bucket = t.TimeBucket
-		}
-	}
-	return bucket
 }
 
 func shareOf(count, total int64) float64 {
@@ -583,14 +569,35 @@ func topSubjects(trends []gen.SubjectTrend, axis string, limit int) []rankRow {
 	return rows
 }
 
-// plottedUnit picks the bucket unit the chart is drawn in: the finest one
-// present, which is the default AC3.3 names.
-func plottedUnit(rows []gen.SubjectTrend) gen.BucketUnit {
-	present := make(map[gen.BucketUnit]bool, 3)
-	for _, t := range rows {
-		present[t.BucketUnit] = true
+// latestValues settles the one bucket a value screen shows for axis: unit, else the finest the
+// axis has; bucket, else the axis's latest in that unit. It returns that bucket's subject_trend rows.
+func latestValues(
+	r *http.Request, gold goldSource, axis string, unit gen.BucketUnit, bucket string,
+) (gen.BucketUnit, string, []gen.SubjectTrend) {
+	ctx := r.Context()
+	if unit == "" {
+		units, err := gold.trendUnits(ctx, axis)
+		goldFailed(r, err)
+		unit = finestUnit(units)
 	}
-	return finestUnit(present)
+	var err error
+	if bucket == "" {
+		bucket, err = gold.latestTrendBucket(ctx, axis, unit)
+		goldFailed(r, err)
+	}
+	rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, bucket: bucket})
+	goldFailed(r, err)
+	return unit, bucket, rows
+}
+
+func countUnselected(series []trendSeries) int {
+	n := 0
+	for _, s := range series {
+		if !s.Selected {
+			n++
+		}
+	}
+	return n
 }
 
 func unitRank(u gen.BucketUnit) int {
@@ -708,59 +715,6 @@ func limitSeries(series []trendSeries, selected string, limit int) []trendSeries
 		return kept[i].LatestShare > kept[j].LatestShare
 	})
 	return kept
-}
-
-func countUnselected(series []trendSeries) int {
-	n := 0
-	for _, s := range series {
-		if !s.Selected {
-			n++
-		}
-	}
-	return n
-}
-
-// latestBucket picks the basis of the compare view: the newest bucket of the
-// finest unit present.
-//
-// Settling the unit *first* is not a refinement, it is what makes the pick
-// meaningful. Bucket keys are only comparable within a unit — "2026-W26" sorts
-// above "2026-06-23T14" because 'W' outranks '0', not because that week is
-// later — so a plain maximum over mixed rows would hand the view a week rollup
-// and label it the latest hour. With rollups in Gold (AC3.3) that is not a
-// hypothetical: every run writes a week row.
-func latestBucket(trends []gen.SubjectTrend, sentiments []gen.AxisSentiment) (string, gen.BucketUnit) {
-	present := make(map[gen.BucketUnit]bool, 3)
-	for _, t := range trends {
-		present[t.BucketUnit] = true
-	}
-	for _, s := range sentiments {
-		present[s.BucketUnit] = true
-	}
-	unit := finestUnit(present)
-
-	var bucket string
-	for _, t := range trends {
-		if t.BucketUnit == unit && t.TimeBucket > bucket {
-			bucket = t.TimeBucket
-		}
-	}
-	for _, s := range sentiments {
-		if s.BucketUnit == unit && s.TimeBucket > bucket {
-			bucket = s.TimeBucket
-		}
-	}
-	return bucket, unit
-}
-
-func trendsInBucket(trends []gen.SubjectTrend, bucket string, unit gen.BucketUnit) []gen.SubjectTrend {
-	rows := make([]gen.SubjectTrend, 0, len(trends))
-	for _, t := range trends {
-		if t.TimeBucket == bucket && t.BucketUnit == unit {
-			rows = append(rows, t)
-		}
-	}
-	return rows
 }
 
 func sentimentInBucket(

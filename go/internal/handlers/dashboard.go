@@ -64,7 +64,7 @@ type dashboardResponse struct {
 	TopSubjects []dashRow    `json:"top_subjects"`
 }
 
-func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
 	rangeKey := r.URL.Query().Get("range")
 	if _, ok := dashRanges[rangeKey]; !ok {
@@ -72,29 +72,21 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	unit := unitParam(r, defaultDashUnit)
 
-	// Another axis's rows only lift the anchor, so of those only a row that raises
-	// their running maximum is kept — the anchor comes out the same.
-	var otherAxesMax string
-	trends, _ := h.lake.SubjectTrendsWhere(r.Context(), func(t *gen.SubjectTrend) bool {
-		if t.BucketUnit != unit {
-			return false
-		}
-		if string(t.Axis) == axis {
-			return true
-		}
-		if t.TimeBucket > otherAxesMax {
-			otherAxesMax = t.TimeBucket
-			return true
-		}
-		return false
-	})
-	sentiments, _ := h.lake.AxisSentiments()
-	writeJSON(w, http.StatusOK, buildDashboard(trends, sentiments, axis, rangeKey, unit))
+	// Another axis only lifts the anchor, so of the other axes only their latest bucket is read.
+	ctx := r.Context()
+	trends, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, everyBucket: true})
+	goldFailed(r, err)
+	everyAxisLatest, err := gold.latestTrendBucket(ctx, "", unit)
+	goldFailed(r, err)
+	sentiments, err := gold.axisSentiments(ctx)
+	goldFailed(r, err)
+	writeJSON(w, http.StatusOK, buildDashboard(trends, sentiments, everyAxisLatest, axis, rangeKey, unit))
 }
 
+// everyAxisLatest is the latest subject_trend bucket of unit on any axis: the anchor starts there.
 func buildDashboard(
 	trends []gen.SubjectTrend, sentiments []gen.AxisSentiment,
-	axis, rangeKey string, unit gen.BucketUnit,
+	everyAxisLatest, axis, rangeKey string, unit gen.BucketUnit,
 ) dashboardResponse {
 	resp := dashboardResponse{
 		Axis:        axis,
@@ -104,7 +96,7 @@ func buildDashboard(
 	}
 
 	// Everything below reads one unit: bucket keys only order within a unit.
-	var anchor string
+	anchor := everyAxisLatest
 	axisBuckets := map[string]bool{}
 	shares := map[string]map[string]gen.SubjectTrend{}
 	sentAt := map[string]gen.AxisSentiment{}

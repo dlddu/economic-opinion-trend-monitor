@@ -31,9 +31,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("econ-index: %v", err)
 	}
-	log.Printf("econ-index: published %s records=%d analyses=%d news_items=%d article_picks=%d call_files=%d "+
+	log.Printf("econ-index: published %s records=%d analyses=%d news_items=%d article_picks=%d subject_trends=%d call_files=%d "+
 		"(reused=%d read=%d undecoded=%d) took=%s",
-		stats.Name, stats.Records, stats.Analyses, stats.NewsItems, stats.ArticlePicks, stats.CallFiles,
+		stats.Name, stats.Records, stats.Analyses, stats.NewsItems, stats.ArticlePicks, stats.SubjectTrends, stats.CallFiles,
 		stats.CallsReused, stats.CallsRead, stats.CallsUndecoded, time.Since(start).Round(time.Millisecond))
 }
 

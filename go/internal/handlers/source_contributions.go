@@ -3,8 +3,6 @@ package handlers
 import (
 	"net/http"
 	"sort"
-
-	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
 type sourceContributionRow struct {
@@ -44,15 +42,9 @@ type sourceContributionsResponse struct {
 // it from Silver, because the aggregation emits both sides from a single fold —
 // the identities hold by construction there, and recomputing it here would be a
 // second answer to the same question.
-func (h *Handlers) sourceContributions(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) sourceContributions(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
-	inAxis, _ := h.lake.SubjectTrendsWhere(r.Context(), inAxisTrend(axis))
-	unit := unitParam(r, plottedUnit(inAxis))
-	bucket := r.URL.Query().Get("time_bucket")
-	if bucket == "" {
-		bucket = latestBucketOf(inAxis, unit)
-	}
-	inBucket := trendsInBucket(inAxis, bucket, unit)
+	unit, bucket, inBucket := latestValues(r, gold, axis, unitParam(r, ""), r.URL.Query().Get("time_bucket"))
 	subject := pickContributionSubject(inBucket, r.URL.Query().Get("subject"))
 
 	var rawCount int64
@@ -63,9 +55,8 @@ func (h *Handlers) sourceContributions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	parts, _ := h.lake.SubjectSourceContributionsWhere(r.Context(), func(p *gen.SubjectSourceContribution) bool {
-		return string(p.Axis) == axis && p.BucketUnit == unit && p.TimeBucket == bucket && p.Subject == subject
-	})
+	parts, err := gold.sourceContributions(r.Context(), axis, unit, bucket, subject)
+	goldFailed(r, err)
 	rows := make([]sourceContributionRow, 0, len(parts))
 	var rawTotal int64
 	var normalizedTotal float64
