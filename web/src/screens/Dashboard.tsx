@@ -565,8 +565,7 @@ export function Dashboard() {
             이 화면이 시각화하는 여정: <b>JRN-daily-scan</b> — 아침 정기 스캔 · 단계{" "}
             <span className="mono">STP-open-brief</span>·<span className="mono">STP-scan-delta</span>·
             <span className="mono">STP-adjust-window</span>. 같은 여정의{" "}
-            <span className="mono">STP-drill-trend</span>·
-            <span className="mono">STP-shortlist</span> 는 순위 행을 눌러 여는 추세 상세 화면이 맡는다.
+            <span className="mono">STP-drill-trend</span> 는 순위 행을 눌러 여는 추세 상세 화면이 맡는다.
           </p>
           <MapStrip
             style={{ marginTop: 16 }}

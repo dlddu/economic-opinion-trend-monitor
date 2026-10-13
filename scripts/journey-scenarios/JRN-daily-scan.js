@@ -46,7 +46,6 @@ module.exports = {
     shape('range', 'SELECT');
     shape('tr-compare', 'INPUT', 'checkbox');
     shape('tr-marks', 'SELECT');
-    shape('shortlist-memo', 'TEXTAREA');
     t.is([...d.querySelectorAll('input[name="unit"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
       true, '(d) 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
@@ -107,10 +106,6 @@ module.exports = {
     t.is(d.getElementById('trendchart').innerHTML !== marked, true,
       '(d) 기여 뉴스 표기 <select> 가 차트를 실제로 바꾼다');
 
-    t.click(w, d.getElementById('cta-4'));
-    const memo = d.getElementById('shortlist-memo');
-    memo.value = '타이핑 확인'; t.fire(w, memo, 'input');
-    t.is(memo.value, '타이핑 확인', '(d) <textarea> 에 타이핑이 반영된다');
   },
 
   async states(t) {
@@ -162,31 +157,6 @@ module.exports = {
       t.is(t.shown(d, 'low-sample'), true, '(e) low-sample — 시간 단위에서 표본 부족 상태에 도달');
       t.is(d.querySelectorAll('#winlist .thin').length > 0, true,
         '(e) low-sample — 해당 구간 수치가 실제로 흐리게 그려진다');
-    }
-    {
-      const { w, d } = t.boot();
-      toDelta(t, w, d);
-      toWindow(t, w, d);
-      t.click(w, d.getElementById('cta-3'));
-      t.click(w, d.getElementById('cta-4'));
-
-      t.fire(w, d.getElementById('shortlist-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), true, '(e) invalid — 메모 없이 제출하면 검증 실패 상태에 도달');
-      t.is(t.shown(d, 'recorded'), false, '(e) invalid — 검증 실패 시 성공 상태가 아니다');
-
-      const memo = d.getElementById('shortlist-memo');
-      memo.value = '금리·환율 두 축이 같이 움직였는지 오전에 확인';
-      [...d.querySelectorAll('input.cand')].forEach(c => { c.checked = false; t.fire(w, c, 'change'); });
-      t.fire(w, d.getElementById('shortlist-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), true, '(e) invalid — 후보를 하나도 고르지 않으면 여전히 실패');
-
-      const first = d.querySelector('input.cand');
-      first.checked = true; t.fire(w, first, 'change');
-      t.fire(w, d.getElementById('shortlist-form'), 'submit');
-      t.is(t.shown(d, 'invalid'), false, '(e) recorded — 채워서 제출하면 검증 실패가 해소된다');
-      t.is(t.shown(d, 'recorded'), true, '(e) recorded — 추림 완료 상태에 도달');
-      t.is(d.getElementById('recorded-what').textContent.includes(first.value), true,
-        '(e) recorded — 고른 대상이 결과에 실제로 실린다');
     }
   },
 

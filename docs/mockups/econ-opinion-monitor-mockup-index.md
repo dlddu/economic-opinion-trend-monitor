@@ -57,7 +57,7 @@
 | `JRN-sentiment-shift` | `docs/mockups/JRN-sentiment-shift.html` | `sentiment` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` |
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
-| `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend`, `STP-shortlist` |
+| `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` |
 | `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
 | `JRN-logic-backfill` | `docs/mockups/JRN-logic-backfill.html` | `reprocess` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` |
 | `JRN-judgment-debug` | `docs/mockups/JRN-judgment-debug.html` | (없음) | `STP-pin-record`, `STP-read-exchange`, `STP-check-input`, `STP-scan-run`, `STP-route-cause` |
@@ -101,7 +101,6 @@
 | `STP-scan-delta` | `dash` | 직전 동일 구간 대비 증감(`CMP-delta`) 훑기. 이 단계의 표면은 아직 구현에 없고, 그 구현 편차는 설계 트래커 「목업 ↔ 구현 편차 허용목록」의 `STP-scan-delta` 행들이 대조한다 |
 | `STP-adjust-window` | `dash` | 기간·단위 조정. 화면 단위 목업이 쓰던 `class="seg"` 의사 컨트롤은 여정 페이지에서 실제 `<select>`·`<input type=radio>`로 대체됐다(규칙 5(d)) — 화면 귀속은 그대로 `dash`다. 폼과 폼 밖 표면의 구현 편차는 설계 트래커 허용목록의 `STP-adjust-window` 행들이 대조한다 |
 | `STP-drill-trend` | `trend` | 이 여정 맥락의 추세 상세(라인 차트 + 상위 대상 비교 표). 화면 2에서 넘어갈 때 **고른 대상과 축·기간을 그대로 승계**하는 것은 `dash`가 넘겨줘야 하는 계약이다 |
-| `STP-shortlist` | `trend` | 추림과 세션 종료. 여정 문서가 이 단계의 터치포인트를 「`trend.html` / 제품 외부(사용자 개인 메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 추림 화면으로 흡수했다. 관심 대상 **북마크·워치리스트(영속화)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -198,17 +197,14 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 | `no-selection` | 대상 미선택 — 기간을 바꿔 볼 대상이 정해지지 않음 | 이 task 결정 | 화면 2 진입 직후(오른쪽 「고른 대상」 패널) |
 | `loading` | 고른 단위로 재집계 중 | 이 task 결정 | 화면 3에서 기간·단위를 고르고 「기간 적용」 제출 |
 | `low-sample` | 시간 단위에서 구간당 표본 부족 — 해당 구간을 흐리게 그리고 순위 해석에서 제외 | 이 task 결정(여정 문서 §4의 「단위를 바꿀 때마다 순위가 뒤집히면 판단이 서지 않는다」 페인포인트 대응) | 화면 3에서 단위를 「시간」으로 두고 「기간 적용」 제출 |
-| `invalid` | 추림 입력 검증 실패 | 이 task 결정 | 화면 5에서 후보 미선택 또는 메모 공란으로 「추림 확정하고 닫기」 제출 |
-| `recorded` | 추림 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 후보를 고르고 메모를 채워 제출 |
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
-> `STP-shortlist`의 페인포인트로 적은 「관심 대상 북마크·워치리스트」를 문서 자신이
-> **「현재 범위 밖, 백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한
-> 「2~3개를 추리고 세션을 닫는다」까지만 그린다 — `JRN-spike-verification`의 `recorded`와 같은 규약이다.
+> 2026-10-13 추림 화면(화면 5)과 그 두 상태(`invalid`·`recorded`)를 걷어냈다. 추림은 여정 문서가 처음부터
+> 제품 밖(사용자 개인 메모)의 행동으로 적었고, 그것을 제품 안으로 들인 폼은 PRD 근거(AC) 없이 이 task 가
+> 정한 표면이었다. 여정은 4단계로 줄어 화면 4(`STP-drill-trend`)에서 끝난다.
 
 여정 문서 §4 2·3행(급등 신뢰 불가 → `JRN-spike-verification`, 축 간 차이 → `JRN-axis-contrast`)은 이 여정을
 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다. §4 4행(중도 이탈)은 상태가 아니라
-화면 5의 「저장 없이 닫고 이 조건으로 다시 열기」 컨트롤로, 다음 진입의 조회 조건 복원을 보여 준다.
+화면 4의 「닫고 이 조건으로 다시 열기」 컨트롤로, 다음 진입의 조회 조건 복원을 보여 준다.
 
 #### `JRN-sentiment-shift`
 
@@ -234,8 +230,6 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 | `no-selection` | 편차 대상 미선택 — 상세로 넘어갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 선택 패널) |
 | `no-outlier` | 임계를 넘는 대상 없음 — 「차이 없음」도 결론 | 이 task 결정(여정 완료 기준의 "또는 차이 없음을 확인" 갈래) | 화면 4에서 「격차 임계(%p)」를 실측 최대 격차 위로 올린다 |
 | `alias-merged` | 표기 변형을 같은 대상으로 통합 — 통합 전후를 구분 표기 | 여정 문서 §4 4행 | 화면 4에서 「표기 변형을 같은 대상으로 통합」 체크 |
-| `invalid` | 온도차 판별 입력 검증 실패 | 이 task 결정 | 화면 5에서 결론 미선택 또는 근거 메모 공란으로 「온도차 기록」 제출 |
-| `recorded` | 온도차 판별 기록 완료(성공) | 이 task 결정 | 화면 5에서 결론을 고르고 근거 메모를 채워 제출 |
 
 여정 문서 §4 2·3행(수집량 차이 의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은
 이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다.
@@ -281,7 +275,7 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 > `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
 > `STP-verify-integrity`의 페인포인트로 적은 「보정 이력을 구간 메타로 기록하고 소비자 화면에도 주석 노출」을
 > 문서 자신이 **「백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한
-> 「정상 범위인지 재확인한다」까지만 그린다 — `JRN-daily-scan`·`JRN-spike-verification`의 `recorded`와 같은 규약이다.
+> 「정상 범위인지 재확인한다」까지만 그린다 — `JRN-spike-verification`의 `recorded`와 같은 규약이다.
 
 #### `JRN-logic-backfill`
 
@@ -364,7 +358,7 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
 ### 여정 페이지 · `JRN-daily-scan` 아침 정기 스캔
-- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3), `STP-drill-trend`(AC3.5, AC3.2), `STP-shortlist`
+- **여정 단계**: `JRN-daily-scan` / `STP-open-brief`(AC3.2, AC3.5), `STP-scan-delta`, `STP-adjust-window`(AC3.3), `STP-drill-trend`(AC3.5, AC3.2)
 - **파일**: `docs/mockups/JRN-daily-scan.html` (구 `dash`·`trend` 두 화면을 흡수, 화면 파일은 삭제. `JRN-spike-verification` / `STP-notice-spike`(급등 인지 지점)와 `JRN-axis-contrast` / `STP-verify-in-trend`는 각 여정 페이지가 자기 맥락의 화면을 원본으로 이미 갖고 있다 — 같은 화면이 여러 여정에 등장하는 것은 규칙 2의 중복이 아니다)
 - **가치**: V1 시계열 추세 가시화
 - **디자인 시스템 항목**: `TKN-surface`, `TKN-ink`, `TKN-line`, `TKN-brand`, `TKN-sentiment`, `TKN-axis`, `TKN-type`, `TKN-radius`, `TKN-shadow`, `PAT-screen-shell`, `PAT-line-chart`, `CMP-topbar`, `CMP-sidebar`, `CMP-nav-item`, `CMP-metric`, `CMP-card`, `CMP-ranklist`, `CMP-spark`, `CMP-sentbar`, `CMP-axpill`, `CMP-kv`, `CMP-table`, `CMP-legend`, `CMP-seg`, `CMP-norm-toggle`, `CMP-delta`, `CMP-badge`, `CMP-mapstrip`
@@ -416,13 +410,13 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 - `JRN-judgment-debug.html` 안에서는 같은 방식으로 5단계를 이동하고, §분기 7행이 `#STP-scan-run`·`#STP-check-input`·`#STP-read-exchange`·`JRN-logic-backfill.html#STP-dry-run`·`JRN-ingestion-recovery.html#STP-locate-gap`·`JRN-logic-backfill.html#STP-scope-range`·`#STP-pin-record` 로 이동한다. 좌측 네비 `debug` 항목(`판단 디버깅`)이 이 페이지 `#STP-pin-record` 로 들어온다. 화면 1(고른 결과)과 화면 3(보관된 원문)의 「원문 추적 상세」 CTA 는 고른 결과를 `?record_id=` 로 실어 `JRN-spike-verification.html#STP-open-origin` 에 착지한다 — 분기가 아니라 화면 간 이동이라 §4 분기(`data-goto`)로 세지 않는다. 구현의 `/trace` 는 2026-09-24 부터 `?record_id=` 를 읽어 그 기사로 바로 열고, 화면에서 조회하면 주소에 되써 링크로 공유된다(`web/src/screens/Trace.tsx`)
 - **여정 사이의 인계는 이제 예외 없이 상대 여정의 단계에 착지한다** — 이전에는 `JRN-axis-contrast`의 「정규화로 확인」이 `fairness.html`로, `JRN-sentiment-shift`의 「원문 확인」이 `trace.html`로, 세 여정의 재처리 인계가 `reprocess.html`로 갔지만, 그 분기들이 선언한 대상은 처음부터 상대 여정의 **단계**였다. 화면 파일이 모두 흡수된 지금 그 괴리는 남아 있지 않다(`JRN-spike-verification` 의 「수집 이상 점검하기」가 선언 대상 `JRN-ingestion-recovery#STP-spot-anomaly` 와 달리 `reprocess.html` 을 가리키던 것도 이번에 바로잡았다)
 
-## 여정 단계 커버리지 (35/35 완전 · 0 부분 · 0 미시각화)
+## 여정 단계 커버리지 (34/34 완전 · 0 부분 · 0 미시각화)
 
 여정 문서를 맥락 기준으로 재작성하면서 단계가 19개 → 30개로 늘었고, 화면 단위 mockup 이 아직 못 따라온 구간이 드러났다.
 
 | 여정 | 단계 | 화면 | 상태 |
 |------|------|------|------|
-| `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend`, `STP-shortlist` | `JRN-daily-scan.html` (여정 페이지) | 🟢 |
+| `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` | `JRN-daily-scan.html` (여정 페이지) | 🟢 |
 | `JRN-spike-verification` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` | `JRN-spike-verification.html` (여정 페이지) | 🟢 |
 | `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` | `JRN-axis-contrast.html` (여정 페이지) | 🟢 |
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |

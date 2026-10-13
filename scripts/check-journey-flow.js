@@ -216,9 +216,10 @@ async function runJourney({ jid, file }, idxMd) {
       click(w, cta);
       is(visible(d), [STEPS[i + 1]], `(c) 화면 내 행동 클릭으로 ${STEPS[i + 1]} 도달`);
     }
+    // 마지막 단계에 여정을 닫는 제출 폼을 요구하지 않는다 — 요구하면 여정 문서·PRD 에 없는
+    // 「기록 폼」을 페이지마다 지어내게 된다. 여정이 어디서 끝나는지는 문서의 완료 기준이 정한다.
     const last = d.querySelector(`section.jstep[data-step="${STEPS[STEPS.length - 1]}"]`);
-    is(!!last.querySelector('form button[type="submit"], form input[type="submit"]'), true,
-      '(c) 마지막 단계에 여정을 닫는 제출 행동이 있다');
+    is(last.querySelector('[data-advance]'), null, '(c) 마지막 단계에는 다음 단계로의 전진 행동이 없다');
   }
 
   {
