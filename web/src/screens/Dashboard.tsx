@@ -210,7 +210,7 @@ export function Dashboard() {
             <span className="sub">어제 닫을 때의 조건으로 열립니다</span>
           </div>
           <div className="card-b">
-            <form onSubmit={(e) => e.preventDefault()}>
+            <form onSubmit={applyWindow}>
               <label className="dash-brief-field">
                 <span className="dash-brief-label">축</span>
                 <select value={axis} onChange={(e) => setAxis(e.target.value as Axis)}>
@@ -221,6 +221,43 @@ export function Dashboard() {
                   ))}
                 </select>
               </label>
+              <label className="dash-brief-field" style={{ marginTop: 14 }}>
+                <span className="dash-brief-label">기간</span>
+                <select
+                  name="range"
+                  value={draftRange}
+                  onChange={(e) => setDraftRange(e.target.value as DashRange)}
+                >
+                  {RANGES.map((r) => (
+                    <option key={r} value={r}>
+                      {RANGE_LABEL[r]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="dash-brief-field" style={{ marginTop: 14 }}>
+                <span className="dash-brief-label">집계 단위</span>
+                <div className="dash-radios">
+                  {UNITS.map((u) => (
+                    <label key={u}>
+                      <input
+                        type="radio"
+                        name="unit"
+                        value={u}
+                        checked={draftUnit === u}
+                        onChange={() => setDraftUnit(u)}
+                      />
+                      {UNIT_NAME[u]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="dash-stepact" style={{ marginTop: 14 }}>
+                <button type="submit" className="btn pri">
+                  기간 적용
+                </button>
+                <span className="dash-hint">고른 대상은 그대로 유지됩니다.</span>
+              </div>
               <label className="dash-brief-field" style={{ marginTop: 14 }}>
                 <span className="dash-brief-label">대상 찾기</span>
                 <input
@@ -243,7 +280,7 @@ export function Dashboard() {
             <div className="note info" style={{ marginTop: 18 }}>
               <InfoIcon />
               <div>
-                <b>조건을 매번 다시 맞추지 않습니다.</b> 닫을 때의 축·기간이 그대로 복원되어, 어제와 같은
+                <b>조건을 매번 다시 맞추지 않습니다.</b> 닫을 때의 축·기간·단위가 그대로 복원되어, 어제와 같은
                 화면에서 밤사이 변화만 보게 됩니다.
               </div>
             </div>
@@ -405,72 +442,7 @@ export function Dashboard() {
             )}
           </div>
         </div>
-        <div className="card col-5">
-          <div className="card-h">
-            <h3>기간 · 단위</h3>
-            <span className="sub">일시적 튐인지 지속 추세인지 가늠합니다</span>
-          </div>
-          <div className="card-b">
-            <form onSubmit={applyWindow}>
-              <label className="dash-brief-field" style={{ maxWidth: 220 }}>
-                <span className="dash-brief-label">기간</span>
-                <select
-                  name="range"
-                  value={draftRange}
-                  onChange={(e) => setDraftRange(e.target.value as DashRange)}
-                >
-                  {RANGES.map((r) => (
-                    <option key={r} value={r}>
-                      {RANGE_LABEL[r]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="dash-brief-field" style={{ marginTop: 16 }}>
-                <span className="dash-brief-label">집계 단위</span>
-                <div className="dash-radios">
-                  {UNITS.map((u) => (
-                    <label key={u}>
-                      <input
-                        type="radio"
-                        name="unit"
-                        value={u}
-                        checked={draftUnit === u}
-                        onChange={() => setDraftUnit(u)}
-                      />
-                      {UNIT_NAME[u]}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="dash-stepact" style={{ marginTop: 18 }}>
-                <button type="submit" className="btn pri">
-                  기간 적용
-                </button>
-                <span className="dash-hint">고른 대상은 그대로 유지됩니다.</span>
-              </div>
-            </form>
-
-            <div className="note" style={{ marginTop: 18 }}>
-              <InfoIcon />
-              <div>
-                <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b> 방금 고른 대상은{" "}
-                <span data-state="keep-note">
-                  {picked ? (
-                    <>
-                      ‘{picked.subject}’ 으로 강조
-                    </>
-                  ) : (
-                    "그대로 강조"
-                  )}
-                </span>
-                되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card col-7">
+        <div className="card col-12">
           <div className="card-h">
             <h3>단위별 순위</h3>
             <span className="sub">
@@ -539,6 +511,23 @@ export function Dashboard() {
                 </tbody>
               </table>
             )}
+
+            <div className="note" style={{ marginTop: 14 }}>
+              <InfoIcon />
+              <div>
+                <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b> 방금 고른 대상은{" "}
+                <span data-state="keep-note">
+                  {picked ? (
+                    <>
+                      ‘{picked.subject}’ 으로 강조
+                    </>
+                  ) : (
+                    "그대로 강조"
+                  )}
+                </span>
+                되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+              </div>
+            </div>
 
             <div
               className="dash-banner"

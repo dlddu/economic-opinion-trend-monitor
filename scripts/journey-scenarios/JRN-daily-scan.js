@@ -38,6 +38,7 @@ module.exports = {
       if (type) t.is(el.type, type, `(d) #${id} 의 type 은 ${type}`);
     };
     shape('axis', 'SELECT');
+    shape('brief-range', 'SELECT');
     shape('q', 'INPUT', 'search');
     shape('restore', 'INPUT', 'checkbox');
     shape('delta-basis', 'SELECT');
@@ -48,7 +49,26 @@ module.exports = {
     shape('tr-marks', 'SELECT');
     t.is([...d.querySelectorAll('input[name="unit"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
       true, '(d) 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
+    t.is([...d.querySelectorAll('input[name="brief-unit"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
+      true, '(d) 조회 조건 카드의 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
+
+    {
+      const subBefore = d.getElementById('brief-sub').textContent;
+      pickOption(t, w, d.getElementById('brief-range'), '30');
+      d.querySelector('input[name="brief-unit"][value="week"]').checked = true;
+      t.fire(w, d.getElementById('brief-form'), 'submit');
+      await t.sleep(400);
+      t.is(d.getElementById('brief-sub').textContent !== subBefore, true,
+        '(d) 조회 조건 카드의 기간 <select> + 단위 <input type=radio> 제출이 기준 표기를 실제로 바꾼다');
+      t.is([d.getElementById('range').value, d.querySelector('input[name="unit"]:checked')?.value], ['30', 'week'],
+        '(d) 조회 조건 카드에서 적용한 기간·단위가 화면 3 컨트롤에도 맞춰진다');
+      pickOption(t, w, d.getElementById('brief-range'), '7');
+      d.querySelector('input[name="brief-unit"][value="day"]').checked = true;
+      t.fire(w, d.getElementById('brief-form'), 'submit');
+      await t.sleep(400);
+      t.is(d.getElementById('brief-sub').textContent, subBefore, '(d) 기간·단위를 되돌리면 기준 표기가 복원된다');
+    }
 
     const before = d.getElementById('ranklist').innerHTML;
     const q = d.getElementById('q');

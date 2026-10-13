@@ -550,6 +550,26 @@ details.meta table.tbl{margin-top:10px}
                   </select>
                 </label>
                 <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select id="brief-range" name="brief-range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios">
+                    <label><input type="radio" name="brief-unit" value="hour" /> 시간</label>
+                    <label><input type="radio" name="brief-unit" value="day" checked /> 일</label>
+                    <label><input type="radio" name="brief-unit" value="week" /> 주</label>
+                  </div>
+                </div>
+                <div class="stepact" style="margin-top:14px">
+                  <button type="submit" class="btn pri" id="brief-apply">기간 적용</button>
+                  <span class="hint">고른 대상은 그대로 유지됩니다.</span>
+                </div>
+                <label class="fld" style="margin-top:14px">
                   <span class="fl">대상 찾기</span>
                   <input type="search" id="q" name="q" placeholder="대상 이름으로 좁히기" />
                 </label>
@@ -563,7 +583,7 @@ details.meta table.tbl{margin-top:10px}
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
                 <div>
                   <b>조건을 매번 다시 맞추지 않습니다.</b>
-                  닫을 때의 축·기간이 그대로 복원되어, 어제와 같은 화면에서 밤사이 변화만 보게 됩니다.
+                  닫을 때의 축·기간·단위가 그대로 복원되어, 어제와 같은 화면에서 밤사이 변화만 보게 됩니다.
                 </div>
               </div>
             </div>
@@ -679,7 +699,7 @@ details.meta table.tbl{margin-top:10px}
         <div class="grid g-12">
 
           <div class="card col-5">
-            <div class="card-h"><h3>기간 &middot; 단위</h3><span class="sub">일시적 튐인지 지속 추세인지 가늠합니다</span></div>
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">맨 위 카드의 기간·단위</span></div>
             <div class="card-b">
               <form id="win-form">
                 <label class="fld" style="max-width:220px">
@@ -703,14 +723,6 @@ details.meta table.tbl{margin-top:10px}
                   <span class="hint">고른 대상은 그대로 유지됩니다.</span>
                 </div>
               </form>
-
-              <div class="note" style="margin-top:18px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <div>
-                  <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b>
-                  방금 고른 대상은 <span id="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
-                </div>
-              </div>
             </div>
           </div>
 
@@ -727,6 +739,14 @@ details.meta table.tbl{margin-top:10px}
               </div>
 
               <div id="winlist"></div>
+
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span id="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
 
               <div class="banner warn" id="s-low-sample" data-state="low-sample" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
@@ -1237,7 +1257,32 @@ function drawTrend(){
   $('restore').addEventListener('change', function(){
     $('foot-collected').textContent = this.checked ? '07:00 KST' : '지금';
   });
-  $('brief-form').addEventListener('submit', function(e){ e.preventDefault(); });
+  /* 기간·단위는 조회 조건 카드 하나의 컨트롤이다 — 화면 1 과 화면 3 은 같은 카드를 보여 주므로
+     어느 쪽에서 적용해도 state 하나를 바꾸고 양쪽 컨트롤을 그 값으로 맞춘다. */
+  function syncWindowControls(){
+    $('brief-range').value = state.range;
+    $('range').value = state.range;
+    ['brief-unit', 'unit'].forEach(function(n){
+      document.querySelectorAll('input[name="' + n + '"]').forEach(function(i){ i.checked = (i.value === state.unit); });
+    });
+  }
+  function applyWindow(range, unit){
+    state.range = range;
+    state.unit = unit;
+    syncWindowControls();
+    renderBrief();
+    show($('s-loading'), true);
+    setTimeout(function(){
+      show($('s-loading'), false);
+      renderWindow();
+      drawTrend();
+    }, 300);
+  }
+  $('brief-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var u = $('brief-form').querySelector('input[name="brief-unit"]:checked');
+    applyWindow($('brief-range').value, u ? u.value : 'day');
+  });
 
   $('delta-basis').addEventListener('change', function(){
     state.basis = this.value;
@@ -1256,15 +1301,8 @@ function drawTrend(){
 
   $('win-form').addEventListener('submit', function(e){
     e.preventDefault();
-    state.range = $('range').value;
-    var u = document.querySelector('input[name="unit"]:checked');
-    state.unit = u ? u.value : 'day';
-    show($('s-loading'), true);
-    setTimeout(function(){
-      show($('s-loading'), false);
-      renderWindow();
-      drawTrend();
-    }, 300);
+    var u = $('win-form').querySelector('input[name="unit"]:checked');
+    applyWindow($('range').value, u ? u.value : 'day');
   });
 
   $('tr-compare').addEventListener('change', drawTrend);
