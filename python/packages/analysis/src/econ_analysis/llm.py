@@ -51,10 +51,12 @@ _SYSTEM_PROMPT = (
     + ", ".join(domain.SUBJECT_CATEGORIES)
     + f"; use {domain.OTHER_CATEGORY} only when none fits), "
     "sentiment (exactly one of positive/neutral/negative/mixed; use mixed when opposing "
-    "tones coexist and neutral when no tone shows), analyzable (false when the body is too "
+    "tones coexist and neutral when no tone shows), sentiment_rationale (one short sentence "
+    "in Korean naming the wording or fact in the article that decided the sentiment; for mixed "
+    "name both sides, for neutral say why no tone shows), analyzable (false when the body is too "
     "thin or the judgement is genuinely uncertain), and confidence (0.0-1.0). "
     'Reply shape: {"target_countries":[],"narrative_subjects":[],"subject_categories":[],'
-    '"sentiment":"neutral","analyzable":true,"confidence":0.0}'
+    '"sentiment":"neutral","sentiment_rationale":"","analyzable":true,"confidence":0.0}'
 )
 
 
@@ -296,6 +298,12 @@ def _clean_list(value: object) -> list[str]:
     return [s.strip() for s in value if isinstance(s, str) and s.strip()]
 
 
+def _clean_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return " ".join(value.split()) or None
+
+
 def _tracking_key(item: dict, analyzer_version: str, run_id: str) -> dict:
     return {
         "record_id": item["record_id"],
@@ -363,6 +371,7 @@ def analyze_llm(
         narrative_subjects=subjects,
         subject_categories=canonical_categories(parsed.get("subject_categories")),
         sentiment=sentiment,
+        sentiment_rationale=_clean_text(parsed.get("sentiment_rationale")),
         analysis_status=status,
         confidence=confidence,
         **_tracking_key(item, analyzer_version, run_id),

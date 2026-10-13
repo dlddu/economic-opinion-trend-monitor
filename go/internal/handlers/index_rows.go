@@ -12,8 +12,8 @@ const newsItemColumns = `SELECT record_id, source_id, axis, rank, view_count, ti
 	body_available, collected_at, collection_cycle FROM news_item`
 
 const analysisColumns = `SELECT record_id, source_url, target_countries, narrative_subjects, subject_categories,
-	sentiment, analysis_status, confidence, analyzed_at, analyzer_version, run_id, call_id, no_call_reason
-	FROM analysis`
+	sentiment, sentiment_rationale, analysis_status, confidence, analyzed_at, analyzer_version, run_id, call_id,
+	no_call_reason FROM analysis`
 
 func scanNewsItems(ctx context.Context, db *sql.DB, query string, args ...any) ([]gen.NewsItem, error) {
 	var out []gen.NewsItem
@@ -61,8 +61,8 @@ func eachAnalysis(ctx context.Context, db *sql.DB, fn func(gen.Analysis) error, 
 	for rs.Next() {
 		var a gen.Analysis
 		var countries, subjects string
-		var categories, sentiment, callID, noCall sql.NullString
-		if err := rs.Scan(&a.RecordID, &a.SourceURL, &countries, &subjects, &categories, &sentiment,
+		var categories, sentiment, rationale, callID, noCall sql.NullString
+		if err := rs.Scan(&a.RecordID, &a.SourceURL, &countries, &subjects, &categories, &sentiment, &rationale,
 			&a.AnalysisStatus, &a.Confidence, &a.AnalyzedAt, &a.AnalyzerVersion, &a.RunID, &callID, &noCall); err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func eachAnalysis(ctx context.Context, db *sql.DB, fn func(gen.Analysis) error, 
 			s := gen.Sentiment(sentiment.String)
 			a.Sentiment = &s
 		}
-		a.CallID, a.NoCallReason = nullable(callID), nullable(noCall)
+		a.SentimentRationale, a.CallID, a.NoCallReason = nullable(rationale), nullable(callID), nullable(noCall)
 		if err := fn(a); err != nil {
 			return err
 		}

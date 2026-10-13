@@ -117,6 +117,50 @@ def test_unanalyzed_when_model_declines() -> None:
     assert a.analysis_status == "unanalyzed"
 
 
+def test_prompt_asks_for_a_sentiment_rationale() -> None:
+    assert "sentiment_rationale" in _SYSTEM_PROMPT
+    assert '"sentiment_rationale":""' in _SYSTEM_PROMPT
+
+
+def test_sentiment_rationale_reaches_the_row() -> None:
+    c = _completer(
+        _reply(
+            sentiment="negative",
+            sentiment_rationale="  수출 감소 폭이\n예상보다 커졌다는 대목  ",
+        )
+    )
+    a = analyze_llm(_bronze(), "body", c)
+    assert a.sentiment == "negative"
+    assert a.sentiment_rationale == "수출 감소 폭이 예상보다 커졌다는 대목"
+
+
+def test_low_confidence_row_keeps_its_rationale() -> None:
+    c = _completer(
+        _reply(sentiment="mixed", confidence=0.4, sentiment_rationale="금리 인하 기대와 실적 부진")
+    )
+    a = analyze_llm(_bronze(), "body", c)
+    assert a.analysis_status == "low_confidence"
+    assert a.sentiment_rationale == "금리 인하 기대와 실적 부진"
+
+
+@pytest.mark.parametrize("value", [None, "", "   ", 3, ["근거"]])
+def test_absent_or_unusable_rationale_is_null(value: object) -> None:
+    fields = {} if value is None else {"sentiment_rationale": value}
+    c = _completer(_reply(sentiment="positive", **fields))
+    a = analyze_llm(_bronze(), "body", c)
+    assert a.sentiment == "positive"
+    assert a.sentiment_rationale is None
+
+
+def test_declined_reply_carries_no_rationale() -> None:
+    c = _completer(
+        _reply(analyzable=False, sentiment="neutral", sentiment_rationale="본문이 한 줄뿐")
+    )
+    a = analyze_llm(_bronze(), "body", c)
+    assert a.analysis_status == "unanalyzed"
+    assert a.sentiment_rationale is None
+
+
 def test_unusable_reply_raises_instead_of_degrading() -> None:
     # Nobody usable answered -> operational failure, not a judgement about the article.
     c = _completer("sorry, I can't help with that")

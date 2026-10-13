@@ -235,6 +235,16 @@ export function Trace() {
                           )}
                         </span>
                       </div>
+                      {silver.sentiment && (
+                        <div className="kv">
+                          <span className="k">판단 근거</span>
+                          <span className="v">
+                            {silver.sentiment_rationale ?? (
+                              <span className="meta">기록 없음 — 근거를 남기기 전에 분석된 기사입니다</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                       <div className="kv">
                         <span className="k">대상국</span>
                         <span className="v">{silver.target_countries.join(" · ") || "—"}</span>

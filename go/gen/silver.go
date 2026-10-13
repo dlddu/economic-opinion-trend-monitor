@@ -4,19 +4,20 @@ package gen
 
 // Analysis Silver record — LLM analysis of one Bronze news item (PRD analysis, AC2.1-AC2.6).
 type Analysis struct {
-	RecordID          string         `json:"record_id"`
-	SourceURL         string         `json:"source_url"`
-	TargetCountries   []string       `json:"target_countries"`
-	NarrativeSubjects []string       `json:"narrative_subjects"`
-	SubjectCategories *[]string      `json:"subject_categories,omitempty"`
-	Sentiment         *Sentiment     `json:"sentiment,omitempty"`
-	AnalysisStatus    AnalysisStatus `json:"analysis_status"`
-	Confidence        float64        `json:"confidence"`
-	AnalyzedAt        string         `json:"analyzed_at"`
-	AnalyzerVersion   string         `json:"analyzer_version"`
-	RunID             string         `json:"run_id"`
-	CallID            *string        `json:"call_id,omitempty"`
-	NoCallReason      *string        `json:"no_call_reason,omitempty"`
+	RecordID           string         `json:"record_id"`
+	SourceURL          string         `json:"source_url"`
+	TargetCountries    []string       `json:"target_countries"`
+	NarrativeSubjects  []string       `json:"narrative_subjects"`
+	SubjectCategories  *[]string      `json:"subject_categories,omitempty"`
+	Sentiment          *Sentiment     `json:"sentiment,omitempty"`
+	SentimentRationale *string        `json:"sentiment_rationale,omitempty"`
+	AnalysisStatus     AnalysisStatus `json:"analysis_status"`
+	Confidence         float64        `json:"confidence"`
+	AnalyzedAt         string         `json:"analyzed_at"`
+	AnalyzerVersion    string         `json:"analyzer_version"`
+	RunID              string         `json:"run_id"`
+	CallID             *string        `json:"call_id,omitempty"`
+	NoCallReason       *string        `json:"no_call_reason,omitempty"`
 }
 
 // LlmCallRecord One model call made for one Bronze record during the analysis stage — request, reply and verdict, kept append-only so a judgement can be read back long after the run (PRD pipeline-ops, AC4.2).

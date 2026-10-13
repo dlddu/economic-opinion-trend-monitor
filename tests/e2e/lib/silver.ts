@@ -20,6 +20,7 @@ export type Analysis = {
   narrative_subjects: string[];
   subject_categories: string[] | null;
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
+  sentiment_rationale: string | null;
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   confidence: number;
   analyzed_at: string;

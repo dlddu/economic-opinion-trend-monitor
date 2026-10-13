@@ -31,6 +31,7 @@ export type CannedReply = {
   // sentiment 를 읽기 전에 unanalyzed 로 끊으므로(`analyze_llm`), 여기서도 null 을 허용해야
   // 픽스처와 타입이 어긋나지 않는다.
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
+  sentiment_rationale?: string;
   analyzable: boolean;
   confidence: number;
 };

@@ -41,6 +41,12 @@
       "doc": "Sentiment label; null when unanalyzed (AC2.3, AC2.5)."
     },
     {
+      "name": "sentiment_rationale",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "The model's one-line reason for the sentiment label, in Korean — the wording or fact in the article that decided the tone (AC2.3). Null when sentiment is null, when no model judged the row (keyword_analyzer), or when the reply omitted it (rows written before the field existed)."
+    },
+    {
       "name": "analysis_status",
       "type": { "type": "enum", "name": "AnalysisStatus", "symbols": ["analyzed", "low_confidence", "unanalyzed"] },
       "doc": "Analysis confidence state; aggregation separates low/unanalyzed (AC2.5)."
