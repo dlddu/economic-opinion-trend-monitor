@@ -830,6 +830,27 @@ func TestTraceJoinsBronzeBodyAndSilverAnalysis(t *testing.T) {
 	}
 }
 
+func TestTraceCarriesTheSentimentRationale(t *testing.T) {
+	withReason := t.TempDir()
+	reasoned := strings.Replace(liveAnalysis, `"sentiment":"neutral",`,
+		`"sentiment":"neutral","sentiment_rationale":"동결 결정만 전하고 평가는 없다",`, 1)
+	writeLineage(t, withReason, liveItem, liveBody, reasoned)
+
+	tr := getTrace(t, withReason, "?record_id=r-1")
+	if tr.Silver == nil || tr.Silver.SentimentRationale == nil ||
+		*tr.Silver.SentimentRationale != "동결 결정만 전하고 평가는 없다" {
+		t.Fatalf("the stored rationale did not reach the trace: %+v", tr.Silver)
+	}
+
+	withoutReason := t.TempDir()
+	writeLineage(t, withoutReason, liveItem, liveBody, liveAnalysis)
+
+	tr = getTrace(t, withoutReason, "?record_id=r-1")
+	if tr.Silver == nil || tr.Silver.SentimentRationale != nil {
+		t.Fatalf("a row without a rationale gained one: %+v", tr.Silver)
+	}
+}
+
 func TestTraceFallsBackToPreservedBodyWhenLinkUnavailable(t *testing.T) {
 	dir := t.TempDir()
 	expired := `{"record_id":"r-2","source_id":"src-b","axis":"KR","rank":2,"view_count":40,` +

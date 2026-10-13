@@ -29,7 +29,7 @@ import (
 
 // SchemaVersion names the shape of schema.sql and derive.sql. A reader refuses an index of
 // another version, so bump it with any change a query could notice.
-const SchemaVersion = "3"
+const SchemaVersion = "4"
 
 const (
 	// Dir is where the index lives under the lake root.
@@ -220,8 +220,8 @@ func loadAnalyses(ctx context.Context, conn *sql.Conn, root string) (int, error)
 	n := 0
 	err := inTx(ctx, conn, func(tx *sql.Tx) error {
 		ins, err := tx.PrepareContext(ctx, `INSERT INTO analysis (seq, record_id, source_url, target_countries,
-			narrative_subjects, subject_categories, sentiment, analysis_status, confidence, analyzed_at,
-			analyzer_version, run_id, call_id, no_call_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+			narrative_subjects, subject_categories, sentiment, sentiment_rationale, analysis_status, confidence,
+			analyzed_at, analyzer_version, run_id, call_id, no_call_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 		if err != nil {
 			return err
 		}
@@ -236,7 +236,7 @@ func loadAnalyses(ctx context.Context, conn *sql.Conn, root string) (int, error)
 				sentiment = string(*a.Sentiment)
 			}
 			_, err := ins.ExecContext(ctx, n, a.RecordID, a.SourceURL, jsonText(a.TargetCountries),
-				jsonText(a.NarrativeSubjects), categories, sentiment, string(a.AnalysisStatus), a.Confidence,
+				jsonText(a.NarrativeSubjects), categories, sentiment, text(a.SentimentRationale), string(a.AnalysisStatus), a.Confidence,
 				a.AnalyzedAt, a.AnalyzerVersion, a.RunID, text(a.CallID), text(a.NoCallReason))
 			return err
 		})

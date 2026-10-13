@@ -16,6 +16,7 @@ CREATE TABLE analysis (
   narrative_subjects TEXT NOT NULL,
   subject_categories TEXT,
   sentiment          TEXT,
+  sentiment_rationale TEXT,
   analysis_status    TEXT NOT NULL,
   confidence         REAL NOT NULL,
   analyzed_at        TEXT NOT NULL,

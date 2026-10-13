@@ -25,6 +25,7 @@ class Analysis:
     narrative_subjects: list[str] = field(default_factory=list)
     subject_categories: list[str] | None = None
     sentiment: Sentiment | None = None
+    sentiment_rationale: str | None = None
     analysis_status: AnalysisStatus
     confidence: float
     analyzed_at: str
@@ -42,6 +43,7 @@ class Analysis:
             narrative_subjects=list(d.get("narrative_subjects", [])),
             subject_categories=d.get("subject_categories"),
             sentiment=d.get("sentiment"),
+            sentiment_rationale=d.get("sentiment_rationale"),
             analysis_status=d["analysis_status"],
             confidence=d["confidence"],
             analyzed_at=d["analyzed_at"],

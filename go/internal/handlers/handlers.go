@@ -215,13 +215,14 @@ type traceBronze struct {
 // value: AC2.5 sets low-confidence records aside as unanalyzed rather than
 // forcing them into one of the four classes.
 type traceSilver struct {
-	AnalysisStatus    string   `json:"analysis_status"`
-	Sentiment         *string  `json:"sentiment"`
-	TargetCountries   []string `json:"target_countries"`
-	NarrativeSubjects []string `json:"narrative_subjects"`
-	Confidence        float64  `json:"confidence"`
-	AnalyzedAt        string   `json:"analyzed_at"`
-	AnalyzerVersion   string   `json:"analyzer_version"`
+	AnalysisStatus     string   `json:"analysis_status"`
+	Sentiment          *string  `json:"sentiment"`
+	SentimentRationale *string  `json:"sentiment_rationale"`
+	TargetCountries    []string `json:"target_countries"`
+	NarrativeSubjects  []string `json:"narrative_subjects"`
+	Confidence         float64  `json:"confidence"`
+	AnalyzedAt         string   `json:"analyzed_at"`
+	AnalyzerVersion    string   `json:"analyzer_version"`
 }
 
 type traceIngestion struct {
@@ -512,12 +513,13 @@ func silverSection(recordID string, analyses []gen.Analysis) (*traceSilver, bool
 			continue
 		}
 		out := traceSilver{
-			AnalysisStatus:    string(a.AnalysisStatus),
-			TargetCountries:   a.TargetCountries,
-			NarrativeSubjects: a.NarrativeSubjects,
-			Confidence:        a.Confidence,
-			AnalyzedAt:        a.AnalyzedAt,
-			AnalyzerVersion:   a.AnalyzerVersion,
+			AnalysisStatus:     string(a.AnalysisStatus),
+			SentimentRationale: a.SentimentRationale,
+			TargetCountries:    a.TargetCountries,
+			NarrativeSubjects:  a.NarrativeSubjects,
+			Confidence:         a.Confidence,
+			AnalyzedAt:         a.AnalyzedAt,
+			AnalyzerVersion:    a.AnalyzerVersion,
 		}
 		if a.Sentiment != nil {
 			s := string(*a.Sentiment)

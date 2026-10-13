@@ -26,6 +26,7 @@ const BRONZE = {
 const SILVER = {
   analysis_status: "analyzed" as const,
   sentiment: "neutral" as const,
+  sentiment_rationale: "동결 결정만 전하고 평가는 없다",
   target_countries: ["KR"],
   narrative_subjects: ["한국은행 기준금리"],
   confidence: 0.91,
@@ -131,6 +132,34 @@ it("leaves sentiment blank for a set-aside record instead of picking a class", a
   }
   // A set-aside record was still analyzed — the silver hop is not a gap.
   expect(container.querySelectorAll(".trace-crumb-gap")).toHaveLength(0);
+});
+
+it("shows the model's reason next to the sentiment it gave", async () => {
+  stubTrace(response());
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+
+  expect(container.textContent).toContain("판단 근거");
+  expect(container.textContent).toContain(SILVER.sentiment_rationale);
+});
+
+it("says a rationale was never recorded rather than leaving the row blank", async () => {
+  stubTrace(response({ silver: { ...SILVER, sentiment_rationale: null } }));
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+
+  expect(container.textContent).toContain("기록 없음 — 근거를 남기기 전에 분석된 기사입니다");
+});
+
+it("has no rationale row for a record set aside from the four classes", async () => {
+  stubTrace(response({ silver: { ...SILVER, sentiment: null, analysis_status: "unanalyzed" } }));
+  const { container } = renderTrace();
+
+  await waitFor(() => expect(container.textContent).toContain(BRONZE.title));
+
+  expect(container.textContent).not.toContain("판단 근거");
 });
 
 it("tells 'not analyzed yet' apart from 'not collected'", async () => {

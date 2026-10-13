@@ -240,6 +240,7 @@ export interface TraceBronze {
 export interface TraceSilver {
   analysis_status: "analyzed" | "low_confidence" | "unanalyzed";
   sentiment: "positive" | "neutral" | "negative" | "mixed" | null;
+  sentiment_rationale: string | null;
   target_countries: string[];
   narrative_subjects: string[];
   confidence: number;

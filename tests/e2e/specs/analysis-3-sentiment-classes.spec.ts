@@ -27,6 +27,20 @@ test("analysis: all four sentiment classes are actually observed", () => {
   expect(observed).toEqual(new Set(LABELS));
 });
 
+test("analysis: each sentiment reaches Silver with the reason the model gave, or none", () => {
+  const joined = analyzedByTitle();
+  const reasoned = [...joined].filter(
+    ([title]) => cannedReply(MODEL_V1, title).sentiment_rationale !== undefined,
+  );
+  expect(reasoned.length).toBeGreaterThan(0);
+  expect(reasoned.length).toBeLessThan(joined.size);
+  for (const [title, { analysis }] of joined) {
+    expect(analysis.sentiment_rationale, title).toBe(
+      cannedReply(MODEL_V1, title).sentiment_rationale ?? null,
+    );
+  }
+});
+
 test("analysis: opposing tones classify as mixed, an absent tone as neutral", () => {
   const joined = analyzedByTitle();
   expect(analyzedTitled(joined, OPPOSING_TONES).analysis.sentiment).toBe("mixed");
