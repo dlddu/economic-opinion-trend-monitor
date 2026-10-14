@@ -4,7 +4,16 @@ under test is that the list and the count agree, not that either matches a liter
 
 from collections import Counter
 
-from econ_aggregation.aggregate import build_article_picks_all_units, build_subject_trends_all_units
+from econ_aggregation.aggregate import (
+    ALL_AXIS,
+    build_article_picks_all_units,
+    build_subject_trends_all_units,
+)
+
+
+def _axes(rows: list[dict]) -> list[dict]:
+    """ALL folds the axes' sources together and is decomposed only through them."""
+    return [row for row in rows if row["axis"] != ALL_AXIS]
 
 
 def _bronze(rid: str, axis: str, source: str, at: str, url: str = "") -> dict:
@@ -53,7 +62,7 @@ def _corpus() -> tuple[list[dict], list[dict]]:
 def test_picks_number_every_gold_raw_count_exactly() -> None:
     bronze, silver = _corpus()
     picks = build_article_picks_all_units(bronze, silver)
-    trends = build_subject_trends_all_units(bronze, silver)
+    trends = _axes(build_subject_trends_all_units(bronze, silver))
 
     def value(row: dict) -> tuple[str, str, str]:
         return row["axis"], row["bucket_unit"], row["time_bucket"]

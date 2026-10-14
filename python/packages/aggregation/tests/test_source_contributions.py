@@ -6,11 +6,20 @@ matches a literal someone typed here.
 """
 
 import pytest
-from econ_aggregation.aggregate import build_subject_trends, build_subject_trends_all_units
+from econ_aggregation.aggregate import (
+    ALL_AXIS,
+    build_subject_trends,
+    build_subject_trends_all_units,
+)
 from econ_aggregation.contributions import (
     build_subject_source_contributions,
     build_subject_source_contributions_all_units,
 )
+
+
+def _axes(rows: list[dict]) -> list[dict]:
+    """ALL folds the axes' sources together and is decomposed only through them."""
+    return [row for row in rows if row["axis"] != ALL_AXIS]
 
 
 def _bronze(rid: str, axis: str, source: str, hour: int = 14) -> dict:
@@ -79,7 +88,7 @@ def _by_value(rows: list[dict]) -> dict[tuple[str, str, str, str], list[dict]]:
 @pytest.mark.parametrize("corpus", [_corpus(), _corpus(daily_extra=6), _thirds()])
 def test_raw_counts_sum_to_the_values_raw_count(corpus: tuple[list[dict], list[dict]]) -> None:
     bronze, silver = corpus
-    trends = build_subject_trends_all_units(bronze, silver)
+    trends = _axes(build_subject_trends_all_units(bronze, silver))
     parts = _by_value(build_subject_source_contributions_all_units(bronze, silver))
     assert parts
     for trend in trends:
@@ -92,7 +101,7 @@ def test_normalized_contributions_sum_to_the_values_share(
     corpus: tuple[list[dict], list[dict]],
 ) -> None:
     bronze, silver = corpus
-    trends = build_subject_trends_all_units(bronze, silver)
+    trends = _axes(build_subject_trends_all_units(bronze, silver))
     parts = _by_value(build_subject_source_contributions_all_units(bronze, silver))
     for trend in trends:
         key = (trend["subject"], trend["axis"], trend["bucket_unit"], trend["time_bucket"])
@@ -121,7 +130,7 @@ def test_raw_share_is_the_sources_part_of_the_values_raw_count() -> None:
 
 def test_every_value_is_decomposed_and_nothing_else_is() -> None:
     bronze, silver = _corpus()
-    trends = build_subject_trends_all_units(bronze, silver)
+    trends = _axes(build_subject_trends_all_units(bronze, silver))
     parts = _by_value(build_subject_source_contributions_all_units(bronze, silver))
     values = {(t["subject"], t["axis"], t["bucket_unit"], t["time_bucket"]) for t in trends}
     assert set(parts) == values

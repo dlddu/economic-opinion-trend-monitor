@@ -4,6 +4,7 @@
 
 import type {
   Axis,
+  AxisScope,
   BucketUnit,
   CompareResponse,
   ContributionsResponse,
@@ -73,10 +74,10 @@ export async function postJSON<T>(path: string, body: unknown): Promise<T> {
 
 export const api = {
   health: () => getJSON<{ status: string }>("/health"),
-  dashboard: (axis: Axis = "KR", range: DashRange = "7d", unit: BucketUnit = "day") =>
+  dashboard: (axis: AxisScope = "KR", range: DashRange = "7d", unit: BucketUnit = "day") =>
     getJSON<DashboardResponse>(`/dashboard?axis=${axis}&range=${range}&unit=${unit}`),
   compare: () => getJSON<CompareResponse>("/compare"),
-  trend: (axis: Axis = "KR", subject?: string) =>
+  trend: (axis: AxisScope = "KR", subject?: string) =>
     getJSON<TrendResponse>(
       `/trend?axis=${axis}${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`,
     ),

@@ -4,6 +4,9 @@
 
 export type Axis = "KR" | "US" | "GLOBAL";
 
+/** A source axis, or ALL — every axis's sources folded as one. Only dashboard and trend serve it. */
+export type AxisScope = Axis | "ALL";
+
 export interface SentimentDistribution {
   positive: number;
   neutral: number;
@@ -56,7 +59,7 @@ export interface DashSummary {
 }
 
 export interface DashboardResponse {
-  axis: Axis;
+  axis: AxisScope;
   normalized: boolean;
   basis: DashBasis;
   summary: DashSummary | null;
@@ -85,7 +88,7 @@ export interface TrendSeries {
 }
 
 export interface TrendResponse {
-  axis: Axis;
+  axis: AxisScope;
   subject: string;
   basis: {
     bucket_unit: string;

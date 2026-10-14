@@ -191,6 +191,55 @@ func TestDashboardHonoursTheRequestedUnitAndRange(t *testing.T) {
 	}
 }
 
+func appendGold(t *testing.T, dir, file string, rows ...string) {
+	t.Helper()
+	f, err := os.OpenFile(filepath.Join(dir, "gold", file), os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString(strings.Join(rows, "\n") + "\n"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// ALL is an axis of its own in Gold: the dashboard ranks and summarizes its rows, not a sum of
+// the source axes' rows beside them.
+func TestDashboardServesTheAllAxisFromItsOwnRows(t *testing.T) {
+	dir := t.TempDir()
+	writeDailyGold(t, dir)
+	appendGold(t, dir, "subject_trend.jsonl",
+		`{"subject":"기준금리","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-22","raw_count":8,"normalized_share":0.6,"delta":0,"spark":[]}`,
+		`{"subject":"기준금리","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":5,"normalized_share":0.7,"delta":0,"spark":[]}`,
+		`{"subject":"반도체","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":0.3,"delta":0,"spark":[]}`,
+	)
+	appendGold(t, dir, "axis_sentiment.jsonl",
+		`{"axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.5,"neutral":0.5,"negative":0,"mixed":0,"unanalyzed":0.25},"analyzed_total":93}`,
+	)
+	d := getDashboard(t, dir, "?axis=ALL")
+
+	if d.Axis != "ALL" || d.Basis.EmptyWindow || d.Basis.PreviousBucket != "2026-06-22" {
+		t.Fatalf("axis/basis = %s %+v", d.Axis, d.Basis)
+	}
+	if len(d.TopSubjects) != 2 || d.TopSubjects[0].Subject != "기준금리" || d.TopSubjects[0].Delta != 10 {
+		t.Fatalf("ALL rows = %+v", d.TopSubjects)
+	}
+	if !d.TopSubjects[1].IsNew {
+		t.Errorf("반도체 has no ALL row on 06-22: %+v", d.TopSubjects[1])
+	}
+	if d.Summary == nil || d.Summary.Analyzed != 93 || *d.Summary.Collected != 124 {
+		t.Errorf("summary = %+v", d.Summary)
+	}
+}
+
+// Fairness decomposes a value into its sources, which ALL has no rows of, so it keeps to the
+// source axes.
+func TestScreensWithoutAnAllAxisFallBackFromIt(t *testing.T) {
+	if f := getFairness(t, t.TempDir(), "?axis=ALL"); f.Axis != "KR" {
+		t.Errorf("fairness axis = %q, want the KR fallback", f.Axis)
+	}
+}
+
 func TestBucketStartReadsEveryUnit(t *testing.T) {
 	cases := []struct {
 		label string

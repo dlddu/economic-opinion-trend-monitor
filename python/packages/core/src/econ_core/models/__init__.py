@@ -5,6 +5,7 @@ from econ_core.models.bronze import NewsBody, NewsItem
 from econ_core.models.enums import (
     ANALYSISSTATUS_VALUES,
     AXIS_VALUES,
+    AXISSCOPE_VALUES,
     BUCKETUNIT_VALUES,
     LLMCALLOUTCOME_VALUES,
     PIPELINESTAGE_VALUES,
@@ -13,6 +14,7 @@ from econ_core.models.enums import (
     SENTIMENT_VALUES,
     AnalysisStatus,
     Axis,
+    AxisScope,
     BucketUnit,
     LlmCallOutcome,
     PipelineStage,
@@ -38,11 +40,13 @@ from econ_core.models.silver import (
 
 __all__ = [
     "ANALYSISSTATUS_VALUES",
+    "AXISSCOPE_VALUES",
     "AXIS_VALUES",
     "Analysis",
     "AnalysisStatus",
     "ArticlePick",
     "Axis",
+    "AxisScope",
     "AxisSentiment",
     "BUCKETUNIT_VALUES",
     "BucketUnit",

@@ -1,8 +1,8 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type {
-  Axis,
+  AxisScope,
   BucketUnit,
   DashboardResponse,
   DashRange,
@@ -14,7 +14,8 @@ import { useTopbar } from "../shell/topbarSlot";
 
 // 화면 2·3 으로 넘어가는 컨트롤은 두지 않는다 — 설계 트래커 「허위 컨트롤 금지」.
 
-const AXES: { id: Axis; label: string }[] = [
+const AXES: { id: AxisScope; label: string }[] = [
+  { id: "ALL", label: "전체" },
   { id: "KR", label: "한국" },
   { id: "US", label: "미국" },
   { id: "GLOBAL", label: "전세계" },
@@ -62,7 +63,7 @@ const UNIT_NAME: Record<BucketUnit, string> = {
 /** 원시 순위와 정규화 순위가 이만큼 갈리면 행에 적는다 — 한 칸 차이는 동점 처리의 흔들림이다. */
 const RANK_SHIFT_NOTE = 2;
 
-function axisLabel(axis: Axis): string {
+function axisLabel(axis: AxisScope): string {
   return AXES.find((a) => a.id === axis)?.label ?? axis;
 }
 
@@ -86,14 +87,13 @@ function dtext(d: number, hasBaseline: boolean): string {
 
 const SPARK_COLOR = { up: "var(--pos)", dn: "var(--neg)", fl: "var(--neu)" } as const;
 
-// **수명은 목업 문면이 정한다.** 카드 sub 가 `어제 닫을 때의 조건으로 열립니다`, note 가
-// `어제와 같은 화면에서 밤사이 변화만 보게 됩니다` 라고 약속하므로, 탭을 닫으면 사라지는
-// `sessionStorage` 로는 두 문장이 거짓이 된다 — 날을 넘겨 살아남는 저장소여야 한다.
+// **수명은 목업 문면이 정한다.** 카드 sub 가 `어제 닫을 때의 조건으로 열립니다` 라고 약속하므로,
+// 탭을 닫으면 사라지는 `sessionStorage` 로는 그 문장이 거짓이 된다 — 날을 넘겨 살아남는 저장소여야 한다.
 const BRIEF_KEY = "econ-monitor:dash:brief";
 
-type StoredBrief = { axis: Axis; q: string; restore: boolean; range: DashRange; unit: BucketUnit };
+type StoredBrief = { axis: AxisScope; restore: boolean; range: DashRange; unit: BucketUnit };
 
-const DEFAULT_BRIEF: StoredBrief = { axis: "KR", q: "", restore: true, range: "7d", unit: "day" };
+const DEFAULT_BRIEF: StoredBrief = { axis: "KR", restore: true, range: "7d", unit: "day" };
 
 function readStoredBrief(): StoredBrief | null {
   try {
@@ -104,7 +104,6 @@ function readStoredBrief(): StoredBrief | null {
     if (!axis) return null;
     return {
       axis,
-      q: typeof parsed.q === "string" ? parsed.q : "",
       restore: parsed.restore !== false,
       range: RANGES.find((r) => r === parsed.range) ?? DEFAULT_BRIEF.range,
       unit: UNITS.find((u) => u === parsed.unit) ?? DEFAULT_BRIEF.unit,
@@ -130,16 +129,13 @@ function entryBrief(stored: StoredBrief | null): StoredBrief {
 
 export function Dashboard() {
   const entry = useState(() => entryBrief(readStoredBrief()))[0];
-  const [axis, setAxis] = useState<Axis>(entry.axis);
-  const [q, setQ] = useState(entry.q);
+  const [axis, setAxis] = useState<AxisScope>(entry.axis);
   const [restore, setRestore] = useState(entry.restore);
   const [thresh, setThresh] = useState(0);
   const [onlyNew, setOnlyNew] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const [range, setRange] = useState<DashRange>(entry.range);
   const [unit, setUnit] = useState<BucketUnit>(entry.unit);
-  const [draftRange, setDraftRange] = useState<DashRange>(entry.range);
-  const [draftUnit, setDraftUnit] = useState<BucketUnit>(entry.unit);
   const [reapplying, setReapplying] = useState(false);
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -151,8 +147,8 @@ export function Dashboard() {
   );
 
   useEffect(() => {
-    storeBrief({ axis, q, restore, range, unit });
-  }, [axis, q, restore, range, unit]);
+    storeBrief({ axis, restore, range, unit });
+  }, [axis, restore, range, unit]);
 
   useEffect(() => {
     let active = true;
@@ -168,17 +164,14 @@ export function Dashboard() {
     };
   }, [axis, range, unit]);
 
-  function applyWindow(e: FormEvent) {
-    e.preventDefault();
-    if (draftRange === range && draftUnit === unit) return;
+  // 축·기간·단위 모두 고르는 즉시 다시 조회한다. 「다시 집계하는 중」은 기간·단위가 바뀐 왕복에만 쓴다.
+  function applyWindow(nextRange: DashRange, nextUnit: BucketUnit) {
     setReapplying(true);
-    setRange(draftRange);
-    setUnit(draftUnit);
+    setRange(nextRange);
+    setUnit(nextUnit);
   }
 
-  // 대소문자를 구분하는 것까지 목업(`rows()` 의 `indexOf`)과 같다.
-  const needle = q.trim();
-  const ranked = data ? data.top_subjects.filter((r) => r.subject.includes(needle)) : [];
+  const ranked = data?.top_subjects ?? [];
   const maxShare = Math.max(...ranked.map((r) => r.normalized_share), 0.0001);
   const noGold = data !== null && data.basis.bucket === "";
   const emptyWindow = data !== null && !noGold && data.basis.empty_window;
@@ -210,10 +203,10 @@ export function Dashboard() {
             <span className="sub">어제 닫을 때의 조건으로 열립니다</span>
           </div>
           <div className="card-b">
-            <form onSubmit={applyWindow}>
+            <form onSubmit={(e) => e.preventDefault()}>
               <label className="dash-brief-field">
                 <span className="dash-brief-label">축</span>
-                <select value={axis} onChange={(e) => setAxis(e.target.value as Axis)}>
+                <select value={axis} onChange={(e) => setAxis(e.target.value as AxisScope)}>
                   {AXES.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.label}
@@ -225,8 +218,8 @@ export function Dashboard() {
                 <span className="dash-brief-label">기간</span>
                 <select
                   name="range"
-                  value={draftRange}
-                  onChange={(e) => setDraftRange(e.target.value as DashRange)}
+                  value={range}
+                  onChange={(e) => applyWindow(e.target.value as DashRange, unit)}
                 >
                   {RANGES.map((r) => (
                     <option key={r} value={r}>
@@ -244,29 +237,14 @@ export function Dashboard() {
                         type="radio"
                         name="unit"
                         value={u}
-                        checked={draftUnit === u}
-                        onChange={() => setDraftUnit(u)}
+                        checked={unit === u}
+                        onChange={() => applyWindow(range, u)}
                       />
                       {UNIT_NAME[u]}
                     </label>
                   ))}
                 </div>
               </div>
-              <div className="dash-stepact" style={{ marginTop: 14 }}>
-                <button type="submit" className="btn pri">
-                  기간 적용
-                </button>
-                <span className="dash-hint">고른 대상은 그대로 유지됩니다.</span>
-              </div>
-              <label className="dash-brief-field" style={{ marginTop: 14 }}>
-                <span className="dash-brief-label">대상 찾기</span>
-                <input
-                  type="search"
-                  value={q}
-                  placeholder="대상 이름으로 좁히기"
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </label>
               <label className="dash-brief-check" style={{ marginTop: 16 }}>
                 <input
                   type="checkbox"
@@ -276,14 +254,6 @@ export function Dashboard() {
                 마지막 조회 조건으로 열기
               </label>
             </form>
-
-            <div className="note info" style={{ marginTop: 18 }}>
-              <InfoIcon />
-              <div>
-                <b>조건을 매번 다시 맞추지 않습니다.</b> 닫을 때의 축·기간·단위가 그대로 복원되어, 어제와 같은
-                화면에서 밤사이 변화만 보게 됩니다.
-              </div>
-            </div>
           </div>
         </div>
 
@@ -315,9 +285,6 @@ export function Dashboard() {
                 ))}
                 {noGold && (
                   <div className="dash-brief-empty">데이터 없음 — 배치 파이프라인을 먼저 실행하세요.</div>
-                )}
-                {data.top_subjects.length > 0 && ranked.length === 0 && (
-                  <div className="dash-brief-empty">검색어에 걸리는 대상이 없습니다.</div>
                 )}
               </div>
             )}
@@ -470,9 +437,6 @@ export function Dashboard() {
             )}
             {data && data.top_subjects.length === 0 && (
               <div className="dash-brief-empty">이 축에는 이 기간에 표시할 대상이 없습니다.</div>
-            )}
-            {data && data.top_subjects.length > 0 && ranked.length === 0 && (
-              <div className="dash-brief-empty">검색어에 걸리는 대상이 없습니다.</div>
             )}
             {data && ranked.length > 0 && (
               <table className="tbl">

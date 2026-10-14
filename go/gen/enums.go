@@ -18,6 +18,15 @@ const (
 	AxisGLOBAL Axis = "GLOBAL"
 )
 
+type AxisScope string
+
+const (
+	AxisScopeKR     AxisScope = "KR"
+	AxisScopeUS     AxisScope = "US"
+	AxisScopeGLOBAL AxisScope = "GLOBAL"
+	AxisScopeALL    AxisScope = "ALL"
+)
+
 type BucketUnit string
 
 const (

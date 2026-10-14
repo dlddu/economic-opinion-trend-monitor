@@ -26,6 +26,9 @@ BUCKET_UNITS = ("hour", "day", "week")
 
 SPARK_WINDOW = 6
 
+# The axis SubjectTrend and AxisSentiment add beside KR/US/GLOBAL: every axis read as one.
+ALL_AXIS = "ALL"
+
 
 def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
     """Cut a collection timestamp down to its bucket label in ``unit`` (AC3.3).
@@ -185,11 +188,28 @@ def build_subject_trends(
     return list(subject_trends(count_by_source(bronze, silver, unit), unit))
 
 
+def with_all_axis(counts: Counts) -> Counts:
+    """``counts`` plus an ``ALL`` axis holding every axis's sources in one bucket.
+
+    Folding that bucket weighs each source equally across all axes, as one axis
+    weighs its own (AC3.1) — an axis with more sources carries more of ALL.
+    """
+    every: dict[str, dict[str, dict[str, int]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(int))
+    )
+    for buckets in counts.values():
+        for bucket, sources in buckets.items():
+            for source, subject_counts in sources.items():
+                for subject, n in subject_counts.items():
+                    every[bucket][source][subject] += n
+    return {**counts, ALL_AXIS: every} if every else counts
+
+
 def subject_trends(counts: Counts, unit: str) -> Iterator[dict]:
     # shares[axis][bucket][subject] -> (normalized_share, raw_count). Built in
     # full before any row is emitted: delta/spark need the neighbouring buckets.
     shares: dict[str, dict[str, dict[str, tuple[float, int]]]] = defaultdict(dict)
-    for axis, buckets in counts.items():
+    for axis, buckets in with_all_axis(counts).items():
         for bucket, sources in buckets.items():
             shares[axis][bucket] = fold_bucket(sources)[0]
 
@@ -232,9 +252,13 @@ def axis_sentiment(articles: Iterable[tuple[str, str, Pick]], unit: str) -> Iter
     tally: dict[str, dict[str, dict[str, int]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(int))
     )
+    every: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for axis, bucket, pick in articles:
-        tally[axis][bucket][pick.sentiment] += 1
-        tally[axis][bucket]["_total"] += 1
+        for counted in (tally[axis][bucket], every[bucket]):
+            counted[pick.sentiment] += 1
+            counted["_total"] += 1
+    if every:
+        tally[ALL_AXIS] = every
 
     for axis, buckets in tally.items():
         for bucket, c in buckets.items():

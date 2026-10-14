@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from econ_core.models.enums import Axis, BucketUnit
+from econ_core.models.enums import Axis, AxisScope, BucketUnit
 
 
 @dataclass(kw_only=True)
@@ -37,7 +37,7 @@ class ArticlePick:
 class AxisSentiment:
     """Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6)."""
 
-    axis: Axis
+    axis: AxisScope
     bucket_unit: BucketUnit
     time_bucket: str
     distribution: SentimentDistribution
@@ -107,7 +107,7 @@ class SubjectTrend:
     """Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8)."""
 
     subject: str
-    axis: Axis
+    axis: AxisScope
     bucket_unit: BucketUnit
     time_bucket: str
     raw_count: int

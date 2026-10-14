@@ -12,8 +12,8 @@
     },
     {
       "name": "axis",
-      "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
-      "doc": "Source axis (AC3.4, AC3.7)."
+      "type": { "type": "enum", "name": "AxisScope", "symbols": ["KR", "US", "GLOBAL", "ALL"] },
+      "doc": "Source axis, or ALL — every axis's sources folded as one, each source weighted equally (AC3.1, AC3.4, AC3.7)."
     },
     {
       "name": "bucket_unit",

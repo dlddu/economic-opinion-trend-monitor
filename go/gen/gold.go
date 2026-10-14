@@ -15,7 +15,7 @@ type ArticlePick struct {
 
 // AxisSentiment Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6).
 type AxisSentiment struct {
-	Axis          Axis                  `json:"axis"`
+	Axis          AxisScope             `json:"axis"`
 	BucketUnit    BucketUnit            `json:"bucket_unit"`
 	TimeBucket    string                `json:"time_bucket"`
 	Distribution  SentimentDistribution `json:"distribution"`
@@ -46,7 +46,7 @@ type SubjectSourceContribution struct {
 // SubjectTrend Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8).
 type SubjectTrend struct {
 	Subject         string     `json:"subject"`
-	Axis            Axis       `json:"axis"`
+	Axis            AxisScope  `json:"axis"`
 	BucketUnit      BucketUnit `json:"bucket_unit"`
 	TimeBucket      string     `json:"time_bucket"`
 	RawCount        int64      `json:"raw_count"`

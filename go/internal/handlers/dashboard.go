@@ -65,7 +65,7 @@ type dashboardResponse struct {
 }
 
 func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSource) {
-	axis := axisParam(r, "KR")
+	axis := axisOrAllParam(r, "KR")
 	rangeKey := r.URL.Query().Get("range")
 	if _, ok := dashRanges[rangeKey]; !ok {
 		rangeKey = defaultDashRange

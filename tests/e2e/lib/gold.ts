@@ -122,13 +122,19 @@ export function axisSentiments(dir: string = goldDir()): AxisSentiment[] {
   return inFinestUnit(axisSentimentsAllUnits(dir));
 }
 
-/** 단위를 가르지 않은 원본 Gold. */
+/**
+ * 모든 축의 소스를 한 버킷에 접은 `ALL` 축. spec 들이 견주는 Bronze 교차표는 수집 축(KR·US·GLOBAL)
+ * 별이라 이 축이 없으므로, 아래 두 리더는 `ALL` 행을 빼고 돌려준다.
+ */
+const ALL_AXIS = "ALL";
+
+/** 단위를 가르지 않은 원본 Gold — 수집 축의 행만. */
 export function subjectTrendsAllUnits(dir: string = goldDir()): SubjectTrend[] {
-  return readJsonlFrom<SubjectTrend>(dir, "subject_trend");
+  return readJsonlFrom<SubjectTrend>(dir, "subject_trend").filter((row) => row.axis !== ALL_AXIS);
 }
 
 export function axisSentimentsAllUnits(dir: string = goldDir()): AxisSentiment[] {
-  return readJsonlFrom<AxisSentiment>(dir, "axis_sentiment");
+  return readJsonlFrom<AxisSentiment>(dir, "axis_sentiment").filter((row) => row.axis !== ALL_AXIS);
 }
 
 export function subjectSourceContributionsAllUnits(

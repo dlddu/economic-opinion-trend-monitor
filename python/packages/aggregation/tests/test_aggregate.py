@@ -1,5 +1,6 @@
 import pytest
 from econ_aggregation.aggregate import (
+    ALL_AXIS,
     BUCKET_UNITS,
     _bucket,
     build_axis_sentiment,
@@ -25,6 +26,11 @@ def _silver(rid: str, subjects: list[str], sentiment: str | None, status: str) -
         "sentiment": sentiment,
         "analysis_status": status,
     }
+
+
+def _axes(rows: list[dict]) -> list[dict]:
+    """The rows of the source axes, without the ALL rows folded over them."""
+    return [row for row in rows if row["axis"] != ALL_AXIS]
 
 
 def test_subject_trend_shares_sum_to_one_per_axis() -> None:
@@ -141,7 +147,7 @@ def test_every_unit_is_emitted_finest_first() -> None:
 
 def test_rollup_raw_counts_equal_the_sum_of_the_finer_buckets() -> None:
     bronze, silver = _span_bronze(), _span_silver()
-    by_unit = {unit: build_subject_trends(bronze, silver, unit) for unit in BUCKET_UNITS}
+    by_unit = {unit: _axes(build_subject_trends(bronze, silver, unit)) for unit in BUCKET_UNITS}
 
     def counts(unit: str) -> dict[tuple[str, str], int]:
         return {(row["time_bucket"], row["subject"]): row["raw_count"] for row in by_unit[unit]}
@@ -162,7 +168,7 @@ def test_rollup_shares_stay_a_distribution_inside_each_bucket() -> None:
     bronze, silver = _span_bronze(), _span_silver()
     for unit in BUCKET_UNITS:
         per_bucket: dict[str, float] = {}
-        for row in build_subject_trends(bronze, silver, unit):
+        for row in _axes(build_subject_trends(bronze, silver, unit)):
             per_bucket[row["time_bucket"]] = (
                 per_bucket.get(row["time_bucket"], 0.0) + row["normalized_share"]
             )
@@ -173,7 +179,8 @@ def test_rollup_shares_stay_a_distribution_inside_each_bucket() -> None:
 def test_axis_sentiment_rolls_up_on_the_same_buckets() -> None:
     bronze, silver = _span_bronze(), _span_silver()
     by_unit = {
-        unit: build_axis_sentiment_all_units(bronze, silver, (unit,)) for unit in BUCKET_UNITS
+        unit: _axes(build_axis_sentiment_all_units(bronze, silver, (unit,)))
+        for unit in BUCKET_UNITS
     }
 
     hours = {row["time_bucket"]: row["analyzed_total"] for row in by_unit["hour"]}
@@ -209,12 +216,12 @@ def test_day_bucket_counts_an_article_once_however_often_it_was_observed() -> No
         _silver("a16", ["A"], "positive", "analyzed"),
         _silver("b14", ["B"], "neutral", "analyzed"),
     ]
-    day = {t["subject"]: t for t in build_subject_trends(bronze, silver, "day")}
+    day = {t["subject"]: t for t in _axes(build_subject_trends(bronze, silver, "day"))}
     assert day["A"]["raw_count"] == 1
     assert day["A"]["normalized_share"] == 0.5
     assert day["B"]["normalized_share"] == 0.5
 
-    hour = [t for t in build_subject_trends(bronze, silver, "hour") if t["subject"] == "A"]
+    hour = [t for t in _axes(build_subject_trends(bronze, silver, "hour")) if t["subject"] == "A"]
     assert [t["raw_count"] for t in hour] == [1, 1, 1]
 
     sentiment = build_axis_sentiment(bronze, silver, "day")
@@ -228,7 +235,7 @@ def test_article_is_read_through_its_latest_observation_in_the_bucket() -> None:
         _silver("a15", ["new"], "negative", "analyzed"),
         _silver("a14", ["old"], "positive", "analyzed"),
     ]
-    day = build_subject_trends(bronze, silver, "day")
+    day = _axes(build_subject_trends(bronze, silver, "day"))
     assert [t["subject"] for t in day] == ["new"]
     assert build_axis_sentiment(bronze, silver, "day")[0]["distribution"]["negative"] == 1.0
 
@@ -254,3 +261,54 @@ def test_subject_trend_counts_categories_and_falls_back_to_subjects_without_them
     ]
     rows = {t["subject"]: t["raw_count"] for t in build_subject_trends(bronze, silver)}
     assert rows == {"반도체": 2, "주식시장": 1, "삼성전자": 1}
+
+
+def test_all_axis_weighs_every_source_equally_across_the_axes() -> None:
+    # kr: A 2/3 · B 1/3, us: C 1 — two sources, each half of ALL.
+    bronze = [
+        _bronze("1", "KR", "kr"),
+        _bronze("2", "KR", "kr"),
+        _bronze("3", "KR", "kr"),
+        _bronze("4", "US", "us"),
+    ]
+    silver = [
+        _silver("1", ["A"], "positive", "analyzed"),
+        _silver("2", ["A"], "positive", "analyzed"),
+        _silver("3", ["B"], "neutral", "analyzed"),
+        _silver("4", ["C"], "negative", "analyzed"),
+    ]
+    every = {t["subject"]: t for t in build_subject_trends(bronze, silver) if t["axis"] == ALL_AXIS}
+    assert {s: t["normalized_share"] for s, t in every.items()} == {
+        "A": 0.3333,
+        "B": 0.1667,
+        "C": 0.5,
+    }
+    assert {s: t["raw_count"] for s, t in every.items()} == {"A": 2, "B": 1, "C": 1}
+
+
+def test_all_axis_rows_follow_the_source_axes() -> None:
+    bronze, silver = _span_bronze(), _span_silver()
+    axes = [row["axis"] for row in build_subject_trends(bronze, silver, "day")]
+    assert axes == sorted(axes, key=lambda a: a == ALL_AXIS)
+    assert build_subject_trends([], []) == []
+    assert build_axis_sentiment([], []) == []
+
+
+def test_all_axis_sentiment_tallies_every_axis_together() -> None:
+    bronze = [
+        _bronze("1", "KR", "kr"),
+        _bronze("2", "KR", "kr"),
+        _bronze("3", "US", "us"),
+        _bronze("4", "GLOBAL", "gl"),
+    ]
+    silver = [
+        _silver("1", ["A"], "positive", "analyzed"),
+        _silver("2", ["A"], "positive", "analyzed"),
+        _silver("3", ["A"], "negative", "analyzed"),
+        _silver("4", ["A"], None, "unanalyzed"),
+    ]
+    every = next(s for s in build_axis_sentiment(bronze, silver) if s["axis"] == ALL_AXIS)
+    assert every["analyzed_total"] == 3
+    assert every["distribution"]["positive"] == 0.6667
+    assert every["distribution"]["negative"] == 0.3333
+    assert every["distribution"]["unanalyzed"] == 0.25
