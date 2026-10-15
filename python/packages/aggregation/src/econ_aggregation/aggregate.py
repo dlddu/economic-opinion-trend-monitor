@@ -15,10 +15,17 @@ import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import NamedTuple
 
-from econ_core.models import ArticlePick, AxisSentiment, SentimentDistribution, SubjectTrend
+from econ_core.models import (
+    ArticlePick,
+    AxisSentiment,
+    AxisWindow,
+    SentimentDistribution,
+    SubjectTrend,
+    SubjectWindow,
+)
 from econ_core.silver import grouping_keys
 
 DEFAULT_BUCKET_UNIT = "hour"
@@ -28,6 +35,9 @@ SPARK_WINDOW = 6
 
 # The axis SubjectTrend and AxisSentiment add beside KR/US/GLOBAL: every axis read as one.
 ALL_AXIS = "ALL"
+
+# Window lengths in hours, as the serving layer names them.
+WINDOW_RANGES = {"24h": 24, "7d": 7 * 24, "30d": 30 * 24}
 
 
 def _bucket(collected_at: str, unit: str = DEFAULT_BUCKET_UNIT) -> str:
@@ -109,6 +119,11 @@ class ArticlePicks:
     def articles(self, unit: str) -> Iterator[tuple[str, str, Pick]]:
         for (axis, bucket, _), pick in self._latest[unit].items():
             yield axis, bucket, pick
+
+    def keyed_articles(self, unit: str) -> Iterator[tuple[str, str, str, Pick]]:
+        """:meth:`articles` with each pick's article key."""
+        for (axis, bucket, article), pick in self._latest[unit].items():
+            yield axis, bucket, article, pick
 
 
 def bucket_articles(
@@ -301,3 +316,120 @@ def build_axis_sentiment_all_units(
     bronze: list[dict], silver: list[dict], units: tuple[str, ...] = BUCKET_UNITS
 ) -> list[dict]:
     return [row for unit in units for row in build_axis_sentiment(bronze, silver, unit)]
+
+
+class Windows(NamedTuple):
+    """One pick per article per (axis, range, period), and the hour bounds of each window."""
+
+    picks: dict[tuple[str, str, str], list[Pick]]
+    bounds: dict[tuple[str, str], tuple[str, str]]
+
+
+def _hour_label(at: datetime) -> str:
+    return at.strftime("%Y-%m-%dT%H")
+
+
+def window_articles(hours: Iterable[tuple[str, str, str, Pick]]) -> Windows:
+    """Fold hour-bucket picks into the current and previous window of every range.
+
+    The current window is the ``range`` hours ending at the latest collected hour, on every
+    axis alike, so an axis that stopped collecting shows an emptier window rather than an older
+    one. The previous window is the same length just before it. An article observed in several
+    hours of a window is read through its latest observation there, as in a bucket.
+    """
+    hours = list(hours)
+    if not hours:
+        return Windows({}, {})
+    end = datetime.strptime(max(bucket for _, bucket, _, _ in hours), "%Y-%m-%dT%H")
+    bounds = {}
+    for rng, span in WINDOW_RANGES.items():
+        bounds[(rng, "current")] = (_hour_label(end - timedelta(hours=span - 1)), _hour_label(end))
+        bounds[(rng, "previous")] = (
+            _hour_label(end - timedelta(hours=2 * span - 1)),
+            _hour_label(end - timedelta(hours=span)),
+        )
+    latest: dict[tuple[str, str, str, str], Pick] = {}
+    for axis, bucket, article, pick in hours:
+        back = (end - datetime.strptime(bucket, "%Y-%m-%dT%H")) // timedelta(hours=1)
+        for rng, span in WINDOW_RANGES.items():
+            if back >= 2 * span:
+                continue
+            key = (axis, rng, "current" if back < span else "previous", article)
+            seen = latest.get(key)
+            if seen is None or (pick.collected_at, pick.record_id) > (
+                seen.collected_at,
+                seen.record_id,
+            ):
+                latest[key] = pick
+    picks: dict[tuple[str, str, str], list[Pick]] = defaultdict(list)
+    for (axis, rng, period, _), pick in latest.items():
+        picks[(axis, rng, period)].append(pick)
+    return Windows(dict(picks), bounds)
+
+
+def subject_windows(windows: Windows) -> Iterator[dict]:
+    # counts[axis][(range, period)][source][subject] -> n, folded per window as a bucket is.
+    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
+    for (axis, rng, period), picks in windows.picks.items():
+        for pick in picks:
+            for subject in pick.keys:
+                counts[axis][f"{rng}/{period}"][pick.source_id][subject] += 1
+    for axis, keyed in with_all_axis(counts).items():
+        for key, sources in keyed.items():
+            rng, period = key.split("/")
+            start, end = windows.bounds[(rng, period)]
+            folded = fold_bucket(sources)[0]
+            for subject, (normalized, raw) in sorted(
+                folded.items(), key=lambda kv: kv[1][0], reverse=True
+            ):
+                yield asdict(
+                    SubjectWindow(
+                        subject=subject,
+                        axis=axis,
+                        range=rng,
+                        period=period,
+                        window_start=start,
+                        window_end=end,
+                        raw_count=raw,
+                        normalized_share=normalized,
+                    )
+                )
+
+
+def axis_windows(windows: Windows) -> Iterator[dict]:
+    # tally[axis][(range, period)] -> [collected, analyzed]
+    tally: dict[str, dict[tuple[str, str], list[int]]] = defaultdict(
+        lambda: defaultdict(lambda: [0, 0])
+    )
+    for (axis, rng, period), picks in windows.picks.items():
+        for counted in (tally[axis][(rng, period)], tally[ALL_AXIS][(rng, period)]):
+            counted[0] += len(picks)
+            counted[1] += sum(1 for p in picks if p.sentiment != "unanalyzed")
+    for axis in sorted(tally, key=lambda a: a == ALL_AXIS):
+        for (rng, period), (collected, analyzed) in tally[axis].items():
+            start, end = windows.bounds[(rng, period)]
+            yield asdict(
+                AxisWindow(
+                    axis=axis,
+                    range=rng,
+                    period=period,
+                    window_start=start,
+                    window_end=end,
+                    collected=collected,
+                    analyzed_total=analyzed,
+                )
+            )
+
+
+def _windows_of(bronze: list[dict], silver: list[dict]) -> Windows:
+    picks = ArticlePicks(("hour",))
+    picks.join(bronze, silver)
+    return window_articles(picks.keyed_articles("hour"))
+
+
+def build_subject_windows(bronze: list[dict], silver: list[dict]) -> list[dict]:
+    return list(subject_windows(_windows_of(bronze, silver)))
+
+
+def build_axis_windows(bronze: list[dict], silver: list[dict]) -> list[dict]:
+    return list(axis_windows(_windows_of(bronze, silver)))

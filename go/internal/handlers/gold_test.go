@@ -17,6 +17,7 @@ func goldQueries() []string {
 		q := "?axis=" + axis
 		out = append(out,
 			"/api/dashboard"+q, "/api/dashboard"+q+"&unit=hour", "/api/dashboard"+q+"&unit=week&range=30d",
+			"/api/dashboard"+q+"&unit=hour&range=24h",
 			"/api/trend"+q, "/api/trend"+q+"&subject=%EC%97%86%EC%9D%8C",
 			"/api/sentiment"+q, "/api/fairness"+q,
 			"/api/source-contributions"+q, "/api/source-contributions"+q+"&unit=day",
@@ -24,7 +25,7 @@ func goldQueries() []string {
 			"/api/source-contributions"+q+"&time_bucket=1999-01-01T00",
 		)
 	}
-	return append(out, "/api/compare")
+	return append(out, "/api/compare", "/api/dashboard?axis=ALL", "/api/trend?axis=ALL")
 }
 
 func serveGold(t *testing.T, dir, path string) (body, source string) {

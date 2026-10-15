@@ -34,3 +34,6 @@ RUNTRIGGER_VALUES: tuple[RunTrigger, ...] = ("scheduled", "reprocess")
 
 Sentiment = Literal["positive", "neutral", "negative", "mixed"]
 SENTIMENT_VALUES: tuple[Sentiment, ...] = ("positive", "neutral", "negative", "mixed")
+
+WindowPeriod = Literal["current", "previous"]
+WINDOWPERIOD_VALUES: tuple[WindowPeriod, ...] = ("current", "previous")

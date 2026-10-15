@@ -71,6 +71,20 @@ module.exports = {
       t.is(d.getElementById('brief-sub').textContent, subBefore, '(d) 기간·단위를 되돌리면 기준 표기가 복원된다');
     }
 
+    {
+      const offered = () => [...d.querySelectorAll('input[name="brief-unit"]')]
+        .filter(i => !i.parentElement.hidden).map(i => i.value);
+      t.is(offered(), ['hour', 'day'], '(d) 최근 7일에는 기간보다 짧은 시간·일 단위만 고를 수 있다');
+      pickOption(t, w, d.getElementById('brief-range'), '1');
+      t.is(offered(), ['hour'], '(d) 기간을 24시간으로 줄이면 일·주 단위가 선택지에서 빠진다');
+      t.is(d.querySelector('input[name="brief-unit"]:checked')?.value, 'hour',
+        '(d) 기간보다 길어진 단위는 고를 수 있는 단위로 옮겨 간다');
+      await t.sleep(400);
+      pickOption(t, w, d.getElementById('brief-range'), '7');
+      t.click(w, d.querySelector('input[name="brief-unit"][value="day"]'));
+      await t.sleep(400);
+    }
+
     const kr = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());
     if (pickOption(t, w, d.getElementById('axis'), 'US')) {
       const us = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());

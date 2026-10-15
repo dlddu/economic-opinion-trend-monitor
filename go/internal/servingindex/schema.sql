@@ -95,6 +95,31 @@ CREATE TABLE axis_sentiment (
   analyzed_total INTEGER NOT NULL
 );
 
+-- Gold's window aggregates (contracts/gold/subject_window.avsc, axis_window.avsc): the dashboard's
+-- ranking and counts over the last 24h/7d/30d and the window before each.
+CREATE TABLE subject_window (
+  seq              INTEGER PRIMARY KEY,
+  subject          TEXT NOT NULL,
+  axis             TEXT NOT NULL,
+  range            TEXT NOT NULL,
+  period           TEXT NOT NULL,
+  window_start     TEXT NOT NULL,
+  window_end       TEXT NOT NULL,
+  raw_count        INTEGER NOT NULL,
+  normalized_share REAL NOT NULL
+);
+
+CREATE TABLE axis_window (
+  seq            INTEGER PRIMARY KEY,
+  axis           TEXT NOT NULL,
+  range          TEXT NOT NULL,
+  period         TEXT NOT NULL,
+  window_start   TEXT NOT NULL,
+  window_end     TEXT NOT NULL,
+  collected      INTEGER NOT NULL,
+  analyzed_total INTEGER NOT NULL
+);
+
 -- One row per llm_call object file, keyed by its path under silver/llm_call. Files are written
 -- once, so a build copies the previous index's rows for files still listed and reads only new
 -- ones. A file that does not decode keeps a row with decoded = 0 and is never read again.

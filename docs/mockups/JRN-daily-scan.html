@@ -519,7 +519,7 @@ details.meta table.tbl{margin-top:10px}
           <div class="card metric col-3">
             <div class="ml">수집 항목</div>
             <div class="mv" id="m-items">4,812</div>
-            <div class="md"><span class="delta up">&#9650; 4.2%</span> 전일 대비</div>
+            <div class="md"><span class="delta up">&#9650; 4.2%</span> <span id="prev-label">직전 7일 대비</span></div>
           </div>
           <div class="card metric col-3">
             <div class="ml">분석 완료</div>
@@ -563,7 +563,7 @@ details.meta table.tbl{margin-top:10px}
                   <div class="radios">
                     <label><input type="radio" name="brief-unit" value="hour" /> 시간</label>
                     <label><input type="radio" name="brief-unit" value="day" checked /> 일</label>
-                    <label><input type="radio" name="brief-unit" value="week" /> 주</label>
+                    <label hidden><input type="radio" name="brief-unit" value="week" /> 주</label>
                   </div>
                 </div>
                 <label class="chk" style="margin-top:16px">
@@ -577,7 +577,7 @@ details.meta table.tbl{margin-top:10px}
           <div class="card col-8">
             <div class="card-h">
               <h3>상위 서술 대상</h3>
-              <span class="sub" id="brief-sub">한국 축 &middot; 최근 7일</span>
+              <span class="sub" id="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
               <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
             </div>
             <div class="card-b" style="padding:6px 12px">
@@ -700,7 +700,7 @@ details.meta table.tbl{margin-top:10px}
                   <div class="radios">
                     <label><input type="radio" name="unit" value="hour" /> 시간</label>
                     <label><input type="radio" name="unit" value="day" checked /> 일</label>
-                    <label><input type="radio" name="unit" value="week" /> 주</label>
+                    <label hidden><input type="radio" name="unit" value="week" /> 주</label>
                   </div>
                 </div>
               </form>
@@ -709,13 +709,13 @@ details.meta table.tbl{margin-top:10px}
 
           <div class="card col-7">
             <div class="card-h">
-              <h3>단위별 순위</h3>
-              <span class="sub" id="win-sub">최근 7일 &middot; 일 단위</span>
-              <div class="r"><span class="tag" id="win-basis">7d &middot; day</span></div>
+              <h3>기간 순위</h3>
+              <span class="sub" id="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" id="win-basis">7d</span></div>
             </div>
             <div class="card-b">
               <div class="loadbox" id="s-loading" data-state="loading" hidden>
-                고른 단위로 다시 집계하는 중&hellip;
+                고른 조건으로 다시 집계하는 중&hellip;
                 <div class="bar"><i></i></div>
               </div>
 
@@ -724,7 +724,7 @@ details.meta table.tbl{margin-top:10px}
               <div class="note" style="margin-top:14px">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
                 <div>
-                  <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
                   방금 고른 대상은 <span id="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
                 </div>
               </div>
@@ -890,14 +890,14 @@ var DATA = {
     { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],      d: 0.6, isNew: false, note: '' },
     { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],      d: 0.9, isNew: false, note: '원시 카운트 2위 → 정규화 5위' },
     { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],      d: 2.1, isNew: false, note: '' },
-    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],      d: 5.4, isNew: true,  note: '밤사이 새로 진입' },
+    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],      d: 5.4, isNew: true,  note: '' },
     { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],      d: -1.4, isNew: false, note: '' }
   ],
   US: [
     { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1, isNew: false, note: '' },
     { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0, isNew: false, note: '' },
     { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, note: '' },
-    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6, isNew: true,  note: '밤사이 새로 진입' },
+    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6, isNew: true,  note: '' },
     { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1, isNew: false, note: '' }
   ],
   GL: [],
@@ -907,7 +907,7 @@ var DATA = {
     { name: '한국은행 기준금리', share: 10.4, s: [7,7,8,9,11,10,10.4],     d: 3.2, isNew: false, note: '' },
     { name: 'CPI 발표',         share: 8.9,  s: [6,7,8,8,9,9,8.9],        d: 0.6, isNew: false, note: '' },
     { name: '원/달러 환율',      share: 7.6,  s: [6,7,8,7,8,8,7.6],        d: -0.8, isNew: false, note: '' },
-    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9, isNew: true,  note: '밤사이 새로 진입' },
+    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9, isNew: true,  note: '' },
     { name: '삼성전자',         share: 6.0,  s: [5,6,5,6,6,6,6.0],        d: 0.0, isNew: false, note: '' },
     { name: '코스피',           share: 4.9,  s: [4,5,4,5,5,5,4.9],        d: 0.3, isNew: false, note: '' },
     { name: '국채 금리',        share: 4.7,  s: [5,5,4,5,5,5,4.7],        d: -0.2, isNew: false, note: '' }
@@ -967,10 +967,16 @@ function spark(vals, color){
 function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
 
 /* ---------------- 화면 1 · 대시보드 열기 ---------------- */
+/* 순위·점유율·증감은 기간 전체를 한 번에 센 값이다 — 새로 진입은 직전 같은 길이의 기간에 없던 대상. */
+function rowNote(r){
+  var notes = [r.note, r.isNew ? rangeLabel() + ' 새로 진입' : ''].filter(function(n){ return n; });
+  return notes.length ? ' <span class="meta">· ' + esc(notes.join(' · ')) + '</span>' : '';
+}
 function renderBrief(){
   var list = rows();
   var ax = AXES[state.axis];
-  $('brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel();
+  $('brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel() + ' 누적 · 추이 ' + unitLabel();
+  $('prev-label').textContent = '직전 ' + rangeLabel().replace('최근 ', '') + ' 대비';
   $('tb-basis').textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
 
   var empty = (DATA[state.axis] || []).length === 0;
@@ -986,7 +992,7 @@ function renderBrief(){
     return '<div class="rankrow">'
       + '<div class="rk">' + (i + 1) + '</div>'
       + '<div class="nm">' + esc(r.name)
-      + (r.note ? ' <span class="meta">· ' + esc(r.note) + '</span>' : '') + '</div>'
+      + rowNote(r) + '</div>'
       + '<div class="share"><span class="bar"><i style="width:'
       + (r.share / max * 100).toFixed(0) + '%"></i></span><span class="pct">'
       + r.share.toFixed(1) + '%</span></div>'
@@ -1044,7 +1050,7 @@ function renderPick(){
     + '<div class="kv"><span class="k">' + BASIS[state.basis].label + ' 대비</span><span class="v">'
     + dtext(t.d) + '</span></div>'
     + '<div class="kv"><span class="k">진입</span><span class="v">'
-    + (t.isNew ? '밤사이 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>'
+    + (t.isNew ? rangeLabel() + ' 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>'
     + '<div class="sentbar" style="margin-top:14px">'
     + '<i class="s-pos" style="width:38%"></i><i class="s-neu" style="width:42%"></i>'
     + '<i class="s-neg" style="width:15%"></i><i class="s-na" style="width:5%"></i></div>';
@@ -1057,30 +1063,31 @@ function rangeLabel(){
 function unitLabel(){
   return state.unit === 'hour' ? '시간 단위' : (state.unit === 'week' ? '주 단위' : '일 단위');
 }
+function rangeKey(){
+  return state.range === '1' ? '24h' : state.range + 'd';
+}
+/* 기간과 길이가 같거나 긴 단위는 추이를 한 칸으로 그린다 — 고를 수 없게 선택지에서 뺀다. */
+var UNIT_DAYS = { hour: 1 / 24, day: 1, week: 7 };
+function unitFits(unit, range){ return UNIT_DAYS[unit] < Number(range); }
 
 function renderWindow(){
   var list = rows();
-  $('win-sub').textContent = rangeLabel() + ' · ' + unitLabel();
-  $('win-basis').textContent = state.range + 'd · ' + state.unit;
+  $('win-sub').textContent = rangeLabel() + ' 누적';
+  $('win-basis').textContent = rangeKey();
   $('tb-basis').textContent = AXES[state.axis].label + ' · ' + rangeLabel() + ' · ' + unitLabel();
   show($('s-low-sample'), state.unit === 'hour');
   $('keep-note').textContent = state.target ? '‘' + state.target.name + '’ 으로 강조' : '그대로 강조';
 
-  /* 단위가 바뀌면 순위가 실제로 뒤집힌다 — 고른 대상은 하이라이트로 유지된다. */
-  var ordered = list.slice().sort(function(a, b){
-    if(state.unit === 'hour') return (b.s[b.s.length - 1] - a.s[a.s.length - 1]);
-    if(state.unit === 'week') return (avg(b.s) - avg(a.s));
-    return b.share - a.share;
-  });
+  /* 기간이 바뀌면 순위가 실제로 뒤집힌다 — 고른 대상은 하이라이트로 유지된다. */
+  var ordered = list.slice().sort(function(a, b){ return rangeShare(b) - rangeShare(a); });
   if(!ordered.length){
     $('winlist').innerHTML = '<div class="emptybox">이 축에는 이 기간에 표시할 대상이 없습니다.</div>';
     return;
   }
   $('winlist').innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
-    + '<th class="num">' + unitLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
+    + '<th class="num">' + rangeLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
     + ordered.map(function(r, i){
-        var v = state.unit === 'hour' ? r.s[r.s.length - 1]
-              : (state.unit === 'week' ? avg(r.s) : r.share);
+        var v = rangeShare(r);
         var on = state.target && state.target.name === r.name;
         return '<tr' + (on ? ' style="background:var(--primary-soft)"' : '') + '>'
           + '<td class="num">' + (i + 1) + '</td>'
@@ -1092,6 +1099,9 @@ function renderWindow(){
     + '</tbody></table>';
 }
 function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+function rangeShare(r){
+  return state.range === '1' ? r.s[r.s.length - 1] : (state.range === '30' ? avg(r.s) : r.share);
+}
 
 /* ---------------- 화면 4 · 추세 상세 ---------------- */
 function trendSeries(){
@@ -1243,10 +1253,16 @@ function drawTrend(){
     $('brief-range').value = state.range;
     $('range').value = state.range;
     ['brief-unit', 'unit'].forEach(function(n){
-      document.querySelectorAll('input[name="' + n + '"]').forEach(function(i){ i.checked = (i.value === state.unit); });
+      document.querySelectorAll('input[name="' + n + '"]').forEach(function(i){
+        i.checked = (i.value === state.unit);
+        i.parentElement.hidden = !unitFits(i.value, state.range);
+      });
     });
   }
   function applyWindow(range, unit){
+    if(!unitFits(unit, range)){
+      unit = ['week', 'day', 'hour'].filter(function(u){ return unitFits(u, range); })[0];
+    }
     state.range = range;
     state.unit = unit;
     syncWindowControls();

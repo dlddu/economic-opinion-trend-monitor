@@ -22,6 +22,17 @@ type AxisSentiment struct {
 	AnalyzedTotal int64                 `json:"analyzed_total"`
 }
 
+// AxisWindow Gold record — per (axis, range, period) article counts over the windows SubjectWindow ranks (AC2.5, AC3.4).
+type AxisWindow struct {
+	Axis          AxisScope    `json:"axis"`
+	Range         string       `json:"range"`
+	Period        WindowPeriod `json:"period"`
+	WindowStart   string       `json:"window_start"`
+	WindowEnd     string       `json:"window_end"`
+	Collected     int64        `json:"collected"`
+	AnalyzedTotal int64        `json:"analyzed_total"`
+}
+
 // SentimentDistribution Sentiment ratios for analyzed items; unanalyzed kept separate (AC3.4, AC3.6).
 type SentimentDistribution struct {
 	Positive   float64 `json:"positive"`
@@ -53,4 +64,16 @@ type SubjectTrend struct {
 	NormalizedShare float64    `json:"normalized_share"`
 	Delta           float64    `json:"delta"`
 	Spark           []float64  `json:"spark"`
+}
+
+// SubjectWindow Gold record — per (subject, axis, range, period) share over a whole window ending at the latest collection, each article counted once in it (AC3.2, AC3.3, AC3.5).
+type SubjectWindow struct {
+	Subject         string       `json:"subject"`
+	Axis            AxisScope    `json:"axis"`
+	Range           string       `json:"range"`
+	Period          WindowPeriod `json:"period"`
+	WindowStart     string       `json:"window_start"`
+	WindowEnd       string       `json:"window_end"`
+	RawCount        int64        `json:"raw_count"`
+	NormalizedShare float64      `json:"normalized_share"`
 }

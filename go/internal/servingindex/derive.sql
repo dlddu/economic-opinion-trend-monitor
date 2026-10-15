@@ -9,6 +9,8 @@ CREATE INDEX article_pick_bucket ON article_pick (axis, bucket_unit, time_bucket
 CREATE INDEX subject_trend_axis ON subject_trend (axis, bucket_unit, time_bucket);
 CREATE INDEX subject_trend_unit ON subject_trend (bucket_unit, time_bucket);
 CREATE INDEX subject_trend_subject ON subject_trend (axis, bucket_unit, subject);
+CREATE INDEX subject_window_axis ON subject_window (axis, range);
+CREATE INDEX axis_window_axis ON axis_window (axis, range);
 CREATE INDEX subject_source_contribution_value
   ON subject_source_contribution (axis, bucket_unit, time_bucket, subject);
 

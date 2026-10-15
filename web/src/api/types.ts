@@ -42,9 +42,10 @@ export interface DashRow {
 export interface DashBasis {
   range: DashRange;
   unit: BucketUnit;
-  bucket: string;
-  previous_bucket: string;
+  window_start: string;
+  window_end: string;
   has_baseline: boolean;
+  bucket: string;
   buckets: string[];
   empty_window: boolean;
   last_bucket: string;

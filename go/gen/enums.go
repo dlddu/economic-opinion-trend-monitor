@@ -75,3 +75,10 @@ const (
 	SentimentNegative Sentiment = "negative"
 	SentimentMixed    Sentiment = "mixed"
 )
+
+type WindowPeriod string
+
+const (
+	WindowPeriodCurrent  WindowPeriod = "current"
+	WindowPeriodPrevious WindowPeriod = "previous"
+)

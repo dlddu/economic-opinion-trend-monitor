@@ -36,23 +36,36 @@ const UNIT_LABEL: Record<BucketUnit, string> = {
   week: "주 단위",
 };
 
-const PREV_LABEL: Record<BucketUnit, string> = {
-  hour: "직전 시간 대비",
-  day: "전일 대비",
-  week: "전주 대비",
+// 순위·점유율·증감은 기간 전체를 한 번에 센 값이고(직전 같은 길이의 기간과 비교), 단위는 스파크라인의 칸이다.
+const PREV_LABEL: Record<DashRange, string> = {
+  "24h": "직전 24시간 대비",
+  "7d": "직전 7일 대비",
+  "30d": "직전 30일 대비",
 };
 
-const NEW_LABEL: Record<BucketUnit, string> = {
-  hour: "이번 시간 새로 진입",
-  day: "밤사이 새로 진입",
-  week: "이번 주 새로 진입",
+const NEW_LABEL: Record<DashRange, string> = {
+  "24h": "최근 24시간 새로 진입",
+  "7d": "최근 7일 새로 진입",
+  "30d": "최근 30일 새로 진입",
 };
 
-const ENTRY_LABEL: Record<BucketUnit, string> = {
-  hour: "이번 시간 새로 올라옴",
-  day: "밤사이 새로 올라옴",
-  week: "이번 주 새로 올라옴",
+const ENTRY_LABEL: Record<DashRange, string> = {
+  "24h": "최근 24시간 새로 올라옴",
+  "7d": "최근 7일 새로 올라옴",
+  "30d": "최근 30일 새로 올라옴",
 };
+
+const RANGE_HOURS: Record<DashRange, number> = { "24h": 24, "7d": 7 * 24, "30d": 30 * 24 };
+const UNIT_HOURS: Record<BucketUnit, number> = { hour: 1, day: 24, week: 7 * 24 };
+
+/** 기간과 길이가 같거나 긴 단위는 추이를 한 칸으로 그려 직전 칸이 없다 — 서빙도 그 조합은 시간 단위로 읽는다. */
+function unitFits(unit: BucketUnit, range: DashRange): boolean {
+  return UNIT_HOURS[unit] < RANGE_HOURS[range];
+}
+
+function fitUnit(unit: BucketUnit, range: DashRange): BucketUnit {
+  return unitFits(unit, range) ? unit : UNITS.filter((u) => unitFits(u, range)).at(-1)!;
+}
 
 const UNIT_NAME: Record<BucketUnit, string> = {
   hour: "시간",
@@ -102,11 +115,12 @@ function readStoredBrief(): StoredBrief | null {
     const parsed = JSON.parse(raw) as Partial<StoredBrief>;
     const axis = AXES.find((a) => a.id === parsed.axis)?.id;
     if (!axis) return null;
+    const range = RANGES.find((r) => r === parsed.range) ?? DEFAULT_BRIEF.range;
     return {
       axis,
       restore: parsed.restore !== false,
-      range: RANGES.find((r) => r === parsed.range) ?? DEFAULT_BRIEF.range,
-      unit: UNITS.find((u) => u === parsed.unit) ?? DEFAULT_BRIEF.unit,
+      range,
+      unit: fitUnit(UNITS.find((u) => u === parsed.unit) ?? DEFAULT_BRIEF.unit, range),
     };
   } catch {
     return null;
@@ -168,7 +182,7 @@ export function Dashboard() {
   function applyWindow(nextRange: DashRange, nextUnit: BucketUnit) {
     setReapplying(true);
     setRange(nextRange);
-    setUnit(nextUnit);
+    setUnit(fitUnit(nextUnit, nextRange));
   }
 
   const ranked = data?.top_subjects ?? [];
@@ -195,7 +209,7 @@ export function Dashboard() {
 
       <div className="grid g-12">
         {/* CMP-metric ×4 */}
-        <Metrics summary={data?.summary ?? null} unit={unit} />
+        <Metrics summary={data?.summary ?? null} range={range} />
 
         <div className="card col-4">
           <div className="card-h">
@@ -231,7 +245,7 @@ export function Dashboard() {
               <div className="dash-brief-field" style={{ marginTop: 14 }}>
                 <span className="dash-brief-label">집계 단위</span>
                 <div className="dash-radios">
-                  {UNITS.map((u) => (
+                  {UNITS.filter((u) => unitFits(u, range)).map((u) => (
                     <label key={u}>
                       <input
                         type="radio"
@@ -261,7 +275,7 @@ export function Dashboard() {
           <div className="card-h">
             <h3>상위 서술 대상</h3>
             <span className="sub">
-              {axisLabel(axis)} 축 · {RANGE_LABEL[range]}
+              {axisLabel(axis)} 축 · {RANGE_LABEL[range]} 누적 · 추이 {UNIT_LABEL[unit]}
             </span>
             <div className="r">
               <span className="norm-flag">▣ 정규화</span>
@@ -275,7 +289,7 @@ export function Dashboard() {
                   <RankRow
                     key={row.subject}
                     row={row}
-                    unit={unit}
+                    range={range}
                     maxShare={maxShare}
                     hasBaseline={data.basis.has_baseline}
                     onOpen={() =>
@@ -402,7 +416,7 @@ export function Dashboard() {
                 <div className="kv">
                   <span className="dash-pick-k">진입</span>
                   <span className="dash-pick-v">
-                    {!hasBaseline ? "—" : picked.is_new ? ENTRY_LABEL[unit] : "이전 구간에도 있었음"}
+                    {!hasBaseline ? "—" : picked.is_new ? ENTRY_LABEL[range] : "이전 구간에도 있었음"}
                   </span>
                 </div>
               </div>
@@ -411,20 +425,18 @@ export function Dashboard() {
         </div>
         <div className="card col-12">
           <div className="card-h">
-            <h3>단위별 순위</h3>
-            <span className="sub">
-              {RANGE_LABEL[range]} · {UNIT_LABEL[unit]}
-            </span>
+            <h3>기간 순위</h3>
+            <span className="sub">{RANGE_LABEL[range]} 누적</span>
             <div className="r">
               <span className="dash-tag">
-                {range} · {unit}
+                {range}
               </span>
             </div>
           </div>
           <div className="card-b">
             {!data && !error && reapplying && (
               <div className="dash-loadbox" data-state="loading">
-                고른 단위로 다시 집계하는 중…
+                고른 조건으로 다시 집계하는 중…
                 <div className="dash-bar">
                   <i />
                 </div>
@@ -444,7 +456,7 @@ export function Dashboard() {
                   <tr>
                     <th>#</th>
                     <th>대상</th>
-                    <th className="num">{UNIT_LABEL[unit]} 점유율</th>
+                    <th className="num">{RANGE_LABEL[range]} 점유율</th>
                     <th className="num">변화</th>
                   </tr>
                 </thead>
@@ -479,7 +491,7 @@ export function Dashboard() {
             <div className="note" style={{ marginTop: 14 }}>
               <InfoIcon />
               <div>
-                <b>단위를 바꾸면 순위가 뒤집힐 수 있습니다.</b> 방금 고른 대상은{" "}
+                <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b> 방금 고른 대상은{" "}
                 <span data-state="keep-note">
                   {picked ? (
                     <>
@@ -537,7 +549,7 @@ export function Dashboard() {
   );
 }
 
-function Metrics({ summary, unit }: { summary: DashSummary | null; unit: BucketUnit }) {
+function Metrics({ summary, range }: { summary: DashSummary | null; range: DashRange }) {
   const collected = summary?.collected ?? null;
   const prev = summary?.collected_prev ?? null;
   let change: { cls: "up" | "dn" | "fl"; text: string } = { cls: "fl", text: "—" };
@@ -556,7 +568,7 @@ function Metrics({ summary, unit }: { summary: DashSummary | null; unit: BucketU
           <div className="ml">수집 항목</div>
           <div className="mv">{collected === null ? "—" : collected.toLocaleString("ko-KR")}</div>
           <div className="md">
-            <span className={`delta ${change.cls}`}>{change.text}</span> {PREV_LABEL[unit]}
+            <span className={`delta ${change.cls}`}>{change.text}</span> {PREV_LABEL[range]}
           </div>
         </div>
       </div>
@@ -593,13 +605,13 @@ function Metrics({ summary, unit }: { summary: DashSummary | null; unit: BucketU
 
 function RankRow({
   row,
-  unit,
+  range,
   maxShare,
   hasBaseline,
   onOpen,
 }: {
   row: DashRow;
-  unit: BucketUnit;
+  range: DashRange;
   maxShare: number;
   hasBaseline: boolean;
   onOpen: () => void;
@@ -608,7 +620,7 @@ function RankRow({
   if (Math.abs(row.raw_rank - row.rank) >= RANK_SHIFT_NOTE) {
     notes.push(`원시 카운트 ${row.raw_rank}위 → 정규화 ${row.rank}위`);
   }
-  if (hasBaseline && row.is_new) notes.push(NEW_LABEL[unit]);
+  if (hasBaseline && row.is_new) notes.push(NEW_LABEL[range]);
   const cls = hasBaseline ? dcls(row.delta) : "fl";
   return (
     <div className="rankrow" style={{ cursor: "pointer" }} onClick={onOpen}>

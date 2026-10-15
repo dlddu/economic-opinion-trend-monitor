@@ -1,0 +1,44 @@
+{
+  "type": "record",
+  "name": "AxisWindow",
+  "namespace": "econ.gold",
+  "doc": "Gold record — per (axis, range, period) article counts over the windows SubjectWindow ranks (AC2.5, AC3.4).",
+  "x-layer": "gold",
+  "fields": [
+    {
+      "name": "axis",
+      "type": { "type": "enum", "name": "AxisScope", "symbols": ["KR", "US", "GLOBAL", "ALL"] },
+      "doc": "Source axis, or ALL — every axis's articles tallied together (AC3.4)."
+    },
+    {
+      "name": "range",
+      "type": "string",
+      "doc": "Window length: 24h, 7d or 30d."
+    },
+    {
+      "name": "period",
+      "type": { "type": "enum", "name": "WindowPeriod", "symbols": ["current", "previous"] },
+      "doc": "current ends at the latest collected hour; previous is the window of the same length just before it."
+    },
+    {
+      "name": "window_start",
+      "type": "string",
+      "doc": "First hour bucket in the window."
+    },
+    {
+      "name": "window_end",
+      "type": "string",
+      "doc": "Last hour bucket in the window."
+    },
+    {
+      "name": "collected",
+      "type": "long",
+      "doc": "Articles collected in the window, each counted once."
+    },
+    {
+      "name": "analyzed_total",
+      "type": "long",
+      "doc": "Of those, the articles with a sentiment judgement; the rest are unanalyzed (AC2.5)."
+    }
+  ]
+}

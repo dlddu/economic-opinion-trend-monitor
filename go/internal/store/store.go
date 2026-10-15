@@ -84,6 +84,26 @@ func (l *Lake) EachAxisSentiment(ctx context.Context, fn func(*gen.AxisSentiment
 	return stopped(eachJSONL(ctx, l.path("gold", "axis_sentiment"), fn))
 }
 
+// SubjectWindowsWhere reads the Gold subject_window dataset, keeping only the rows keep accepts.
+func (l *Lake) SubjectWindowsWhere(ctx context.Context, keep func(*gen.SubjectWindow) bool) ([]gen.SubjectWindow, error) {
+	return collect(ctx, l.path("gold", "subject_window"), keep)
+}
+
+// AxisWindowsWhere reads the Gold axis_window dataset, keeping only the rows keep accepts.
+func (l *Lake) AxisWindowsWhere(ctx context.Context, keep func(*gen.AxisWindow) bool) ([]gen.AxisWindow, error) {
+	return collect(ctx, l.path("gold", "axis_window"), keep)
+}
+
+// EachSubjectWindow streams the Gold subject_window dataset to fn in file order.
+func (l *Lake) EachSubjectWindow(ctx context.Context, fn func(*gen.SubjectWindow) error) error {
+	return stopped(eachJSONL(ctx, l.path("gold", "subject_window"), fn))
+}
+
+// EachAxisWindow streams the Gold axis_window dataset to fn in file order.
+func (l *Lake) EachAxisWindow(ctx context.Context, fn func(*gen.AxisWindow) error) error {
+	return stopped(eachJSONL(ctx, l.path("gold", "axis_window"), fn))
+}
+
 // ArticlePicksWritten reports whether an aggregation has written the Gold article_pick dataset
 // at all: a lake aggregated before it existed has none, which is not "no articles".
 func (l *Lake) ArticlePicksWritten() bool {

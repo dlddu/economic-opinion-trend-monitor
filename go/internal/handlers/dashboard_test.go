@@ -14,13 +14,18 @@ import (
 )
 
 // writeDailyGold lays down three KR days, a US axis whose collection stopped a
-// day early, and an hour rollup that must not leak into a day read.
+// day early, an hour rollup that must not leak into a day read, and the windows
+// Gold aggregated over the same lake.
 //
-//	06-21  기준금리 .40  삼성 .60
-//	06-22  기준금리 .50  삼성 .50            (반도체 absent: axis collected, subject not)
-//	06-23  기준금리 .45  삼성 .20  반도체 .35
+//	buckets  06-21  기준금리 .40  삼성 .60
+//	         06-22  기준금리 .50  삼성 .50            (반도체 absent: axis collected, subject not)
+//	         06-23  기준금리 .45  삼성 .20  반도체 .35
+//	7d       current   기준금리 .40  반도체 .35  삼성 .25 (raw 9 · 3 · 20)
+//	         previous  기준금리 .50  삼성 .50
+//	24h      current   기준금리 .60  삼성 .40            (no previous 24h)
 //
-// 삼성 has the most raw mentions on 06-23 but ranks third on share — the case
+// The ranking reads the windows, so 기준금리 shows .40, not its 06-23 bucket's .45.
+// 삼성 has the most raw mentions in the window but ranks third on share — the case
 // the rank-shift note is for.
 func writeDailyGold(t *testing.T, dir string) {
 	t.Helper()
@@ -28,7 +33,12 @@ func writeDailyGold(t *testing.T, dir string) {
 	if err := os.MkdirAll(gold, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	rows := []string{
+	write := func(file string, rows ...string) {
+		if err := os.WriteFile(filepath.Join(gold, file), []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("subject_trend.jsonl",
 		`{"subject":"기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-21","raw_count":4,"normalized_share":0.4,"delta":0,"spark":[]}`,
 		`{"subject":"삼성","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-21","raw_count":6,"normalized_share":0.6,"delta":0,"spark":[]}`,
 		`{"subject":"기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-22","raw_count":5,"normalized_share":0.5,"delta":0,"spark":[]}`,
@@ -38,18 +48,31 @@ func writeDailyGold(t *testing.T, dir string) {
 		`{"subject":"반도체","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":0.35,"delta":0,"spark":[]}`,
 		`{"subject":"미국 대상","axis":"US","bucket_unit":"day","time_bucket":"2026-06-22","raw_count":3,"normalized_share":1,"delta":0,"spark":[]}`,
 		`{"subject":"시간 대상","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":99,"normalized_share":0.99,"delta":0,"spark":[]}`,
-	}
-	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	sent := []string{
+	)
+	write("axis_sentiment.jsonl",
 		`{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-22","distribution":{"positive":0.5,"neutral":0.5,"negative":0,"mixed":0,"unanalyzed":0.2},"analyzed_total":80}`,
 		`{"axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.5,"neutral":0.5,"negative":0,"mixed":0,"unanalyzed":0.1},"analyzed_total":90}`,
 		`{"axis":"US","bucket_unit":"day","time_bucket":"2026-06-22","distribution":{"positive":1,"neutral":0,"negative":0,"mixed":0,"unanalyzed":0},"analyzed_total":3}`,
-	}
-	if err := os.WriteFile(filepath.Join(gold, "axis_sentiment.jsonl"), []byte(strings.Join(sent, "\n")+"\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	)
+	const cur7, prev7, cur24 = `"window_start":"2026-06-16T15","window_end":"2026-06-23T14"`,
+		`"window_start":"2026-06-09T15","window_end":"2026-06-16T14"`,
+		`"window_start":"2026-06-22T15","window_end":"2026-06-23T14"`
+	write("subject_window.jsonl",
+		`{"subject":"기준금리","axis":"KR","range":"7d","period":"current",`+cur7+`,"raw_count":9,"normalized_share":0.4}`,
+		`{"subject":"반도체","axis":"KR","range":"7d","period":"current",`+cur7+`,"raw_count":3,"normalized_share":0.35}`,
+		`{"subject":"삼성","axis":"KR","range":"7d","period":"current",`+cur7+`,"raw_count":20,"normalized_share":0.25}`,
+		`{"subject":"기준금리","axis":"KR","range":"7d","period":"previous",`+prev7+`,"raw_count":5,"normalized_share":0.5}`,
+		`{"subject":"삼성","axis":"KR","range":"7d","period":"previous",`+prev7+`,"raw_count":5,"normalized_share":0.5}`,
+		`{"subject":"기준금리","axis":"KR","range":"24h","period":"current",`+cur24+`,"raw_count":3,"normalized_share":0.6}`,
+		`{"subject":"삼성","axis":"KR","range":"24h","period":"current",`+cur24+`,"raw_count":2,"normalized_share":0.4}`,
+		`{"subject":"미국 대상","axis":"US","range":"7d","period":"current",`+cur7+`,"raw_count":3,"normalized_share":1}`,
+	)
+	write("axis_window.jsonl",
+		`{"axis":"KR","range":"7d","period":"current",`+cur7+`,"collected":100,"analyzed_total":90}`,
+		`{"axis":"KR","range":"7d","period":"previous",`+prev7+`,"collected":80,"analyzed_total":70}`,
+		`{"axis":"KR","range":"24h","period":"current",`+cur24+`,"collected":5,"analyzed_total":5}`,
+		`{"axis":"US","range":"7d","period":"current",`+cur7+`,"collected":3,"analyzed_total":3}`,
+	)
 }
 
 func getDashboard(t *testing.T, dir, query string) dashboardResponse {
@@ -82,17 +105,17 @@ func TestDashboardDefaultsToSevenDaysByDay(t *testing.T) {
 	if d.Basis.Range != "7d" || d.Basis.Unit != "day" || !d.Normalized {
 		t.Fatalf("basis = %+v", d.Basis)
 	}
-	if d.Basis.Bucket != "2026-06-23" || d.Basis.PreviousBucket != "2026-06-22" || !d.Basis.HasBaseline {
-		t.Errorf("anchor/previous wrong: %+v", d.Basis)
+	if d.Basis.WindowStart != "2026-06-16T15" || d.Basis.WindowEnd != "2026-06-23T14" || !d.Basis.HasBaseline {
+		t.Errorf("window/baseline wrong: %+v", d.Basis)
 	}
-	if got := strings.Join(d.Basis.Buckets, ","); got != "2026-06-21,2026-06-22,2026-06-23" {
-		t.Errorf("window = %s", got)
+	if got := strings.Join(d.Basis.Buckets, ","); d.Basis.Bucket != "2026-06-23" || got != "2026-06-21,2026-06-22,2026-06-23" {
+		t.Errorf("sparkline buckets = %s (anchor %s)", got, d.Basis.Bucket)
 	}
 }
 
-// The ranking is the latest bucket's, never a flat mix of every bucket — the
-// hour row (0.99) and 06-21's 삼성 (0.6) would otherwise outrank today's leader.
-func TestDashboardRanksTheLatestBucketOnly(t *testing.T) {
+// The ranking is the whole window's, as Gold aggregated it — not the latest bucket's (기준금리
+// .45), and never a flat mix of every bucket (the hour row's .99, 06-21's 삼성 .6).
+func TestDashboardRanksTheRangeWindow(t *testing.T) {
 	dir := t.TempDir()
 	writeDailyGold(t, dir)
 	d := getDashboard(t, dir, "?axis=KR")
@@ -104,13 +127,16 @@ func TestDashboardRanksTheLatestBucketOnly(t *testing.T) {
 	if got := strings.Join(names, ","); got != "기준금리,반도체,삼성" {
 		t.Fatalf("ranking = %s", got)
 	}
+	if d.TopSubjects[0].NormalizedShare != 0.4 {
+		t.Errorf("기준금리 share = %v, want the window's 0.4", d.TopSubjects[0].NormalizedShare)
+	}
 	samsung := d.TopSubjects[2]
-	if samsung.Rank != 3 || samsung.RawRank != 1 || samsung.RawCount != 9 {
+	if samsung.Rank != 3 || samsung.RawRank != 1 || samsung.RawCount != 20 {
 		t.Errorf("raw rank should be carried beside the share rank: %+v", samsung)
 	}
 }
 
-func TestDashboardDrawsTheWindowAndDeltaAgainstThePreviousBucket(t *testing.T) {
+func TestDashboardDrawsTheUnitSparkAndDeltaAgainstThePreviousWindow(t *testing.T) {
 	dir := t.TempDir()
 	writeDailyGold(t, dir)
 	d := getDashboard(t, dir, "?axis=KR")
@@ -123,8 +149,8 @@ func TestDashboardDrawsTheWindowAndDeltaAgainstThePreviousBucket(t *testing.T) {
 	if len(rate.Spark) != 3 || rate.Spark[0] != 0.4 || rate.Spark[2] != 0.45 {
 		t.Errorf("spark = %v", rate.Spark)
 	}
-	if rate.Delta != -5 || rate.IsNew {
-		t.Errorf("기준금리 delta = %v new=%v, want -5%%p and not new", rate.Delta, rate.IsNew)
+	if rate.Delta != -10 || rate.IsNew {
+		t.Errorf("기준금리 delta = %v new=%v, want -10%%p and not new", rate.Delta, rate.IsNew)
 	}
 	chip := byName["반도체"]
 	// Absent on days the axis collected: a zero reading, not a gap.
@@ -136,7 +162,7 @@ func TestDashboardDrawsTheWindowAndDeltaAgainstThePreviousBucket(t *testing.T) {
 	}
 }
 
-func TestDashboardSummaryComesFromTheSentimentRow(t *testing.T) {
+func TestDashboardSummaryCountsTheWindow(t *testing.T) {
 	dir := t.TempDir()
 	writeDailyGold(t, dir)
 	d := getDashboard(t, dir, "?axis=KR")
@@ -145,8 +171,8 @@ func TestDashboardSummaryComesFromTheSentimentRow(t *testing.T) {
 	if s == nil || s.Collected == nil || s.CollectedPrev == nil {
 		t.Fatalf("summary = %+v", s)
 	}
-	if *s.Collected != 100 || *s.CollectedPrev != 100 || s.Analyzed != 90 {
-		t.Errorf("counts = %d/%d/%d, want 100/100/90", *s.Collected, *s.CollectedPrev, s.Analyzed)
+	if *s.Collected != 100 || *s.CollectedPrev != 80 || s.Analyzed != 90 {
+		t.Errorf("counts = %d/%d/%d, want 100/80/90", *s.Collected, *s.CollectedPrev, s.Analyzed)
 	}
 	if s.Coverage != 0.9 || s.LowConfidence != 0.1 {
 		t.Errorf("coverage/low = %v/%v", s.Coverage, s.LowConfidence)
@@ -174,20 +200,48 @@ func TestDashboardHonoursTheRequestedUnitAndRange(t *testing.T) {
 
 	d := getDashboard(t, dir, "?axis=KR&unit=hour&range=24h")
 	if d.Basis.Unit != "hour" || d.Basis.Bucket != "2026-06-23T14" || d.Basis.HasBaseline {
-		t.Fatalf("hour basis = %+v", d.Basis)
+		t.Fatalf("24h basis = %+v", d.Basis)
 	}
-	if len(d.TopSubjects) != 1 || d.TopSubjects[0].Subject != "시간 대상" || d.TopSubjects[0].Delta != 0 {
-		t.Errorf("hour rows = %+v", d.TopSubjects)
-	}
-
-	d = getDashboard(t, dir, "?axis=KR&range=24h")
-	if got := strings.Join(d.Basis.Buckets, ","); got != "2026-06-23" || d.Basis.HasBaseline {
-		t.Errorf("24h by day keeps only the anchor day: %s (baseline %v)", got, d.Basis.HasBaseline)
+	if len(d.TopSubjects) != 2 || d.TopSubjects[0].NormalizedShare != 0.6 || d.TopSubjects[0].Delta != 0 ||
+		d.TopSubjects[0].IsNew {
+		t.Errorf("24h rows = %+v", d.TopSubjects)
 	}
 
 	d = getDashboard(t, dir, "?axis=KR&unit=bogus&range=bogus")
 	if d.Basis.Unit != "day" || d.Basis.Range != "7d" {
 		t.Errorf("unknown params should fall back to the defaults: %+v", d.Basis)
+	}
+}
+
+// A unit as long as the range would draw it as one point, so such a pair is read by the hour.
+func TestDashboardTakesOnlyUnitsShorterThanTheRange(t *testing.T) {
+	dir := t.TempDir()
+	writeDailyGold(t, dir)
+	for query, want := range map[string]string{
+		"?axis=KR&unit=day&range=24h":  "hour",
+		"?axis=KR&unit=week&range=24h": "hour",
+		"?axis=KR&unit=week&range=7d":  "hour",
+		"?axis=KR&unit=week&range=30d": "week",
+		"?axis=KR&unit=day&range=7d":   "day",
+	} {
+		if got := getDashboard(t, dir, query).Basis.Unit; got != want {
+			t.Errorf("%s unit = %s, want %s", query, got, want)
+		}
+	}
+}
+
+// A lake aggregated before the windows existed has no ranking to show yet, not an error.
+func TestDashboardWithoutWindowsRanksNothing(t *testing.T) {
+	dir := t.TempDir()
+	writeDailyGold(t, dir)
+	for _, f := range []string{"subject_window.jsonl", "axis_window.jsonl"} {
+		if err := os.Remove(filepath.Join(dir, "gold", f)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d := getDashboard(t, dir, "?axis=KR")
+	if len(d.TopSubjects) != 0 || d.Summary != nil || d.Basis.HasBaseline || d.Basis.EmptyWindow {
+		t.Errorf("no windows = %+v / %+v / %+v", d.TopSubjects, d.Summary, d.Basis)
 	}
 }
 
@@ -203,29 +257,27 @@ func appendGold(t *testing.T, dir, file string, rows ...string) {
 	}
 }
 
-// ALL is an axis of its own in Gold: the dashboard ranks and summarizes its rows, not a sum of
-// the source axes' rows beside them.
+// ALL is an axis of its own in Gold: the dashboard ranks and counts its rows, not a sum of the
+// source axes' rows beside them.
 func TestDashboardServesTheAllAxisFromItsOwnRows(t *testing.T) {
 	dir := t.TempDir()
 	writeDailyGold(t, dir)
 	appendGold(t, dir, "subject_trend.jsonl",
-		`{"subject":"기준금리","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-22","raw_count":8,"normalized_share":0.6,"delta":0,"spark":[]}`,
 		`{"subject":"기준금리","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":5,"normalized_share":0.7,"delta":0,"spark":[]}`,
-		`{"subject":"반도체","axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":3,"normalized_share":0.3,"delta":0,"spark":[]}`,
 	)
-	appendGold(t, dir, "axis_sentiment.jsonl",
-		`{"axis":"ALL","bucket_unit":"day","time_bucket":"2026-06-23","distribution":{"positive":0.5,"neutral":0.5,"negative":0,"mixed":0,"unanalyzed":0.25},"analyzed_total":93}`,
+	window := `"range":"7d","period":"current","window_start":"2026-06-16T15","window_end":"2026-06-23T14"`
+	appendGold(t, dir, "subject_window.jsonl",
+		`{"subject":"기준금리","axis":"ALL",`+window+`,"raw_count":12,"normalized_share":0.7}`,
+		`{"subject":"반도체","axis":"ALL",`+window+`,"raw_count":3,"normalized_share":0.3}`,
 	)
+	appendGold(t, dir, "axis_window.jsonl", `{"axis":"ALL",`+window+`,"collected":124,"analyzed_total":93}`)
 	d := getDashboard(t, dir, "?axis=ALL")
 
-	if d.Axis != "ALL" || d.Basis.EmptyWindow || d.Basis.PreviousBucket != "2026-06-22" {
+	if d.Axis != "ALL" || d.Basis.EmptyWindow || d.Basis.HasBaseline {
 		t.Fatalf("axis/basis = %s %+v", d.Axis, d.Basis)
 	}
-	if len(d.TopSubjects) != 2 || d.TopSubjects[0].Subject != "기준금리" || d.TopSubjects[0].Delta != 10 {
+	if len(d.TopSubjects) != 2 || d.TopSubjects[0].Subject != "기준금리" || d.TopSubjects[0].NormalizedShare != 0.7 {
 		t.Fatalf("ALL rows = %+v", d.TopSubjects)
-	}
-	if !d.TopSubjects[1].IsNew {
-		t.Errorf("반도체 has no ALL row on 06-22: %+v", d.TopSubjects[1])
 	}
 	if d.Summary == nil || d.Summary.Analyzed != 93 || *d.Summary.Collected != 124 {
 		t.Errorf("summary = %+v", d.Summary)
