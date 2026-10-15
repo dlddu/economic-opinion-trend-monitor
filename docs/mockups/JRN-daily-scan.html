@@ -613,7 +613,7 @@ details.meta table.tbl{margin-top:10px}
 
           <div class="card col-7">
             <div class="card-h">
-              <h3>밤사이 변화</h3>
+              <h3 id="delta-title">최근 7일 변화</h3>
               <span class="sub" id="delta-sub">직전 동일 구간 대비</span>
               <div class="r"><span class="tag" id="delta-count">8개 대상</span></div>
             </div>
@@ -664,7 +664,7 @@ details.meta table.tbl{margin-top:10px}
             <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
             <div class="card-b">
               <div class="emptybox" id="s-no-selection" data-state="no-selection">
-                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 어제 대비 변화가 펼쳐집니다.
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
               </div>
               <div id="pick-detail" hidden></div>
             </div>
@@ -1006,6 +1006,7 @@ function renderBrief(){
 function renderDelta(){
   var list = deltaRows();
   var basis = BASIS[state.basis];
+  $('delta-title').textContent = rangeLabel() + ' 변화';
   $('delta-sub').textContent = basis.label + ' 대비';
   $('delta-count').textContent = list.length + '개 대상';
   show($('s-no-baseline'), !basis.hasBaseline);
@@ -1267,6 +1268,7 @@ function drawTrend(){
     state.unit = unit;
     syncWindowControls();
     renderBrief();
+    renderDelta();
     show($('s-loading'), true);
     setTimeout(function(){
       show($('s-loading'), false);

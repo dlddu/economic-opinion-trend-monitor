@@ -377,7 +377,7 @@ describe("Dashboard — 오늘의 조회 조건", () => {
   });
 });
 
-describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
+describe("Dashboard — 기간 변화 · 고른 대상", () => {
   function card(container: HTMLElement, title: string): HTMLElement {
     const head = [...container.querySelectorAll(".card-h")].find(
       (h) => h.querySelector("h3")?.textContent === title,
@@ -394,7 +394,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    const delta = card(container, "밤사이 변화");
+    const delta = card(container, "최근 7일 변화");
     expect(delta.className).toBe("card col-7");
     expect(delta.querySelector(".card-h .sub")?.textContent).toBe("직전 동일 구간 대비");
     expect(delta.querySelector(".dash-tag")?.textContent).toBe("4개 대상");
@@ -417,7 +417,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    const delta = card(container, "밤사이 변화");
+    const delta = card(container, "최근 7일 변화");
     fireEvent.change(delta.querySelector('input[type="number"]')!, { target: { value: "2" } });
     expect(trows(container).map((b) => b.querySelector(".nm")?.textContent?.trim())).toEqual([
       "기준금리",
@@ -446,7 +446,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     expect(pick.className).toBe("card col-5");
     expect(pick.querySelector(".card-h .sub")?.textContent).toBe("오늘 더 볼 후보");
     expect(pick.querySelector('[data-state="no-selection"]')?.textContent).toBe(
-      "왼쪽 목록에서 대상을 하나 고르면여기에 어제 대비 변화가 펼쳐집니다.",
+      "왼쪽 목록에서 대상을 하나 고르면여기에 직전 기간 대비 변화가 펼쳐집니다.",
     );
 
     fireEvent.click(trows(container)[3]);
@@ -475,7 +475,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
     fireEvent.click(trows(container)[1]);
-    fireEvent.click(card(container, "밤사이 변화").querySelector(".dash-brief-check input")!);
+    fireEvent.click(card(container, "최근 7일 변화").querySelector(".dash-brief-check input")!);
     expect(trows(container)).toHaveLength(1);
     expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
   });
@@ -487,7 +487,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    fireEvent.change(card(container, "밤사이 변화").querySelector('input[type="number"]')!, {
+    fireEvent.change(card(container, "최근 7일 변화").querySelector('input[type="number"]')!, {
       target: { value: "5" },
     });
     expect(trows(container)).toHaveLength(4);
@@ -650,6 +650,7 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 기간 순위", () 
     expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 30일 누적");
     expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("30d");
     expect(table.querySelectorAll("thead th")[2].textContent).toBe("최근 30일 점유율");
+    expect([...container.querySelectorAll(".card-h h3")].map((h) => h.textContent)).toContain("최근 30일 변화");
     expect(table.querySelector('[data-state="low-sample"]')).toBeNull();
   });
 

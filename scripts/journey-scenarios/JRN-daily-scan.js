@@ -61,6 +61,8 @@ module.exports = {
       pickOption(t, w, d.getElementById('brief-range'), '30');
       t.is(d.getElementById('brief-sub').textContent !== subBefore, true,
         '(d) 조회 조건 카드의 기간 <select> 선택이 제출 없이 기준 표기를 바로 바꾼다');
+      t.is(d.getElementById('delta-title').textContent, '최근 30일 변화',
+        '(d) 변화 카드 제목이 고른 기간을 따라간다');
       t.click(w, d.querySelector('input[name="brief-unit"][value="week"]'));
       await t.sleep(400);
       t.is([d.getElementById('range').value, d.querySelector('input[name="unit"]:checked')?.value], ['30', 'week'],

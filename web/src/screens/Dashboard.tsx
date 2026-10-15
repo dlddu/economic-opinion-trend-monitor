@@ -318,7 +318,7 @@ export function Dashboard() {
 
         <div className="card col-7">
           <div className="card-h">
-            <h3>밤사이 변화</h3>
+            <h3>{RANGE_LABEL[range]} 변화</h3>
             <span className="sub">직전 동일 구간 대비</span>
             <div className="r">
               <span className="dash-tag">{deltaRows.length}개 대상</span>
@@ -396,7 +396,7 @@ export function Dashboard() {
               <div className="dash-brief-empty" data-state="no-selection">
                 왼쪽 목록에서 대상을 하나 고르면
                 <br />
-                여기에 어제 대비 변화가 펼쳐집니다.
+                여기에 직전 기간 대비 변화가 펼쳐집니다.
               </div>
             )}
             {picked && (
