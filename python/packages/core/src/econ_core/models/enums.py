@@ -9,6 +9,9 @@ ANALYSISSTATUS_VALUES: tuple[AnalysisStatus, ...] = ("analyzed", "low_confidence
 Axis = Literal["KR", "US", "GLOBAL"]
 AXIS_VALUES: tuple[Axis, ...] = ("KR", "US", "GLOBAL")
 
+AxisScope = Literal["KR", "US", "GLOBAL", "ALL"]
+AXISSCOPE_VALUES: tuple[AxisScope, ...] = ("KR", "US", "GLOBAL", "ALL")
+
 BucketUnit = Literal["hour", "day", "week"]
 BUCKETUNIT_VALUES: tuple[BucketUnit, ...] = ("hour", "day", "week")
 
@@ -31,3 +34,6 @@ RUNTRIGGER_VALUES: tuple[RunTrigger, ...] = ("scheduled", "reprocess")
 
 Sentiment = Literal["positive", "neutral", "negative", "mixed"]
 SENTIMENT_VALUES: tuple[Sentiment, ...] = ("positive", "neutral", "negative", "mixed")
+
+WindowPeriod = Literal["current", "previous"]
+WINDOWPERIOD_VALUES: tuple[WindowPeriod, ...] = ("current", "previous")

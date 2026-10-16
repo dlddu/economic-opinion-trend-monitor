@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from econ_core.models.enums import Axis, BucketUnit
+from econ_core.models.enums import Axis, AxisScope, BucketUnit, WindowPeriod
 
 
 @dataclass(kw_only=True)
@@ -37,7 +37,7 @@ class ArticlePick:
 class AxisSentiment:
     """Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6)."""
 
-    axis: Axis
+    axis: AxisScope
     bucket_unit: BucketUnit
     time_bucket: str
     distribution: SentimentDistribution
@@ -50,6 +50,31 @@ class AxisSentiment:
             bucket_unit=d["bucket_unit"],
             time_bucket=d["time_bucket"],
             distribution=SentimentDistribution.from_dict(d["distribution"]),
+            analyzed_total=d["analyzed_total"],
+        )
+
+
+@dataclass(kw_only=True)
+class AxisWindow:
+    """Gold record — per (axis, range, period) article counts over the windows SubjectWindow ranks (AC2.5, AC3.4)."""
+
+    axis: AxisScope
+    range: str
+    period: WindowPeriod
+    window_start: str
+    window_end: str
+    collected: int
+    analyzed_total: int
+
+    @classmethod
+    def from_dict(cls, d: dict) -> AxisWindow:
+        return cls(
+            axis=d["axis"],
+            range=d["range"],
+            period=d["period"],
+            window_start=d["window_start"],
+            window_end=d["window_end"],
+            collected=d["collected"],
             analyzed_total=d["analyzed_total"],
         )
 
@@ -107,7 +132,7 @@ class SubjectTrend:
     """Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8)."""
 
     subject: str
-    axis: Axis
+    axis: AxisScope
     bucket_unit: BucketUnit
     time_bucket: str
     raw_count: int
@@ -126,4 +151,31 @@ class SubjectTrend:
             normalized_share=d["normalized_share"],
             delta=d["delta"],
             spark=list(d.get("spark", [])),
+        )
+
+
+@dataclass(kw_only=True)
+class SubjectWindow:
+    """Gold record — per (subject, axis, range, period) share over a whole window ending at the latest collection, each article counted once in it (AC3.2, AC3.3, AC3.5)."""
+
+    subject: str
+    axis: AxisScope
+    range: str
+    period: WindowPeriod
+    window_start: str
+    window_end: str
+    raw_count: int
+    normalized_share: float
+
+    @classmethod
+    def from_dict(cls, d: dict) -> SubjectWindow:
+        return cls(
+            subject=d["subject"],
+            axis=d["axis"],
+            range=d["range"],
+            period=d["period"],
+            window_start=d["window_start"],
+            window_end=d["window_end"],
+            raw_count=d["raw_count"],
+            normalized_share=d["normalized_share"],
         )

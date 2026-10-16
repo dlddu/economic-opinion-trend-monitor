@@ -29,7 +29,7 @@ func TestSubjectTrendsReadsJSONLIntoContractType(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("want 1 record, got %d", len(got))
 	}
-	if got[0].Subject != "한국은행 기준금리" || got[0].Axis != gen.AxisKR {
+	if got[0].Subject != "한국은행 기준금리" || got[0].Axis != gen.AxisScopeKR {
 		t.Errorf("decoded wrong values: %+v", got[0])
 	}
 	if got[0].NormalizedShare != 0.5 || got[0].RawCount != 3 {
@@ -49,7 +49,7 @@ func TestSubjectTrendsWhereKeepsOnlyAcceptedRows(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := New(dir).SubjectTrendsWhere(context.Background(), func(r *gen.SubjectTrend) bool { return r.Axis == gen.AxisKR })
+	got, err := New(dir).SubjectTrendsWhere(context.Background(), func(r *gen.SubjectTrend) bool { return r.Axis == gen.AxisScopeKR })
 	if err != nil {
 		t.Fatalf("SubjectTrendsWhere: %v", err)
 	}

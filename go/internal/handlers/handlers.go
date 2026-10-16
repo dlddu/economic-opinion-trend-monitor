@@ -257,7 +257,7 @@ func (h *Handlers) health(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handlers) trend(w http.ResponseWriter, r *http.Request, gold goldSource) {
-	axis := axisParam(r, "KR")
+	axis := axisOrAllParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
 	// Only the axis's finest unit is drawn, and of it only the subjects the chart keeps: Gold grows
@@ -838,6 +838,15 @@ func axisParam(r *http.Request, fallback string) string {
 	default:
 		return fallback
 	}
+}
+
+// axisOrAllParam is axisParam that also takes ALL, the axis Gold folds every axis's sources into.
+// Only subject_trend and axis_sentiment carry it, so only the screens that read just those take it.
+func axisOrAllParam(r *http.Request, fallback string) string {
+	if r.URL.Query().Get("axis") == string(gen.AxisScopeALL) {
+		return string(gen.AxisScopeALL)
+	}
+	return axisParam(r, fallback)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

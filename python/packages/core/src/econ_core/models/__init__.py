@@ -5,27 +5,33 @@ from econ_core.models.bronze import NewsBody, NewsItem
 from econ_core.models.enums import (
     ANALYSISSTATUS_VALUES,
     AXIS_VALUES,
+    AXISSCOPE_VALUES,
     BUCKETUNIT_VALUES,
     LLMCALLOUTCOME_VALUES,
     PIPELINESTAGE_VALUES,
     RUNSTATUS_VALUES,
     RUNTRIGGER_VALUES,
     SENTIMENT_VALUES,
+    WINDOWPERIOD_VALUES,
     AnalysisStatus,
     Axis,
+    AxisScope,
     BucketUnit,
     LlmCallOutcome,
     PipelineStage,
     RunStatus,
     RunTrigger,
     Sentiment,
+    WindowPeriod,
 )
 from econ_core.models.gold import (
     ArticlePick,
     AxisSentiment,
+    AxisWindow,
     SentimentDistribution,
     SubjectSourceContribution,
     SubjectTrend,
+    SubjectWindow,
 )
 from econ_core.models.silver import (
     Analysis,
@@ -38,12 +44,15 @@ from econ_core.models.silver import (
 
 __all__ = [
     "ANALYSISSTATUS_VALUES",
+    "AXISSCOPE_VALUES",
     "AXIS_VALUES",
     "Analysis",
     "AnalysisStatus",
     "ArticlePick",
     "Axis",
+    "AxisScope",
     "AxisSentiment",
+    "AxisWindow",
     "BUCKETUNIT_VALUES",
     "BucketUnit",
     "LLMCALLOUTCOME_VALUES",
@@ -66,4 +75,7 @@ __all__ = [
     "StageOutcome",
     "SubjectSourceContribution",
     "SubjectTrend",
+    "SubjectWindow",
+    "WINDOWPERIOD_VALUES",
+    "WindowPeriod",
 ]

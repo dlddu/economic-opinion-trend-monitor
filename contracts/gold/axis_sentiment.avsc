@@ -7,8 +7,8 @@
   "fields": [
     {
       "name": "axis",
-      "type": { "type": "enum", "name": "Axis", "symbols": ["KR", "US", "GLOBAL"] },
-      "doc": "Source axis (AC3.4)."
+      "type": { "type": "enum", "name": "AxisScope", "symbols": ["KR", "US", "GLOBAL", "ALL"] },
+      "doc": "Source axis, or ALL — every axis's articles tallied together (AC3.4)."
     },
     {
       "name": "bucket_unit",

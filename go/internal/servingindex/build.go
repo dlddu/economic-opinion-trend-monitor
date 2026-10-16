@@ -29,7 +29,7 @@ import (
 
 // SchemaVersion names the shape of schema.sql and derive.sql. A reader refuses an index of
 // another version, so bump it with any change a query could notice.
-const SchemaVersion = "5"
+const SchemaVersion = "6"
 
 const (
 	// Dir is where the index lives under the lake root.
@@ -68,8 +68,9 @@ type Stats struct {
 	NewsItems    int
 	Records      int
 	ArticlePicks int
-	// Gold rows copied: subject_trend, subject_source_contribution, axis_sentiment.
-	SubjectTrends, SourceContributions, AxisSentiments int
+	// Gold rows copied: subject_trend, subject_source_contribution, axis_sentiment, subject_window,
+	// axis_window.
+	SubjectTrends, SourceContributions, AxisSentiments, SubjectWindows, AxisWindows int
 	// PicksWritten is false when the lake has no article_pick dataset yet.
 	PicksWritten   bool
 	CallFiles      int
@@ -169,8 +170,9 @@ func write(ctx context.Context, root, path string, opt Options) (Stats, error) {
 	if err := loadGold(ctx, conn, root, &stats); err != nil {
 		return stats, err
 	}
-	opt.Log("gold subject_trend=%d subject_source_contribution=%d axis_sentiment=%d took=%s",
-		stats.SubjectTrends, stats.SourceContributions, stats.AxisSentiments, since(start))
+	opt.Log("gold subject_trend=%d subject_source_contribution=%d axis_sentiment=%d subject_window=%d "+
+		"axis_window=%d took=%s", stats.SubjectTrends, stats.SourceContributions, stats.AxisSentiments,
+		stats.SubjectWindows, stats.AxisWindows, since(start))
 	start = time.Now()
 	if err := loadCalls(ctx, conn, root, opt, &stats); err != nil {
 		return stats, fmt.Errorf("llm_call: %w", err)
@@ -351,6 +353,40 @@ func loadGold(ctx context.Context, conn *sql.Conn, root string, stats *Stats) er
 	})
 	if err != nil {
 		return fmt.Errorf("axis_sentiment: %w", err)
+	}
+	err = inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO subject_window (seq, subject, axis, range, period,
+			window_start, window_end, raw_count, normalized_share) VALUES (?,?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return lake.EachSubjectWindow(ctx, func(w *gen.SubjectWindow) error {
+			stats.SubjectWindows++
+			_, err := ins.ExecContext(ctx, stats.SubjectWindows, w.Subject, string(w.Axis), w.Range,
+				string(w.Period), w.WindowStart, w.WindowEnd, w.RawCount, w.NormalizedShare)
+			return err
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("subject_window: %w", err)
+	}
+	err = inTx(ctx, conn, func(tx *sql.Tx) error {
+		ins, err := tx.PrepareContext(ctx, `INSERT INTO axis_window (seq, axis, range, period, window_start,
+			window_end, collected, analyzed_total) VALUES (?,?,?,?,?,?,?,?)`)
+		if err != nil {
+			return err
+		}
+		defer ins.Close()
+		return lake.EachAxisWindow(ctx, func(w *gen.AxisWindow) error {
+			stats.AxisWindows++
+			_, err := ins.ExecContext(ctx, stats.AxisWindows, string(w.Axis), w.Range, string(w.Period),
+				w.WindowStart, w.WindowEnd, w.Collected, w.AnalyzedTotal)
+			return err
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("axis_window: %w", err)
 	}
 	return nil
 }

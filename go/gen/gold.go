@@ -15,11 +15,22 @@ type ArticlePick struct {
 
 // AxisSentiment Gold record — per (axis, time bucket) sentiment distribution (AC3.4, AC3.6).
 type AxisSentiment struct {
-	Axis          Axis                  `json:"axis"`
+	Axis          AxisScope             `json:"axis"`
 	BucketUnit    BucketUnit            `json:"bucket_unit"`
 	TimeBucket    string                `json:"time_bucket"`
 	Distribution  SentimentDistribution `json:"distribution"`
 	AnalyzedTotal int64                 `json:"analyzed_total"`
+}
+
+// AxisWindow Gold record — per (axis, range, period) article counts over the windows SubjectWindow ranks (AC2.5, AC3.4).
+type AxisWindow struct {
+	Axis          AxisScope    `json:"axis"`
+	Range         string       `json:"range"`
+	Period        WindowPeriod `json:"period"`
+	WindowStart   string       `json:"window_start"`
+	WindowEnd     string       `json:"window_end"`
+	Collected     int64        `json:"collected"`
+	AnalyzedTotal int64        `json:"analyzed_total"`
 }
 
 // SentimentDistribution Sentiment ratios for analyzed items; unanalyzed kept separate (AC3.4, AC3.6).
@@ -46,11 +57,23 @@ type SubjectSourceContribution struct {
 // SubjectTrend Gold record — per (subject, axis, time bucket) trend aggregation (AC3.1-AC3.3, AC3.5, AC3.8).
 type SubjectTrend struct {
 	Subject         string     `json:"subject"`
-	Axis            Axis       `json:"axis"`
+	Axis            AxisScope  `json:"axis"`
 	BucketUnit      BucketUnit `json:"bucket_unit"`
 	TimeBucket      string     `json:"time_bucket"`
 	RawCount        int64      `json:"raw_count"`
 	NormalizedShare float64    `json:"normalized_share"`
 	Delta           float64    `json:"delta"`
 	Spark           []float64  `json:"spark"`
+}
+
+// SubjectWindow Gold record — per (subject, axis, range, period) share over a whole window ending at the latest collection, each article counted once in it (AC3.2, AC3.3, AC3.5).
+type SubjectWindow struct {
+	Subject         string       `json:"subject"`
+	Axis            AxisScope    `json:"axis"`
+	Range           string       `json:"range"`
+	Period          WindowPeriod `json:"period"`
+	WindowStart     string       `json:"window_start"`
+	WindowEnd       string       `json:"window_end"`
+	RawCount        int64        `json:"raw_count"`
+	NormalizedShare float64      `json:"normalized_share"`
 }

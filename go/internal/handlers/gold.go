@@ -31,6 +31,10 @@ type goldSource interface {
 		ctx context.Context, axis string, unit gen.BucketUnit, bucket, subject string,
 	) ([]gen.SubjectSourceContribution, error)
 	axisSentiments(ctx context.Context) ([]gen.AxisSentiment, error)
+	// subjectWindows returns the subject_window rows of axis and range, both periods, in file order.
+	subjectWindows(ctx context.Context, axis, rng string) ([]gen.SubjectWindow, error)
+	// axisWindows returns the axis_window rows of axis and range, both periods.
+	axisWindows(ctx context.Context, axis, rng string) ([]gen.AxisWindow, error)
 }
 
 // trendQuery narrows subject_trend to one unit. An empty axis matches every axis; nil buckets or
@@ -172,6 +176,18 @@ func (g *lakeGold) axisSentiments(context.Context) ([]gen.AxisSentiment, error) 
 	return g.lake.AxisSentiments()
 }
 
+func (g *lakeGold) subjectWindows(ctx context.Context, axis, rng string) ([]gen.SubjectWindow, error) {
+	return g.lake.SubjectWindowsWhere(ctx, func(w *gen.SubjectWindow) bool {
+		return string(w.Axis) == axis && w.Range == rng
+	})
+}
+
+func (g *lakeGold) axisWindows(ctx context.Context, axis, rng string) ([]gen.AxisWindow, error) {
+	return g.lake.AxisWindowsWhere(ctx, func(w *gen.AxisWindow) bool {
+		return string(w.Axis) == axis && w.Range == rng
+	})
+}
+
 type indexGold struct{ db *sql.DB }
 
 func axisUnitWhere(axis string, unit gen.BucketUnit) (string, []any) {
@@ -305,6 +321,44 @@ func (g indexGold) axisSentiments(ctx context.Context) ([]gen.AxisSentiment, err
 			return nil, err
 		}
 		out = append(out, s)
+	}
+	return out, rs.Err()
+}
+
+func (g indexGold) subjectWindows(ctx context.Context, axis, rng string) ([]gen.SubjectWindow, error) {
+	rs, err := g.db.QueryContext(ctx, `SELECT subject, axis, range, period, window_start, window_end, raw_count,
+		normalized_share FROM subject_window WHERE axis = ? AND range = ? ORDER BY seq`, axis, rng)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	var out []gen.SubjectWindow
+	for rs.Next() {
+		var w gen.SubjectWindow
+		if err := rs.Scan(&w.Subject, &w.Axis, &w.Range, &w.Period, &w.WindowStart, &w.WindowEnd, &w.RawCount,
+			&w.NormalizedShare); err != nil {
+			return nil, err
+		}
+		out = append(out, w)
+	}
+	return out, rs.Err()
+}
+
+func (g indexGold) axisWindows(ctx context.Context, axis, rng string) ([]gen.AxisWindow, error) {
+	rs, err := g.db.QueryContext(ctx, `SELECT axis, range, period, window_start, window_end, collected,
+		analyzed_total FROM axis_window WHERE axis = ? AND range = ? ORDER BY seq`, axis, rng)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	var out []gen.AxisWindow
+	for rs.Next() {
+		var w gen.AxisWindow
+		if err := rs.Scan(&w.Axis, &w.Range, &w.Period, &w.WindowStart, &w.WindowEnd, &w.Collected,
+			&w.AnalyzedTotal); err != nil {
+			return nil, err
+		}
+		out = append(out, w)
 	}
 	return out, rs.Err()
 }

@@ -1,0 +1,49 @@
+{
+  "type": "record",
+  "name": "SubjectWindow",
+  "namespace": "econ.gold",
+  "doc": "Gold record — per (subject, axis, range, period) share over a whole window ending at the latest collection, each article counted once in it (AC3.2, AC3.3, AC3.5).",
+  "x-layer": "gold",
+  "fields": [
+    {
+      "name": "subject",
+      "type": "string",
+      "doc": "Narrative subject key; variants are unified to one key (AC3.2)."
+    },
+    {
+      "name": "axis",
+      "type": { "type": "enum", "name": "AxisScope", "symbols": ["KR", "US", "GLOBAL", "ALL"] },
+      "doc": "Source axis, or ALL — every axis's sources folded as one, each source weighted equally (AC3.1, AC3.4, AC3.7)."
+    },
+    {
+      "name": "range",
+      "type": "string",
+      "doc": "Window length: 24h, 7d or 30d."
+    },
+    {
+      "name": "period",
+      "type": { "type": "enum", "name": "WindowPeriod", "symbols": ["current", "previous"] },
+      "doc": "current ends at the latest collected hour; previous is the window of the same length just before it."
+    },
+    {
+      "name": "window_start",
+      "type": "string",
+      "doc": "First hour bucket in the window, e.g. 2026-06-17T15."
+    },
+    {
+      "name": "window_end",
+      "type": "string",
+      "doc": "Last hour bucket in the window, e.g. 2026-06-23T14."
+    },
+    {
+      "name": "raw_count",
+      "type": "long",
+      "doc": "Articles in the window that name the subject, each counted once (AC3.8)."
+    },
+    {
+      "name": "normalized_share",
+      "type": "double",
+      "doc": "Source-deviation-normalized share over the window (AC3.1, AC3.8)."
+    }
+  ]
+}

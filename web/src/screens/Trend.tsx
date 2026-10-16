@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Axis, TrendResponse, TrendSeries } from "../api/types";
+import type { AxisScope, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
 // Two things are deliberately *not* here:
@@ -17,7 +17,8 @@ import { MapStrip } from "../shell/MapStrip";
 //     subject" yet. Selecting one of the compared subjects is real, so that is
 //     what the comparison list does.
 
-const AXES: { id: Axis; label: string; pill: string }[] = [
+const AXES: { id: AxisScope; label: string; pill: string }[] = [
+  { id: "ALL", label: "전체", pill: "ax-all" },
   { id: "KR", label: "한국", pill: "ax-kr" },
   { id: "US", label: "미국", pill: "ax-us" },
   { id: "GLOBAL", label: "전세계", pill: "ax-gl" },
@@ -105,7 +106,7 @@ function drawnSeries(series: TrendSeries[], overlay: boolean): TrendSeries[] {
 // 한 계약의 두 표면이 다른 수명을 가지면 「닫을 때의 조건」이 화면마다 다른 닫음을 뜻하므로 `localStorage`.
 const VIEW_KEY = "econ-monitor:trend:view";
 
-type StoredView = { axis: Axis; subject?: string };
+type StoredView = { axis: AxisScope; subject?: string };
 
 function readStoredView(): StoredView | null {
   try {
@@ -127,7 +128,7 @@ function storeView(view: StoredView): void {
   }
 }
 
-function parseAxis(raw: string | null): Axis | undefined {
+function parseAxis(raw: string | null): AxisScope | undefined {
   return AXES.find((a) => a.id === raw)?.id;
 }
 
@@ -142,7 +143,7 @@ export function Trend() {
   const [params] = useSearchParams();
   const restored = useState(readStoredView)[0];
   const entry = useState(() => entryView(params, restored))[0];
-  const [axis, setAxis] = useState<Axis>(entry.axis ?? "KR");
+  const [axis, setAxis] = useState<AxisScope>(entry.axis ?? "KR");
   const [subject, setSubject] = useState<string | undefined>(entry.subject);
   const [data, setData] = useState<TrendResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

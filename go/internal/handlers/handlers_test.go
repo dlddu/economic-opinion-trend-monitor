@@ -260,6 +260,27 @@ func TestTrendReturnsBucketOrderedSeries(t *testing.T) {
 	}
 }
 
+func TestTrendDrawsTheAllAxis(t *testing.T) {
+	dir := t.TempDir()
+	writeTrendGold(t, dir)
+	appendGold(t, dir, "subject_trend.jsonl",
+		`{"subject":"기준금리","axis":"ALL","bucket_unit":"hour","time_bucket":"2026-06-23T13","raw_count":9,"normalized_share":0.4,"delta":0,"spark":[0.4]}`,
+		`{"subject":"기준금리","axis":"ALL","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":12,"normalized_share":0.45,"delta":5,"spark":[0.4,0.45]}`,
+	)
+
+	got := getTrend(t, dir, "?axis=ALL")
+
+	if got.Axis != "ALL" || len(got.Series) != 1 || got.Subject != "기준금리" {
+		t.Fatalf("ALL trend = %+v", got)
+	}
+	if b := got.Basis; b.FirstBucket != "2026-06-23T13" || b.LatestBucket != "2026-06-23T14" {
+		t.Errorf("ALL reads its own buckets, not KR's: %+v", b)
+	}
+	if s := got.Series[0]; s.LatestShare != 0.45 || len(s.Points) != 2 {
+		t.Errorf("ALL series = %+v", s)
+	}
+}
+
 func TestTrendSelectsRequestedSubject(t *testing.T) {
 	dir := t.TempDir()
 	writeTrendGold(t, dir)

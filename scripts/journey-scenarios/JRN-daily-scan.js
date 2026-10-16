@@ -39,7 +39,6 @@ module.exports = {
     };
     shape('axis', 'SELECT');
     shape('brief-range', 'SELECT');
-    shape('q', 'INPUT', 'search');
     shape('restore', 'INPUT', 'checkbox');
     shape('delta-basis', 'SELECT');
     shape('delta-thresh', 'INPUT', 'number');
@@ -53,36 +52,52 @@ module.exports = {
       true, '(d) 조회 조건 카드의 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
 
+    t.is(d.querySelectorAll('#brief-form button, #win-form button').length, 0,
+      '(d) 조회 조건 카드에 적용 버튼이 없다 — 축·기간·단위는 고르는 즉시 반영된다');
+    t.is(d.querySelectorAll('input[type="search"]').length, 0, '(d) 조회 조건 카드에 대상 찾기 입력이 없다');
+
     {
       const subBefore = d.getElementById('brief-sub').textContent;
       pickOption(t, w, d.getElementById('brief-range'), '30');
-      d.querySelector('input[name="brief-unit"][value="week"]').checked = true;
-      t.fire(w, d.getElementById('brief-form'), 'submit');
-      await t.sleep(400);
       t.is(d.getElementById('brief-sub').textContent !== subBefore, true,
-        '(d) 조회 조건 카드의 기간 <select> + 단위 <input type=radio> 제출이 기준 표기를 실제로 바꾼다');
+        '(d) 조회 조건 카드의 기간 <select> 선택이 제출 없이 기준 표기를 바로 바꾼다');
+      t.is(d.getElementById('delta-title').textContent, '최근 30일 변화',
+        '(d) 변화 카드 제목이 고른 기간을 따라간다');
+      t.click(w, d.querySelector('input[name="brief-unit"][value="week"]'));
+      await t.sleep(400);
       t.is([d.getElementById('range').value, d.querySelector('input[name="unit"]:checked')?.value], ['30', 'week'],
-        '(d) 조회 조건 카드에서 적용한 기간·단위가 화면 3 컨트롤에도 맞춰진다');
+        '(d) 조회 조건 카드에서 고른 기간·단위가 화면 3 컨트롤에도 맞춰진다');
       pickOption(t, w, d.getElementById('brief-range'), '7');
-      d.querySelector('input[name="brief-unit"][value="day"]').checked = true;
-      t.fire(w, d.getElementById('brief-form'), 'submit');
+      t.click(w, d.querySelector('input[name="brief-unit"][value="day"]'));
       await t.sleep(400);
       t.is(d.getElementById('brief-sub').textContent, subBefore, '(d) 기간·단위를 되돌리면 기준 표기가 복원된다');
     }
 
-    const before = d.getElementById('ranklist').innerHTML;
-    const q = d.getElementById('q');
-    q.value = '존재하지-않는-대상'; t.fire(w, q, 'input');
-    t.is(d.querySelectorAll('#ranklist .rankrow').length, 0,
-      '(d) <input type=search> 입력이 상위 대상 목록을 실제로 필터한다');
-    q.value = ''; t.fire(w, q, 'input');
-    t.is(d.getElementById('ranklist').innerHTML, before, '(d) 검색어를 지우면 목록이 되돌아온다');
+    {
+      const offered = () => [...d.querySelectorAll('input[name="brief-unit"]')]
+        .filter(i => !i.parentElement.hidden).map(i => i.value);
+      t.is(offered(), ['hour', 'day'], '(d) 최근 7일에는 기간보다 짧은 시간·일 단위만 고를 수 있다');
+      pickOption(t, w, d.getElementById('brief-range'), '1');
+      t.is(offered(), ['hour'], '(d) 기간을 24시간으로 줄이면 일·주 단위가 선택지에서 빠진다');
+      t.is(d.querySelector('input[name="brief-unit"]:checked')?.value, 'hour',
+        '(d) 기간보다 길어진 단위는 고를 수 있는 단위로 옮겨 간다');
+      await t.sleep(400);
+      pickOption(t, w, d.getElementById('brief-range'), '7');
+      t.click(w, d.querySelector('input[name="brief-unit"][value="day"]'));
+      await t.sleep(400);
+    }
 
     const kr = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());
     if (pickOption(t, w, d.getElementById('axis'), 'US')) {
       const us = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());
       t.is(JSON.stringify(kr) !== JSON.stringify(us) && us.length > 0, true,
         '(d) 축 <select> 의 <option> 선택이 목록을 실제로 바꾼다');
+      pickOption(t, w, d.getElementById('axis'), 'KR');
+    }
+    if (pickOption(t, w, d.getElementById('axis'), 'ALL')) {
+      t.is(d.getElementById('brief-sub').textContent.startsWith('전체 축'), true,
+        '(d) 축 <select> 의 「전체」 가 세 축을 접은 순위로 바꾼다');
+      t.is(d.querySelectorAll('#ranklist .rankrow').length > 0, true, '(d) 「전체」 축에도 순위가 그려진다');
       pickOption(t, w, d.getElementById('axis'), 'KR');
     }
 
@@ -107,11 +122,10 @@ module.exports = {
     toWindow(t, w, d);
     const winBefore = d.getElementById('winlist').innerHTML;
     pickOption(t, w, d.getElementById('range'), '30');
-    d.querySelector('input[name="unit"][value="week"]').checked = true;
-    t.fire(w, d.getElementById('win-form'), 'submit');
+    t.click(w, d.querySelector('input[name="unit"][value="week"]'));
     await t.sleep(400);
     t.is(d.getElementById('winlist').innerHTML !== winBefore, true,
-      '(d) 기간 <select> + 단위 <input type=radio> 제출이 순위표를 실제로 다시 그린다');
+      '(d) 기간 <select> · 단위 <input type=radio> 선택이 제출 없이 순위표를 다시 그린다');
 
     t.click(w, d.getElementById('cta-3'));
     const chartBefore = d.getElementById('trendchart').innerHTML;
@@ -161,8 +175,8 @@ module.exports = {
       const { w, d } = t.boot();
       toDelta(t, w, d);
       toWindow(t, w, d);
-      t.fire(w, d.getElementById('win-form'), 'submit');
-      t.is(t.shown(d, 'loading'), true, '(e) loading — 기간 적용 직후 재집계 상태에 도달');
+      pickOption(t, w, d.getElementById('range'), '30');
+      t.is(t.shown(d, 'loading'), true, '(e) loading — 기간을 바꾼 직후 재집계 상태에 도달');
       await t.sleep(400);
       t.is(t.shown(d, 'loading'), false, '(e) loading — 재집계가 실제로 해소된다');
     }
@@ -171,8 +185,7 @@ module.exports = {
       toDelta(t, w, d);
       toWindow(t, w, d);
       t.is(t.shown(d, 'low-sample'), false, '(e) low-sample — 일 단위에서는 표본 부족이 없다');
-      d.querySelector('input[name="unit"][value="hour"]').checked = true;
-      t.fire(w, d.getElementById('win-form'), 'submit');
+      t.click(w, d.querySelector('input[name="unit"][value="hour"]'));
       await t.sleep(400);
       t.is(t.shown(d, 'low-sample'), true, '(e) low-sample — 시간 단위에서 표본 부족 상태에 도달');
       t.is(d.querySelectorAll('#winlist .thin').length > 0, true,

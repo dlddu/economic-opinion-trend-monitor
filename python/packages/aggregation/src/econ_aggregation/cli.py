@@ -17,8 +17,11 @@ from econ_aggregation.aggregate import (
     ArticlePicks,
     article_picks,
     axis_sentiment,
+    axis_windows,
     count_articles,
     subject_trends,
+    subject_windows,
+    window_articles,
 )
 from econ_aggregation.contributions import subject_source_contributions
 
@@ -105,6 +108,7 @@ def _aggregate(
 
     counts = {unit: count_articles(picks.articles(unit)) for unit in BUCKET_UNITS}
     sentiment = [row for unit in BUCKET_UNITS for row in axis_sentiment(picks.articles(unit), unit)]
+    windows = window_articles(picks.keyed_articles("hour"))
     n_picks = store.write_records(
         domain.GOLD,
         domain.DS_ARTICLE_PICK,
@@ -126,11 +130,14 @@ def _aggregate(
         domain.DS_SUBJECT_SOURCE_CONTRIBUTION,
         (row for unit in BUCKET_UNITS for row in subject_source_contributions(counts[unit], unit)),
     )
+    n_window = store.write_records(domain.GOLD, domain.DS_SUBJECT_WINDOW, subject_windows(windows))
+    store.write_records(domain.GOLD, domain.DS_AXIS_WINDOW, axis_windows(windows))
 
     print(
         f"aggregation: read {n_chosen} silver (joined to {n_bronze} bronze), "
         f"wrote {n_trend} subject_trend + {n_sent} axis_sentiment "
-        f"+ {n_contrib} subject_source_contribution + {n_picks} article_pick gold records "
+        f"+ {n_contrib} subject_source_contribution + {n_picks} article_pick "
+        f"+ {n_window} subject_window gold records "
         f"across {len(BUCKET_UNITS)} bucket units ({', '.join(BUCKET_UNITS)})"
     )
     print(

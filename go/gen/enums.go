@@ -18,6 +18,15 @@ const (
 	AxisGLOBAL Axis = "GLOBAL"
 )
 
+type AxisScope string
+
+const (
+	AxisScopeKR     AxisScope = "KR"
+	AxisScopeUS     AxisScope = "US"
+	AxisScopeGLOBAL AxisScope = "GLOBAL"
+	AxisScopeALL    AxisScope = "ALL"
+)
+
 type BucketUnit string
 
 const (
@@ -65,4 +74,11 @@ const (
 	SentimentNeutral  Sentiment = "neutral"
 	SentimentNegative Sentiment = "negative"
 	SentimentMixed    Sentiment = "mixed"
+)
+
+type WindowPeriod string
+
+const (
+	WindowPeriodCurrent  WindowPeriod = "current"
+	WindowPeriodPrevious WindowPeriod = "previous"
 )

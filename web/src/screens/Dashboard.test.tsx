@@ -21,9 +21,10 @@ function response(): DashboardResponse {
     basis: {
       range: "7d",
       unit: "day",
-      bucket: "2026-06-23",
-      previous_bucket: "2026-06-22",
+      window_start: "2026-06-16T15",
+      window_end: "2026-06-23T14",
       has_baseline: true,
+      bucket: "2026-06-23",
       buckets: ["2026-06-21", "2026-06-22", "2026-06-23"],
       empty_window: false,
       last_bucket: "2026-06-23",
@@ -177,7 +178,7 @@ describe("Dashboard — 지표 카드", () => {
     await waitFor(() => expect(value(0)).toBe("4,812"));
 
     expect([0, 1, 2, 3].map(label)).toEqual(["수집 항목", "분석 완료", "저신뢰 분리", "세는 방식"]);
-    expect(tiles[0].querySelector(".md")?.textContent).toBe("▲ 4.2% 전일 대비");
+    expect(tiles[0].querySelector(".md")?.textContent).toBe("▲ 4.2% 직전 7일 대비");
     expect(tiles[0].querySelector(".delta")?.className).toBe("delta up");
     expect(value(1)).toBe("4,551");
     expect(tiles[1].querySelector(".md")?.textContent).toBe("94.6% 분석 커버리지");
@@ -194,7 +195,7 @@ describe("Dashboard — 지표 카드", () => {
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
     const first = container.querySelector(".card.metric .md");
-    expect(first?.textContent).toBe("— 전일 대비");
+    expect(first?.textContent).toBe("— 직전 7일 대비");
   });
 });
 
@@ -207,7 +208,7 @@ describe("Dashboard — 상위 서술 대상", () => {
     const head = [...container.querySelectorAll(".card-h")].find((h) =>
       h.textContent?.startsWith("상위 서술 대상"),
     );
-    expect(head?.querySelector(".sub")?.textContent).toBe("한국 축 · 최근 7일");
+    expect(head?.querySelector(".sub")?.textContent).toBe("한국 축 · 최근 7일 누적 · 추이 일 단위");
   });
 
   it("writes the change as a coloured figure, not a grey chip, and draws the spark in the same tone", async () => {
@@ -237,12 +238,12 @@ describe("Dashboard — 상위 서술 대상", () => {
     const meta = [...container.querySelectorAll(".rankrow")].map(
       (r) => r.querySelector(".meta")?.textContent ?? null,
     );
-    expect(meta).toEqual([null, null, "· 원시 카운트 1위 → 정규화 3위", "· 밤사이 새로 진입"]);
+    expect(meta).toEqual([null, null, "· 원시 카운트 1위 → 정규화 3위", "· 최근 7일 새로 진입"]);
   });
 
   it("says there is no baseline rather than a zero change", async () => {
     const body = response();
-    body.basis = { ...body.basis, has_baseline: false, previous_bucket: "" };
+    body.basis = { ...body.basis, has_baseline: false };
     stubDashboard(body);
     const { container } = renderDashboard();
 
@@ -279,6 +280,7 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     const heads = [...container.querySelectorAll(".card-h")].map((h) => h.textContent);
     expect(heads).toContain("오늘의 조회 조건어제 닫을 때의 조건으로 열립니다");
     expect([...axisSelect(container).options].map((o) => o.textContent)).toEqual([
+      "전체",
       "한국",
       "미국",
       "전세계",
@@ -286,39 +288,23 @@ describe("Dashboard — 오늘의 조회 조건", () => {
     expect(container.querySelector(".dash-brief-check")?.textContent).toContain(
       "마지막 조회 조건으로 열기",
     );
-    const note = container.querySelector(".note.info")!;
-    expect(note.querySelector("svg.ic")).not.toBeNull();
-    expect(note.textContent).toContain("닫을 때의 축·기간·단위가 그대로 복원되어");
+    expect(container.querySelector(".note.info")).toBeNull();
+    expect(container.querySelector('input[type="search"]')).toBeNull();
   });
 
-  it("narrows the rank list by the search term without re-querying serving", async () => {
+  it("asks serving for the ALL axis when 전체 is picked, and lands its rows on the same-axis trend", async () => {
     const fetch = stubDashboard(response());
     const { container } = renderDashboard();
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
-    const calls = fetch.mock.calls.length;
+    fireEvent.change(axisSelect(container), { target: { value: "ALL" } });
 
-    fireEvent.change(container.querySelector('input[type="search"]')!, {
-      target: { value: "삼성" },
-    });
-
-    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(1));
-    expect(container.querySelector(".rankrow .nm")?.textContent).toContain("삼성전자");
-    expect(fetch.mock.calls).toHaveLength(calls);
-  });
-
-  it("says the search came up empty instead of claiming there is no data", async () => {
-    stubDashboard(response());
-    const { container } = renderDashboard();
-
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(fetch.mock.calls[1][0]).toBe("/api/dashboard?axis=ALL&range=7d&unit=day");
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
-    fireEvent.change(container.querySelector('input[type="search"]')!, {
-      target: { value: "없는대상" },
-    });
-
-    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(0));
-    expect(container.querySelector(".dash-brief-empty")?.textContent).toBe(
-      "검색어에 걸리는 대상이 없습니다.",
+    fireEvent.click(container.querySelectorAll(".rankrow")[0]);
+    expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe(
+      `/trend?axis=ALL&subject=${encodeURIComponent("기준금리")}`,
     );
   });
 
@@ -328,28 +314,22 @@ describe("Dashboard — 오늘의 조회 조건", () => {
 
     await waitFor(() => expect(first.container.querySelectorAll(".rankrow")).toHaveLength(4));
     fireEvent.change(axisSelect(first.container), { target: { value: "US" } });
-    fireEvent.change(first.container.querySelector('input[type="search"]')!, {
-      target: { value: "기준" },
-    });
-    await waitFor(() => expect(first.container.querySelectorAll(".rankrow")).toHaveLength(1));
+    await waitFor(() => expect(first.container.querySelectorAll(".rankrow")).toHaveLength(4));
     cleanup();
 
     expect(sessionStorage.getItem("econ-monitor:dash:brief")).toBeNull();
     const stored = JSON.parse(localStorage.getItem("econ-monitor:dash:brief")!);
-    expect(stored).toMatchObject({ axis: "US", q: "기준", range: "7d", unit: "day" });
+    expect(stored).toEqual({ axis: "US", restore: true, range: "7d", unit: "day" });
 
     const again = renderDashboard();
-    await waitFor(() => expect(again.container.querySelectorAll(".rankrow")).toHaveLength(1));
-    expect(again.container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe(
-      "기준",
-    );
+    await waitFor(() => expect(again.container.querySelectorAll(".rankrow")).toHaveLength(4));
     expect(axisSelect(again.container).value).toBe("US");
   });
 
   it("restores a stored window and asks serving for it", async () => {
     localStorage.setItem(
       "econ-monitor:dash:brief",
-      JSON.stringify({ axis: "KR", q: "", restore: true, range: "30d", unit: "week" }),
+      JSON.stringify({ axis: "KR", restore: true, range: "30d", unit: "week" }),
     );
     const fetch = stubDashboard(response());
     const { container } = renderDashboard();
@@ -364,9 +344,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
 
     await waitFor(() => expect(first.container.querySelectorAll(".rankrow")).toHaveLength(4));
     fireEvent.change(axisSelect(first.container), { target: { value: "US" } });
-    fireEvent.change(first.container.querySelector('input[type="search"]')!, {
-      target: { value: "기준" },
-    });
     fireEvent.click(first.container.querySelector(".dash-brief-check input")!);
     await waitFor(() =>
       expect(first.container.querySelector<HTMLInputElement>(".dash-brief-check input")?.checked)
@@ -376,7 +353,6 @@ describe("Dashboard — 오늘의 조회 조건", () => {
 
     const again = renderDashboard();
     await waitFor(() => expect(again.container.querySelectorAll(".rankrow")).toHaveLength(4));
-    expect(again.container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
     expect(axisSelect(again.container).value).toBe("KR");
     expect(
       again.container.querySelector<HTMLInputElement>(".dash-brief-check input")?.checked,
@@ -401,7 +377,7 @@ describe("Dashboard — 오늘의 조회 조건", () => {
   });
 });
 
-describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
+describe("Dashboard — 기간 변화 · 고른 대상", () => {
   function card(container: HTMLElement, title: string): HTMLElement {
     const head = [...container.querySelectorAll(".card-h")].find(
       (h) => h.querySelector("h3")?.textContent === title,
@@ -418,7 +394,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    const delta = card(container, "밤사이 변화");
+    const delta = card(container, "최근 7일 변화");
     expect(delta.className).toBe("card col-7");
     expect(delta.querySelector(".card-h .sub")?.textContent).toBe("직전 동일 구간 대비");
     expect(delta.querySelector(".dash-tag")?.textContent).toBe("4개 대상");
@@ -441,7 +417,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    const delta = card(container, "밤사이 변화");
+    const delta = card(container, "최근 7일 변화");
     fireEvent.change(delta.querySelector('input[type="number"]')!, { target: { value: "2" } });
     expect(trows(container).map((b) => b.querySelector(".nm")?.textContent?.trim())).toEqual([
       "기준금리",
@@ -470,7 +446,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
     expect(pick.className).toBe("card col-5");
     expect(pick.querySelector(".card-h .sub")?.textContent).toBe("오늘 더 볼 후보");
     expect(pick.querySelector('[data-state="no-selection"]')?.textContent).toBe(
-      "왼쪽 목록에서 대상을 하나 고르면여기에 어제 대비 변화가 펼쳐집니다.",
+      "왼쪽 목록에서 대상을 하나 고르면여기에 직전 기간 대비 변화가 펼쳐집니다.",
     );
 
     fireEvent.click(trows(container)[3]);
@@ -486,7 +462,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
       "대상반도체 보조금",
       "점유율6.6%",
       "직전 동일 구간 대비▲ 6.6%p",
-      "진입밤사이 새로 올라옴",
+      "진입최근 7일 새로 올라옴",
     ]);
 
     fireEvent.click(trows(container)[0]);
@@ -499,7 +475,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
     fireEvent.click(trows(container)[1]);
-    fireEvent.click(card(container, "밤사이 변화").querySelector(".dash-brief-check input")!);
+    fireEvent.click(card(container, "최근 7일 변화").querySelector(".dash-brief-check input")!);
     expect(trows(container)).toHaveLength(1);
     expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
   });
@@ -507,12 +483,11 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
   it("does not filter by a change it cannot compute, and claims no entry without a baseline", async () => {
     const body = response();
     body.basis.has_baseline = false;
-    body.basis.previous_bucket = "";
     stubDashboard(body);
     const { container } = renderDashboard();
 
     await waitFor(() => expect(trows(container)).toHaveLength(4));
-    fireEvent.change(card(container, "밤사이 변화").querySelector('input[type="number"]')!, {
+    fireEvent.change(card(container, "최근 7일 변화").querySelector('input[type="number"]')!, {
       target: { value: "5" },
     });
     expect(trows(container)).toHaveLength(4);
@@ -529,7 +504,7 @@ describe("Dashboard — 밤사이 변화 · 고른 대상", () => {
   });
 });
 
-describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", () => {
+describe("Dashboard — 조회 조건의 기간 · 단위 · 기간 순위", () => {
   function card(container: HTMLElement, title: string): HTMLElement {
     const head = [...container.querySelectorAll(".card-h")].find(
       (h) => h.querySelector("h3")?.textContent === title,
@@ -538,7 +513,7 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
   }
 
   function tableRows(container: HTMLElement): string[][] {
-    return [...card(container, "단위별 순위").querySelectorAll("tbody tr")].map((tr) =>
+    return [...card(container, "기간 순위").querySelectorAll("tbody tr")].map((tr) =>
       [...tr.querySelectorAll("td")].map((td) => td.textContent ?? ""),
     );
   }
@@ -555,14 +530,10 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
     });
   }
 
-  function apply(container: HTMLElement) {
-    fireEvent.submit(card(container, "오늘의 조회 조건").querySelector("form")!);
-  }
-
   it("draws the form the journey promises, opened on the window the brief restored", async () => {
     localStorage.setItem(
       "econ-monitor:dash:brief",
-      JSON.stringify({ axis: "KR", q: "", restore: true, range: "30d", unit: "week" }),
+      JSON.stringify({ axis: "KR", restore: true, range: "30d", unit: "week" }),
     );
     stubDashboard(response());
     const { container } = renderDashboard();
@@ -573,96 +544,117 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
     expect(form.className).toBe("card col-4");
     expect(
       [...form.querySelectorAll(".dash-brief-label")].map((l) => l.textContent),
-    ).toEqual(["축", "기간", "집계 단위", "대상 찾기"]);
+    ).toEqual(["축", "기간", "집계 단위"]);
     const select = form.querySelector<HTMLSelectElement>('select[name="range"]')!;
     expect([...select.options].map((o) => o.textContent)).toEqual(["최근 24시간", "최근 7일", "최근 30일"]);
     expect(select.value).toBe("30d");
     const radios = [...form.querySelectorAll<HTMLInputElement>('input[type="radio"][name="unit"]')];
     expect(radios.map((r) => r.parentElement?.textContent)).toEqual(["시간", "일", "주"]);
     expect(radios.map((r) => r.checked)).toEqual([false, false, true]);
-    expect(form.querySelector('button[type="submit"]')?.textContent).toBe("기간 적용");
-    expect(form.querySelector(".dash-hint")?.textContent).toBe("고른 대상은 그대로 유지됩니다.");
-    expect(card(container, "단위별 순위").querySelector(".note")?.textContent).toBe(
-      "단위를 바꾸면 순위가 뒤집힐 수 있습니다. 방금 고른 대상은 그대로 강조되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.",
+    expect(form.querySelector("button")).toBeNull();
+    expect(card(container, "기간 순위").querySelector(".note")?.textContent).toBe(
+      "기간을 바꾸면 순위가 뒤집힐 수 있습니다. 방금 고른 대상은 그대로 강조되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.",
     );
   });
 
-  it("asks serving again only when the form is applied, and only when the window changed", async () => {
+  it("asks serving again as soon as the range or the unit changes, like the axis", async () => {
     const fetch = stubDashboard(response());
     const { container } = renderDashboard();
 
     await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
     pickRange(container, "30d");
-    pickUnit(container, "week");
-    expect(fetch).toHaveBeenCalledTimes(1);
-
-    apply(container);
-    expect(card(container, "단위별 순위").querySelector('[data-state="loading"]')?.textContent).toBe(
-      "고른 단위로 다시 집계하는 중…",
+    expect(card(container, "기간 순위").querySelector('[data-state="loading"]')?.textContent).toBe(
+      "고른 조건으로 다시 집계하는 중…",
     );
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(fetch.mock.calls[1][0]).toBe("/api/dashboard?axis=KR&range=30d&unit=week");
+    expect(fetch.mock.calls[1][0]).toBe("/api/dashboard?axis=KR&range=30d&unit=day");
+
+    pickUnit(container, "week");
+    await waitFor(() => expect(tableRows(container)).toHaveLength(4));
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(fetch.mock.calls[2][0]).toBe("/api/dashboard?axis=KR&range=30d&unit=week");
     expect(JSON.parse(localStorage.getItem("econ-monitor:dash:brief")!)).toMatchObject({
       range: "30d",
       unit: "week",
     });
-
-    apply(container);
-    expect(card(container, "단위별 순위").querySelector('[data-state="loading"]')).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("waits out a re-aggregation in the mockup's load box with its bar, and a first load in the empty-state box", async () => {
     stubDashboard(response());
     const { container } = renderDashboard();
 
-    const first = card(container, "단위별 순위").querySelector('[data-state="loading"]')!;
+    const first = card(container, "기간 순위").querySelector('[data-state="loading"]')!;
     expect(first.className).toBe("dash-brief-empty");
     expect(first.textContent).toBe("불러오는 중…");
     expect(first.querySelector(".dash-bar")).toBeNull();
 
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
     pickRange(container, "30d");
-    pickUnit(container, "week");
-    apply(container);
-    const box = card(container, "단위별 순위").querySelector('[data-state="loading"]')!;
+    const box = card(container, "기간 순위").querySelector('[data-state="loading"]')!;
     expect(box.className).toBe("dash-loadbox");
-    expect(box.firstChild?.textContent?.trim()).toBe("고른 단위로 다시 집계하는 중…");
+    expect(box.firstChild?.textContent?.trim()).toBe("고른 조건으로 다시 집계하는 중…");
     expect(box.querySelectorAll(":scope > .dash-bar > i")).toHaveLength(1);
     expect(box.querySelector(".dash-brief-empty")).toBeNull();
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
-    expect(card(container, "단위별 순위").querySelector(".dash-loadbox")).toBeNull();
+    expect(card(container, "기간 순위").querySelector(".dash-loadbox")).toBeNull();
   });
 
-  it("dates the rank table by the applied window, not by the one still being chosen", async () => {
+  it("offers only the units shorter than the range, and moves off one when the range shrinks under it", async () => {
+    const fetch = stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
+    const radios = () => [
+      ...card(container, "오늘의 조회 조건").querySelectorAll<HTMLInputElement>('input[name="unit"]'),
+    ];
+    expect(radios().map((r) => r.value)).toEqual(["hour", "day"]);
+
+    pickRange(container, "24h");
+    expect(radios().map((r) => r.value)).toEqual(["hour"]);
+    expect(radios()[0].checked).toBe(true);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(fetch.mock.calls[1][0]).toBe("/api/dashboard?axis=KR&range=24h&unit=hour");
+  });
+
+  it("reads a stored pair the guard no longer takes at the coarsest unit that fits", async () => {
+    localStorage.setItem(
+      "econ-monitor:dash:brief",
+      JSON.stringify({ axis: "KR", restore: true, range: "7d", unit: "week" }),
+    );
+    const fetch = stubDashboard(response());
+    renderDashboard();
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(fetch.mock.calls[0][0]).toBe("/api/dashboard?axis=KR&range=7d&unit=day");
+  });
+
+  it("dates the rank table by the window it was ranked on", async () => {
     stubDashboard(response());
     const { container } = renderDashboard();
 
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
-    const table = card(container, "단위별 순위");
+    const table = card(container, "기간 순위");
     expect(table.className).toBe("card col-12");
-    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 일 단위");
-    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d · day");
+    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 누적");
+    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d");
     expect([...table.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
       "#",
       "대상",
-      "일 단위 점유율",
+      "최근 7일 점유율",
       "변화",
     ]);
 
-    pickUnit(container, "hour");
-    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 일 단위");
-
-    apply(container);
+    pickRange(container, "30d");
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
-    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 7일 · 시간 단위");
-    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("7d · hour");
-    expect(table.querySelectorAll("thead th")[2].textContent).toBe("시간 단위 점유율");
+    expect(table.querySelector(".card-h .sub")?.textContent).toBe("최근 30일 누적");
+    expect(table.querySelector(".card-h .dash-tag")?.textContent).toBe("30d");
+    expect(table.querySelectorAll("thead th")[2].textContent).toBe("최근 30일 점유율");
+    expect([...container.querySelectorAll(".card-h h3")].map((h) => h.textContent)).toContain("최근 30일 변화");
     expect(table.querySelector('[data-state="low-sample"]')).toBeNull();
   });
 
-  it("ranks by serving's rank and keeps it when the search narrows the table", async () => {
+  it("ranks by serving's rank", async () => {
     stubDashboard(response());
     const { container } = renderDashboard();
 
@@ -673,18 +665,6 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
       ["3", "전기요금", "7.9%", "–"],
       ["4", "반도체 보조금", "6.6%", "▲ 6.6%p"],
     ]);
-
-    fireEvent.change(container.querySelector('.dash-brief-field input[type="search"]')!, {
-      target: { value: "반도체" },
-    });
-    expect(tableRows(container)).toEqual([["4", "반도체 보조금", "6.6%", "▲ 6.6%p"]]);
-
-    fireEvent.change(container.querySelector('.dash-brief-field input[type="search"]')!, {
-      target: { value: "없는 대상" },
-    });
-    expect(card(container, "단위별 순위").querySelector(".dash-brief-empty")?.textContent).toBe(
-      "검색어에 걸리는 대상이 없습니다.",
-    );
   });
 
   it("keeps the picked subject across a re-aggregation and marks it in the table and the note", async () => {
@@ -692,20 +672,19 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
     const { container } = renderDashboard();
 
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
-    expect(card(container, "단위별 순위").querySelectorAll("tbody .dash-tag")).toHaveLength(0);
+    expect(card(container, "기간 순위").querySelectorAll("tbody .dash-tag")).toHaveLength(0);
 
     fireEvent.click(container.querySelectorAll<HTMLButtonElement>(".dash-trow")[1]);
-    pickUnit(container, "week");
-    apply(container);
+    pickUnit(container, "hour");
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
 
     expect(tableRows(container)[1]).toEqual(["2", "삼성전자 고른 대상", "13.0%", "▼ 1.2%p"]);
-    const marked = [...card(container, "단위별 순위").querySelectorAll<HTMLElement>("tbody tr")].filter(
+    const marked = [...card(container, "기간 순위").querySelectorAll<HTMLElement>("tbody tr")].filter(
       (tr) => tr.style.background !== "",
     );
     expect(marked).toHaveLength(1);
     expect(marked[0].style.background).toBe("var(--primary-soft)");
-    expect(card(container, "단위별 순위").querySelector('[data-state="keep-note"]')?.textContent).toBe(
+    expect(card(container, "기간 순위").querySelector('[data-state="keep-note"]')?.textContent).toBe(
       "‘삼성전자’ 으로 강조",
     );
     expect(card(container, "고른 대상").querySelector(".kv")?.textContent).toBe("대상삼성전자");
@@ -718,11 +697,11 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
     const { container } = renderDashboard();
 
     await waitFor(() =>
-      expect(card(container, "단위별 순위").querySelector(".dash-brief-empty")?.textContent).toBe(
+      expect(card(container, "기간 순위").querySelector(".dash-brief-empty")?.textContent).toBe(
         "이 축에는 이 기간에 표시할 대상이 없습니다.",
       ),
     );
-    expect(card(container, "단위별 순위").querySelector("table")).toBeNull();
+    expect(card(container, "기간 순위").querySelector("table")).toBeNull();
   });
 
   it("offers the three-axis comparison from inside the rank card, and lands on the compare screen", async () => {
@@ -737,7 +716,7 @@ describe("Dashboard — 조회 조건의 기간 · 단위 · 단위별 순위", 
     );
 
     await waitFor(() => expect(tableRows(container)).toHaveLength(4));
-    const banner = card(container, "단위별 순위").querySelector(".dash-banner")!;
+    const banner = card(container, "기간 순위").querySelector(".dash-banner")!;
     expect(banner.textContent).toBe(
       "축마다 온도가 다른지 궁금하다면 한국 · 미국 · 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.3축을 나란히 비교 →",
     );

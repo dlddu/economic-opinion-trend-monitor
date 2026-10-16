@@ -267,7 +267,22 @@ describe("Trend", () => {
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
     const labels = Array.from(container.querySelectorAll("button")).map((b) => b.textContent ?? "");
     expect(labels.filter((l) => ["시간", "일", "주"].includes(l.trim()))).toHaveLength(0);
-    expect(container.querySelectorAll(".seg button")).toHaveLength(3);
+    expect(container.querySelectorAll(".seg button")).toHaveLength(4);
+  });
+
+  it("offers 전체 beside the three axes, and draws it from serving's ALL axis", async () => {
+    const urls = stubTrend([response(), { ...response(), axis: "ALL" }]);
+    const { container } = renderTrend("/trend?axis=KR&subject=기준금리");
+
+    await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
+    const tabs = [...container.querySelectorAll<HTMLButtonElement>(".seg button")];
+    expect(tabs.map((t) => t.textContent)).toEqual(["전체", "한국", "미국", "전세계"]);
+
+    fireEvent.click(tabs[0]);
+    await waitFor(() => expect(urls).toHaveLength(2));
+    expect(urls[1]).toBe("/api/trend?axis=ALL");
+    await waitFor(() => expect(container.querySelector(".axpill")?.className).toBe("axpill ax-all"));
+    expect(container.querySelector(".axpill")?.textContent).toBe("ALL");
   });
 
   it("reopens on the conditions the reader left", async () => {

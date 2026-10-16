@@ -10,11 +10,20 @@ import (
 	"github.com/dlddu/economic-opinion-trend-monitor/go/gen"
 )
 
-// dashRanges is the same range vocabulary /api/reprocess takes.
+// dashRanges is the same range vocabulary /api/reprocess takes, and the windows Gold's
+// subject_window is aggregated over.
 var dashRanges = map[string]time.Duration{
 	"24h": 24 * time.Hour,
 	"7d":  7 * 24 * time.Hour,
 	"30d": 30 * 24 * time.Hour,
+}
+
+// dashUnitSpans is how long one bucket of each unit lasts. A unit as long as the range would draw
+// the range as a single point with nothing before it, so the dashboard only takes shorter units.
+var dashUnitSpans = map[gen.BucketUnit]time.Duration{
+	gen.BucketUnitHour: time.Hour,
+	gen.BucketUnitDay:  24 * time.Hour,
+	gen.BucketUnitWeek: 7 * 24 * time.Hour,
 }
 
 const (
@@ -37,13 +46,16 @@ type dashRow struct {
 type dashBasis struct {
 	Range string `json:"range"`
 	Unit  string `json:"unit"`
-	// Bucket is the latest bucket of the unit across every axis — the collection
-	// the screen is reading. PreviousBucket is this axis's bucket before it.
-	Bucket         string   `json:"bucket"`
-	PreviousBucket string   `json:"previous_bucket"`
-	HasBaseline    bool     `json:"has_baseline"`
-	Buckets        []string `json:"buckets"`
-	EmptyWindow    bool     `json:"empty_window"`
+	// WindowStart and WindowEnd are the hours the ranking covers; HasBaseline says the window of
+	// the same length before it collected anything, which the deltas are taken against.
+	WindowStart string `json:"window_start"`
+	WindowEnd   string `json:"window_end"`
+	HasBaseline bool   `json:"has_baseline"`
+	// Bucket is the latest bucket of the unit across every axis — the collection the screen is
+	// reading. Buckets are this axis's buckets of the unit inside the range, the sparkline's points.
+	Bucket      string   `json:"bucket"`
+	Buckets     []string `json:"buckets"`
+	EmptyWindow bool     `json:"empty_window"`
 	// LastBucket is this axis's own latest bucket in the unit, "" when it has none.
 	LastBucket string `json:"last_bucket"`
 }
@@ -65,12 +77,15 @@ type dashboardResponse struct {
 }
 
 func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSource) {
-	axis := axisParam(r, "KR")
+	axis := axisOrAllParam(r, "KR")
 	rangeKey := r.URL.Query().Get("range")
 	if _, ok := dashRanges[rangeKey]; !ok {
 		rangeKey = defaultDashRange
 	}
 	unit := unitParam(r, defaultDashUnit)
+	if dashUnitSpans[unit] >= dashRanges[rangeKey] {
+		unit = gen.BucketUnitHour
+	}
 
 	// Another axis only lifts the anchor, so of the other axes only their latest bucket is read, and
 	// of this axis only the rows of the buckets the window shows.
@@ -81,17 +96,26 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSo
 	goldFailed(r, err)
 	sentiments, err := gold.axisSentiments(ctx)
 	goldFailed(r, err)
+	subjects, err := gold.subjectWindows(ctx, axis, rangeKey)
+	goldFailed(r, err)
+	counts, err := gold.axisWindows(ctx, axis, rangeKey)
+	goldFailed(r, err)
 	inWindow := func(window []string) []gen.SubjectTrend {
 		rows, err := gold.trends(ctx, trendQuery{axis: axis, unit: unit, buckets: window})
 		goldFailed(r, err)
 		return rows
 	}
-	writeJSON(w, http.StatusOK, buildDashboard(buckets, inWindow, sentiments, everyAxisLatest, axis, rangeKey, unit))
+	writeJSON(w, http.StatusOK, buildDashboard(
+		buckets, inWindow, sentiments, subjects, counts, everyAxisLatest, axis, rangeKey, unit,
+	))
 }
 
+// buildDashboard ranks the range's window as Gold aggregated it and draws each row's sparkline from
+// the unit's buckets inside the range.
 func buildDashboard(
 	buckets []string, inWindow func(window []string) []gen.SubjectTrend, sentiments []gen.AxisSentiment,
-	everyAxisLatest, axis, rangeKey string, unit gen.BucketUnit,
+	subjects []gen.SubjectWindow, counts []gen.AxisWindow, everyAxisLatest, axis, rangeKey string,
+	unit gen.BucketUnit,
 ) dashboardResponse {
 	resp := dashboardResponse{
 		Axis:        axis,
@@ -103,7 +127,6 @@ func buildDashboard(
 	// Everything below reads one unit: bucket keys only order within a unit.
 	anchor := everyAxisLatest
 	axisBuckets := map[string]bool{}
-	sentAt := map[string]gen.AxisSentiment{}
 	for _, b := range buckets {
 		axisBuckets[b] = true
 		if b > anchor {
@@ -117,14 +140,8 @@ func buildDashboard(
 		if s.TimeBucket > anchor {
 			anchor = s.TimeBucket
 		}
-		if string(s.Axis) != axis {
-			continue
-		}
-		axisBuckets[s.TimeBucket] = true
-		// Gold's key is (axis, bucket): a second row is a contract violation,
-		// so the first is kept, as sentimentSeries does.
-		if _, seen := sentAt[s.TimeBucket]; !seen {
-			sentAt[s.TimeBucket] = s
+		if string(s.Axis) == axis {
+			axisBuckets[s.TimeBucket] = true
 		}
 	}
 	resp.Basis.Bucket = anchor
@@ -140,34 +157,47 @@ func buildDashboard(
 
 	window := windowBuckets(axisBuckets, anchor, unit, dashRanges[rangeKey])
 	resp.Basis.Buckets = window
-	var prev string
-	if len(window) >= 2 {
-		prev = window[len(window)-2]
-		resp.Basis.PreviousBucket = prev
-		resp.Basis.HasBaseline = true
+	shares := map[string]map[string]float64{}
+	for _, t := range inWindow(window) {
+		if shares[t.Subject] == nil {
+			shares[t.Subject] = map[string]float64{}
+		}
+		shares[t.Subject][t.TimeBucket] = t.NormalizedShare
 	}
 
-	shares := map[string]map[string]gen.SubjectTrend{}
-	for _, t := range inWindow(window) {
-		if shares[t.TimeBucket] == nil {
-			shares[t.TimeBucket] = map[string]gen.SubjectTrend{}
+	var current, previous *gen.AxisWindow
+	for i := range counts {
+		switch c := &counts[i]; c.Period {
+		case gen.WindowPeriodCurrent:
+			current = c
+		case gen.WindowPeriodPrevious:
+			previous = c
 		}
-		shares[t.TimeBucket][t.Subject] = t
 	}
-	resp.Summary = summarize(sentAt, anchor, prev)
-	resp.TopSubjects = rankAnchor(shares, window, anchor, prev)
+	if current != nil {
+		resp.Basis.WindowStart, resp.Basis.WindowEnd = current.WindowStart, current.WindowEnd
+	}
+	resp.Basis.HasBaseline = previous != nil && previous.Collected > 0
+	resp.Summary = summarize(current, previous)
+	resp.TopSubjects = rankWindow(subjects, shares, window, resp.Basis.HasBaseline)
 	return resp
 }
 
-func rankAnchor(
-	shares map[string]map[string]gen.SubjectTrend, window []string, anchor, prev string,
+func rankWindow(
+	subjects []gen.SubjectWindow, shares map[string]map[string]float64, window []string, hasBaseline bool,
 ) []dashRow {
-	current := make([]gen.SubjectTrend, 0, len(shares[anchor]))
-	for _, t := range shares[anchor] {
-		current = append(current, t)
+	var current []gen.SubjectWindow
+	before := map[string]float64{}
+	for _, s := range subjects {
+		switch s.Period {
+		case gen.WindowPeriodCurrent:
+			current = append(current, s)
+		case gen.WindowPeriodPrevious:
+			before[s.Subject] = s.NormalizedShare
+		}
 	}
 
-	byRaw := append([]gen.SubjectTrend(nil), current...)
+	byRaw := append([]gen.SubjectWindow(nil), current...)
 	sort.Slice(byRaw, func(i, j int) bool {
 		if byRaw[i].RawCount != byRaw[j].RawCount {
 			return byRaw[i].RawCount > byRaw[j].RawCount
@@ -175,8 +205,8 @@ func rankAnchor(
 		return byRaw[i].Subject < byRaw[j].Subject
 	})
 	rawRank := make(map[string]int, len(byRaw))
-	for i, t := range byRaw {
-		rawRank[t.Subject] = i + 1
+	for i, s := range byRaw {
+		rawRank[s.Subject] = i + 1
 	}
 
 	sort.Slice(current, func(i, j int) bool {
@@ -193,22 +223,22 @@ func rankAnchor(
 	}
 
 	rows := make([]dashRow, 0, len(current))
-	for i, t := range current {
+	for i, s := range current {
 		spark := make([]float64, 0, len(window))
 		for _, b := range window {
-			spark = append(spark, shares[b][t.Subject].NormalizedShare)
+			spark = append(spark, shares[s.Subject][b])
 		}
 		row := dashRow{
 			Rank:            i + 1,
-			Subject:         t.Subject,
-			NormalizedShare: t.NormalizedShare,
-			RawCount:        t.RawCount,
-			RawRank:         rawRank[t.Subject],
+			Subject:         s.Subject,
+			NormalizedShare: s.NormalizedShare,
+			RawCount:        s.RawCount,
+			RawRank:         rawRank[s.Subject],
 			Spark:           spark,
 		}
-		if prev != "" {
-			before, seen := shares[prev][t.Subject]
-			row.Delta = math.Round((t.NormalizedShare-before.NormalizedShare)*1000) / 10
+		if hasBaseline {
+			prev, seen := before[s.Subject]
+			row.Delta = math.Round((s.NormalizedShare-prev)*1000) / 10
 			row.IsNew = !seen
 		}
 		rows = append(rows, row)
@@ -216,33 +246,23 @@ func rankAnchor(
 	return rows
 }
 
-func summarize(sentAt map[string]gen.AxisSentiment, anchor, prev string) *dashSummary {
-	cur, ok := sentAt[anchor]
-	if !ok {
+func summarize(current, previous *gen.AxisWindow) *dashSummary {
+	if current == nil || current.Collected == 0 {
 		return nil
 	}
-	u := cur.Distribution.Unanalyzed
+	collected := current.Collected
+	coverage := float64(current.AnalyzedTotal) / float64(collected)
 	out := &dashSummary{
-		Collected:     recoverTotal(cur),
-		Analyzed:      cur.AnalyzedTotal,
-		Coverage:      1 - u,
-		LowConfidence: u,
+		Collected:     &collected,
+		Analyzed:      current.AnalyzedTotal,
+		Coverage:      math.Round(coverage*10000) / 10000,
+		LowConfidence: math.Round((1-coverage)*10000) / 10000,
 	}
-	if before, ok := sentAt[prev]; prev != "" && ok {
-		out.CollectedPrev = recoverTotal(before)
+	if previous != nil {
+		before := previous.Collected
+		out.CollectedPrev = &before
 	}
 	return out
-}
-
-// recoverTotal re-derives a bucket's item count from its analyzed count and the
-// share set aside. A bucket with everything set aside cannot be re-derived.
-func recoverTotal(s gen.AxisSentiment) *int64 {
-	kept := 1 - s.Distribution.Unanalyzed
-	if kept <= 0 {
-		return nil
-	}
-	n := int64(math.Round(float64(s.AnalyzedTotal) / kept))
-	return &n
 }
 
 // windowBuckets keeps the axis's buckets that start inside the range ending at
