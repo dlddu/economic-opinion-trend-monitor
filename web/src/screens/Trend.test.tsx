@@ -4,6 +4,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Trend } from "./Trend";
 import type { TrendResponse } from "../api/types";
+import { fairnessPath } from "./fairnessPath";
 
 function renderTrend(entry = "/trend") {
   return render(
@@ -353,4 +354,22 @@ describe("Trend", () => {
     expect(urls[0]).toContain(`subject=${encodeURIComponent("기준금리")}`);
     expect(urls[0]).not.toContain(encodeURIComponent("삼성전자"));
   });
+});
+
+it("hands the axis and the selected subject to the spike check", async () => {
+  stubTrend([response("삼성전자")]);
+  const { container } = renderTrend("/trend?axis=KR&subject=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90");
+
+  await waitFor(() => expect(container.querySelector(".trend-spike-exit a")).not.toBeNull());
+  expect(container.querySelector(".trend-spike-exit a")?.getAttribute("href")).toBe(
+    fairnessPath("KR", "삼성전자"),
+  );
+});
+
+it("offers no spike check from the all-axes view", async () => {
+  stubTrend([{ ...response("삼성전자"), axis: "ALL" }]);
+  const { container } = renderTrend("/trend?axis=ALL&subject=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90");
+
+  await waitFor(() => expect(container.querySelector(".trend-side .metric")).not.toBeNull());
+  expect(container.querySelector(".trend-spike-exit")).toBeNull();
 });

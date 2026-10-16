@@ -151,6 +151,35 @@ export interface FairnessResponse {
   rows: FairnessRow[];
 }
 
+export type SpikeBaseline = "7d" | "30d";
+
+export interface SpikeRow {
+  rank: number;
+  subject: string;
+  raw_count: number;
+  normalized_share: number;
+  baseline_raw: number;
+  baseline_share: number;
+  raw_multiple: number | null;
+  normalized_multiple: number | null;
+  is_new: boolean;
+  spike: boolean;
+  normalized_away: boolean;
+}
+
+export interface SpikesResponse {
+  axis: AxisScope;
+  basis: {
+    bucket_unit: string;
+    time_bucket: string;
+    baseline: SpikeBaseline;
+    baseline_buckets: string[];
+    has_baseline: boolean;
+    threshold: number;
+  };
+  rows: SpikeRow[];
+}
+
 export interface ContributionRow {
   record_id: string;
   source_id: string;

@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./Dashboard";
 import { AppShell } from "../shell/AppShell";
-import type { DashboardResponse } from "../api/types";
+import type { DashboardResponse, SpikesResponse } from "../api/types";
+import { fairnessPath } from "./fairnessPath";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -81,6 +82,19 @@ function response(): DashboardResponse {
   };
 }
 
+const NO_SPIKES: SpikesResponse = {
+  axis: "KR",
+  basis: {
+    bucket_unit: "day",
+    time_bucket: "",
+    baseline: "7d",
+    baseline_buckets: [],
+    has_baseline: false,
+    threshold: 1.5,
+  },
+  rows: [],
+};
+
 function stubDashboard(body: DashboardResponse) {
   const fetch = vi.fn(async (url: string) => ({
     ok: true,
@@ -89,7 +103,11 @@ function stubDashboard(body: DashboardResponse) {
     url,
     json: async () => body,
   }));
-  vi.stubGlobal("fetch", fetch);
+  vi.stubGlobal("fetch", async (url: string) =>
+    url.startsWith("/api/spikes")
+      ? { ok: true, status: 200, statusText: "OK", url, json: async () => NO_SPIKES }
+      : fetch(url),
+  );
   return fetch;
 }
 
@@ -783,5 +801,44 @@ describe("Dashboard — 셸 토프바", () => {
     }
     expect(items[6].className).toContain("op");
     expect(items[7].className).toContain("op");
+  });
+});
+
+describe("Dashboard — 급등 검증 진입", () => {
+  it("hands the axis, and the picked subject once there is one, to the spike check", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+
+    const link = () =>
+      container.querySelector('[data-testid="spike-entry"] a')?.getAttribute("href");
+    await waitFor(() => expect(container.querySelectorAll(".dash-trow").length).toBeGreaterThan(0));
+    expect(container.querySelector('[data-testid="spike-entry"]')?.textContent).toContain(
+      "못 보던 대상이 갑자기 올라왔다면",
+    );
+    expect(link()).toBe(fairnessPath("KR"));
+
+    const row = container.querySelectorAll<HTMLButtonElement>(".dash-trow")[0];
+    const subject = row.querySelector(".nm")?.firstChild?.textContent ?? "";
+    fireEvent.click(row);
+    await waitFor(() => expect(link()).toBe(fairnessPath("KR", subject)));
+    expect(subject).not.toBe("");
+  });
+});
+
+describe("Dashboard — 「전체」 축의 급등 검증 진입", () => {
+  it("does not send the all-axes view to a fairness screen that splits one axis by source", async () => {
+    stubDashboard({ ...response(), axis: "ALL" });
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".dash-trow").length).toBeGreaterThan(0));
+    fireEvent.change(axisSelect(container), { target: { value: "ALL" } });
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="spike-entry-pick-axis"]')).not.toBeNull(),
+    );
+    expect(container.querySelector('[data-testid="spike-entry"] a')).toBeNull();
+    expect(container.querySelector('[data-testid="spike-entry"]')?.textContent).toContain(
+      "못 보던 대상이 갑자기 올라왔다면",
+    );
   });
 });

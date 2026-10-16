@@ -19,6 +19,8 @@ import type {
   ReprocessRun,
   ReprocessSubmit,
   SentimentResponse,
+  SpikeBaseline,
+  SpikesResponse,
   TraceResponse,
   TrendResponse,
 } from "./types";
@@ -85,6 +87,8 @@ export const api = {
   // bucket is chosen over all axes, so the server has to see them all.
   sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
   fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
+  spikes: (axis: AxisScope = "KR", baseline: SpikeBaseline = "7d") =>
+    getJSON<SpikesResponse>(`/spikes?axis=${axis}&baseline=${baseline}`),
   contributions: (axis: Axis = "KR", subject = "", unit = "", timeBucket = "", source = "") =>
     getJSON<ContributionsResponse>(
       `/contributions?axis=${axis}` +

@@ -50,6 +50,7 @@ func (h *Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/compare", h.fromGold(h.compare))
 	mux.HandleFunc("GET /api/sentiment", h.fromGold(h.sentiment))
 	mux.HandleFunc("GET /api/fairness", h.fromGold(h.fairness))
+	mux.HandleFunc("GET /api/spikes", h.fromGold(h.spikes))
 	mux.HandleFunc("GET /api/contributions", h.fromIndex(h.contributions))
 	mux.HandleFunc("GET /api/source-contributions", h.fromGold(h.sourceContributions))
 	mux.HandleFunc("GET /api/trace", h.fromIndex(h.trace))
