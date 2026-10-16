@@ -58,7 +58,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         # Set explicitly (rather than relying on the image ENTRYPOINT) so the
         # emissary executor never has to look the entrypoint up from a private
         # registry.
@@ -105,7 +105,7 @@ spec:
         # buries the message, so stop after the first attempt.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         command: ["econ-analysis"]
         args: []
         env:
@@ -154,7 +154,7 @@ spec:
         retryPolicy: Always
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         command: ["econ-analysis"]
         args:
           - --analyzer-version
@@ -213,7 +213,7 @@ spec:
         # cannot succeed.
         expression: "lastRetry.exitCode != '2'"
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         command: ["econ-aggregation"]
         args:
           - --decision
@@ -253,7 +253,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor-batch:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         command: ["econ-aggregation"]
         args: []
         env:
@@ -290,7 +290,7 @@ spec:
         limit: "3"
         retryPolicy: Always
       container:
-        image: ghcr.io/dlddu/economic-opinion-trend-monitor:b5a91d64132381dc8c0cb22abb1e5d5e08c77f4b
+        image: ghcr.io/dlddu/economic-opinion-trend-monitor:4370d6ad29795bbacb3f9cf6b91411b2a4a58d3b
         command: ["/app/econ-index"]
         args: []
         env:
