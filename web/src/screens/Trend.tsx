@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { fairnessPath } from "./fairnessPath";
+import { fairnessAxis, fairnessPath } from "./fairnessPath";
 import { api } from "../api/client";
 import type { AxisScope, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
@@ -274,9 +274,9 @@ export function Trend() {
                   </span>{" "}
                   직전 {unitLabel} 대비
                 </div>
-                {selected && (
+                {selected && fairnessAxis(axis) && (
                   <div className="trend-spike-exit">
-                    <Link className="btn sm" to={fairnessPath(axis, selected.subject)}>
+                    <Link className="btn sm" to={fairnessPath(fairnessAxis(axis)!, selected.subject)}>
                       급등의 진위 확인 →
                     </Link>
                   </div>

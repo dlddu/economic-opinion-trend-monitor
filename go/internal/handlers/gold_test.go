@@ -25,7 +25,7 @@ func goldQueries() []string {
 			"/api/source-contributions"+q+"&time_bucket=1999-01-01T00",
 		)
 	}
-	return append(out, "/api/compare", "/api/dashboard?axis=ALL", "/api/trend?axis=ALL")
+	return append(out, "/api/compare", "/api/dashboard?axis=ALL", "/api/trend?axis=ALL", "/api/spikes?axis=ALL")
 }
 
 func serveGold(t *testing.T, dir, path string) (body, source string) {

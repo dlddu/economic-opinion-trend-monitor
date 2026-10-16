@@ -365,3 +365,11 @@ it("hands the axis and the selected subject to the spike check", async () => {
     fairnessPath("KR", "삼성전자"),
   );
 });
+
+it("offers no spike check from the all-axes view", async () => {
+  stubTrend([{ ...response("삼성전자"), axis: "ALL" }]);
+  const { container } = renderTrend("/trend?axis=ALL&subject=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90");
+
+  await waitFor(() => expect(container.querySelector(".trend-side .metric")).not.toBeNull());
+  expect(container.querySelector(".trend-spike-exit")).toBeNull();
+});

@@ -824,3 +824,21 @@ describe("Dashboard — 급등 검증 진입", () => {
     expect(subject).not.toBe("");
   });
 });
+
+describe("Dashboard — 「전체」 축의 급등 검증 진입", () => {
+  it("does not send the all-axes view to a fairness screen that splits one axis by source", async () => {
+    stubDashboard({ ...response(), axis: "ALL" });
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".dash-trow").length).toBeGreaterThan(0));
+    fireEvent.change(axisSelect(container), { target: { value: "ALL" } });
+
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="spike-entry-pick-axis"]')).not.toBeNull(),
+    );
+    expect(container.querySelector('[data-testid="spike-entry"] a')).toBeNull();
+    expect(container.querySelector('[data-testid="spike-entry"]')?.textContent).toContain(
+      "못 보던 대상이 갑자기 올라왔다면",
+    );
+  });
+});

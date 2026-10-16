@@ -1958,6 +1958,12 @@ tr.fair-picked td {
   margin-top: 14px;
 }
 
+.dash-sp-hint {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
 @media (max-width: 720px) {
   .dash-sp-row {
     grid-template-columns: 20px minmax(0, 1fr) 88px;

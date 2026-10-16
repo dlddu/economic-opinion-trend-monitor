@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { Axis, SpikeBaseline, SpikeRow, SpikesResponse } from "../api/types";
-import { fairnessPath } from "./fairnessPath";
+import type { AxisScope, SpikeBaseline, SpikeRow, SpikesResponse } from "../api/types";
+import { PICK_ONE_AXIS, fairnessAxis, fairnessPath } from "./fairnessPath";
 
 const BASELINES: { id: SpikeBaseline; label: string }[] = [
   { id: "7d", label: "평소 = 최근 7일 평균" },
@@ -14,7 +14,7 @@ function multipleText(row: SpikeRow): string {
   return row.is_new ? "신규" : "—";
 }
 
-export function SpikeCheck({ axis, axisLabel }: { axis: Axis; axisLabel: string }) {
+export function SpikeCheck({ axis, axisLabel }: { axis: AxisScope; axisLabel: string }) {
   const [baseline, setBaseline] = useState<SpikeBaseline>("7d");
   const [data, setData] = useState<SpikesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +38,7 @@ export function SpikeCheck({ axis, axisLabel }: { axis: Axis; axisLabel: string 
   const rows = data?.rows ?? [];
   const current = rows.find((r) => r.subject === picked) ?? rows[0];
   const days = baseline === "30d" ? 30 : 7;
+  const target = fairnessAxis(axis);
 
   return (
     <>
@@ -148,13 +149,19 @@ export function SpikeCheck({ axis, axisLabel }: { axis: Axis; axisLabel: string 
           </div>
           {current && (
             <div className="dash-sp-advance">
-              <Link
-                className="btn sm"
-                data-testid="spike-advance"
-                to={fairnessPath(axis, current.subject, baseline)}
-              >
-                정규화 전후를 대조하기 →
-              </Link>
+              {target ? (
+                <Link
+                  className="btn sm"
+                  data-testid="spike-advance"
+                  to={fairnessPath(target, current.subject, baseline)}
+                >
+                  정규화 전후를 대조하기 →
+                </Link>
+              ) : (
+                <span className="dash-sp-hint" data-testid="spike-pick-axis">
+                  {PICK_ONE_AXIS}
+                </span>
+              )}
             </div>
           )}
         </div>

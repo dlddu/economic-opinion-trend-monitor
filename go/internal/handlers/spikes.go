@@ -46,7 +46,7 @@ type spikesResponse struct {
 }
 
 func (h *Handlers) spikes(w http.ResponseWriter, r *http.Request, gold goldSource) {
-	axis := axisParam(r, "KR")
+	axis := axisOrAllParam(r, "KR")
 	baseline := r.URL.Query().Get("baseline")
 	if !spikeBaselines[baseline] {
 		baseline = defaultSpikeBaseline

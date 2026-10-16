@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { fairnessPath } from "./fairnessPath";
+import { PICK_ONE_AXIS, fairnessAxis, fairnessPath } from "./fairnessPath";
 import { SpikeCheck } from "./SpikeCheck";
 import { api } from "../api/client";
 import type {
@@ -392,9 +392,15 @@ export function Dashboard() {
                 <b>못 보던 대상이 갑자기 올라왔다면</b> 수집량 차이일 수 있습니다. 정규화와 원문을 먼저
                 확인하세요.
                 <div className="dash-actions">
-                  <Link className="btn sm" to={fairnessPath(axis, target)}>
-                    급등의 진위부터 확인 →
-                  </Link>
+                  {fairnessAxis(axis) ? (
+                    <Link className="btn sm" to={fairnessPath(fairnessAxis(axis)!, target)}>
+                      급등의 진위부터 확인 →
+                    </Link>
+                  ) : (
+                    <span className="dash-sp-hint" data-testid="spike-entry-pick-axis">
+                      {PICK_ONE_AXIS}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

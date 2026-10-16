@@ -173,3 +173,16 @@ func TestSpikesReadTheFinestUnit(t *testing.T) {
 		t.Fatalf("spikes = %+v", s)
 	}
 }
+
+func TestSpikesReadTheAllAxis(t *testing.T) {
+	dir := t.TempDir()
+	writeTrendRows(t, dir, []string{
+		trendRow("환율", "ALL", "day", "2026-06-22", 10, 0.1),
+		trendRow("환율", "ALL", "day", "2026-06-23", 40, 0.2),
+		trendRow("환율", "KR", "day", "2026-06-23", 99, 0.9),
+	})
+	s := getSpikes(t, dir, "?axis=ALL")
+	if s.Axis != "ALL" || len(s.Rows) != 1 || !near(s.Rows[0].RawMultiple, 4) || !near(s.Rows[0].NormalizedMultiple, 2) {
+		t.Fatalf("spikes = %+v", s)
+	}
+}

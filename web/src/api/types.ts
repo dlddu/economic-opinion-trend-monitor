@@ -168,7 +168,7 @@ export interface SpikeRow {
 }
 
 export interface SpikesResponse {
-  axis: Axis;
+  axis: AxisScope;
   basis: {
     bucket_unit: string;
     time_bucket: string;

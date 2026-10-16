@@ -170,3 +170,19 @@ it("says so rather than drawing an empty list when the axis has no buckets", asy
   );
   expect(container.querySelector('[data-testid="spike-advance"]')).toBeNull();
 });
+
+it("still lists the all-axes spikes but asks for one axis before the fairness check", async () => {
+  const fetch = stub();
+  const { container } = render(
+    <MemoryRouter>
+      <SpikeCheck axis="ALL" axisLabel="전체" />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => expect(rows(container)).toHaveLength(3));
+  expect(fetch.mock.calls[0][0]).toBe("/api/spikes?axis=ALL&baseline=7d");
+  expect(container.querySelector('[data-testid="spike-advance"]')).toBeNull();
+  expect(container.querySelector('[data-testid="spike-pick-axis"]')?.textContent).toContain(
+    "축을 하나 고르면",
+  );
+});
