@@ -529,34 +529,81 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 
 #### `JRN-logic-backfill`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `empty-scope` | 고른 조합에 보관된 원문이 없음 — 재분석할 대상이 0건 | 이 task 결정 | 화면 1에서 그 축에 없는 소스(한국 축 + `us-desk`)로 좁힌다 |
-| `over-budget` | 한 번에 돌리기에 큰 범위 — 대상 건수와 예상 소요를 표기해 나눠 돌게 한다 | 여정 문서 `STP-scope-range` 페인포인트(「대상 건수·예상 비용이 안 보이면 범위를 감으로 정하게 된다」) | 화면 1의 「기간」 `<select>` 를 「지난 30일」로 넓힌다 |
-| `sample-running` | 표본을 새 로직으로 돌리는 중 | 이 task 결정 | 화면 2에서 「표본 실행」 |
-| `sample-mismatch` | 표본 결과가 의도와 다름 — **전량 실행을 잠근다** | 여정 문서 §4 1행 | 화면 2에서 「표본 추출」을 「새 로직이 건드리는 대상 우선」으로 바꾼다(재분류 62%) |
-| `running` | 범위 전체를 다시 분석하는 중 | 이 task 결정 | 화면 3에서 「전량 실행」 |
-| `overwrite-warning` | 덮어쓰기로 돌리면 이전 결과가 사라져 전후 비교·되돌리기가 불가능 | 여정 문서 `STP-run-reprocess` 페인포인트(「기존 Silver를 덮어써 이전 결과를 잃으면 전후 비교 자체가 불가능」) | 화면 3에서 「로직 버전을 붙여 병존시킨다」 체크를 푼다 |
-| `interrupted` | 재분석이 도중에 끊김 — 체크포인트까지 유지하고 그 지점부터 재개(전량 재실행 금지) | 여정 문서 §4 2행 | 화면 3에서 배치 크기를 450으로 올리고 「전량 실행」 |
-| `over-threshold` | 전후 차이가 주목 임계를 넘는 항목이 있음 | 여정 문서 §4 3행 | 화면 4에서 「주목 임계 (%p)」를 실측 최대 변화 아래로 내린다 |
-| `low-confidence` | 분석 실패·저신뢰 급증 — 미분석을 비율에 섞지 않고 분리 적재해 비중을 보고 | 여정 문서 §4 5행 | 화면 4에서 「미분석 · 저신뢰를 따로 떼어 보기」 체크 |
-| `invalid` | 반영·롤백 결정 입력 검증 실패 | 이 task 결정 | 화면 5에서 결정 미선택 또는 근거 공란으로 「결정 기록」 제출 |
-| `recorded` | 반영·롤백 결정 기록 완료(성공) | 이 task 결정 — 프로토타입 안에서는 세션 한정(제품은 `#97` 이후 영속, 아래 정정) | 화면 5에서 결정을 고르고 근거를 채워 제출 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-scope-range` | `reprocess` | AC1.4 · AC2.6 · `Reprocess.tsx` (컨트롤 줄 기간·출처 축·축 pill·소스 · 도입 lede · 재처리 범위 · 고른 범위 · 재처리 전후 비교 · 무엇이 움직였나) + `ReprocessTrigger.tsx` (표본 재분석 · 표본 요약 · 전량 재분석 · 실행 범위 · 반영 또는 되돌리기 · 되돌릴 수 있나) + 전후 추이 카드(AC3.3 · 여정 문서 `STP-compare-before-after` 「집계·시계열을 나란히 비교」 — 구현에 없음). 토프바 `재처리 콘솔`, pill `useTopbar` 의 `{축} · {기간} · {N}건` / `범위 미확정` |
+| `STP-dry-run` | `reprocess` | 같은 화면 — 표본 재분석 카드(`ReprocessTrigger.tsx` `submit("sample")`, 전량 잠금 `sampleDone`) · 여정 문서 `STP-dry-run`(가정 — AC 없음) |
+| `STP-run-reprocess` | `reprocess` | 같은 화면 — 전량 재분석 카드(AC2.6 · AC2.4 · `submit("run")`, 버전 병존 고정 · 배치 체크포인트) |
+| `STP-compare-before-after` | `reprocess` | 같은 화면 — 재처리 전후 비교(AC3.2 · `PAT-before-after` · `Reprocess.tsx` 정렬·주목 임계) · 전후 추이(AC3.3) |
+| `STP-publish` | `reprocess` | 같은 화면 — 반영 또는 되돌리기(`POST /api/reprocess/publish` → 결정 이력 표 · 여정 문서 완료 기준 「결정이 기록됨」) |
 
-> `recorded`가 이 프로토타입 안에서 세션 한정인 것은 앞선 네 여정의 `recorded`와 같은 **프로토타입 규약**이다 —
-> 여정 문서가 `STP-publish`의 페인포인트로 적은 「재처리 반영 시각·로직 버전을 소비자 화면 주석으로 노출」을 문서
-> 자신이 **「백로그 후보」** 로 파킹했고, 프로토타입은 그 기능을 만들지 않는다. 다만 **제품의 결정 기록은 `#97`
-> (2026-09-21, 슬라이스 10 후반부) 이후 세션이 아니라 레이크에 남는다** — 여정 완료 기준 「결정이 기록됨」을 제품이
-> 먼저 닫았고, 목업의 `이 기록은 이 세션 안에서만 유지됩니다 — 제품 안에 남는 재처리 이력은 아직 없습니다.` 문장은
-> 제품에 대해서는 더 이상 참이 아니다(이전 문면 「세션 안에서만 유지되는 것은 미구현이 아니라 범위 결정이다」는 그
-> 커밋 이후 사실과 어긋났고 rct_20260921-0006이 정정했다). 그 편차와 구현 전용 결정 이력 표는
-> `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 「결정의 영속화」 행이 받고, 목업을 영속 이력으로 다시
-> 그릴지는 디자인 결정으로 남는다. 소비자 화면 주석의 실제 노출은 여전히 백로그다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-scope-range` | `reprocess` | 화면 교체 | 첫 진입 — 컨트롤 줄·lede 와 「불러오는 중…」 만, 카드·pill 없음 | `Reprocess.tsx` (`!data && !error`) | 딥링크 `#STP-scope-range/loading` |
+| `api-error` | `STP-scope-range` | `reprocess` | 화면 교체 | 서빙 응답 실패 — 「API 오류: … — Go 서빙(:8080)이 떠 있고 …」 | `Reprocess.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-scope-range/api-error` |
+| `index-not-ready` | `STP-scope-range` | `reprocess` | 화면 교체 | 「인덱스 준비 중: 원문·분석 기록 인덱스가 아직 만들어지지 않았습니다 — …」 | `IndexNotReady.tsx` · `Reprocess.tsx` (`error === INDEX_NOT_READY`) | 딥링크 `#STP-scope-range/index-not-ready` |
+| `trigger-off` | `STP-scope-range` | `reprocess` | 화면 교체 | 실행 배선 없음 — 트리거 불가 note(`표본 실행 · 전량 실행 · 반영/되돌리기는 지금 이 화면에서 일으킬 수 없습니다.` + 서빙 `trigger.note` + `--analyzer-version` 안내), 표본·전량·결정 카드가 사라짐 | `Reprocess.tsx` (`!data.trigger.available`) | 딥링크 `#STP-scope-range/trigger-off` |
+| `empty-scope` | `STP-scope-range` | `reprocess` | 얹힘 | 보관된 원문 0건 — 구간 표 대신 「이 조합에는 보관된 원문이 없습니다.」, pill 「범위 미확정」, 표본 버튼·단계 CTA 잠김 | `Reprocess.tsx` (`scope.total === 0`) · 여정 문서 §4 4행의 상황 | 기간 「지난 24시간」 + 축 「전세계」(최근 24시간 수집이 빈 축) |
+| `no-silver` | `STP-scope-range` | `reprocess` | 얹힘 | 분석 레코드 없음 — 전후 표 대신 「이 범위에는 분석 레코드가 아직 없습니다 — …」 | `Reprocess.tsx` (`REASON_TEXT["no-silver"]`) | 위와 같은 조작 |
+| `single-version` | `STP-scope-range` | `reprocess` | 얹힘 | 한 버전뿐(구현의 기본 상태) — 사유 문장 + 버전 표(`로직 버전`·`레코드`·`처음 분석`·`마지막 분석`) | `Reprocess.tsx` (`REASON_TEXT["single-version"]` · `versions.length > 0`) | 기간 「지난 24시간」(한국 — 새 로직 레코드만 있음) |
+| `all-done` | `STP-scope-range` | `reprocess` | 얹힘 | 재분석 대상 0건 — 구간 배지 「완료」, 표본 실행 잠김 + 「이 범위에는 목표 버전으로 다시 분석할 원문이 없습니다 — …」 | `Reprocess.tsx` (`b.todo === 0` → 「완료」) · `ReprocessTrigger.tsx` (`data.scope.todo === 0`) | 기간 「지난 24시간」 · 또는 전량 실행이 끝난 뒤 |
+| `eta-unobserved` | `STP-scope-range` | `reprocess` | 얹힘 | 예상 소요 「— (관측된 처리 속도 없음)」 — 숫자를 지어내지 않는다 | 여정 문서 `STP-scope-range` 페인포인트 · `Reprocess.tsx` (`scope.eta_minutes === null`) | 축 「미국」 |
+| `sample-submitting` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 제출 중 — 버튼 「제출 중…」(잠김) | `ReprocessTrigger.tsx` (`busy === "sample"`) | 「표본 실행」 직후 |
+| `sample-active` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 런 대기·실행 중 — sub 「표본을 새 로직으로 돌리는 중…」, 런 표 배지 `대기`/`실행 중`, 실행 버튼 셋 잠김, 폴링 | `ReprocessTrigger.tsx` (`isActive(lastSample)` · `anyActive` · `POLL_MS`) | 「표본 실행」 뒤 런이 끝날 때까지 |
+| `full-unlocked` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 완료 — 태그 「전량 실행이 열렸습니다」, KV 「열림」·「임계 초과 N개 / M개 대상」, 「로직을 고치고 표본부터 다시」 | `ReprocessTrigger.tsx` (`sampleDone`) · 여정 문서 §4 1행 | 표본 런이 「완료」 가 되면 |
+| `submit-failed` | `STP-dry-run` | `reprocess` | 얹힘 | 제출 실패 — 「실행하지 못했습니다:」 + 서빙 오류 문면 | `ReprocessTrigger.tsx` (`error`) · `reprocess_trigger.go` (400 `sample_size 는 1~500 이어야 한다`) | 표본 크기를 600 으로 두고 「표본 실행」 |
+| `run-locked` | `STP-run-reprocess` | `reprocess` | 얹힘 | 표본 전 — 「표본을 먼저 돌리세요.」, 전량 실행 잠김 | 여정 문서 `STP-dry-run` 페인포인트 · `ReprocessTrigger.tsx` (`!sampleDone`) | 표본 없이 단계 3 을 연다 |
+| `run-active` | `STP-run-reprocess` | `reprocess` | 얹힘 | 전량 런 실행 중 — sub 「범위 전체를 다시 분석하는 중…」, 런 표, 폴링 | `ReprocessTrigger.tsx` (`isActive(lastFull)`) | 「전량 실행」 뒤 런이 끝날 때까지 |
+| `interrupted` | `STP-run-reprocess` | `reprocess` | 얹힘 | 도중에 끊김 — 런 표 「실패」 행 + 「도중에 끊겼습니다.」(+ Workflow message) + 실행 버튼 문면 「체크포인트부터 이어서 재개」 | 여정 문서 §4 2행 · `ReprocessTrigger.tsx` (`failed(lastFull)`) | 배치 크기 400 이상으로 「전량 실행」(가정 — 큰 배치는 단계 시간 제한에 걸린다. 재개는 이어서 끝난다) |
+| `over-threshold` | `STP-compare-before-after` | `reprocess` | 얹힘 | 임계 초과 — 행 배지 「검토 필요」 + 「임계를 넘는 항목이 N건 있습니다.」 + 원문 확인 이탈 | 여정 문서 §4 3행 · `STP-compare-before-after` 페인포인트 · `Reprocess.tsx` (`over.length > 0`) | 전량 뒤 기본 임계 2%p(10 으로 올리면 해소) |
+| `no-decision` | `STP-publish` | `reprocess` | 얹힘 | 지금 서빙 버전 「— (결정 없음 · 레코드별 최신)」 | `ReprocessTrigger.tsx` (`servingVersion` 공란) | 결정 전 기본 |
+| `invalid` | `STP-publish` | `reprocess` | 얹힘 | 결정 입력 검증 실패 — 「실행하지 못했습니다: 반영할지 되돌릴지를 먼저 고르세요.」 / 근거 공란 문구 | `ReprocessTrigger.tsx` (`!decision` · `!memo.trim()`) | 빈 「결정 기록」 제출 |
+| `no-rollback` | `STP-publish` | `reprocess` | 얹힘 | 롤백 대상 없음 — 「되돌릴 이전 버전이 없습니다 — 두 버전이 병존해야 되돌릴 수 있습니다.」 | `ReprocessTrigger.tsx` (`!target`, `rollbackTarget`) | 기간 「지난 24시간」(한 버전) · 결정 없음에서 「이전 버전으로 되돌린다」 제출 |
+| `decide-locked` | `STP-publish` | `reprocess` | 얹힘 | 진행 중인 런이 있는 동안 「결정 기록」 잠김 | `ReprocessTrigger.tsx` (`busy !== null` 또는 `anyActive` 이면 `disabled`) | 결정 기록 직후(결정 런이 대기 중) |
+| `recorded` | `STP-publish` | `reprocess` | 얹힘 | 「결정을 기록했습니다.」 + `새 결과({v})를 반영`/`이전 버전({v})으로 롤백` + 「배치가 그 버전으로 Gold 를 다시 세우면 서빙 버전이 바뀝니다.」 | 여정 문서 완료 기준 · `ReprocessTrigger.tsx` (`recorded`) | 결정을 고르고 근거를 채워 제출 |
+| `decision-history` | `STP-publish` | `reprocess` | 얹힘 | 결정 이력 표 — 레이크에 남은 결정(`기록 시각`·`결정`·`버전`·`근거`), 마지막 결정이 지금 서빙 버전 | `ReprocessTrigger.tsx` (`trigger.decisions.length > 0`) · `POST /api/reprocess/publish` | 결정 런이 「완료」 가 되면 |
 
-여정 문서 §4 3·4행(임계 초과 → `JRN-spike-verification`, 원문 누락 → `JRN-ingestion-recovery`)은 이 여정을 벗어나는
-인계라 상태가 아니라 **이탈 컨트롤**이다. 이 페이지는 §4 3·4·5행을 화면 4의 「재처리 중 이런 상황이라면」 목록으로
-모아 두었다 — 그 셋은 모두 **전후 비교를 보고 나서야 갈리는** 갈래이고, 1·2행(표본 불일치 · 중단 재개)은 각각
-자기 화면의 배너 상태로 위 표에 있다.
+**의도적 제외**
+- 목표 로직 버전을 비우면 실행 버튼 셋이 잠기는 것(`!version.trim()`)은 입력을 비워 재현되지만 구현에 그 상태를 말하는
+  문면이 없어 상태로 등재하지 않는다 — 문면을 지어내지 않는다.
+- 「제출 중…」 은 표본 실행 하나만 상태로 등재한다. 전량 실행·결정 기록 버튼도 같은 문면으로 바뀌고(런타임) 경로가 같다.
+- 런 phase `Error`(배지 「오류」)는 `Failed`(「실패」)와 같은 처리(`failed()`)라 `interrupted` 하나로 받는다.
+- 폴링 실패 — 구현이 그리지 않는다(`ReprocessTrigger.tsx` 「a missed poll is not an error to show」).
+- 재조회 실패가 이전 데이터 위에 얹히는 API 오류 — 첫 진입 실패(`api-error`, 화면 교체)만 그린다. 같은 note 다.
+- 결정 제출의 서빙 오류 — `submit-failed` 와 같은 「실행하지 못했습니다:」 note 다.
+- 구현 화면 하단 mapstrip — 문서 메타라 메타 레이어에 둔다.
+- 소비자 화면 주석의 실제 노출 — 여정 문서가 백로그 후보로 파킹했다(체크박스와 KV 「소비자 주석」 은 그린다).
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-17)
+- `over-budget` 배너(`이 범위는 한 번에 돌리기에 큽니다 …`) — `BUDGET = 12000` mock 상수였고 서빙에 실행 상한이 없다.
+  건수·예상 소요 표기(여정 문서의 대응 방향)는 고른 범위 KV 가 한다.
+- 표본 추출 옵션 「새 로직이 건드리는 대상 우선」, 표본 전후 판정 표(`표본 대상`·`이전 판정`·`새 판정`·`건수`·`변화`),
+  `sample-mismatch` 배너와 그 전량 잠금(재분류 40% mock 상한) — 표본 결과는 전후 표가 읽고 런 표가 Workflow 상태를 본다.
+  §4 1행은 표본 요약 카드의 「로직을 고치고 표본부터 다시」(버전을 고치면 그 버전의 표본이 0건이라 전량이 다시 잠긴다)로 남긴다.
+- `keep-version` 해제 체크박스 · `overwrite-warning` 배너 · KV `덮어쓰기`/`불가 (덮어씀)` · 「덮어썼다면 되돌릴 자리가 없습니다」 —
+  제품에 덮어쓰기 경로가 없다(Silver `(record_id, analyzer_version)` 병존).
+- 적용 로직 `<select>` 와 예시 버전 `v2.4`/`v2.5-rc` — 서빙에 버전 목록이 없다(자유 입력 두 칸, 기본값 `target_version`).
+- 전후 표의 행 사유 주석(`분류 정교화`·`표기 변형 통합`·`대상 분리`)과 「설명됨」 배지 — 서빙에 변화 사유가 없다(배지는 `임계 이내`).
+- `split-unanalyzed` 체크박스와 `low-confidence` 배너 — 미분석·저신뢰 몫은 상시 note 로 보고한다(AC2.5).
+- 「재처리 중 이런 상황이라면」 분기 표(힌트 `비교만으로 닫히지 않는 갈래는 여기서 갈라집니다.`) — 갈래마다 그 상황이 보이는
+  note 안의 이탈 컨트롤로 옮겼다(아래).
+- `recorded` 의 「이 기록은 이 세션 안에서만 유지됩니다 — 제품 안에 남는 재처리 이력은 아직 없습니다.」 — 제품에 대해 거짓이다.
+  결정은 레이크에 남고 결정 이력 표가 그것을 보여 준다.
+- interrupted 의 「{N}건까지 처리」, 실행 결과 KV(`처리 건수`·`되짚기 키 보존`·`결과 버전`), 진행 loadbox 두 개, 되돌릴 수 있나
+  카드의 `처리 건수`·`되짚기 키 보존` — 서빙은 런의 phase·message 만 안다. 진행은 런 표 배지와 카드 sub 가 말한다.
+- 범위 폼 `<select>` 셋 · 정렬 `<select>`(「현재 점유율 순」) · 고정 소스 옵션 `us-desk`/`gl-agg` — 구현 컨트롤 줄(기간·축 라디오 +
+  축 pill + 응답에서 오는 소스 옵션)과 정렬 라디오(「이후 점유율 순」)로.
+- 「결정과 근거를 모두 채워야 기록됩니다.」 정적 배너 — 구현처럼 실행 오류 note 의 검증 문구 두 종으로.
+- 사이드바 하단 「분석 로직 v2.4 · 배포 2시간 전 / 마지막 재처리 09-18 21:40 KST」 — 구현과 같은 고정 문면으로.
+
+여정 문서 §4 다섯 행은 모두 그 상황이 화면에 보이는 자리의 컨트롤이다. 1행(표본이 의도와 다름 → `STP-dry-run`)은 단계 2
+표본 요약 카드의 「로직을 고치고 표본부터 다시」(표본이 끝나야 보인다), 2행(실패·중단 → `STP-run-reprocess`)은 단계 3 의
+`interrupted` note 안 「체크포인트부터 이어서 재개 →」(구현의 실행 버튼 문면 전환과 같은 요청을 다시 낸다), 3행(임계 초과 →
+`JRN-spike-verification`)은 단계 4 임계 초과 note 의 이탈 컨트롤, 4행(원문 누락 → `JRN-ingestion-recovery`)과 5행(저신뢰 급증 →
+`STP-compare-before-after`)은 단계 4 미분석·저신뢰 note 의 두 컨트롤이다 — 본문 미확보는 미분석으로 빠지므로(AC2.5) 원문 누락은
+그 몫의 증가로 드러나고, 5행의 처리(분리 적재하고 비중을 보고)는 상시 note 와 「보류 몫의 전후 추이 보기」(전후 추이 카드의 대상을
+미분석·저신뢰로)다. 다른 여정으로 넘기는 3·4행은 「여정 끝」 표지를 단다. 구현에는 §4 컨트롤이 하나도 없다(구현 쪽 편차).
+정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
 
 > **분기 표는 부분으로 서지 않는다 (2026-09-28, rct_20260928-0005).** `재처리 중 이런 상황이라면` 과
 > `검증 중 이런 상황이라면` 두 목록은 각자 힌트 문장이 갈래 집합의 **완전성**을 주장하는 집합 장치라, 목적지가
