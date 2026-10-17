@@ -132,15 +132,6 @@ a{color:inherit;text-decoration:none}
 
 /* —— Canvas / sections —————————————————————————— */
 .canvas{padding:24px 26px 60px;flex:1;overflow:visible}
-.screen{display:none;animation:none}
-.screen.active{display:block}
-.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
-.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
-.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
-.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
-.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
-.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
-.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
   max-width:78ch;line-height:1.6;margin-bottom:20px}
@@ -345,6 +336,12 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
   table.tbl th,table.tbl td{padding:8px 8px}
   .formrow > *{flex:1 1 100%}
 }
+.trend-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.spk-row{display:grid;grid-template-columns:22px 1fr auto 64px 40px;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;cursor:pointer;font:inherit}
+.spk-row[aria-pressed=true]{background:var(--primary-soft)}
+.spk-row .meta{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.spk-row .rk{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.tbl tr.on td{background:var(--primary-soft)}
 </style>
 <style>
 /* ---- 여정 페이지 전용(JRN-daily-scan) ---- */
@@ -456,7 +453,7 @@ details.meta table.tbl{margin-top:10px}
     <nav class="nav">
       <div class="nav-group">
         <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
-        <a class="nav-item active" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
           <span>추세 대시보드</span>
         </a>
@@ -495,7 +492,7 @@ details.meta table.tbl{margin-top:10px}
     </nav>
     <div class="sidebar-foot">
       <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
-      마지막 수집 <span id="foot-collected">07:00 KST</span>
+      마지막 수집 14:00 KST
     </div>
   </aside>
 
@@ -506,44 +503,57 @@ details.meta table.tbl{margin-top:10px}
       </div>
       <div class="spacer"></div>
       <div class="ctl">
-        <span class="pill-ctl" id="tb-basis">한국 &middot; 최근 7일 &middot; 일 단위</span>
+        <span class="pill-ctl" data-role="tb-pill">한국 &middot; 최근 7일 &middot; 일 단위</span>
       </div>
     </header>
 
     <div class="canvas">
 
-      <!-- ============ 화면 1 · 대시보드 열기 ============ -->
-      <section class="jstep" id="STP-open-brief" data-step="STP-open-brief" hidden>
+      <!-- ============ 단계 1 · 대시보드 열기 — 화면 dash ============ -->
+      <section class="jstep" id="STP-open-brief" data-step="STP-open-brief" data-title="대시보드 열기" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" data-state="api-error" data-label="API 오류" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
         <div class="grid g-12">
 
           <div class="card metric col-3">
-            <div class="ml">수집 항목</div>
-            <div class="mv" id="m-items">4,812</div>
-            <div class="md"><span class="delta up">&#9650; 4.2%</span> <span id="prev-label">직전 7일 대비</span></div>
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
           </div>
           <div class="card metric col-3">
-            <div class="ml">분석 완료</div>
-            <div class="mv" id="m-analyzed">4,551</div>
-            <div class="md"><span class="delta fl">94.6%</span> 분석 커버리지</div>
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
           </div>
           <div class="card metric col-3">
-            <div class="ml">저신뢰 분리</div>
-            <div class="mv sm" id="m-lowconf">5.4%</div>
-            <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
           </div>
           <div class="card metric col-3">
-            <div class="ml">세는 방식</div>
-            <div class="mv sm">점유율</div>
-            <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
           </div>
 
           <div class="card col-4">
             <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
             <div class="card-b">
-              <form id="brief-form">
+              <form data-role="brief-form">
                 <label class="fld">
                   <span class="fl">축</span>
-                  <select id="axis" name="axis">
+                  <select name="axis" data-role="axis">
                     <option value="ALL">전체</option>
                     <option value="KR" selected>한국</option>
                     <option value="US">미국</option>
@@ -552,7 +562,7 @@ details.meta table.tbl{margin-top:10px}
                 </label>
                 <label class="fld" style="margin-top:14px">
                   <span class="fl">기간</span>
-                  <select id="brief-range" name="brief-range">
+                  <select name="range" data-role="range">
                     <option value="1">최근 24시간</option>
                     <option value="7" selected>최근 7일</option>
                     <option value="30">최근 30일</option>
@@ -560,14 +570,14 @@ details.meta table.tbl{margin-top:10px}
                 </label>
                 <div class="fld" style="margin-top:14px">
                   <span class="fl">집계 단위</span>
-                  <div class="radios">
-                    <label><input type="radio" name="brief-unit" value="hour" /> 시간</label>
-                    <label><input type="radio" name="brief-unit" value="day" checked /> 일</label>
-                    <label hidden><input type="radio" name="brief-unit" value="week" /> 주</label>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-open-brief" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-open-brief" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-open-brief" value="week" /> 주</label>
                   </div>
                 </div>
                 <label class="chk" style="margin-top:16px">
-                  <input type="checkbox" id="restore" name="restore" checked />
+                  <input type="checkbox" name="restore" data-role="restore" checked />
                   마지막 조회 조건으로 열기
                 </label>
               </form>
@@ -577,83 +587,66 @@ details.meta table.tbl{margin-top:10px}
           <div class="card col-8">
             <div class="card-h">
               <h3>상위 서술 대상</h3>
-              <span class="sub" id="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
               <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
             </div>
             <div class="card-b" style="padding:6px 12px">
-              <div class="ranklist" id="ranklist"></div>
-
-              <div class="banner warn" id="s-empty-window" data-state="empty-window" hidden>
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" data-state="no-gold" data-label="데이터 없음 (Gold 미생성)" data-replaces="ranklist" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" data-state="empty-window" data-label="밤사이 수집 없음" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
                 <div>
-                  <b><span id="empty-axis-name">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
                   0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
-                  마지막 정상 수집: <span class="mono" id="empty-last">어제 22:00 KST</span>
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
                   <div class="actions">
-                    <a class="btn sm pri" id="br-1" href="#STP-scan-delta"
-                       data-goto="JRN-daily-scan#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-scan-delta" data-goto="JRN-daily-scan#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-scan-delta" id="cta-1">
-            어제 대비 변화 훑기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint">밤사이 올라온 것과 빠진 것을 먼저 봅니다.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 2 · 어제 대비 변화 훑기 ============ -->
-      <section class="jstep" id="STP-scan-delta" data-step="STP-scan-delta" hidden>
-        <div class="grid g-12">
-
           <div class="card col-7">
             <div class="card-h">
-              <h3 id="delta-title">최근 7일 변화</h3>
-              <span class="sub" id="delta-sub">직전 동일 구간 대비</span>
-              <div class="r"><span class="tag" id="delta-count">8개 대상</span></div>
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
             </div>
             <div class="card-b">
-              <form id="delta-form">
+              <form data-role="delta-form">
                 <div class="formrow">
-                  <label class="fld" style="max-width:220px">
-                    <span class="fl">비교 기준 구간</span>
-                    <select id="delta-basis" name="delta-basis">
-                      <option value="prev" selected>직전 동일 구간</option>
-                      <option value="avg7">최근 7일 평균</option>
-                      <option value="prev-week">전주 동요일</option>
-                    </select>
-                  </label>
                   <label class="fld" style="max-width:150px">
                     <span class="fl">증감 임계 (%p)</span>
-                    <input type="number" id="delta-thresh" name="delta-thresh" value="0" min="0" max="10" step="0.5" />
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
                   </label>
                   <label class="chk" style="padding-bottom:8px">
-                    <input type="checkbox" id="only-new" name="only-new" />
+                    <input type="checkbox" name="only-new" data-role="only-new" />
                     새로 올라온 대상만
                   </label>
                 </div>
               </form>
-
-              <div id="deltalist" style="margin-top:6px"></div>
-
-              <div class="emptybox" id="s-no-baseline" data-state="no-baseline" hidden>
-                이 기준 구간은 저장된 값이 없어 <b>증감을 계산할 수 없습니다</b>.<br/>
-                순위는 그대로 보이되 증감 칸은 &lsquo;&mdash;&rsquo;로 둡니다 &mdash; 0으로 채우면 변화가 없었던 것처럼 읽힙니다.
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
               </div>
-
-              <div class="banner warn" style="margin-top:16px">
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
                 <div>
                   <b>못 보던 대상이 갑자기 올라왔다면</b>
                   수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
-                  <div class="actions">
-                    <a class="btn sm" id="br-2" href="JRN-spike-verification.html#STP-notice-spike"
-                       data-goto="JRN-spike-verification#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
                   </div>
                 </div>
               </div>
@@ -663,88 +656,80 @@ details.meta table.tbl{margin-top:10px}
           <div class="card col-5">
             <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
             <div class="card-b">
-              <div class="emptybox" id="s-no-selection" data-state="no-selection">
+              <div class="emptybox" data-role="no-selection">
                 왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
               </div>
-              <div id="pick-detail" hidden></div>
+              <div data-role="pick-detail" hidden></div>
             </div>
           </div>
 
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-adjust-window" id="cta-2" disabled>
-            이 변화가 추세인지 보기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-2-hint">대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 3 · 기간·단위 조정 ============ -->
-      <section class="jstep" id="STP-adjust-window" data-step="STP-adjust-window" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-5">
-            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">맨 위 카드의 기간·단위</span></div>
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
             <div class="card-b">
-              <form id="win-form">
-                <label class="fld" style="max-width:220px">
-                  <span class="fl">기간</span>
-                  <select id="range" name="range">
-                    <option value="1">최근 24시간</option>
-                    <option value="7" selected>최근 7일</option>
-                    <option value="30">최근 30일</option>
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
                   </select>
                 </label>
-                <div class="fld" style="margin-top:16px">
-                  <span class="fl">집계 단위</span>
-                  <div class="radios">
-                    <label><input type="radio" name="unit" value="hour" /> 시간</label>
-                    <label><input type="radio" name="unit" value="day" checked /> 일</label>
-                    <label hidden><input type="radio" name="unit" value="week" /> 주</label>
-                  </div>
-                </div>
               </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
             </div>
           </div>
 
-          <div class="card col-7">
+          <div class="card col-12">
             <div class="card-h">
               <h3>기간 순위</h3>
-              <span class="sub" id="win-sub">최근 7일 누적</span>
-              <div class="r"><span class="tag" id="win-basis">7d</span></div>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
             </div>
             <div class="card-b">
-              <div class="loadbox" id="s-loading" data-state="loading" hidden>
+              <div class="loadbox" data-role="reloading" hidden>
                 고른 조건으로 다시 집계하는 중&hellip;
                 <div class="bar"><i></i></div>
               </div>
-
-              <div id="winlist"></div>
-
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
               <div class="note" style="margin-top:14px">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
                 <div>
                   <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
-                  방금 고른 대상은 <span id="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
                 </div>
               </div>
-
-              <div class="banner warn" id="s-low-sample" data-state="low-sample" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-                <div>
-                  <b>시간 단위에서는 구간당 표본이 적습니다.</b>
-                  표본이 임계에 못 미치는 구간은 흐리게 그리고 순위 해석에서 제외하세요.
-                </div>
-              </div>
-
               <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
                 <div>
                   <b>축마다 온도가 다른지 궁금하다면</b>
                   한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
                   <div class="actions">
-                    <a class="btn sm" id="br-3" href="JRN-axis-contrast.html#STP-open-compare"
-                       data-goto="JRN-axis-contrast#STP-open-compare">3축을 나란히 비교 &rarr;</a>
+                    <a class="btn sm" data-role="compare-go" href="JRN-axis-contrast.html#STP-open-compare">3축을 나란히 비교 &rarr;</a>
                   </div>
                 </div>
               </div>
@@ -752,57 +737,648 @@ details.meta table.tbl{margin-top:10px}
           </div>
 
         </div>
+      </div>
+
+      <div class="screen" data-screen="dash" data-state="loading" data-label="첫 진입 로딩" hidden>
+        <div class="grid g-12">
+          <div class="card metric col-3"><div class="card-b"><div class="ml">수집 항목</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&mdash;</span> 직전 7일 대비</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">분석 완료</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&mdash;</span> 분석 커버리지</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">저신뢰 분리</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">세는 방식</div><div class="mv sm">점유율</div><div class="md"><span class="norm-flag">&#9635; share-normalized</span></div></div></div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-loading" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-loading" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-loading" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+          <div class="card col-8">
+            <div class="card-h"><h3>상위 서술 대상</h3><span class="sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span><div class="r"><span class="norm-flag">&#9635; 정규화</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+          <div class="card col-7">
+            <div class="card-h"><h3>최근 7일 변화</h3><span class="sub">직전 동일 구간 대비</span><div class="r"><span class="tag">0개 대상</span></div></div>
+            <div class="card-b">
+              <div class="formrow">
+                <label class="fld" style="max-width:150px"><span class="fl">증감 임계 (%p)</span><input type="number" name="thresh-loading" value="0" min="0" max="10" step="0.5" /></label>
+                <label class="chk" style="padding-bottom:8px"><input type="checkbox" name="only-new-loading" /> 새로 올라온 대상만</label>
+              </div>
+            </div>
+          </div>
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b"><div class="emptybox">왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.</div></div>
+          </div>
+          <div class="card col-8">
+            <div class="card-h"><h3>튀는 값</h3><span class="sub">한국 축 &middot; 평소 대비 배수 순</span><div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b"><div class="kv"><span class="k">선택한 대상</span><span class="v">&mdash;</span></div><div class="kv"><span class="k">평소 대비</span><span class="v mono">&mdash;</span></div></div>
+          </div>
+          <div class="card col-12">
+            <div class="card-h"><h3>기간 순위</h3><span class="sub">최근 7일 누적</span><div class="r"><span class="tag">7d</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+        </div>
+      </div>
         <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-drill-trend" id="cta-3">
-            <span id="cta-3-label">고른 대상의 추세 상세 열기</span> <span class="ar">&rarr;</span>
-          </button>
+          <button type="button" class="cta" data-advance="STP-scan-delta">어제 대비 변화 훑기 <span class="ar">&rarr;</span></button>
+          <span class="hint">밤사이 올라온 것과 빠진 것을 먼저 봅니다.</span>
         </div>
       </section>
 
-      <!-- ============ 화면 4 · 대상 추세 상세 ============ -->
-      <section class="jstep" id="STP-drill-trend" data-step="STP-drill-trend" hidden>
+      <!-- ============ 단계 2 · 어제 대비 변화 훑기 — 화면 dash ============ -->
+      <section class="jstep" id="STP-scan-delta" data-step="STP-scan-delta" data-title="어제 대비 변화 훑기" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
         <div class="grid g-12">
 
-          <div class="card col-12">
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-scan-delta" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-scan-delta" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-scan-delta" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
             <div class="card-h">
-              <h3 id="trend-title">추세 상세</h3>
-              <span class="sub" id="trend-sub">스캔에서 고른 축 &middot; 기간을 그대로 승계했습니다</span>
-              <div class="r"><span class="tag">점유율 %</span></div>
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
             </div>
             <div class="card-b">
-              <form id="trend-form">
+              <form data-role="delta-form">
                 <div class="formrow">
-                  <label class="chk">
-                    <input type="checkbox" id="tr-compare" name="tr-compare" />
-                    상위 대상 3개를 겹쳐 보기
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
                   </label>
-                  <label class="fld" style="max-width:190px">
-                    <span class="fl">기여 뉴스 표기</span>
-                    <select id="tr-marks" name="tr-marks">
-                      <option value="off" selected>표시 안 함</option>
-                      <option value="peak">상승 시작 지점만</option>
-                      <option value="all">모든 구간</option>
-                    </select>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
                   </label>
                 </div>
               </form>
-              <svg viewBox="0 0 740 210" width="100%" style="display:block;margin-top:10px" id="trendchart"></svg>
-              <div class="legend" id="trend-legend"></div>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" data-state="no-change" data-label="걸리는 변화 0건" data-replaces="deltalist" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" data-state="no-baseline" data-label="비교 기준 없음 (증감 「—」)" data-replaces="deltalist" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike" data-goto="JRN-spike-verification#STP-notice-spike" data-end="급등 검증 여정으로 인계">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" data-state="pick-axis" data-label="전체 축 — 축을 골라야 넘어감" data-replaces="spike-entry" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection" data-state="no-selection" data-label="대상 미선택">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
             </div>
           </div>
 
           <div class="card col-12">
-            <div class="card-h"><h3>상위 대상 비교</h3><span class="sub" id="cmp-sub">같은 기간 &middot; 같은 축</span></div>
-            <div class="card-b" style="padding:0">
-              <table class="tbl" id="trendtable"></table>
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="compare-go" href="JRN-axis-contrast.html#STP-open-compare">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
         </div>
+      </div>
         <div class="stepact">
-          <a class="btn sm" id="br-4" href="#STP-open-brief"
-             data-goto="JRN-daily-scan#STP-open-brief">닫고 이 조건으로 다시 열기</a>
-          <span class="hint">닫을 때의 조건이 다음 진입에 복원됩니다.</span>
+          <button type="button" class="cta" data-advance="STP-adjust-window" data-role="cta-pick" disabled>이 변화가 추세인지 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint" data-role="cta-pick-hint">대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 3 · 기간·단위 조정 — 화면 dash ============ -->
+      <section class="jstep" id="STP-adjust-window" data-step="STP-adjust-window" data-title="기간·단위 조정" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-adjust-window" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-adjust-window" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-adjust-window" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" data-state="reloading" data-label="고른 조건으로 재집계 중" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" data-state="no-rank" data-label="이 기간 표시할 대상 0건" data-replaces="winlist" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="compare-go" href="JRN-axis-contrast.html#STP-open-compare" data-goto="JRN-axis-contrast#STP-open-compare" data-end="3축 비교 여정으로 인계">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-drill-trend"><span data-role="cta-drill">고른 대상의 추세 상세 열기</span> <span class="ar">&rarr;</span></button>
+          <a class="btn sm" href="#STP-open-brief" data-goto="JRN-daily-scan#STP-open-brief" data-end="중도 이탈 · 다음 진입에 이 조건 복원">목록만 보고 닫기</a>
+        </div>
+      </section>
+
+      <!-- ============ 단계 4 · 대상 추세 상세 열기 — 화면 trend ============ -->
+      <section class="jstep" id="STP-drill-trend" data-step="STP-drill-trend" data-title="대상 추세 상세 열기" hidden>
+
+      <div class="screen" data-screen="trend" data-title="대상 추세 상세" data-pill="off">
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="note" data-role="trend-error" data-state="trend-error" data-label="API 오류" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+          <div class="card col-9">
+            <div class="card-h">
+              <h3>관심 점유율 추세</h3>
+              <span class="sub" data-role="tr-sub">일 단위 &middot; 정규화 비율(%) &middot; 2026-10-10 ~ 2026-10-16</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="tr-form">
+                <label class="chk">
+                  <input type="checkbox" name="tr-compare" data-role="tr-compare" />
+                  상위 대상 3개를 겹쳐 보기
+                </label>
+              </form>
+              <svg viewBox="0 0 740 270" width="100%" style="display:block;margin-top:10px" data-role="tr-chart"></svg>
+              <div class="legend" data-role="tr-legend"></div>
+            </div>
+          </div>
+          <div class="col-3 grid">
+            <div class="card metric">
+              <div class="card-b">
+                <div class="ml">선택 대상 현재 점유율</div>
+                <div class="mv" data-role="tr-cur">&mdash;<small> %</small></div>
+                <div class="md"><span class="delta fl" data-role="tr-delta">&ndash;</span> 직전 일 대비</div>
+                <div class="actions" style="margin-top:10px">
+                  <a class="btn sm" href="#" data-role="tr-spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">급등의 진위 확인 &rarr;</a>
+                </div>
+              </div>
+            </div>
+            <div class="note">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              <div>이 차트는 <b>일 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만 서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.</div>
+            </div>
+          </div>
+          <div class="card col-12">
+            <div class="card-h"><h3>상위 대상 비교</h3><span class="sub">같은 기간 &middot; 같은 축</span></div>
+            <div class="card-b" style="padding:0">
+              <table class="tbl" data-role="tr-table"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen" data-screen="trend" data-state="trend-loading" data-label="첫 진입 로딩" hidden>
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis-loading" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis-loading" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis-loading" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis-loading" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="emptybox">불러오는 중&hellip;</div>
+      </div>
+      <div class="screen" data-screen="trend" data-state="trend-empty" data-label="축에 집계 버킷 없음" hidden>
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis-empty" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis-empty" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis-empty" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis-empty" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="emptybox"><span data-role="tr-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다. 빈 차트를 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 관심이 0인 것은 다릅니다.</div>
+      </div>
+        <div class="stepact">
+          <span class="hint" data-end="여정 완료">닫을 때의 조건이 다음 진입에 복원됩니다.</span>
         </div>
       </section>
 
@@ -840,7 +1416,7 @@ details.meta table.tbl{margin-top:10px}
               <tr><td>밤사이 수집이 실패해 데이터가 비었음</td><td>화면 1 · 수집 없음 배너</td><td class="mono">STP-scan-delta</td></tr>
               <tr><td>급등 대상이 신뢰되지 않음</td><td>화면 2 · 급등 진위 확인 이탈</td><td class="mono">JRN-spike-verification · STP-notice-spike</td></tr>
               <tr><td>축 간 차이가 궁금해짐</td><td>화면 3 · 3축 비교 이탈</td><td class="mono">JRN-axis-contrast · STP-open-compare</td></tr>
-              <tr><td>중도 이탈 (목록만 보고 종료)</td><td>화면 4 · 닫고 이 조건으로 다시 열기</td><td class="mono">STP-open-brief</td></tr>
+              <tr><td>중도 이탈 (목록만 보고 종료)</td><td>화면 3 · 목록만 보고 닫기 (여정 끝 표지)</td><td class="mono">STP-open-brief</td></tr>
             </tbody>
           </table>
 
@@ -865,92 +1441,276 @@ details.meta table.tbl{margin-top:10px}
   </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jstep{scroll-margin-top:64px}
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+
 <script>
 /* ============================================================
    JRN-daily-scan · 아침 정기 스캔 프로토타입 런타임
    외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   화면은 구현 화면 그대로다: 단계 1·2·3 은 같은 화면 `dash`(Dashboard.tsx)를 같은 구조로
+   다시 그리고, 단계 4 는 화면 `trend`(Trend.tsx)다. 요소는 id 가 아니라 단계 섹션 안의
+   [data-role] 로 찾는다 — 같은 화면이 여러 단계에 있으므로.
    ============================================================ */
-function $(id){ return document.getElementById(id); }
-function show(el, on){ if(el) el.hidden = !on; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
+function RA(root, role){ return root ? Array.prototype.slice.call(root.querySelectorAll('[data-role=' + JSON.stringify(role) + ']')) : []; }
+function show(el, on){ if(el) el.hidden = !on; }
+
+var ORDER = ['STP-open-brief','STP-scan-delta','STP-adjust-window','STP-drill-trend'];
+var DASH_STEPS = ['STP-open-brief','STP-scan-delta','STP-adjust-window'];
 
 var AXES = {
-  KR: { label: '한국', cls: 'ax-kr' },
-  US: { label: '미국', cls: 'ax-us' },
-  GL: { label: '전세계', cls: 'ax-gl' },
-  ALL: { label: '전체', cls: 'ax-all' }
+  ALL: { label: '전체', cls: 'ax-all', code: 'ALL' },
+  KR:  { label: '한국', cls: 'ax-kr', code: 'KR' },
+  US:  { label: '미국', cls: 'ax-us', code: 'US' },
+  GL:  { label: '전세계', cls: 'ax-gl', code: 'GLOBAL' }
 };
 
-/* name, share, series(7), delta(직전 동일 구간, %p), isNew, note */
+/* name, share(현재 기간 정규화 점유율 %), s(일 단위 7칸), d(직전 동일 구간 대비 %p), isNew, rawRank */
 var DATA = {
   KR: [
-    { name: '한국은행 기준금리', share: 21.0, s: [14,13,15,18,22,19,21], d: 7.0, isNew: false, note: '' },
-    { name: '삼성전자',         share: 13.0, s: [11,12,10,13,12,14,13], d: 0.0, isNew: false, note: '' },
-    { name: '원/달러 환율',      share: 10.8, s: [9,10,12,11,13,12,10.8], d: -1.2, isNew: false, note: '' },
-    { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],      d: 0.6, isNew: false, note: '' },
-    { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],      d: 0.9, isNew: false, note: '원시 카운트 2위 → 정규화 5위' },
-    { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],      d: 2.1, isNew: false, note: '' },
-    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],      d: 5.4, isNew: true,  note: '' },
-    { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],      d: -1.4, isNew: false, note: '' }
+    { name: '한국은행 기준금리', share: 21.0, s: [14,13,15,18,22,19,21],   d: 7.0,  isNew: false, rawRank: 1 },
+    { name: '삼성전자',         share: 13.0, s: [11,12,10,13,12,14,13],   d: 0.0,  isNew: false, rawRank: 2 },
+    { name: '원/달러 환율',      share: 10.8, s: [9,10,12,11,13,12,10.8],  d: -1.2, isNew: false, rawRank: 3 },
+    { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],        d: 0.6,  isNew: false, rawRank: 4 },
+    { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],        d: 0.9,  isNew: false, rawRank: 2 },
+    { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],        d: 2.1,  isNew: false, rawRank: 6 },
+    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],        d: 5.4,  isNew: true,  rawRank: 7 },
+    { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],        d: -1.4, isNew: false, rawRank: 8 }
   ],
   US: [
-    { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1, isNew: false, note: '' },
-    { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0, isNew: false, note: '' },
-    { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, note: '' },
-    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6, isNew: true,  note: '' },
-    { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1, isNew: false, note: '' }
+    { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1,  isNew: false, rawRank: 1 },
+    { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0,  isNew: false, rawRank: 2 },
+    { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, rawRank: 3 },
+    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6,  isNew: true,  rawRank: 4 },
+    { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1,  isNew: false, rawRank: 5 }
   ],
   GL: [],
   /* 전체 — 세 축의 소스를 한 버킷에 접어 소스마다 같은 비중으로 정규화한 순위 */
   ALL: [
-    { name: 'Fed 금리 결정',    share: 12.1, s: [8,8,9,10,11,12,12.1],    d: 1.9, isNew: false, note: '' },
-    { name: '한국은행 기준금리', share: 10.4, s: [7,7,8,9,11,10,10.4],     d: 3.2, isNew: false, note: '' },
-    { name: 'CPI 발표',         share: 8.9,  s: [6,7,8,8,9,9,8.9],        d: 0.6, isNew: false, note: '' },
-    { name: '원/달러 환율',      share: 7.6,  s: [6,7,8,7,8,8,7.6],        d: -0.8, isNew: false, note: '' },
-    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9, isNew: true,  note: '' },
-    { name: '삼성전자',         share: 6.0,  s: [5,6,5,6,6,6,6.0],        d: 0.0, isNew: false, note: '' },
-    { name: '코스피',           share: 4.9,  s: [4,5,4,5,5,5,4.9],        d: 0.3, isNew: false, note: '' },
-    { name: '국채 금리',        share: 4.7,  s: [5,5,4,5,5,5,4.7],        d: -0.2, isNew: false, note: '' }
+    { name: 'Fed 금리 결정',    share: 12.1, s: [8,8,9,10,11,12,12.1],    d: 1.9,  isNew: false, rawRank: 1 },
+    { name: '한국은행 기준금리', share: 10.4, s: [7,7,8,9,11,10,10.4],     d: 3.2,  isNew: false, rawRank: 2 },
+    { name: 'CPI 발표',         share: 8.9,  s: [6,7,8,8,9,9,8.9],        d: 0.6,  isNew: false, rawRank: 3 },
+    { name: '원/달러 환율',      share: 7.6,  s: [6,7,8,7,8,8,7.6],        d: -0.8, isNew: false, rawRank: 4 },
+    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9,  isNew: true,  rawRank: 5 },
+    { name: '삼성전자',         share: 6.0,  s: [5,6,5,6,6,6,6.0],        d: 0.0,  isNew: false, rawRank: 6 },
+    { name: '코스피',           share: 4.9,  s: [4,5,4,5,5,5,4.9],        d: 0.3,  isNew: false, rawRank: 7 },
+    { name: '국채 금리',        share: 4.7,  s: [5,5,4,5,5,5,4.7],        d: -0.2, isNew: false, rawRank: 8 }
   ]
 };
 
-/* 전주 동요일 기준 구간은 저장된 값이 없다 — 증감을 0으로 채우지 않는다. */
-var BASIS = {
-  'prev':      { label: '직전 동일 구간', hasBaseline: true },
-  'avg7':      { label: '최근 7일 평균',  hasBaseline: true },
-  'prev-week': { label: '전주 동요일',    hasBaseline: false }
+/* 지표 카드 — collected/prev 는 기간 전체를 센 수집 건수, cov 는 분석 커버리지, low 는 저신뢰 비율 */
+var SUMMARY = {
+  KR:  { collected: 4812,  prev: 4618,  analyzed: 4551,  cov: 94.6, low: 5.4 },
+  US:  { collected: 3907,  prev: 3990,  analyzed: 3720,  cov: 95.2, low: 4.8 },
+  GL:  null,
+  ALL: { collected: 11204, prev: 10871, analyzed: 10583, cov: 94.5, low: 5.5 }
 };
+
+/* 튀는 값 — 원시 건수와 평소(최근 7·30일 평균) 건수. 배수 ≥ 2 를 급등으로 본다. */
+var SPIKES = {
+  KR:  [ { name: '반도체 보조금', raw: 182, b7: 31.4, b30: 22.0, isNew: false },
+         { name: '한국은행 기준금리', raw: 640, b7: 402.0, b30: 380.5, isNew: false },
+         { name: '가계부채', raw: 214, b7: 160.3, b30: 171.2, isNew: false } ],
+  US:  [ { name: 'AI 설비투자', raw: 305, b7: 88.6, b30: 61.0, isNew: false },
+         { name: 'Fed 금리 결정', raw: 597, b7: 455.1, b30: 470.9, isNew: false } ],
+  GL:  [],
+  ALL: [ { name: 'AI 설비투자', raw: 412, b7: 140.2, b30: 101.7, isNew: false },
+         { name: '반도체 보조금', raw: 190, b7: 40.0, b30: 28.3, isNew: false } ]
+};
+
+var DAYS = ['2026-10-10','2026-10-11','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'];
 
 var state = {
-  axis: 'KR',
-  basis: 'prev',
-  thresh: 0,
-  onlyNew: false,
-  range: '7',
-  unit: 'day',
-  target: null
+  axis: 'KR', range: '7', unit: 'day', restore: true,
+  thresh: 0, onlyNew: false, target: null,
+  spikeBase: '7d', spikePick: null,
+  trAxis: 'KR', trSubject: null, overlay: false
 };
+var cur = null;
 
-function rows(){
-  return DATA[state.axis] || [];
+function rangeLabel(){ return state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일'; }
+function rangeKey(){ return state.range === '1' ? '24h' : state.range + 'd'; }
+function unitLabel(){ return { hour: '시간 단위', day: '일 단위', week: '주 단위' }[state.unit]; }
+var UNIT_DAYS = { hour: 1 / 24, day: 1, week: 7 };
+function unitFits(unit, range){ return UNIT_DAYS[unit] < Number(range); }
+function rows(axis){ return DATA[axis || state.axis] || []; }
+function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+function rangeShare(r){ return state.range === '1' ? r.s[r.s.length - 1] : (state.range === '30' ? avg(r.s) : r.share); }
+function ranked(){
+  return rows().slice().sort(function(a, b){ return rangeShare(b) - rangeShare(a); });
 }
-
-function deltaRows(){
-  return rows().filter(function(r){
-    if(state.onlyNew && !r.isNew) return false;
-    if(BASIS[state.basis].hasBaseline && Math.abs(r.d) < state.thresh) return false;
-    return true;
-  });
-}
-
 function dcls(d){ return d > 0.05 ? 'up' : (d < -0.05 ? 'dn' : 'fl'); }
 function dtext(d){
-  if(!BASIS[state.basis].hasBaseline) return '&mdash;';
   if(d > 0.05) return '&#9650; ' + d.toFixed(1) + '%p';
   if(d < -0.05) return '&#9660; ' + Math.abs(d).toFixed(1) + '%p';
   return '&ndash;';
 }
-
+function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
 function spark(vals, color){
   var w = 88, h = 26;
   var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), rng = (mx - mn) || 1;
@@ -964,353 +1724,305 @@ function spark(vals, color){
     + color + '" stroke-width="1.8" points="' + pts + '"/><circle cx="' + (w - 2).toFixed(1)
     + '" cy="' + lastY + '" r="2" fill="' + color + '"/></svg>';
 }
-function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
 
-/* ---------------- 화면 1 · 대시보드 열기 ---------------- */
-/* 순위·점유율·증감은 기간 전체를 한 번에 센 값이다 — 새로 진입은 직전 같은 길이의 기간에 없던 대상. */
-function rowNote(r){
-  var notes = [r.note, r.isNew ? rangeLabel() + ' 새로 진입' : ''].filter(function(n){ return n; });
-  return notes.length ? ' <span class="meta">· ' + esc(notes.join(' · ')) + '</span>' : '';
+/* ---------------- 화면 dash (Dashboard.tsx) ---------------- */
+function syncDashControls(s){
+  var f = R(s, 'brief-form'); if(!f) return;
+  R(s, 'axis').value = state.axis;
+  R(s, 'range').value = state.range;
+  Array.prototype.forEach.call(R(s, 'unit').querySelectorAll('input[type=radio]'), function(i){
+    i.checked = (i.value === state.unit);
+    i.parentElement.hidden = !unitFits(i.value, state.range);
+  });
+  R(s, 'restore').checked = state.restore;
+  R(s, 'thresh').value = String(state.thresh);
+  R(s, 'only-new').checked = state.onlyNew;
+  R(s, 'spike-baseline').value = state.spikeBase;
 }
-function renderBrief(){
-  var list = rows();
+
+function renderDash(s){
   var ax = AXES[state.axis];
-  $('brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel() + ' 누적 · 추이 ' + unitLabel();
-  $('prev-label').textContent = '직전 ' + rangeLabel().replace('최근 ', '') + ' 대비';
-  $('tb-basis').textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
+  var list = ranked();
+  var sum = SUMMARY[state.axis];
+  syncDashControls(s);
+  var pill = document.querySelector('[data-role="tb-pill"]');
+  if(pill) pill.textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
 
-  var empty = (DATA[state.axis] || []).length === 0;
-  show($('s-empty-window'), empty);
-  $('empty-axis-name').textContent = ax.label;
+  /* 지표 */
+  R(s, 'm-items').textContent = sum ? sum.collected.toLocaleString('ko-KR') : '—';
+  var ch = R(s, 'm-change');
+  if(sum && sum.prev > 0){
+    var dd = (sum.collected - sum.prev) / sum.prev * 100;
+    ch.className = 'delta ' + dcls(dd);
+    ch.innerHTML = dd > 0.05 ? '&#9650; ' + dd.toFixed(1) + '%' : (dd < -0.05 ? '&#9660; ' + Math.abs(dd).toFixed(1) + '%' : '&ndash;');
+  } else { ch.className = 'delta fl'; ch.innerHTML = '&mdash;'; }
+  R(s, 'm-prev').textContent = '직전 ' + rangeLabel().replace('최근 ', '') + ' 대비';
+  R(s, 'm-analyzed').textContent = sum ? sum.analyzed.toLocaleString('ko-KR') : '—';
+  R(s, 'm-cov').textContent = sum ? sum.cov.toFixed(1) + '%' : '—';
+  R(s, 'm-low').textContent = sum ? sum.low.toFixed(1) + '%' : '—';
 
-  if(!list.length){
-    $('ranklist').innerHTML = '';
-    return;
-  }
-  var max = list[0].share;
-  $('ranklist').innerHTML = list.map(function(r, i){
-    return '<div class="rankrow">'
+  /* 상위 서술 대상 — 행을 누르면 그 대상의 추세 상세(trend)로 */
+  R(s, 'brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel() + ' 누적 · 추이 ' + unitLabel();
+  var empty = rows().length === 0;
+  show(R(s, 'empty-window'), empty);
+  R(s, 'empty-axis').textContent = ax.label;
+  var max = list.length ? rangeShare(list[0]) : 1;
+  R(s, 'ranklist').innerHTML = list.map(function(r, i){
+    var notes = [];
+    if(Math.abs(r.rawRank - (i + 1)) >= 2) notes.push('원시 카운트 ' + r.rawRank + '위 → 정규화 ' + (i + 1) + '위');
+    if(r.isNew) notes.push(rangeLabel() + ' 새로 진입');
+    return '<div class="rankrow" style="cursor:pointer" data-subject="' + esc(r.name) + '">'
       + '<div class="rk">' + (i + 1) + '</div>'
-      + '<div class="nm">' + esc(r.name)
-      + rowNote(r) + '</div>'
-      + '<div class="share"><span class="bar"><i style="width:'
-      + (r.share / max * 100).toFixed(0) + '%"></i></span><span class="pct">'
-      + r.share.toFixed(1) + '%</span></div>'
+      + '<div class="nm">' + esc(r.name) + (notes.length ? ' <span class="meta">· ' + esc(notes.join(' · ')) + '</span>' : '') + '</div>'
+      + '<div class="share"><span class="bar"><i style="width:' + (rangeShare(r) / max * 100).toFixed(0)
+      + '%"></i></span><span class="pct">' + rangeShare(r).toFixed(1) + '%</span></div>'
       + spark(r.s, scolor(r.d))
-      + '<div class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</div>'
-      + '</div>';
+      + '<div class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</div></div>';
   }).join('');
-}
 
-/* ---------------- 화면 2 · 어제 대비 변화 훑기 ---------------- */
-function renderDelta(){
-  var list = deltaRows();
-  var basis = BASIS[state.basis];
-  $('delta-title').textContent = rangeLabel() + ' 변화';
-  $('delta-sub').textContent = basis.label + ' 대비';
-  $('delta-count').textContent = list.length + '개 대상';
-  show($('s-no-baseline'), !basis.hasBaseline);
+  /* 변화 */
+  var drows = list.filter(function(r){
+    if(state.onlyNew && !r.isNew) return false;
+    return Math.abs(r.d) >= state.thresh;
+  });
+  R(s, 'delta-title').textContent = rangeLabel() + ' 변화';
+  R(s, 'delta-count').textContent = drows.length + '개 대상';
+  var nc = R(s, 'no-change');
+  show(nc, drows.length === 0);
+  R(s, 'deltalist').innerHTML = drows.map(function(r){
+    var on = state.target === r.name;
+    return '<button type="button" class="trow" data-subject="' + esc(r.name) + '" aria-pressed="' + on + '">'
+      + '<span class="nm">' + esc(r.name)
+      + (r.isNew ? ' <span class="badge b-pos"><i class="d"></i>신규</span>' : '') + '</span> '
+      + '<span class="dlt ' + dcls(r.d) + '" style="float:right">' + dtext(r.d) + '</span></button>';
+  }).join('');
+  var allAxis = state.axis === 'ALL';
+  show(R(s, 'spike-entry'), !allAxis);
+  show(R(s, 'pick-axis'), allAxis);
 
-  if(!list.length){
-    $('deltalist').innerHTML = '<div class="emptybox">이 조건에 걸리는 변화가 없습니다.</div>';
-  } else {
-    $('deltalist').innerHTML = list.map(function(r){
-      return '<button type="button" class="trow" data-target="' + esc(r.name) + '"'
-        + ' aria-pressed="' + (state.target && state.target.name === r.name ? 'true' : 'false') + '">'
-        + '<span class="nm">' + esc(r.name)
-        + (r.isNew ? ' <span class="badge b-pos"><i class="d"></i>신규</span>' : '')
-        + '</span> '
-        + '<span class="dlt ' + dcls(r.d) + '" style="float:right">' + dtext(r.d) + '</span>'
-        + '</button>';
-    }).join('');
-    Array.prototype.forEach.call($('deltalist').querySelectorAll('.trow'), function(b){
-      b.addEventListener('click', function(){ pick(b.getAttribute('data-target')); });
-    });
-  }
-  renderPick();
-}
-
-function pick(name){
-  var found = (DATA[state.axis] || []).filter(function(r){ return r.name === name; })[0];
-  state.target = found || null;
-  renderDelta();
-}
-
-function renderPick(){
-  var t = state.target;
-  show($('s-no-selection'), !t);
-  show($('pick-detail'), !!t);
-  $('cta-2').disabled = !t;
-  $('cta-2-hint').textContent = t
-    ? '‘' + t.name + '’ 을 들고 기간을 바꿔 봅니다.'
-    : '대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.';
-  if(!t) return;
-  $('pick-detail').innerHTML =
+  /* 고른 대상 */
+  var t = rows().filter(function(r){ return r.name === state.target; })[0] || null;
+  show(R(s, 'no-selection'), !t);
+  var pd = R(s, 'pick-detail');
+  show(pd, !!t);
+  pd.innerHTML = t ? (
       '<div class="kv"><span class="k">대상</span><span class="v">' + esc(t.name) + '</span></div>'
-    + '<div class="kv"><span class="k">점유율</span><span class="v">' + t.share.toFixed(1) + '%</span></div>'
-    + '<div class="kv"><span class="k">' + BASIS[state.basis].label + ' 대비</span><span class="v">'
-    + dtext(t.d) + '</span></div>'
+    + '<div class="kv"><span class="k">점유율</span><span class="v">' + rangeShare(t).toFixed(1) + '%</span></div>'
+    + '<div class="kv"><span class="k">직전 동일 구간 대비</span><span class="v">' + dtext(t.d) + '</span></div>'
     + '<div class="kv"><span class="k">진입</span><span class="v">'
-    + (t.isNew ? rangeLabel() + ' 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>'
-    + '<div class="sentbar" style="margin-top:14px">'
-    + '<i class="s-pos" style="width:38%"></i><i class="s-neu" style="width:42%"></i>'
-    + '<i class="s-neg" style="width:15%"></i><i class="s-na" style="width:5%"></i></div>';
+    + (t.isNew ? rangeLabel() + ' 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>') : '';
+
+  /* 튀는 값 */
+  var sp = SPIKES[state.axis] || [];
+  var days = state.spikeBase === '30d' ? 'b30' : 'b7';
+  R(s, 'spike-sub').textContent = ax.label + ' 축 · 평소 대비 배수 순';
+  var sorted = sp.slice().sort(function(a, b){ return b.raw / b[days] - a.raw / a[days]; });
+  var pickName = state.spikePick && sorted.some(function(r){ return r.name === state.spikePick; })
+    ? state.spikePick : (sorted[0] ? sorted[0].name : null);
+  R(s, 'spike-list').innerHTML = sorted.map(function(r, i){
+    var m = r.raw / r[days];
+    return '<button type="button" class="spk-row" data-spike="' + esc(r.name) + '" aria-pressed="' + (r.name === pickName) + '">'
+      + '<span class="rk">' + (i + 1) + '</span><span class="nm">' + esc(r.name) + '</span>'
+      + '<span class="meta">' + r.raw + '건 · 평소 ' + r[days].toFixed(1) + '건</span>'
+      + '<span class="dlt ' + (m >= 2 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span>'
+      + '<span class="rk">' + (m >= 2 ? '급등' : '') + '</span></button>';
+  }).join('');
+  show(R(s, 'spike-empty'), !sorted.length);
+  R(s, 'spike-empty-axis').textContent = ax.label;
+  var cp = sorted.filter(function(r){ return r.name === pickName; })[0];
+  R(s, 'spike-pick').textContent = cp ? cp.name : '—';
+  R(s, 'spike-mult').textContent = cp ? '×' + (cp.raw / cp[days]).toFixed(1) + ' (평소 ' + cp[days].toFixed(1) + '건)' : '—';
+  show(R(s, 'spike-go').parentElement, !!cp && !allAxis);
+  show(R(s, 'spike-pick-axis'), !!cp && allAxis);
+
+  /* 기간 순위 — 기간이 바뀌면 순위가 실제로 뒤집히고, 고른 대상은 하이라이트로 유지된다 */
+  R(s, 'win-sub').textContent = rangeLabel() + ' 누적';
+  R(s, 'win-tag').textContent = rangeKey();
+  R(s, 'keep-note').textContent = t ? '‘' + t.name + '’ 으로 강조' : '그대로 강조';
+  show(R(s, 'no-rank'), list.length === 0);
+  R(s, 'winlist').innerHTML = list.length ? '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
+    + '<th class="num">' + rangeLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
+    + list.map(function(r, i){
+        var on = state.target === r.name;
+        return '<tr' + (on ? ' class="on"' : '') + '><td class="num">' + (i + 1) + '</td>'
+          + '<td>' + esc(r.name) + (on ? ' <span class="tag">고른 대상</span>' : '') + '</td>'
+          + '<td class="num">' + rangeShare(r).toFixed(1) + '%</td>'
+          + '<td class="num"><span class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' : '';
+
+  /* 단계 CTA */
+  var cta = R(s, 'cta-pick');
+  if(cta){
+    cta.disabled = !t;
+    R(s, 'cta-pick-hint').textContent = t ? '‘' + t.name + '’ 을 들고 기간을 바꿔 봅니다.' : '대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.';
+  }
+  var drill = R(s, 'cta-drill');
+  if(drill) drill.textContent = t ? '‘' + t.name + '’ 추세 상세 열기' : '1위 대상의 추세 상세 열기';
 }
 
-/* ---------------- 화면 3 · 기간·단위 조정 ---------------- */
-function rangeLabel(){
-  return state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일';
+/* ---------------- 화면 trend (Trend.tsx) ---------------- */
+var STROKES = ['var(--ax-us)', 'var(--ax-gl)', 'var(--ink-3)'];
+function trendSeries(){
+  var list = rows(state.trAxis);
+  var selName = state.trSubject && list.some(function(r){ return r.name === state.trSubject; })
+    ? state.trSubject : (list[0] ? list[0].name : null);
+  return list.slice(0, 4).map(function(r){ return { r: r, selected: r.name === selName }; })
+    .concat(list.slice(4).filter(function(r){ return r.name === selName; }).map(function(r){ return { r: r, selected: true }; }));
 }
-function unitLabel(){
-  return state.unit === 'hour' ? '시간 단위' : (state.unit === 'week' ? '주 단위' : '일 단위');
+function strokeOf(series, i){
+  if(series[i].selected) return 'var(--primary)';
+  var n = 0; for(var k = 0; k < i; k++) if(!series[k].selected) n++;
+  return STROKES[n % STROKES.length];
 }
-function rangeKey(){
-  return state.range === '1' ? '24h' : state.range + 'd';
-}
-/* 기간과 길이가 같거나 긴 단위는 추이를 한 칸으로 그린다 — 고를 수 없게 선택지에서 뺀다. */
-var UNIT_DAYS = { hour: 1 / 24, day: 1, week: 7 };
-function unitFits(unit, range){ return UNIT_DAYS[unit] < Number(range); }
-
-function renderWindow(){
-  var list = rows();
-  $('win-sub').textContent = rangeLabel() + ' 누적';
-  $('win-basis').textContent = rangeKey();
-  $('tb-basis').textContent = AXES[state.axis].label + ' · ' + rangeLabel() + ' · ' + unitLabel();
-  show($('s-low-sample'), state.unit === 'hour');
-  $('keep-note').textContent = state.target ? '‘' + state.target.name + '’ 으로 강조' : '그대로 강조';
-
-  /* 기간이 바뀌면 순위가 실제로 뒤집힌다 — 고른 대상은 하이라이트로 유지된다. */
-  var ordered = list.slice().sort(function(a, b){ return rangeShare(b) - rangeShare(a); });
-  if(!ordered.length){
-    $('winlist').innerHTML = '<div class="emptybox">이 축에는 이 기간에 표시할 대상이 없습니다.</div>';
+function renderTrend(s){
+  var list = rows(state.trAxis);
+  var base = s.querySelector('.screen[data-screen="trend"]:not([data-state])');
+  var emptyScr = s.querySelector('.screen[data-state="trend-empty"]');
+  var a = AXES[state.trAxis];
+  Array.prototype.forEach.call(s.querySelectorAll('[data-role="tr-axis"] input'), function(i){ i.checked = (i.value === state.trAxis); });
+  RA(s, 'tr-axpill').forEach(function(p){ p.className = 'axpill ' + a.cls; p.innerHTML = '<i class="fl"></i>' + a.code; });
+  R(s, 'tr-compare').checked = state.overlay;
+  if(!list.length){
+    base.hidden = true; emptyScr.hidden = false;
+    R(emptyScr, 'tr-empty-axis').textContent = a.label;
     return;
   }
-  $('winlist').innerHTML = '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
-    + '<th class="num">' + rangeLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
-    + ordered.map(function(r, i){
-        var v = rangeShare(r);
-        var on = state.target && state.target.name === r.name;
-        return '<tr' + (on ? ' style="background:var(--primary-soft)"' : '') + '>'
-          + '<td class="num">' + (i + 1) + '</td>'
-          + '<td>' + esc(r.name) + (on ? ' <span class="tag">고른 대상</span>' : '') + '</td>'
-          + '<td class="num' + (state.unit === 'hour' ? ' thin' : '') + '">' + v.toFixed(1) + '%</td>'
-          + '<td class="num"><span class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</span></td>'
-          + '</tr>';
-      }).join('')
-    + '</tbody></table>';
-}
-function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
-function rangeShare(r){
-  return state.range === '1' ? r.s[r.s.length - 1] : (state.range === '30' ? avg(r.s) : r.share);
-}
+  if(!emptyScr.hasAttribute('data-jm-forced')){ emptyScr.hidden = true; }
+  if(!s.querySelector('.screen[data-screen="trend"][data-state]:not([hidden])')) base.hidden = false;
 
-/* ---------------- 화면 4 · 추세 상세 ---------------- */
-function trendSeries(){
-  var base = state.target ? [state.target] : (rows().slice(0, 1));
-  if(!$('tr-compare') || !$('tr-compare').checked) return base;
-  var extra = rows().filter(function(r){
-    return !base.length || r.name !== base[0].name;
-  }).slice(0, 2);
-  return base.concat(extra);
-}
-
-function drawTrend(){
   var series = trendSeries();
-  var x0 = 52, x1 = 716, base = 176, top = 22, Hh = base - top;
-  var colors = ['var(--ax-kr)', 'var(--ax-us)', 'var(--ax-gl)'];
-  var all = series.reduce(function(acc, s){ return acc.concat(s.s); }, [0]);
-  var max = Math.max.apply(null, all) * 1.15 || 1;
-  var n = series.length ? series[0].s.length : 1;
-  var svg = '';
-  [0, 0.5, 1].forEach(function(p){
-    var y = base - p * Hh;
-    svg += '<line class="gridline ' + (p === 0 ? 'zero' : '') + '" x1="' + x0 + '" y1="' + y
-        + '" x2="' + x1 + '" y2="' + y + '"/>';
-    svg += '<text class="axlab" x="' + (x0 - 8) + '" y="' + (y + 3) + '" text-anchor="end">'
-        + (max * p).toFixed(0) + '%</text>';
-  });
-  for(var i = 0; i < n; i++){
-    var lx = x0 + (x1 - x0) * (n === 1 ? 0 : i / (n - 1));
-    var lbl = i === n - 1 ? '지금' : 'T-' + (n - 1 - i);
-    svg += '<text class="axlab" x="' + lx.toFixed(1) + '" y="196" text-anchor="middle">' + lbl + '</text>';
-  }
-  series.forEach(function(s, si){
-    var color = colors[si % colors.length];
-    var d = s.s.map(function(v, i){
-      var lx = x0 + (x1 - x0) * (s.s.length === 1 ? 0 : i / (s.s.length - 1));
-      var ly = base - (v / max) * Hh;
-      return (i ? 'L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
-    }).join(' ');
-    svg += '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.4" stroke-linejoin="round"/>';
-    s.s.forEach(function(v, i){
-      var lx = x0 + (x1 - x0) * (s.s.length === 1 ? 0 : i / (s.s.length - 1));
-      var ly = base - (v / max) * Hh;
-      svg += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2.6" fill="' + color + '"/>';
-    });
-  });
-  /* 기여 뉴스 표기 — 상승 시작 지점에 마크를 얹는다(어디서부터 올라왔는지 읽히게). */
-  var marks = $('tr-marks') ? $('tr-marks').value : 'off';
-  if(marks !== 'off' && series.length){
-    var s0 = series[0];
-    s0.s.forEach(function(v, i){
-      if(i === 0) return;
-      var rising = v > s0.s[i - 1];
-      if(marks === 'peak' && !(rising && (i === 1 || s0.s[i - 1] <= s0.s[i - 2]))) return;
-      if(marks === 'all' && !rising) return;
-      var lx = x0 + (x1 - x0) * (i / (s0.s.length - 1));
-      var ly = base - (v / max) * Hh;
-      svg += '<circle class="mark" cx="' + lx.toFixed(1) + '" cy="' + (ly - 11).toFixed(1)
-          + '" r="4" fill="var(--accent)" opacity="0.85"/>';
-    });
-  }
-  $('trendchart').innerHTML = svg;
-  $('trend-legend').innerHTML = series.map(function(s, si){
-    return '<span><i class="d" style="background:' + colors[si % colors.length] + '"></i>'
-      + esc(s.name) + '</span>';
-  }).join('');
-  $('trend-title').textContent = (state.target ? state.target.name + ' · ' : '') + '추세 상세';
-  $('trend-sub').textContent = AXES[state.axis].label + ' 축 · ' + rangeLabel() + ' · ' + unitLabel()
-    + ' 를 그대로 승계했습니다';
-  $('cmp-sub').textContent = rangeLabel() + ' · ' + AXES[state.axis].label + ' 축';
+  var sel = series.filter(function(x){ return x.selected; })[0];
+  var drawn = state.overlay ? series : [sel];
+  R(s, 'tr-sub').textContent = '일 단위 · 정규화 비율(%) · ' + DAYS[0] + ' ~ ' + DAYS[DAYS.length - 1];
 
-  var tbl = series.map(function(s){
-    return '<tr><td>' + esc(s.name) + '</td>'
-      + '<td class="num">' + s.share.toFixed(1) + '%</td>'
-      + '<td class="num">' + avg(s.s).toFixed(1) + '%</td>'
-      + '<td class="num"><span class="dlt ' + dcls(s.d) + '">' + dtext(s.d) + '</span></td></tr>';
+  var x0 = 56, x1 = 716, top = 20, bl = 220;
+  var peak = Math.max.apply(null, series.reduce(function(acc, x){ return acc.concat(x.r.s); }, [1]));
+  var ceil = Math.ceil(peak / 5) * 5;
+  var X = function(i){ return x0 + i * (x1 - x0) / (DAYS.length - 1); };
+  var Y = function(v){ return bl - v / ceil * (bl - top); };
+  var svg = '';
+  for(var g = 0; g <= 5; g++){
+    var v = ceil * g / 5;
+    svg += '<line class="gridline' + (g === 0 ? ' zero' : '') + '" x1="' + x0 + '" y1="' + Y(v) + '" x2="' + x1 + '" y2="' + Y(v) + '"/>'
+      + '<text class="axlab" x="' + (x0 - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + (g === 0 ? '0' : v.toFixed(0) + '%') + '</text>';
+  }
+  DAYS.forEach(function(d, i){ svg += '<text class="axlab" x="' + X(i) + '" y="' + (bl + 20) + '" text-anchor="middle">' + d.slice(5) + '</text>'; });
+  drawn.forEach(function(x){
+    var i = series.indexOf(x), c = strokeOf(series, i);
+    svg += '<polyline fill="none" stroke="' + c + '" stroke-width="' + (x.selected ? 2.6 : 2) + '"'
+      + (x.selected ? '' : ' stroke-dasharray="2 4"') + ' points="'
+      + x.r.s.map(function(v, k){ return X(k).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ') + '"/>';
+    if(x.selected) svg += '<circle fill="' + c + '" cx="' + X(DAYS.length - 1) + '" cy="' + Y(x.r.s[x.r.s.length - 1]).toFixed(1) + '" r="4.5"/>';
+  });
+  R(s, 'tr-chart').innerHTML = svg;
+  R(s, 'tr-legend').innerHTML = drawn.map(function(x){
+    return '<span><i class="d" style="background:' + strokeOf(series, series.indexOf(x)) + '"></i>' + esc(x.r.name) + '</span>';
   }).join('');
-  $('trendtable').innerHTML = '<thead><tr><th>대상</th><th class="num">현재 점유율</th>'
-    + '<th class="num">구간 평균</th><th class="num">변화</th></tr></thead><tbody>' + tbl + '</tbody>';
+  R(s, 'tr-cur').innerHTML = sel.r.s[sel.r.s.length - 1].toFixed(1) + '<small> %</small>';
+  var last = sel.r.s[sel.r.s.length - 1] - sel.r.s[sel.r.s.length - 2];
+  var td = R(s, 'tr-delta');
+  td.className = 'delta ' + dcls(last); td.innerHTML = dtext(last);
+  show(R(s, 'tr-spike-go').parentElement, state.trAxis !== 'ALL');
+  R(s, 'tr-table').innerHTML = '<thead><tr><th>대상</th><th class="num">현재 점유율</th><th class="num">구간 평균</th>'
+    + '<th class="num">직전 일 대비</th></tr></thead><tbody>'
+    + series.map(function(x, i){
+        var dl = x.r.s[x.r.s.length - 1] - x.r.s[x.r.s.length - 2];
+        return '<tr class="click' + (x.selected ? ' on' : '') + '" data-subject="' + esc(x.r.name) + '" aria-selected="' + x.selected + '">'
+          + '<td><i class="d" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + strokeOf(series, i) + '"></i>' + esc(x.r.name) + '</td>'
+          + '<td class="num">' + x.r.s[x.r.s.length - 1].toFixed(1) + '%</td>'
+          + '<td class="num">' + avg(x.r.s).toFixed(1) + '%</td>'
+          + '<td class="num"><span class="delta ' + dcls(dl) + '">' + dtext(dl) + '</span></td></tr>';
+      }).join('') + '</tbody>';
+}
+
+function render(step){
+  var s = sec(step); if(!s) return;
+  if(DASH_STEPS.indexOf(step) >= 0) renderDash(s); else renderTrend(s);
+}
+
+/* 기간·단위를 바꾸면 기간 순위가 재집계 상태를 거친다(구현의 「다시 집계하는 중」). */
+var reloadTimer = null;
+function applyWindow(range, unit){
+  if(!unitFits(unit, range)) unit = ['week', 'day', 'hour'].filter(function(u){ return unitFits(u, range); })[0];
+  state.range = range; state.unit = unit;
+  var s = sec(cur);
+  render(cur);
+  var rl = R(s, 'reloading'), wl = R(s, 'winlist');
+  show(rl, true); show(wl, false);
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(function(){ show(rl, false); show(wl, true); render(cur); }, 300);
 }
 
 /* ---------------- 여정 워커 ---------------- */
 (function(){
-  var order = ['STP-open-brief','STP-scan-delta','STP-adjust-window','STP-drill-trend'];
-  var secs = {}, rails = {};
-  order.forEach(function(id){
-    secs[id] = document.getElementById(id);
-    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
-  });
-  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
 
   function go(id, push){
-    if(order.indexOf(id) < 0) return;
+    if(ORDER.indexOf(id) < 0) return;
+    var from = cur;
     cur = id;
-    var i = order.indexOf(id);
-    order.forEach(function(o, k){
-      secs[o].hidden = (o !== id);
-      if(rails[o]){
-        rails[o].classList.toggle('on', o === id);
-        rails[o].classList.toggle('done', k < i);
-      }
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if(rails[o]){ rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
     });
     if(prevBtn) prevBtn.disabled = (i === 0);
-    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
-    if(id === 'STP-adjust-window') renderWindow();
-    if(id === 'STP-drill-trend') drawTrend();
+    if(nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    /* dash → trend 로 넘어가면 고른 대상과 축을 그대로 승계한다(구현의 /trend?axis&subject) */
+    if(id === 'STP-drill-trend' && DASH_STEPS.indexOf(from) >= 0){
+      state.trAxis = state.axis;
+      state.trSubject = state.target || (ranked()[0] && ranked()[0].name) || null;
+    }
+    JM.enter(id);
+    render(id);
     if(push && location.hash !== '#' + id) location.hash = '#' + id;
   }
   window.__journeyGo = go;
 
-  document.querySelectorAll('[data-advance]').forEach(function(b){
-    b.addEventListener('click', function(){
-      if(b.disabled) return;
-      go(b.getAttribute('data-advance'), true);
-    });
-  });
-  document.querySelectorAll('[data-goto-step]').forEach(function(b){
-    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
-  });
-  document.querySelectorAll('[data-goto]').forEach(function(a){
-    var parts = (a.getAttribute('data-goto') || '').split('#');
-    if(parts[0] === 'JRN-daily-scan'){
-      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-goto],.rankrow[data-subject],.trow[data-subject],.spk-row,tr.click[data-subject]') : null;
+    if(!el) return;
+    if(el.hasAttribute('data-advance')){ if(!el.disabled) go(el.getAttribute('data-advance'), true); return; }
+    if(el.hasAttribute('data-goto-step')){ go(el.getAttribute('data-goto-step'), true); return; }
+    if(el.hasAttribute('data-goto')){
+      var p = el.getAttribute('data-goto').split('#');
+      if(p[0] === 'JRN-daily-scan'){ e.preventDefault(); go(p[1], true); }
+      return;
     }
+    if(el.classList.contains('rankrow')){ state.target = el.getAttribute('data-subject'); go('STP-drill-trend', true); return; }
+    if(el.classList.contains('trow')){ state.target = el.getAttribute('data-subject'); render(cur); return; }
+    if(el.classList.contains('spk-row')){ state.spikePick = el.getAttribute('data-spike'); render(cur); return; }
+    if(el.matches('tr.click')){ state.trSubject = el.getAttribute('data-subject'); render(cur); return; }
   });
-  if(prevBtn) prevBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
-  if(nextBtn) nextBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  document.addEventListener('submit', function(e){ e.preventDefault(); });
+  function onField(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    var host = el.closest('[data-role="unit"],[data-role="tr-axis"]');
+    if(host && host.getAttribute('data-role') === 'unit'){ applyWindow(state.range, el.value); return; }
+    if(host && host.getAttribute('data-role') === 'tr-axis'){ state.trAxis = el.value; state.trSubject = null; render(cur); return; }
+    if(role === 'axis'){ state.axis = el.value; state.target = null; state.spikePick = null; render(cur); return; }
+    if(role === 'range'){ applyWindow(el.value, state.unit); return; }
+    if(role === 'restore'){ state.restore = el.checked; return; }
+    if(role === 'thresh'){ state.thresh = Number(el.value) || 0; render(cur); return; }
+    if(role === 'only-new'){ state.onlyNew = el.checked; render(cur); return; }
+    if(role === 'spike-baseline'){ state.spikeBase = el.value; render(cur); return; }
+    if(role === 'tr-compare'){ state.overlay = el.checked; render(cur); return; }
+  }
+  document.addEventListener('change', onField);
+  document.addEventListener('input', function(e){ if(e.target.getAttribute('data-role') === 'thresh') onField(e); });
+
+  if(prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i > 0) go(ORDER[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i < ORDER.length - 1) go(ORDER[i + 1], true); });
 
   function fromHash(){
-    var h = (location.hash || '').replace(/^#/, '');
-    go(order.indexOf(h) >= 0 ? h : order[0], false);
+    var p = JM.parseHash();
+    go(ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0], false);
+    if(p.state) JM.showState(cur, p.state);
   }
   window.addEventListener('hashchange', fromHash);
-
-  /* ---- 제품 컨트롤 배선 ---- */
-  $('axis').addEventListener('change', function(){
-    state.axis = this.value;
-    state.target = null;
-    renderBrief();
-    renderDelta();
-  });
-  $('restore').addEventListener('change', function(){
-    $('foot-collected').textContent = this.checked ? '07:00 KST' : '지금';
-  });
-  /* 기간·단위는 조회 조건 카드 하나의 컨트롤이다 — 화면 1 과 화면 3 은 같은 카드를 보여 주므로
-     어느 쪽에서 바꿔도 state 하나를 바꾸고 양쪽 컨트롤을 그 값으로 맞춘다. 축처럼 고르는 즉시 반영한다. */
-  function syncWindowControls(){
-    $('brief-range').value = state.range;
-    $('range').value = state.range;
-    ['brief-unit', 'unit'].forEach(function(n){
-      document.querySelectorAll('input[name="' + n + '"]').forEach(function(i){
-        i.checked = (i.value === state.unit);
-        i.parentElement.hidden = !unitFits(i.value, state.range);
-      });
-    });
-  }
-  function applyWindow(range, unit){
-    if(!unitFits(unit, range)){
-      unit = ['week', 'day', 'hour'].filter(function(u){ return unitFits(u, range); })[0];
-    }
-    state.range = range;
-    state.unit = unit;
-    syncWindowControls();
-    renderBrief();
-    renderDelta();
-    show($('s-loading'), true);
-    setTimeout(function(){
-      show($('s-loading'), false);
-      renderWindow();
-      drawTrend();
-    }, 300);
-  }
-  function wireWindow(form, rangeId, unitName){
-    form.addEventListener('submit', function(e){ e.preventDefault(); });
-    form.addEventListener('change', function(e){
-      if(e.target.id !== rangeId && e.target.name !== unitName) return;
-      var u = form.querySelector('input[name="' + unitName + '"]:checked');
-      applyWindow($(rangeId).value, u ? u.value : 'day');
-    });
-  }
-  wireWindow($('brief-form'), 'brief-range', 'brief-unit');
-  wireWindow($('win-form'), 'range', 'unit');
-
-  $('delta-basis').addEventListener('change', function(){
-    state.basis = this.value;
-    renderDelta();
-  });
-  $('delta-thresh').addEventListener('input', function(){
-    var v = parseFloat(this.value);
-    state.thresh = isNaN(v) ? 0 : v;
-    renderDelta();
-  });
-  $('only-new').addEventListener('change', function(){
-    state.onlyNew = this.checked;
-    renderDelta();
-  });
-  $('delta-form').addEventListener('submit', function(e){ e.preventDefault(); });
-
-
-  $('tr-compare').addEventListener('change', drawTrend);
-  $('tr-marks').addEventListener('change', drawTrend);
-  $('trend-form').addEventListener('submit', function(e){ e.preventDefault(); });
-
-  renderBrief();
-  renderDelta();
-  renderWindow();
-  drawTrend();
   fromHash();
 })();
 </script>

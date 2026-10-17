@@ -58,7 +58,7 @@
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
 | `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` |
-| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
+| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음 — 단계는 라우트 없는 화면 `integrity`) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
 | `JRN-logic-backfill` | `docs/mockups/JRN-logic-backfill.html` | `reprocess` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` |
 | `JRN-judgment-debug` | `docs/mockups/JRN-judgment-debug.html` | (없음) | `STP-pin-record`, `STP-read-exchange`, `STP-check-input`, `STP-scan-run`, `STP-route-cause` |
 
@@ -92,8 +92,6 @@
 | `STP-drilldown-articles` | `fairness` | 기여 뉴스 목록 (소스·수집 시각·본문 중복 표기). 이 단계는 `#174`(2026-09-27, AC3.10)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(`STP-verify-in-trend`·`STP-backfill` 행과 같은 규약) |
 | `STP-open-origin` | `trace` | 원문 역추적 · 보존 원문 · 링크 상태 배지 |
 | `STP-judge` | `trace` | 판정과 종료. 여정 문서가 이 단계의 터치포인트를 「`trace.html` / 제품 외부(리포트·메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 판정 화면으로 흡수했다. 판정 결과의 **영속화(검증 이력·플래그)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다. |
-| (페이지 수준) 토프바 — 크럼 `급등 검증` · `.ctl` pill `tb-basis` | `fairness` | **단계 밖 장치.** `<header class="topbar">`(`:503-511`)에 있어 어느 `data-step` 에도 들어 있지 않고 페이지 전체에 걸린다 — 위 규약의 페이지 수준 절대로 이 페이지가 흡수한 두 화면 중 더 앞선 `fairness` 가 받는다. 단계 하나를 빌려준 `dash` 에는 얹지 않는다(그 토프바는 `JRN-daily-scan` 의 것이다). 구현 편차는 설계 트래커 「페이지 수준 토프바 부재」 행이 대조한다. |
-| (페이지 수준) `.branches` 분기 표 — `검증 중 이런 상황이라면` | `fairness` | **단계 밖 장치.** 마지막 섹션 `STP-judge` 가 닫힌 뒤(`:830-870`)에 오므로 어느 `data-step` 에도 들어 있지 않다 — 같은 귀속 근거로 `fairness` 가 받는다. 다섯 갈래의 목적지는 `trace`·`fairness`·`reprocess` 로 흩어지지만 장치를 거는 자리는 하나다. 같은 장치가 `JRN-logic-backfill` 에서는 단계 **안**에 있어 그 단계의 화면(`reprocess`)이 받았다. 구현 편차는 설계 트래커 「페이지 수준 분기 표 … 전면 부재」 행이 대조한다. |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -104,11 +102,11 @@
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
-| `STP-spot-anomaly` | `reprocess` | 무결성 패널. 시도·성공·실패·중복을 **네 칸으로 분리**해 「시도 0(스케줄 미실행)」과 「성공 0(소스 오류)」을 구분한다 — 여정 문서가 이 단계의 페인포인트로 적은 구분이다 |
-| `STP-locate-gap` | `reprocess` | 무결성 테이블. 축·소스·시간 3중 필터 |
-| `STP-diagnose-source` | `reprocess` | 상태 배지 + 수집 메타데이터. 원인 판정에 따라 필요한 메타만 남긴다 |
-| `STP-backfill` | `reprocess` | 실행 컨트롤. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — `reprocess`는 `#94`(2026-09-21, 슬라이스 10 전반부)로 `App.tsx`의 `BUILT`에 들었다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(이전 문면 「`reprocess` 화면 자체가 `BUILT` 밖이라 목업↔구현 대조는 아직 열리지 않는다」는 그 커밋 이후 사실과 어긋났고 rct_20260921-0003이 정정했다). 이 단계의 그릇은 아직 구현에 없고(허용목록 `STP-backfill` 행), 세우는 일은 `docs-impl` 몫이다 |
-| `STP-verify-integrity` | `reprocess` | 보정 전후 비교 패널과 이력 기록. 보정 이력의 **영속화는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
+| `STP-spot-anomaly` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 무결성 패널. 시도·성공·실패·중복을 **네 칸으로 분리**해 「시도 0(스케줄 미실행)」과 「성공 0(소스 오류)」을 구분한다 — 여정 문서가 이 단계의 페인포인트로 적은 구분이다 |
+| `STP-locate-gap` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 무결성 테이블. 축·소스·시간 3중 필터 |
+| `STP-diagnose-source` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 상태 배지 + 수집 메타데이터. 원인 판정에 따라 필요한 메타만 남긴다 |
+| `STP-backfill` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 실행 컨트롤. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — `reprocess`는 `#94`(2026-09-21, 슬라이스 10 전반부)로 `App.tsx`의 `BUILT`에 들었다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(이전 문면 「`reprocess` 화면 자체가 `BUILT` 밖이라 목업↔구현 대조는 아직 열리지 않는다」는 그 커밋 이후 사실과 어긋났고 rct_20260921-0003이 정정했다). 이 단계의 그릇은 아직 구현에 없고(허용목록 `STP-backfill` 행), 세우는 일은 `docs-impl` 몫이다 |
+| `STP-verify-integrity` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 보정 전후 비교 패널과 이력 기록. 보정 이력의 **영속화는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -131,10 +129,12 @@
 > 일어난다 — `JRN-logic-backfill` 이관으로 그 조건이 충족돼 `reprocess.html` 을 삭제했다. 화면 id 행은 규약대로
 > 존속하고 파일만 흡수한 여정 페이지로 옮겨간다.
 >
-> **한 화면의 귀속 단계가 두 여정 페이지에 흩어진다** — `JRN-ingestion-recovery` 의 다섯 단계도 `reprocess` 귀속이고
-> `JRN-logic-backfill` 의 다섯 단계도 그렇다. `trend` 가 `JRN-daily-scan` 과 `JRN-axis-contrast` 에 흩어진 것과 같은
-> 모양이며, 「Mockup 파일」 표의 파일 칸은 그중 **그 화면의 이름을 가진 여정**(여기서는 `JRN-logic-backfill`)을 적는다.
-> 각 여정 페이지는 같은 화면을 자기 여정의 맥락으로 다시 그린 **원본**이지 복제가 아니다(규칙 2의 중복이 아니다).
+> **한 화면의 귀속 단계가 여러 여정 페이지에 흩어질 수 있다** — `trend` 가 `JRN-daily-scan` 과 `JRN-axis-contrast` 에,
+> `dash` 가 `JRN-daily-scan` 과 `JRN-spike-verification` 에 흩어진 것이 그 모양이다. 「Mockup 파일」 표의 파일 칸은 그중
+> **그 화면의 이름을 가진 여정**을 적는다. 각 여정 페이지는 같은 화면을 자기 여정의 맥락으로 다시 그리되, 요건 9 이후로는
+> **구조가 같아야 한다**(같은 `data-role` 집합 — 게이트 R14). 바뀌는 것은 보이는 데이터·진입 맥락·전진 행동뿐이다.
+> `JRN-ingestion-recovery` 의 다섯 단계는 2026-10-17 까지 `reprocess` 귀속이었다 — 재처리 콘솔과 구조가 달라 라우트 없는
+> 화면 `integrity` 로 분리했다.
 
 **`fairness`는 2026-09-20(`rct_20260920-0001`, 슬라이스 8)로, `trace`는 같은 날(`rct_20260920-0002`,
 슬라이스 9)로 둘 다 `BUILT`에 들어왔다** — 이 여정 페이지를 공유하는 두 화면이 모두 구현됐으므로 이 절의
@@ -182,131 +182,428 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 마찬가지로 R11 이 트래커 「문서 목록」의 mockup 파일 등재를 실파일과 양방향 대조한다 — 흡수로 삭제된
 화면 파일이 목록에 남거나, 새 여정 페이지가 목록에서 빠지는 것을 잡는다.
 
-### 상태 변형 등재 (규칙 5(e))
+### 화면·상태 인벤토리 등재 (규칙 5(e) · 요건 9)
 
-규칙 5(e)는 "각 화면이 정상 경로 한 벌로 끝나지 않을 것"을 요구하고, 여정 문서에 분기·예외 서술이 있으면
-그것이 최소 집합이라고 정한다. 아래가 각 여정 페이지가 그린 상태의 **단일 등재**이며, 하네스는 기대값을
-페이지가 아니라 이 표에서 읽는다(페이지에서 읽으면 자기참조라 어떤 뮤테이션도 통과한다).
+여정 페이지는 **구현의 기준**이다. 여정 문서는 어떤 화면이 어떤 순서로 이어지는지를 정하고, 화면 하나가 어떤
+모습인지(요소·상태 전부)는 실제로 구현될 화면 — PRD·AC, 이미 구현된 `web/src/screens/*.tsx`, 디자인 시스템 —
+이 정한다. 그래서 각 단계는 여정 경로의 단면이 아니라 **구현 화면 전체**를 그린다(앱 크롬·여정 밖 행동 포함).
+같은 화면이 여러 단계·여러 여정에 나오면 어디서든 구조가 같다 — 바뀌는 것은 보이는 데이터와 진입 맥락뿐이다.
+
+여정마다 두 표를 둔다. 하네스와 정적 게이트는 기대값을 페이지가 아니라 이 표에서 읽는다(페이지에서 읽으면
+자기참조라 어떤 뮤테이션도 통과한다).
+
+- **화면 표** (`| 단계 | 화면 id | 근거 |`) — 단계가 지나가는 화면. 페이지에서는 `.screen[data-screen][data-title]`.
+  화면 id 는 `web/src/shell/nav.ts` 의 `SCREENS` id 이거나 아래 「라우트 없는 화면 id」 다.
+- **상태 표** (`| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |`) — 그 화면이 실제로 가질 상태
+  (빈·로딩·오류·0건·검증 실패·제출 중 등). 방식이 `화면 교체`면 `.screen[data-state]`, `얹힘`이면 화면 안의
+  `[data-state]` 다. 상태 id 는 페이지 안에서 유일하므로, 여러 단계에 걸친 화면의 상태는 **그 화면이 그 여정에서
+  처음 나오는 단계**(데이터로 도달하는 상태는 그 상황이 생기는 단계)에 둔다. 모든 상태는 `#<단계>/<상태 id>`
+  딥링크로 바로 열린다.
+- **의도적 제외** — 그리지 않기로 한 화면·상태와 사유. 없으면 「없음」. 비워 두면 확인하지 않은 것과 구별되지 않는다.
+
+근거 칸의 순서: 여정 문서의 시스템 응답·연결 AC → 구현 화면 코드 → 디자인 시스템 패턴 → 「가정」.
+**근거가 하나도 없는 표면은 그리지 않는다**(2026-10-17, 요건 9 도입 때 목업 전용 표면을 걷어냈다 —
+걷어낸 목록은 여정별 「걷어낸 목업 전용 표면」).
+
+라우트 없는 화면 id: `integrity`
 
 #### `JRN-daily-scan`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `empty-window` | 밤사이 수집이 들어오지 않은 축 — 0이 아니라 「데이터 없음」으로 두고 마지막 정상 수집 시각을 표기 | 여정 문서 §4 1행 | 화면 1의 「축」 `<select>` 를 수집이 비어 있는 축(전세계)으로 바꾼다 |
-| `no-baseline` | 비교 기준 구간에 저장된 값이 없어 증감을 계산할 수 없음 — 증감 칸을 0이 아니라 `—` 로 둔다 | 이 task 결정(여정 문서 §4 1행의 「무응답과 0을 구분」 원칙을 증감 축으로 확장) | 화면 2의 「비교 기준 구간」을 「전주 동요일」로 선택 |
-| `no-selection` | 대상 미선택 — 기간을 바꿔 볼 대상이 정해지지 않음 | 이 task 결정 | 화면 2 진입 직후(오른쪽 「고른 대상」 패널) |
-| `loading` | 고른 단위로 재집계 중 | 이 task 결정 | 화면 3에서 기간이나 단위를 바꾼다(고르는 즉시 반영) |
-| `low-sample` | 시간 단위에서 구간당 표본 부족 — 해당 구간을 흐리게 그리고 순위 해석에서 제외 | 이 task 결정(여정 문서 §4의 「단위를 바꿀 때마다 순위가 뒤집히면 판단이 서지 않는다」 페인포인트 대응) | 화면 3에서 단위를 「시간」으로 바꾼다 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-open-brief` | `dash` | AC3.2 · AC3.5 · `Dashboard.tsx` (지표 4 · 조회 조건 · 상위 서술 대상 · 변화 · 고른 대상 · 튀는 값 · 이 급등은 진짜인가 · 기간 순위) |
+| `STP-scan-delta` | `dash` | 같은 화면 — 변화 카드에서 대상을 고른다 (`Dashboard.tsx` 「{기간} 변화」 · 「고른 대상」) |
+| `STP-adjust-window` | `dash` | 같은 화면 — 조회 조건 카드의 기간·단위 (AC3.3 · `Dashboard.tsx` `applyWindow`) |
+| `STP-drill-trend` | `trend` | AC3.5 · AC3.2 · `Trend.tsx` (축 전환 · 관심 점유율 추세 · 선택 대상 현재 점유율 · 상위 대상 비교) |
 
-> 2026-10-13 추림 화면(화면 5)과 그 두 상태(`invalid`·`recorded`)를 걷어냈다. 추림은 여정 문서가 처음부터
-> 제품 밖(사용자 개인 메모)의 행동으로 적었고, 그것을 제품 안으로 들인 폼은 PRD 근거(AC) 없이 이 task 가
-> 정한 표면이었다. 여정은 4단계로 줄어 화면 4(`STP-drill-trend`)에서 끝난다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-open-brief` | `dash` | 화면 교체 | 첫 진입 — 카드 골격은 그대로, 값은 「—」, 목록은 「불러오는 중…」 | `Dashboard.tsx` (`!data && !error`) | 딥링크 `#STP-open-brief/loading` |
+| `api-error` | `STP-open-brief` | `dash` | 얹힘 | 서빙 응답 실패 — 화면 위에 「API 오류」 안내 | `Dashboard.tsx` (`error`) | 딥링크 `#STP-open-brief/api-error` |
+| `no-gold` | `STP-open-brief` | `dash` | 얹힘 | Gold 가 아직 없음 — 「데이터 없음 — 배치 파이프라인을 먼저 실행하세요.」 | `Dashboard.tsx` (`noGold`) | 딥링크 `#STP-open-brief/no-gold` |
+| `empty-window` | `STP-open-brief` | `dash` | 얹힘 | 밤사이 수집이 없는 축 — 0 이 아니라 「데이터 없음」, 마지막 정상 수집 시각 | 여정 문서 §4 1행 · `Dashboard.tsx` (`emptyWindow`) | 조회 조건 카드의 축을 「전세계」로 |
+| `no-selection` | `STP-scan-delta` | `dash` | 얹힘 | 대상 미선택 — 고른 대상 카드가 비어 있음 | `Dashboard.tsx` (`data-state="no-selection"`) | 단계 2 진입 직후 |
+| `no-change` | `STP-scan-delta` | `dash` | 얹힘 | 변화 0건 — 「이 조건에 걸리는 변화가 없습니다.」 | `Dashboard.tsx` (`deltaRows.length === 0`) | 증감 임계를 10 으로 |
+| `no-baseline` | `STP-scan-delta` | `dash` | 얹힘 | 직전 동일 구간이 없음 — 증감 칸을 0 이 아니라 「—」 | AC3.3 · `Dashboard.tsx` (`has_baseline` 거짓 → `dtext` 「—」) | 딥링크 `#STP-scan-delta/no-baseline` |
+| `pick-axis` | `STP-scan-delta` | `dash` | 얹힘 | 「전체」 축 — 급등 확인으로 넘어가려면 축을 하나 골라야 한다는 안내 | `Dashboard.tsx` (`PICK_ONE_AXIS`) | 조회 조건 카드의 축을 「전체」로 |
+| `reloading` | `STP-adjust-window` | `dash` | 얹힘 | 기간·단위를 바꾼 직후 재집계 — 「고른 조건으로 다시 집계하는 중…」 | `Dashboard.tsx` (`reapplying`) | 기간이나 단위를 바꾼다 |
+| `no-rank` | `STP-adjust-window` | `dash` | 얹힘 | 이 기간 순위 0건 — 「이 축에는 이 기간에 표시할 대상이 없습니다.」 | `Dashboard.tsx` (`top_subjects.length === 0`) | 축을 「전세계」로 |
+| `trend-loading` | `STP-drill-trend` | `trend` | 화면 교체 | 첫 진입 — 축 전환 컨트롤 + 「불러오는 중…」 | `Trend.tsx` (`!data && !error`) | 딥링크 `#STP-drill-trend/trend-loading` |
+| `trend-error` | `STP-drill-trend` | `trend` | 얹힘 | 서빙 응답 실패 — 「API 오류」 안내 | `Trend.tsx` (`error`) | 딥링크 `#STP-drill-trend/trend-error` |
+| `trend-empty` | `STP-drill-trend` | `trend` | 화면 교체 | 축에 집계 버킷 없음 — 빈 차트를 0% 로 그리지 않는다 | `Trend.tsx` (`series.length === 0`) | 화면 안 축 전환을 「전세계」로 |
+
+**의도적 제외**
+- `dash` 「튀는 값」 카드의 자기 상태(빈 축 · 평소 기준 없음 · 로딩 · 오류)는 이 여정에서 그리지 않는다 — 그 카드는
+  `JRN-spike-verification` 의 첫 단계(`STP-notice-spike`)이고 상태는 그 여정 페이지가 등재한다. 이 페이지의 `dash`
+  에서도 카드 자체(구조)는 그린다.
+- `dash`·`trend` 의 `<details>` 문서 메타와 mapstrip — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- 「마지막 조회 조건으로 열기」 의 복원 동작(다음 진입에서 조건이 돌아옴)은 세션을 넘는 동작이라 프로토타입 안에서
+  재현하지 않는다 — 체크박스는 그린다.
+
+**걷어낸 목업 전용 표면** (AC·구현 근거 없음, 2026-10-17)
+- 변화 카드의 「비교 기준 구간」 select(직전 동일 구간 · 최근 7일 평균 · 전주 동요일) — AC3.3 은 직전 같은 길이의
+  구간만 정의한다. `no-baseline` 은 이 select 대신 딥링크로 연다.
+- 기간 순위의 `low-sample` 배너와 흐린 칸 — 표본 임계의 근거가 없다.
+- 추세 상세의 「기여 뉴스 표기」 select 와 차트 마크.
+- 고른 대상 카드의 분위기 막대(`sentbar`).
+- 「마지막 조회 조건으로 열기」 를 끄면 사이드바 하단 수집 시각이 「지금」으로 바뀌던 동작 — 사이드바 하단은
+  구현과 같은 고정 문면이다.
 
 여정 문서 §4 2·3행(급등 신뢰 불가 → `JRN-spike-verification`, 축 간 차이 → `JRN-axis-contrast`)은 이 여정을
-벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다. §4 4행(중도 이탈)은 상태가 아니라
-화면 4의 「닫고 이 조건으로 다시 열기」 컨트롤로, 다음 진입의 조회 조건 복원을 보여 준다.
+벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 단계 2·3 에 있고, 「여정 끝」 표지를 단다. §4 4행(중도 이탈 —
+목록만 보고 종료)은 그 상황이 생기는 단계 3 의 「목록만 보고 닫기」 컨트롤이다(전에는 단계 4 에 있어 정상 종료와
+섞였다). 정상 종료는 단계 4 의 「여정 끝 · 여정 완료」 표지다.
 
 #### `JRN-sentiment-shift`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `no-selection` | 대상 미선택 — 분포를 아직 열 수 없음 | 이 task 결정 | 화면 1 진입 직후(오른쪽 분포 패널) |
-| `empty` | 검색 결과 0건 — 고를 대상이 없음 | 이 task 결정 | 화면 1의 「대상 찾기」에 일치하는 대상이 없는 검색어를 입력 |
-| `unanalyzed-warning` | 미분석 비중이 임계 초과 — 비율 해석 보류 경고 | 여정 문서 §4 1행 | 화면 1에서 대상을 고르고 「미분석 경고 임계(%)」를 실제 비중 아래로 내린다 |
-| `loading` | 구간 재집계 중 | 이 task 결정 | 화면 3에서 기간·단위를 바꾸고 「적용」 제출 |
-| `low-sample` | 표본 부족 — 최소 표본 미만 구간을 흐리게, 수치 대신 표기 | 여정 문서 §4 2행 | 화면 3에서 단위를 「시간」으로 두고 「적용」 제출 |
-| `invalid` | 판별 입력 검증 실패 | 이 task 결정 | 화면 4에서 결론 미선택 또는 근거 메모 공란으로 「판별 기록」 제출 |
-| `recorded` | 판별 기록 완료(성공) | 이 task 결정 | 화면 4에서 결론을 고르고 근거 메모를 채워 제출 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-open-sentiment` | `sentiment` | AC3.6 · AC3.4 · `Sentiment.tsx` (컨트롤 줄 축 전환 · 분위기 구성 도넛 · 축별 분위기 · 분리 전후 비율 · 판별이 어렵다면 · 분위기 추세) · 분류 기준 줄은 AC2.3 · 여정 문서 1단계 페인포인트 |
+| `STP-check-unanalyzed` | `sentiment` | 같은 화면 — 미분석 줄 · 분리 전후 비율 체크박스 · 범례 (AC2.5 · AC3.4 · `Sentiment.tsx` `SplitRatios` · `CMP-legend`) |
+| `STP-overlay-time` | `sentiment` | 같은 화면 — 분위기 추세 (AC3.3 · AC3.6 · `Sentiment.tsx` `SentimentTimeline` · `PAT-stacked-sentiment`) · 구간별 건수(절대량)는 여정 문서 3단계 페인포인트 |
+| `STP-confirm-cause` | `sentiment` | 같은 화면 — 판별이 어렵다면 카드의 인계 (`Sentiment.tsx` `.sent-exit` · 여정 문서 §4 3·4행) · 구간 고르기 → 기여 뉴스는 여정 문서 4단계 페인포인트 |
 
-여정 문서 §4 3·4행(분류 오류 → `JRN-spike-verification`, 분류 기준 변경 → `JRN-logic-backfill`)은 이 여정을
-벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 4에 있다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-open-sentiment` | `sentiment` | 얹힘 | 첫 진입 · 축 전환 — 컨트롤 줄과 도입 문단은 그대로, 카드 대신 「불러오는 중…」 | `Sentiment.tsx` (`!data && !error` — 축을 바꾸면 `setData(null)`) | 화면 안 축 라디오를 바꾼 직후 · 딥링크 `#STP-open-sentiment/loading` |
+| `api-error` | `STP-open-sentiment` | `sentiment` | 얹힘 | 서빙 응답 실패 — 「API 오류」 안내, 카드 없음 | `Sentiment.tsx` (`error`) | 딥링크 `#STP-open-sentiment/api-error` |
+| `no-bucket` | `STP-open-sentiment` | `sentiment` | 얹힘 | 집계된 분위기 버킷이 하나도 없음 — 빈 도넛을 0% 로 그리지 않는다 | `Sentiment.tsx` (`data && !aggregated` · `.sent-empty`) | 딥링크 `#STP-open-sentiment/no-bucket` |
+| `axis-absent` | `STP-open-sentiment` | `sentiment` | 얹힘 | 고른 축이 기준 버킷에 없음 — 도넛을 비우고 「모두 중립」처럼 읽히지 않게 안내 | AC3.4 · `Sentiment.tsx` (`selected?.present` 거짓 → `.sent-absent`) | 축 라디오를 「전세계」로 |
+| `unanalyzed-warning` | `STP-open-sentiment` | `sentiment` | 얹힘 | 미분석 10% 이상 — 해석 보류 경고 + 원인 줄(분석 실패 · 저신뢰 건수) | 여정 문서 §4 1행 · AC2.5 · `Sentiment.tsx` (`noisy` — 고정 임계 `UNANALYZED_NOTICE` 0.1). 원인 줄은 구현에 없다(§4 1행 「원인 표시」) | 축 라디오를 「미국」으로 |
+| `split-absent` | `STP-check-unanalyzed` | `sentiment` | 얹힘 | 고른 축이 기준 버킷에 없음 — 분리 전후 두 형태를 놓을 수 없다는 안내 | `Sentiment.tsx` (분리 전후 카드의 `selected?.present` 거짓) | 축 라디오를 「전세계」로 |
+| `all-unanalyzed` | `STP-check-unanalyzed` | `sentiment` | 얹힘 | 전량 미분석 — 「분모로 쓸 분석 완료분이 없습니다」 | `Sentiment.tsx` (`SplitRatios` 의 `naCount === null`) | 딥링크 `#STP-check-unanalyzed/all-unanalyzed` |
+| `series-empty` | `STP-overlay-time` | `sentiment` | 얹힘 | 고른 축에 이 단위의 버킷이 없음 — 다른 축 대조는 성립한다는 안내 | `Sentiment.tsx` (`data.series.length === 0`) | 축 라디오를 「전세계」로 |
+| `low-sample` | `STP-overlay-time` | `sentiment` | 얹힘 | 표본 부족 구간 — 그 막대를 흐리게 두고 비율 대신 「표본 부족」, 안내와 「구간별 건수 보기」 | 여정 문서 §4 2행 · 가정(최소 표본 = 분석 완료 20건 — AC·계약에 값이 없다). 구현에 없다(구현은 버킷별 `{n}건` 만 찍는다) | 축 라디오를 「미국」으로 (10-11 버킷 6건) |
+
+**의도적 제외**
+- 구현 하단의 `MapStrip`(여정·가치·AC 칩) — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- 구현 문면 끝의 `AC2.5`·`AC3.3` mono 태그 — 제품 평면에 AC 번호를 두지 않는 규약. 문장은 그대로 그린다.
+- 서술 대상별 분포 — Gold `axis_sentiment` 가 `(axis, bucket)` 키라 대상 차원이 없다. AC3.6 이 「서술 대상 **또는 축**」 이고
+  여정 문서 1단계도 「대상 또는 축」 이라 축 단위로 그린다.
+- 기간·단위 전환 컨트롤 — `/api/sentiment` 가 기간·단위 파라미터를 받지 않는다(구현의 단위 note 가 사유를 화면에서 밝힌다).
+  여정 문서 3단계 터치포인트의 「기간 세그먼트(`CMP-seg`)」 는 이 판단으로 그리지 않는다 — 시간축 조작은 막대로 구간을
+  고르는 것으로 대신한다(가정).
+- 「분리 전후 비율」 체크박스를 끈 상태(분모에 섞은 비율) — 상태가 아니라 컨트롤 값이라 등재하지 않는다. 체크박스로 바로 본다.
+
+**걷어낸 목업 전용 표면** (근거 없음 또는 근거가 다른 표면으로 옮겨 감, 2026-10-18)
+- 서술 대상 피커 — 축 `<select>` · 「대상 찾기」 검색 · 대상 목록(행마다 분위기 막대) · 상태 `no-selection`·`empty`. 대상별
+  분포가 Gold·서빙에 없다(트래커 「등재된 편차」 서술 대상 피커 행). 축 고르기는 구현의 축 전환을 실제 라디오로 그린다.
+- 토프바 pill `tb-target`(「대상 미선택」 / 고른 대상 이름) — 구현 토프바에 pill 이 없다.
+- 「미분석 경고 임계 (%)」 number input — 구현은 고정 임계다. §4 1행의 상황은 구현의 경고 문면으로 그린다.
+- 미분석 분리 진입 바(「집계에서 분리된 항목 N건 · 열기 →」) — 같은 사실을 구현의 미분석 줄이 비율로 말한다.
+- 사유별 분해 표 카드(「미분석 · 저신뢰 분리 집계」 · `사유`/`건수`/`전체 대비` · 범례 「미분석 (집계 분리)」) — §4 1행이
+  요구하는 「원인 표시」 만큼만 경고 안의 원인 줄로 남겼다.
+- 기간·단위 폼(기간 7·30·90일 `<select>` · 단위 라디오 · 「적용」) 과 그 제출의 재집계 로딩 — 서빙 파라미터가 없다.
+  상태 id `loading` 은 구현의 첫 진입 · 축 전환 로딩이 이어받는다.
+- 판별 폼(결론 라디오 · 근거 메모 textarea · 「판별 기록」) 과 상태 `invalid`·`recorded` — AC 도 쓰기 경로도 없고 여정 완료
+  기준은 기록을 요구하지 않는다.
+- 도넛 중앙의 「{n}% {분류} 우세」 — 구현은 「분석 완료」 건수를 둔다.
+
+구현에 아직 없지만 근거가 있어 그린 표면: 분류 기준 줄(AC2.3 · 여정 문서 1단계 페인포인트), 경고 안 원인 줄(§4 1행),
+구간별 건수 — 절대량 막대(여정 문서 3단계 페인포인트 「비율과 절대량을 분리」), 표본 부족 처리(§4 2행), 막대로 구간을
+고르면 열리는 「이 구간의 기여 뉴스 · 원문 보기」(여정 문서 4단계 페인포인트, 여정 밖 행동), 판별이 어렵다면 카드의 원문 확인 ·
+재처리 요청 링크(§4 3·4행).
+
+여정 문서 §4 1행(미분석 임계 초과)은 그 상황이 생기는 단계 1 의 경고 안 「분리 전후 비율 보기」(같은 화면의 분리 전후 카드로
+이동), 2행(표본 부족)은 단계 3 의 표본 부족 안내 안 「구간별 건수 보기」(같은 화면의 절대량 막대로 이동)다. 3·4행(분류 오류 →
+`JRN-spike-verification`, 분류 기준 변경 → `JRN-logic-backfill`)은 이 여정을 벗어나는 인계라 단계 4 의 「판별이 어렵다면」 카드에
+있고 「여정 끝」 표지를 단다 — 같은 링크가 다른 단계에서는 여정 밖 행동이다. 정상 종료는 단계 4 의 「여정 끝 · 여정 완료」 표지다.
 
 #### `JRN-axis-contrast`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `loading` | 세 축을 같은 기준으로 재집계 중 | 이 task 결정 | 화면 1에서 「기준 적용」 제출 |
-| `axis-empty` | 특정 축의 수집이 비어 있음 — 0%가 아니라 비교에서 제외 | 여정 문서 §4 1행 | 화면 1에서 기간을 「최근 24시간」으로 두고 「기준 적용」 제출(해외 축 시간당 수집 미도착) |
-| `no-selection` | 편차 대상 미선택 — 상세로 넘어갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 선택 패널) |
-| `no-outlier` | 임계를 넘는 대상 없음 — 「차이 없음」도 결론 | 이 task 결정(여정 완료 기준의 "또는 차이 없음을 확인" 갈래) | 화면 4에서 「격차 임계(%p)」를 실측 최대 격차 위로 올린다 |
-| `alias-merged` | 표기 변형을 같은 대상으로 통합 — 통합 전후를 구분 표기 | 여정 문서 §4 4행 | 화면 4에서 「표기 변형을 같은 대상으로 통합」 체크 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-open-compare` | `compare` | AC3.7 · AC3.8 · `Compare.tsx` (도입 문단 · 세 축 공통 기준 줄 · 축 구분 note · 출처 축 3열 — 순위 행 `원시 {n}건` · 한 눈금 막대 · 분위기 미니 막대 · 이탈 카드 2) · `PAT-axis-compare` · 여정 문서 `STP-open-compare` 페인포인트(기준을 동기화하고 화면에 명시) |
+| `STP-scan-axis-tops` | `compare` | 같은 화면 — 순위 행의 공통/고유 표시 (여정 문서 `STP-scan-axis-tops` 페인포인트 · AC3.7 · AC3.4 · AC3.2 의 「동일 대상 = 한 집계 키」) |
+| `STP-disambiguate-axis` | `compare` | 같은 화면 — 축 구분 note(`Compare.tsx`) · 열 머리 `{축} · 출처 축` · 「대상 국가」 select (여정 문서 `STP-disambiguate-axis` 페인포인트 「두 기준을 별도 컨트롤로」 · AC1.3 · AC2.1) |
+| `STP-pick-outlier` | `compare` | 같은 화면 — 격차 후보 행 (여정 문서 `STP-pick-outlier` 터치포인트·페인포인트) · 순위 행 클릭 → 추세 상세 (`Compare.tsx` `onOpen` → `/trend?axis&subject`) |
+| `STP-verify-in-trend` | `trend` | AC3.5 · AC3.2 · `Trend.tsx` (`JRN-daily-scan` 의 `STP-drill-trend` 와 같은 구조) · 축·대상 승계 `Trend.tsx` (`useSearchParams`) |
 
-여정 문서 §4 2·3행(수집량 차이 의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은
-이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-open-compare` | `compare` | 화면 교체 | 첫 진입 — 도입 문단과 「불러오는 중…」 만 | `Compare.tsx` (`!data && !error`) | 딥링크 `#STP-open-compare/loading` |
+| `api-error` | `STP-open-compare` | `compare` | 화면 교체 | 서빙 응답 실패 — 도입 문단과 「API 오류」 안내만(열·이탈 카드 없음) | `Compare.tsx` (`error` · `{data && …}`) | 딥링크 `#STP-open-compare/api-error` |
+| `axis-empty` | `STP-open-compare` | `compare` | 얹힘 | 전세계 축 수집 없음 — 그 열을 0%가 아니라 「비교에서 제외」, 공통/고유·격차를 남은 두 축으로 다시 셈 | 여정 문서 §4 1행 · `Compare.tsx` `AxisRows` (`top_subjects.length === 0`) | 딥링크 `#STP-open-compare/axis-empty` (그 상황의 데이터로 연다) |
+| `no-sentiment` | `STP-open-compare` | `compare` | 얹힘 | 한 열의 분위기 집계 없음 — 미니 막대 대신 「분위기 집계 없음」 | AC3.7 · `Compare.tsx` `MiniSent` (`total <= 0`) | 딥링크 `#STP-open-compare/no-sentiment` |
+| `no-outlier` | `STP-pick-outlier` | `compare` | 얹힘 | 한 축에만 있는 대상 0건 — 「차이 없음」도 결론 | 여정 문서 완료 기준(「또는 "차이 없음"을 확인」) | 「대상 국가」 를 「글로벌 (특정 국가 아님)」 으로 |
+| `alias-merged` | `STP-pick-outlier` | `compare` | 얹힘 | 표기 변형 통합 — 통합 규칙 안내와 통합 전후 표(축 · 적힌 표기 · 통합 전 · 통합 후) | 여정 문서 §4 4행 · AC3.2 · AC2.2 | 딥링크 `#STP-pick-outlier/alias-merged` |
+| `trend-loading` | `STP-verify-in-trend` | `trend` | 화면 교체 | 첫 진입 — 축 전환 컨트롤 + 「불러오는 중…」 | `Trend.tsx` (`!data && !error`) | 딥링크 `#STP-verify-in-trend/trend-loading` |
+| `trend-error` | `STP-verify-in-trend` | `trend` | 얹힘 | 서빙 응답 실패 — 「API 오류」 안내 | `Trend.tsx` (`error`) | 딥링크 `#STP-verify-in-trend/trend-error` |
+| `trend-empty` | `STP-verify-in-trend` | `trend` | 화면 교체 | 축에 집계 버킷 없음 — 빈 차트를 0% 로 그리지 않는다 | `Trend.tsx` (`series.length === 0`) | 딥링크 `#STP-verify-in-trend/trend-empty` |
+
+**의도적 제외**
+- `trend` 의 축별 라인(한 대상의 세 축 시계열)과 「표시할 축」 체크박스 — 여정 문서 `STP-verify-in-trend` 터치포인트(v0.2)가
+  적었지만 AC3.5 는 대상별 추세·상위 대상 비교·대상 선택만 정하고, `Trend.tsx` 는 한 번에 한 축을 그린다(축 전환 라디오).
+  `trend` 는 `JRN-daily-scan` 과 같은 구조여야 하므로 이 페이지에서만 다르게 그리지 않는다 — 축별 대조는 화면 안 축 전환으로
+  한다. 여정 문서 터치포인트를 고칠지 화면에 세울지는 사용자 결정으로 남긴다.
+- `compare`·`trend` 의 mapstrip — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- 기간 승계 — `compare` 는 서빙이 고른 버킷 하나를 비교해 넘길 기간이 없다. 승계는 축·대상만 한다(`Compare.tsx` `onOpen`).
+- 대상 국가 select 는 구현에 없다(서빙·Gold 에 대상 국가 차원 없음) — 여정 문서가 요구해 그린다. 공통/고유 표시 · 격차 후보
+  행 · 통합 안내 · 빈 열의 「남은 두 축으로 대조 계속」 도 같은 처지다(구현 편차는 설계 트래커 「등재된 편차」 의 `compare` 행들).
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-18)
+- 비교 기준 폼(`기간` select · `수집량 정규화` 체크박스 · `기준 적용`)과 그 재집계 `loading`, 「수집 현황」 카드, 토프바 pill
+  `최근 7일 · 정규화` — 여정 문서의 대응은 기준을 「강제로 동기화하고 화면에 명시」이지 고르게 하는 것이 아니다. 명시는
+  구현의 「세 축 공통 기준」 줄이, 원시/정규화 구분(AC3.8)은 순위 행의 `원시 {n}건` 이 한다.
+- 순위 행의 증감 `+2.1` 칸.
+- 「대상 찾기」 검색 · 「한 축에만 있는 대상만 보기」 필터 — 여정 문서는 공통/고유를 배지로 구분하라고만 한다.
+- 「출처 축 — 어디서 수집했는가」 select 와 출처×대상 교차 표(건수·비중) — 출처 축은 열 자체(AC3.7 세 열 고정)이고
+  터치포인트는 축 기준 주석이다. 대상 국가만 별도 select 로 남겼다.
+- 격차 패널의 「격차 임계 (%p)」 · 「표기 변형을 같은 대상으로 통합」 체크박스 · 「선택한 대상」 카드와 `no-selection` 상태 —
+  통합은 AC3.2 대로 집계가 하는 일이라 사용자가 켜는 스위치가 아니고, 페인포인트 대응이 「행 클릭 시 선택 대상을 유지한
+  채 상세로」라 중간 선택 카드가 없다. 격차 후보 행 자체는 터치포인트라 남겼고, `no-outlier` 는 임계 대신 「한 축에만
+  있는 대상 0건」 으로 판정한다.
+- 추세 단계의 「승계된 설정」 카드 · 카드 sub 「비교 뷰의 축·기간을 그대로 승계했습니다」 · 합성 「축별 시계열」 차트(`T-n`·`지금`)
+  · `점유율 %` 태그 — 단계 5 는 공유 화면 `trend` 그대로다. 승계는 표면이 아니라 동작(축·대상)으로 남는다.
+
+여정 문서 §4 1행(축 수집 없음)은 그 상황이 처음 보이는 단계 1 의 빈 열 안 「남은 두 축으로 대조 계속」, 4행(표기 변형)은
+격차 후보를 고르는 단계 4 의 통합 안내 안 「통합 후 순위로 다시 대조」 이고, 둘 다 단계 2 로 돌아간다. 2·3행(수집량 차이
+의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은 구현 `Compare.tsx` 의 이탈 카드 둘이다 — 같은 화면이
+네 단계에 있으므로 분기 컨트롤은 그 상황이 생기는 단계 2·3 에만 달고 「여정 끝」 표지를 단다(분위기 이탈은
+`#STP-open-sentiment` 앵커로 착지한다). 정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
 
 #### `JRN-spike-verification`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `loading` | 축별 총 건수로 재환산 중 | 이 task 결정 | 화면 2에서 「세는 방식 적용」 제출 |
-| `normalized-away` | 정규화하면 급등이 사라짐 — 원문 확인 없이 「편중」으로 조기 종료할 수 있는 갈래 | 여정 문서 §4 5행 | 화면 2에서 「수집량 정규화」를 켜고 「세는 방식 적용」 제출(한국 축 기본 대상) |
-| `low-confidence` | 저신뢰·미분석 항목을 집계에서 분리 표기 | 여정 문서 §4 2행 | 화면 3에서 「저신뢰·미분석 항목 분리 표기」 체크 |
-| `no-selection` | 기여 뉴스 미선택 — 원문으로 내려갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 상세 패널) |
-| `link-expired` | 원문 링크 만료·404 — 보존 원문 전체를 대체 표시하고 링크 상태를 배지로 명시 | 여정 문서 §4 1행 | 화면 5에서 「원문 링크 상태」를 '만료·404'로 선택 |
-| `invalid` | 판정 입력 검증 실패 | 이 task 결정 | 화면 6에서 결론 미선택 또는 근거 메모 공란으로 「판정 기록」 제출 |
-| `recorded` | 판정 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 6에서 결론을 고르고 근거 메모를 채워 제출 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-notice-spike` | `dash` | 여정 문서 `STP-notice-spike` 페인포인트(「급등 지점에서 공정성 화면으로 가는 진입점」) · `Dashboard.tsx` + `SpikeCheck.tsx` (화면 전체 — 기준 페이지와 같은 `screens_shared.dash_base`. 이 단계의 몫은 「튀는 값」·「이 급등은 진짜인가」 카드와 `정규화 전후를 대조하기 →`(`fairnessPath(axis, subject, baseline)`)) |
+| `STP-check-normalized` | `fairness` | AC3.8 · AC3.1 · `Fairness.tsx` (축 전환 · `CMP-axpill` · `CMP-norm-toggle` 즉시 토글 · 도입 lede · 표기 원칙 note · 원시·정규화 대비 표(`PAT-raw-vs-norm`, 행 선택 `setPicked`) · 정규화 소멸 배너 · 두 방식의 1위 · 세는 기준 · 소스별 기여 · 기여 뉴스) |
+| `STP-inspect-sources` | `fairness` | 같은 화면 — 소스별 기여 카드(AC3.9 · `Fairness.tsx` `split` · 합 등식 note `rawAdds && normAdds`) + 저신뢰 판정 분리 표기(AC2.5 · AC3.4 · 여정 문서 §4 2행) |
+| `STP-drilldown-articles` | `fairness` | 같은 화면 — 기여 뉴스 카드(AC3.10 · AC1.7 · `Fairness.tsx` `contrib` · 수집원 좁히기 · 본문 중복 필터 · 건수 대조 `reconciles` · 행 액션 셋) |
+| `STP-open-origin` | `trace` | AC2.6 · AC1.4 · AC2.3 · AC2.5 · `Trace.tsx` (record_id 조회 폼 · 계보 크럼 `PAT-lineage` · 원문 카드와 링크 상태 배지 · 분석 카드(라벨·판단 근거) · 수집 메타 · 판정 기록 note) |
+| `STP-judge` | `trace` | 여정 문서 `STP-judge` 터치포인트(「판정 화면 / 제품 외부」)·페인포인트(영속화는 범위 밖) · `Trace.tsx` (같은 화면 — 「판정 기록은 아직 열 수 없습니다」 note 가 제품 안에 있는 판정 표면의 전부) |
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
-> `STP-judge`의 페인포인트로 적은 「검증 이력·플래그 남기기」를 문서 자신이 **「현재 범위 밖, 백로그 후보」**
-> 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한 「판단하고 세션을 닫는다」까지만 그린다.
-> 백로그가 깨어나면 이 행의 출처와 화면 문구를 함께 고친다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `spike-loading` | `STP-notice-spike` | `dash` | 얹힘 | 「튀는 값」 첫 조회 — 「불러오는 중…」 | `SpikeCheck.tsx` (`!data && !error`) | 딥링크 `#STP-notice-spike/spike-loading` |
+| `spike-error` | `STP-notice-spike` | `dash` | 얹힘 | 「튀는 값」 서빙 응답 실패 — 「API 오류」 | `SpikeCheck.tsx` (`error`) | 딥링크 `#STP-notice-spike/spike-error` |
+| `spike-empty` | `STP-notice-spike` | `dash` | 얹힘 | 축에 집계 버킷 없음 — 「급등 없음」으로 그리지 않는다 | `SpikeCheck.tsx` (`rows.length === 0`, `spike-empty`) | 조회 조건 카드의 축을 「전세계」로 |
+| `spike-no-baseline` | `STP-notice-spike` | `dash` | 얹힘 | 평소로 삼을 버킷 없음 — 배수를 「—」로 둔다 | `SpikeCheck.tsx` (`!data.basis.has_baseline`, `spike-no-baseline`) | 딥링크 `#STP-notice-spike/spike-no-baseline` |
+| `fair-loading` | `STP-check-normalized` | `fairness` | 얹힘 | 첫 진입 — 축 전환·lede·표기 note 아래 「불러오는 중…」 | `Fairness.tsx` (`!data && !error`) | 딥링크 `#STP-check-normalized/fair-loading` |
+| `fair-error` | `STP-check-normalized` | `fairness` | 얹힘 | 서빙 응답 실패 — 「API 오류」 | `Fairness.tsx` (`error`) | 딥링크 `#STP-check-normalized/fair-error` |
+| `fair-empty` | `STP-check-normalized` | `fairness` | 얹힘 | 축에 집계 버킷 없음 — 빈 순위를 0% 로 그리지 않는다 | `Fairness.tsx` (`data && rows.length === 0`) | 화면 안 축 전환을 「전세계」로 |
+| `normalized-away` | `STP-check-normalized` | `fairness` | 얹힘 | 정규화하면 급등이 사라짐 — 원문 확인 없이 「편중」으로 닫아도 되는 갈래, 「판정으로 →」 | 여정 문서 §4 5행 · `Fairness.tsx` (`mode === "normalized" && current?.normalized_away`) | 대시보드에서 「반도체 보조금」을 들고 넘어온다(기본 경로) · 토글을 원시 건수로 바꾸면 사라진다 |
+| `lead-agree` | `STP-check-normalized` | `fairness` | 얹힘 | 두 방식의 1위 일치 — 「이 급등은 정규화 이후에도 남습니다」 | AC3.8 · `Fairness.tsx` (`!rankingDiverges`) | 화면 안 축 전환을 「미국」으로 |
+| `src-loading` | `STP-inspect-sources` | `fairness` | 얹힘 | 소스별 기여 조회 중 — 카드 안 「불러오는 중…」 | `Fairness.tsx` (`!split && !splitError`) | 딥링크 `#STP-inspect-sources/src-loading` |
+| `src-error` | `STP-inspect-sources` | `fairness` | 얹힘 | 소스별 기여 서빙 응답 실패 — 「API 오류」 | `Fairness.tsx` (`splitError`) | 딥링크 `#STP-inspect-sources/src-error` |
+| `src-empty` | `STP-inspect-sources` | `fairness` | 얹힘 | 분해된 수집원 없음 — 0 으로 그리지 않는다 | `Fairness.tsx` (`split.rows.length === 0`, `src-empty`) | 대비 표에서 「가계부채」를 고른다 |
+| `src-mismatch` | `STP-inspect-sources` | `fairness` | 얹힘 | 부분 합이 전체와 갈림 — 「부분이 전체와 갈립니다.」 | AC3.9 · `Fairness.tsx` (`!(rawAdds && normAdds)`) | 대비 표에서 「원/달러 환율」을 고른다 |
+| `low-confidence` | `STP-inspect-sources` | `fairness` | 얹힘 | 저신뢰로 판정된 기사가 이 값에 섞여 있음 — 건수를 따로 적고 「소스 구성에서 갈라 보기 →」 | 여정 문서 §4 2행 · AC2.5 · AC3.4 · 가정(구현에 아직 없는 표면 — 아래 산문) | 「반도체 보조금」(기본 경로) · 「한국은행 기준금리」를 고르면 사라진다 |
+| `art-loading` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 뉴스 조회 중 — 카드 머리 태그 「불러오는 중…」 | `Fairness.tsx` (`contrib` 이 아직 없음) | 딥링크 `#STP-drilldown-articles/art-loading` |
+| `art-index-not-ready` | `STP-drilldown-articles` | `fairness` | 얹힘 | 원문·분석 기록 인덱스가 아직 없음 — 「인덱스 준비 중」 | `Fairness.tsx` (`contribError === INDEX_NOT_READY`) · `IndexNotReady.tsx` | 딥링크 `#STP-drilldown-articles/art-index-not-ready` |
+| `art-error` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 기사 조회 실패 | `Fairness.tsx` (`contribError !== INDEX_NOT_READY`) | 딥링크 `#STP-drilldown-articles/art-error` |
+| `art-mismatch` | `STP-drilldown-articles` | `fairness` | 얹힘 | 목록 건수 ≠ 원시 카운트 — 목록을 깎지 않고 갈렸다고 적는다 | AC3.10 · `Fairness.tsx` (`!reconciles`) | 대비 표에서 「원/달러 환율」을 고른다 |
+| `art-empty` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 기사 0건 — 빈 목록을 지어내지 않는다 | `Fairness.tsx` (`articles.length === 0 && !dupOnly`) | 대비 표에서 「가계부채」를 고른다 |
+| `art-dup-empty` | `STP-drilldown-articles` | `fairness` | 얹힘 | 「본문 중복으로 잡힌 것만」 에 남는 기사 0건 | AC1.7 · `Fairness.tsx` (`articles.length === 0 && dupOnly`) | 「한국은행 기준금리」를 고르고 「본문 중복으로 잡힌 것만」 체크 |
+| `trace-loading` | `STP-open-origin` | `trace` | 얹힘 | 첫 진입 — 조회 폼·lede 아래 「불러오는 중…」 | `Trace.tsx` (`!data && !error`) | 딥링크 `#STP-open-origin/trace-loading` |
+| `trace-error` | `STP-open-origin` | `trace` | 얹힘 | 서빙 응답 실패 — 「API 오류」 | `Trace.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-open-origin/trace-error` |
+| `trace-index-not-ready` | `STP-open-origin` | `trace` | 얹힘 | 원문·분석 기록 인덱스가 아직 없음 — 「인덱스 준비 중」 | `Trace.tsx` (`error === INDEX_NOT_READY`) · `IndexNotReady.tsx` | 딥링크 `#STP-open-origin/trace-index-not-ready` |
+| `trace-missing` | `STP-open-origin` | `trace` | 얹힘 | 조회한 record_id 가 Bronze 에 없음 — 추적이 시작되지 않는다 | `Trace.tsx` (`!data.found && selection === "requested-missing"`) | record_id 에 없는 값(예: `kr-wire-20261016-9999`)을 넣고 「원문까지 내려가기」 |
+| `trace-empty` | `STP-open-origin` | `trace` | 얹힘 | 수집 레코드 0건 — 빈 계보를 그리지 않는다 | `Trace.tsx` (`!data.found`, 그 밖의 selection) | 딥링크 `#STP-open-origin/trace-empty` |
+| `auto-pick` | `STP-open-origin` | `trace` | 얹힘 | 조회 없이 열어 첫 관측을 자동 선택 | `Trace.tsx` (`selection === "auto"`) | record_id 를 비우고 「원문까지 내려가기」(직접 진입도 같다) |
+| `link-dead` | `STP-open-origin` | `trace` | 얹힘 | 원문 링크 끊김 — 배지 「링크 끊김」, 보존 원문 전체로 대체, 「원문 열기」 없음 | 여정 문서 §4 1행 · AC1.4 · `Trace.tsx` (`linkDead = !bronze.body_available`) | 기여 뉴스에서 「수집 시점 본문 미확보」 행의 「원문 역추적 →」 (또는 「보존 원문으로 이어서 보기 →」) |
+| `body-lost` | `STP-open-origin` | `trace` | 얹힘 | 본문 미보존 — 관측은 남고 본문만 없다 | AC1.4 · `Trace.tsx` (`bodyLost = !bronze.body_preserved`) | record_id `kr-econ-20261016-0233` 조회 |
+| `silver-none` | `STP-open-origin` | `trace` | 얹힘 | 분석 레코드 없음 — 계보 크럼의 분석 칸이 끊김 | AC2.6 · `Trace.tsx` (`!silver`, 크럼 `present=false`) | record_id `kr-market-20261016-1120` 조회 |
+| `silver-excluded` | `STP-open-origin` | `trace` | 얹힘 | 저신뢰 — 분류에서 제외, 네 분류 어디에도 넣지 않음 | AC2.5 · `Trace.tsx` (`!silver.sentiment`) | record_id `kr-wire-20261016-0415` 조회 |
+| `rationale-missing` | `STP-open-origin` | `trace` | 얹힘 | 판단 근거 기록 없음 — 근거를 남기기 전에 분석된 기사 | AC2.3 · `Trace.tsx` (`sentiment_rationale ?? …`) | record_id `kr-wire-20261016-0402` 조회 |
 
-여정 문서 §4 3·4행(분류 오류 → `JRN-logic-backfill`, 수집 이상 → `JRN-ingestion-recovery`)은 이 여정을
-벗어나는 인계라 상태가 아니라 **이탈 컨트롤**이다. 이 페이지는 §4 5행 전체를 「검증 중 이런 상황이라면」
-목록으로 제품 평면에 모아 두었다 — 이 여정의 §4는 자기 단계로 되돌아오는 행(1·2·5)과 타 여정 인계(3·4)가
-섞여 있어 단계별로 흩어 놓으면 문서 순서와 화면 순서가 어긋나기 때문이다(예: 1행의 조건은 5단계에서만
-발생하는데 2행의 조건은 3단계에서 발생한다). 각 상황의 **처리**는 해당 화면 안에도 그대로 있다
-(1행 → 화면 5의 링크 상태 배지·보존 원문, 2행 → 화면 3의 분리 표기 토글, 5행 → 화면 2의 정규화 소멸 배너).
+**의도적 제외**
+- `dash` 의 화면 전체 상태(첫 진입 로딩 · API 오류 · Gold 없음 · 밤사이 수집 없음 · 변화 0건 · 비교 기준 없음 · 「전체」 축 안내 ·
+  대상 미선택 · 재집계 · 순위 0건)는 이 페이지에서 등재하지 않는다 — `JRN-daily-scan` 이 등재한다. 이 페이지의 `dash` 는 같은
+  구조로 그리고 「튀는 값」 카드의 상태만 맡는다(그쪽 「의도적 제외」 와 짝).
+- 「이 급등은 진짜인가」 카드의 「전체」 축 안내(`spike-pick-axis`)는 그리고 데이터로 도달하지만(축 「전체」) 상태로 등재하지 않는다 —
+  공유 마크업 `screens_shared.dash_base` 에 상태 훅이 없고, 이 작업은 그 마크업을 고치지 않는다.
+- `fairness`·`trace` 의 mapstrip(`MapStrip`) — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- `trace` 의 `trace-empty`(수집 레코드 0건)는 데이터로 만들지 않는다 — 이 프로토타입은 기사가 있는 축에서 시작한다. 딥링크로만 연다.
+- `fairness` 의 `fair-error`·`src-error`·`art-error` 는 구현이 서빙 오류 문자열을 그대로 붙인다 — 프로토타입은 문면 「서빙이 응답하지 않았습니다」로 대신한다.
+- 판정의 영속화(검증 이력·플래그) — 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹했다. 구현의 「판정 기록은 아직 열 수 없습니다」 note 가 그 사실을 화면에 적는다.
+
+**걷어낸 목업 전용 표면** (AC·구현 근거 없음, 2026-10-17)
+- 페이지 수준 토프바 크럼 「급등 검증」 과 pill `tb-basis`(원시 건수↔정규화 비율) — 토프바는 화면 단위다(`Topbar.tsx` 는 nav 라벨,
+  `fairness`·`trace` 는 `useTopbar` 를 쓰지 않아 pill 이 없다). 지금 토프바는 단계의 화면을 따라 `아침 정기 스캔`(pill 있음) ·
+  `공정성·원천 추적` · `원문 추적 상세` 로 바뀐다.
+- 페이지 수준 분기 목록 `.branches` 「검증 중 이런 상황이라면」 — 다섯 분기를 화면 안 그 상황의 자리로 옮겼다(아래 산문).
+- 「세는 방식」 폼 카드(체크박스 + 「세는 방식 적용」 제출 + 힌트)와 그 제출 뒤의 `loading`(「축별 총 건수로 다시 환산하는 중…」) —
+  구현은 같은 결정을 `CMP-norm-toggle` 즉시 토글로 둔다(응답에 두 값이 함께 온다). 대비 표도 한 컬럼(`점유율`)이 아니라 원시·정규화 두 컬럼이다.
+- 대비 표의 「검증 중」 태그 — 구현은 고른 행을 강조(`tr.fair-picked` · `.art-pick.on`)하고 태그를 두지 않는다.
+- 「수집원 찾기」 검색(소스별 기여)과 「제목 찾기」 검색(기여 뉴스) — 구현의 좁히기는 기여 뉴스의 「수집원으로 좁히기」 select 하나다.
+- 저신뢰·미분석 「분리 표기」 체크박스 — AC2.5 는 구분을 **항상** 요구하므로 켜고 끄는 토글의 근거가 없다. 분리 표기 자체는
+  남겼다(`low-confidence`, 아래 산문).
+- 「고른 기사」 상세 카드(빈 상태 `no-selection` 포함)와 단계 CTA 의 「먼저 확인할 기사를 고르세요」 잠금 — 구현은 행에서
+  `/trace?record_id=` 로 인계한다(「원문 역추적 →」).
+- 「원문 링크 상태」 시연 select(정상 / 만료·404)와 그것이 열던 `link-expired` — 링크 상태는 사용자가 고르지 않고 서빙이
+  `body_available` 로 준다(`link-dead`).
+- 「보존된 원문」 별도 카드 — 서빙이 내려주는 본문은 보존 사본 하나라 구현은 원문 카드 본문에 둔다.
+- 판정 폼(결론 라디오 2 · 근거 메모 · 「판정 기록」)과 「확인한 근거」 카드, 그 상태 `invalid`·`recorded` — 판정을 남길 곳이 없다
+  (여정 문서가 영속화를 범위 밖으로 파킹). 제품 안에 있는 판정 표면은 `trace` 의 「판정 기록은 아직 열 수 없습니다」 note 다.
+
+**분기 위치.** 다섯 갈래를 페이지 수준 목록에서 걷어 각 상황이 생기는 **화면 안의 자리**로 옮겼다 — 링크 만료·404(§4 1행)는
+기여 뉴스 카드의 「원문 열기」 옆 「보존 원문으로 이어서 보기 →」, 저신뢰 섞임(2행)은 소스별 기여 카드의 저신뢰 분리 표기
+「소스 구성에서 갈라 보기 →」, 분류 오류(3행)·중복 수집(4행)은 기여 뉴스 카드의 「재처리 범위 정하기 →」·「수집 이상 점검하기 →」
+(둘 다 여정 밖 인계라 「여정 끝」 표지), 정규화 후 소멸(5행)은 정규화 소멸 배너의 「판정으로 →」. 다섯 컨트롤 모두 `fairness`
+안에 있어 단계 2·3·4 어디서나 보이고 눌린다. **다만 §4 순서 = DOM 순서 규칙 때문에 `data-goto` 를 단 단계(선언 단계)는 그 상황의
+단계와 다르다** — §4 는 단계 순서가 아니다(1·3행은 5단계, 4행은 4단계, 2행은 3단계, 5행은 2단계의 상황). 그래서 1행은 단계 2,
+2·3·4행은 단계 3, 5행은 단계 4 의 `fairness` 에 선언했다(`normalized-away` 상태 자체는 단계 2 에 등재). 1·3행이 `trace` 가 아니라
+`fairness` 에 있는 것도 같은 이유다 — `trace` 는 `fairness` 뒤에 오므로 거기 두면 5행을 배너에 둘 수 없다. §4 행을 단계 순서
+(5·2·4·1·3행 순)로 다시 매기면 이 우회가 사라진다(여정 문서 소관).
+
+**`low-confidence` 의 근거(가정).** 구현의 소스별 기여 카드에는 저신뢰 분리 표기가 없다. 설계 트래커 「등재된 편차」 의
+`STP-inspect-sources` 행 ⑴ 은 「미분석 레코드는 서술 대상을 남기지 않아 분리해 실을 행이 없다」 고 판정했지만, 그 사유는 미분석에만
+맞다 — 분석기는 저신뢰(`confidence < 0.6`) 판정에도 서술 대상을 남기고(`econ_analysis/llm.py`), 집계는 그 기사를 대상 키로
+센다(`econ_aggregation/aggregate.py` `_pick_of`). 그래서 저신뢰 판정은 이 값에 실제로 섞이고, AC2.5(「집계·시각화에서 구분」)·AC3.4·
+§4 2행이 그 구분을 요구한다 — 건수를 따로 적는 표면으로 그렸다. 저신뢰 건수를 내려주는 서빙 필드는 아직 없다.
 
 #### `JRN-ingestion-recovery`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `no-anomaly` | 이 축·구간에는 이상이 없음 — 시도 대비 성공률 100% · 중복 0건 | 이 task 결정(여정 완료 기준의 「정상 범위로 복구됨을 확인」 갈래를 진입 시점으로 확장) | 화면 1의 「축」 `<select>` 를 이상이 없는 축(전세계)으로 바꾼다 |
-| `attempt-zero` | 수집 **시도 자체가 0** — 「성공 0(소스 오류)」과 구분해 스케줄 미실행으로 표기 | 여정 문서 `STP-spot-anomaly` 페인포인트(「수집 0건과 시도 실패가 같은 모습이면 이상을 놓친다」) | 화면 1에서 시도 칸이 0인 구간 행을 고른다 |
-| `filter-empty` | 3중 필터 결과 0건 — 좁힌 조합에 해당하는 구간이 없음 | 이 task 결정 | 화면 2에서 그 축에 없는 소스(한국 축 + `us-desk`)로 좁힌다 |
-| `source-outage` | 소스 API 장애 — 지금 재수집해도 같은 오류. 재시도 예약 후 「복구 대기」 표시 | 여정 문서 §4 1행 | 화면 3에서 원인을 「소스 API가 오류를 돌려줬다」로 고른다 |
-| `origin-gone` | 원본 소실 — 재수집 불가. 영구 누락으로 확정해 집계가 0이 아니라 「데이터 없음」으로 다루게 한다 | 여정 문서 §4 2행 | 화면 3에서 원인을 「원본이 이미 내려갔다」로 고른다 |
-| `running` | 고른 구간을 다시 긁는 중 | 이 task 결정 | 화면 4에서 「보정 실행」 |
-| `dup-again` | 재수집이 중복을 다시 만듦 — 링크·본문 중복 규칙 재확인 필요 | 여정 문서 §4 3행 | 화면 4에서 「새 버전으로 보존」 체크를 풀고(=덮어쓰기) 「보정 실행」 |
-| `invalid` | 복구 확인 입력 검증 실패 | 이 task 결정 | 화면 5에서 결론 미선택 또는 보정 이력 메모 공란으로 「복구 확인 기록」 제출 |
-| `recorded` | 복구 확인 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 결론을 고르고 보정 이력 메모를 채워 제출 |
+구현이 없는 여정이다. 다섯 단계는 **라우트 없는 화면 `integrity`**(수집 무결성 콘솔) 하나를 지나간다 — 2026-10-17
+사용자 결정. 화면은 AC·여정 문서·디자인 시스템이 요구하는 카드를 모두 가진 한 장이고, 단계마다 바뀌는 것은 보이는
+데이터와 진입 맥락뿐이다. 토프바 제목은 `수집 무결성 콘솔`, pill 은 `CMP-topbar` 의 컨텍스트 메타(축 · 기간)다.
+좌측 네비에 항목이 없으므로 이 화면에서는 네비 active 가 없다.
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
-> `STP-verify-integrity`의 페인포인트로 적은 「보정 이력을 구간 메타로 기록하고 소비자 화면에도 주석 노출」을
-> 문서 자신이 **「백로그 후보」** 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한
-> 「정상 범위인지 재확인한다」까지만 그린다 — `JRN-spike-verification`의 `recorded`와 같은 규약이다.
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-spot-anomaly` | `integrity` | AC1.6 · AC1.1 · `PAT-integrity-panel`(성공/재시도/중복/누락 지표 + 이벤트 로그) · 여정 문서 `STP-spot-anomaly` 페인포인트(시도·성공·실패·중복 분리) — 화면 전체: 지표 4 · 시간대별 수집 현황 · 구간 요약 · 구간·소스 좁히기 · 이벤트 로그 · 수집 메타데이터 · 원인 진단 · 보정 실행 · 보정하지 않고 닫는다면 · 복구 확인 |
+| `STP-locate-gap` | `integrity` | 같은 화면 — 「구간 · 소스 좁히기」 의 축(AC1.3) · 소스 · 시간 3중 필터와 시간 × 소스 행 선택 (AC1.5 · AC1.6 · 여정 문서 `STP-locate-gap` 페인포인트) |
+| `STP-diagnose-source` | `integrity` | 같은 화면 — 「수집 메타데이터」(AC1.5 수집 시각 · 조회수 · 순위 · 소스 식별자 · 축, AC4.1 실행 ID · 소스별 실패 사유) + 「원인 진단」(`CMP-badge` · `CMP-kv`, AC1.6 · AC1.7) |
+| `STP-backfill` | `integrity` | 같은 화면 — 「보정 실행」(AC1.6 재시도 · AC1.7 본문 버전 보존 · AC4.1 트리거 재처리 실행 기록) |
+| `STP-verify-integrity` | `integrity` | 같은 화면 — 「복구 확인」(`PAT-before-after` · 여정 문서 완료 기준 「정상 범위로 복구됨을 확인. 로그로 확인 가능」 · §5 수집 성공률 99%) |
+
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-spot-anomaly` | `integrity` | 화면 교체 | 첫 진입 — 「불러오는 중…」 | 가정 — 같은 계열 운영 화면 `Reprocess.tsx` (`!data && !error`) | 딥링크 `#STP-spot-anomaly/loading` |
+| `api-error` | `STP-spot-anomaly` | `integrity` | 화면 교체 | 수집 기록을 불러오지 못함 — 「API 오류」 안내만 | 가정 — `Reprocess.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-spot-anomaly/api-error` |
+| `index-not-ready` | `STP-spot-anomaly` | `integrity` | 화면 교체 | 「인덱스 준비 중」 안내만 | 가정 — `IndexNotReady.tsx` 문면 그대로 (`Reprocess.tsx` `error === INDEX_NOT_READY`) | 딥링크 `#STP-spot-anomaly/index-not-ready` |
+| `no-bucket` | `STP-spot-anomaly` | `integrity` | 얹힘 | 구간 미선택 — 구간 요약이 비어 있음 | 가정 (행을 고르기 전) | 단계 1 진입 직후 |
+| `no-anomaly` | `STP-spot-anomaly` | `integrity` | 얹힘 | 이 축의 최근 24시간에 이상 없음 — 성공률 100% · 실패 0 · 중복 0 | AC1.6 · 여정 문서 완료 기준(「정상 범위」) | 축을 「전세계」로 |
+| `attempt-zero` | `STP-spot-anomaly` | `integrity` | 얹힘 | 시도 0 — 「성공 0」과 구분, 자동 재시도 · 다음 주기 보정이 실패했다는 기록 | 여정 문서 `STP-spot-anomaly` 페인포인트 · AC1.1(실행 누락 시 재시도 · 다음 주기 보정) | 「10/17 03–06시」 구간을 고른다 |
+| `no-gap` | `STP-locate-gap` | `integrity` | 얹힘 | 고른 구간 없음 — 진단 · 보정할 범위가 비어 있음 | 여정 문서 `STP-locate-gap` 페인포인트(전 구간 재수집은 과잉 대응) · 가정 | 단계 2 진입 직후 |
+| `filter-empty` | `STP-locate-gap` | `integrity` | 얹힘 | 3중 필터 결과 0건 | AC1.3 · 여정 문서 `STP-locate-gap` 페인포인트(3중 필터) | 한국 축에서 소스를 `us-desk` 로 |
+| `unresolved` | `STP-locate-gap` | `integrity` | 얹힘 | 지난 점검에서 미해결로 남긴 구간이 맨 위에 「미해결」 배지로 다시 뜸 | 여정 문서 §4 5행 처리(「미해결 상태로 유지해 다음 진입 시 노출」) | 단계 4 「미해결로 남기고 닫기」 |
+| `source-outage` | `STP-diagnose-source` | `integrity` | 얹힘 | 소스 API 장애 — 지금 다시 긁어도 같은 오류, 재시도 예약 · 복구 대기로 | 여정 문서 §4 1행 · AC1.6 | 원인 「소스 API 오류」 |
+| `origin-gone` | `STP-diagnose-source` | `integrity` | 얹힘 | 원본 소실 — 재수집 불가, 영구 누락으로 확정 | 여정 문서 §4 2행 | 원인 「원본 소실」 |
+| `no-target` | `STP-backfill` | `integrity` | 얹힘 | 고른 구간 없음 — 「보정 실행」 차단 | 여정 문서 `STP-locate-gap` 페인포인트(범위 없이 전 구간을 다시 긁지 않는다) · 가정 | 구간 목록에서 고른 구간을 모두 해제 |
+| `retry-pending` | `STP-backfill` | `integrity` | 얹힘 | 복구 대기 — 재시도 예약 시각, 구간 목록 · 시간대별 현황에 「복구 대기」 배지 | 여정 문서 §4 1행 처리(「재시도 예약 후 대기, 구간을 복구 대기로 표시」) · AC1.6 재시도 | 단계 3 소스 장애 배너의 「재시도 예약하고 복구 대기로 표시」 |
+| `dedup-confirm` | `STP-backfill` | `integrity` | 얹힘 | 중복 정리 확인 대화상자 — 정리할 관측 수 · 본문 버전은 건드리지 않음 | 가정 — 관측을 집계에서 빼는 되돌리기 어려운 작업 | 작업 「중복 정리」로 「보정 실행」 |
+| `running` | `STP-backfill` | `integrity` | 얹힘 | 제출 중 | 가정 | 「보정 실행」 |
+| `run-failed` | `STP-backfill` | `integrity` | 얹힘 | 제출 실패 — 고른 구간 · 작업 유지, 다시 제출 | 가정 | 딥링크 `#STP-backfill/run-failed` |
+| `run-done` | `STP-backfill` | `integrity` | 얹힘 | 실행 결과 — 실행 ID · 트리거 재처리 · 다시 받은 관측 · 본문 버전(같은 해시 재저장 안 함 · 수정 본문 새 버전 · 삭제 · 덮어쓰기 0건) | AC1.7 · AC4.1 · AC1.6 | 「보정 실행」 뒤 |
+| `dup-again` | `STP-backfill` | `integrity` | 얹힘 | 재수집이 중복을 다시 만듦 — 중복 규칙 재확인으로 | 여정 문서 §4 3행 | 중복 구간(kr-daily 10/17 13 · 14시)을 고르고 작업을 「재수집」으로 실행 |
+| `no-run` | `STP-verify-integrity` | `integrity` | 얹힘 | 보정 실행 전 — 「보정 후」 칸이 「—」 | 가정 | 실행 없이 단계 5 를 연다(딥링크 `#STP-verify-integrity`) |
+| `recovered` | `STP-verify-integrity` | `integrity` | 얹힘 | 정상 범위(성공률 99% 이상 · 중복 0)로 복구 — 실행 기록이 이벤트 로그에 남음 | 여정 문서 완료 기준 · §5 수집 성공률 · `PAT-before-after` · AC4.1 | 실패 구간(kr-wire 10/17 09–11시)을 재수집하고 단계 5 로 |
+| `perm-missing` | `STP-verify-integrity` | `integrity` | 얹힘 | 영구 누락 — 보정 후 칸과 판정이 「복구됨」 대신 「데이터 없음」 | 여정 문서 §4 2행 처리(「집계에서 데이터 없음 처리」) | 단계 3 영구 누락 배너의 「영구 누락으로 확정하고 확인으로」 |
+
+**의도적 제외**
+- 보정 이력을 구간 메타로 기록하고 소비자 화면에 주석으로 노출하는 것 — 여정 문서가 `STP-verify-integrity` 페인포인트의
+  대응 방향으로 적고 스스로 **「백로그 후보」** 로 파킹했다. 이 화면은 보정 실행이 이벤트 로그에 실행 기록(AC4.1
+  트리거 재처리)으로 남는 데까지만 그린다.
+- 예약한 재시도가 실제로 돌아 구간이 채워지는 순간 — 세션을 넘는 시간 경과라 재현하지 않는다. 「복구 대기」 표기까지.
+- 「미해결」 의 다음 진입 — 세션을 넘는 동작이라, 미해결로 남기고 닫으면 같은 세션 안에서 단계 2 로 돌아가 그 표기를
+  보이는 것으로 대신한다.
+- 이벤트 로그 카드의 자기 상태(빈 로그) — 이상 없는 축에서 「이벤트 없음」 행으로 그려지고 조건이 `no-anomaly` 와 같아
+  따로 등재하지 않는다.
+- 문서 메타(`<details>`)와 mapstrip — 메타 레이어에 둔다.
+
+**걷어낸 목업 전용 표면** (AC·여정 문서 근거 없음, 2026-10-17)
+- 보정 실행의 체크박스 「기존 Bronze를 덮어쓰지 않고 새 버전으로 보존한다 (content-addressed)」 — 풀면 덮어쓰기가 되는
+  선택지였다. AC1.7 「기존 버전을 삭제·덮어쓰지 않는다」 를 어기는 선택지라 고정 안내 문면으로 바꿨다. `dup-again` 은 이
+  체크박스를 풀던 길 대신 중복 구간을 재수집하는 데이터로 닿는다.
+- 「배치 크기 (건)」 number 입력.
+- 작업 옵션 「재수집 + 중복 정리」 — 여정 문서는 「재수집 또는 중복 정리」 다.
+- 복구 확인의 「재확인 범위」 select(「보정한 구간만」/「그날 전체」) — 고른 구간만 본다.
+- 복구 확인의 「결론」 라디오 · 「보정 이력 메모」 textarea · 제출 「복구 확인 기록」 과 상태 `invalid` · `recorded` — 보정
+  이력의 영속화는 여정 문서가 백로그 후보로 둔 대응 방향이고, 완료 기준은 「정상 범위로 복구됨을 확인. 로그로 확인 가능」
+  이라 기록 폼이 아니라 전후 비교와 이벤트 로그가 받는다. 영구 누락 확정은 단계 3 의 영구 누락 배너가 한다.
+- 「점검 구간」 select 의 「최근 7일」 — 여정은 시간대별 훑기다. 최근 24시간 고정.
+- 단계 2 의 두 번째 「축」 select — 같은 화면에 축 컨트롤이 둘이었다. 축은 「시간대별 수집 현황」 의 하나로 두고, 좁히기
+  카드는 그 축을 배지로 보인다.
+- 토프바 pill `구간 미선택`(`#tb-scope`) — 고른 구간을 토프바에 쓰던 목업 전용 문면. pill 은 `CMP-topbar` 의 축 · 기간이다.
+- 사이드바 하단 `수집 점검 · 12개 소스` — 구현 고정 문면 `수집 정상 · 12개 소스` 로.
+
+여정 문서 §4 의 다섯 행은 모두 **그 상황이 생기는 단계**의 화면 안 컨트롤이고, DOM 순서가 §4 순서와 같다. 1 · 2행
+(소스 장애 · 원본 소실)은 원인을 가르는 단계 3 의 배너에 있고, 도착 단계에 그 처리가 보인다 — 1행은 단계 4 의
+`retry-pending`(구간 목록 「복구 대기」 배지), 2행은 단계 5 의 `perm-missing`(보정 후 칸 「데이터 없음」). 3행(중복
+재생성)은 보정을 실행한 단계 4 의 `dup-again` 배너다. 4행(분석 이상 → `JRN-logic-backfill`)과 5행(중도 이탈)은
+단계 4 의 「보정하지 않고 닫는다면」 카드에 있다 — 둘의 상황은 원인을 가른 직후(단계 3)에 먼저 생기지만, §4 순서상
+3행(단계 4) 뒤에 와야 해서 단계 4 에 둔다. 단계 4 는 보정을 실행할지 정하는 자리라 「보정하지 않고 닫는다」 두 갈래가
+그 결정과 나란히 선다. 5행의 도착(단계 2)에는 `unresolved` 가 보인다. 정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
 
 #### `JRN-logic-backfill`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `empty-scope` | 고른 조합에 보관된 원문이 없음 — 재분석할 대상이 0건 | 이 task 결정 | 화면 1에서 그 축에 없는 소스(한국 축 + `us-desk`)로 좁힌다 |
-| `over-budget` | 한 번에 돌리기에 큰 범위 — 대상 건수와 예상 소요를 표기해 나눠 돌게 한다 | 여정 문서 `STP-scope-range` 페인포인트(「대상 건수·예상 비용이 안 보이면 범위를 감으로 정하게 된다」) | 화면 1의 「기간」 `<select>` 를 「지난 30일」로 넓힌다 |
-| `sample-running` | 표본을 새 로직으로 돌리는 중 | 이 task 결정 | 화면 2에서 「표본 실행」 |
-| `sample-mismatch` | 표본 결과가 의도와 다름 — **전량 실행을 잠근다** | 여정 문서 §4 1행 | 화면 2에서 「표본 추출」을 「새 로직이 건드리는 대상 우선」으로 바꾼다(재분류 62%) |
-| `running` | 범위 전체를 다시 분석하는 중 | 이 task 결정 | 화면 3에서 「전량 실행」 |
-| `overwrite-warning` | 덮어쓰기로 돌리면 이전 결과가 사라져 전후 비교·되돌리기가 불가능 | 여정 문서 `STP-run-reprocess` 페인포인트(「기존 Silver를 덮어써 이전 결과를 잃으면 전후 비교 자체가 불가능」) | 화면 3에서 「로직 버전을 붙여 병존시킨다」 체크를 푼다 |
-| `interrupted` | 재분석이 도중에 끊김 — 체크포인트까지 유지하고 그 지점부터 재개(전량 재실행 금지) | 여정 문서 §4 2행 | 화면 3에서 배치 크기를 450으로 올리고 「전량 실행」 |
-| `over-threshold` | 전후 차이가 주목 임계를 넘는 항목이 있음 | 여정 문서 §4 3행 | 화면 4에서 「주목 임계 (%p)」를 실측 최대 변화 아래로 내린다 |
-| `low-confidence` | 분석 실패·저신뢰 급증 — 미분석을 비율에 섞지 않고 분리 적재해 비중을 보고 | 여정 문서 §4 5행 | 화면 4에서 「미분석 · 저신뢰를 따로 떼어 보기」 체크 |
-| `invalid` | 반영·롤백 결정 입력 검증 실패 | 이 task 결정 | 화면 5에서 결정 미선택 또는 근거 공란으로 「결정 기록」 제출 |
-| `recorded` | 반영·롤백 결정 기록 완료(성공) | 이 task 결정 — 프로토타입 안에서는 세션 한정(제품은 `#97` 이후 영속, 아래 정정) | 화면 5에서 결정을 고르고 근거를 채워 제출 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-scope-range` | `reprocess` | AC1.4 · AC2.6 · `Reprocess.tsx` (컨트롤 줄 기간·출처 축·축 pill·소스 · 도입 lede · 재처리 범위 · 고른 범위 · 재처리 전후 비교 · 무엇이 움직였나) + `ReprocessTrigger.tsx` (표본 재분석 · 표본 요약 · 전량 재분석 · 실행 범위 · 반영 또는 되돌리기 · 되돌릴 수 있나) + 전후 추이 카드(AC3.3 · 여정 문서 `STP-compare-before-after` 「집계·시계열을 나란히 비교」 — 구현에 없음). 토프바 `재처리 콘솔`, pill `useTopbar` 의 `{축} · {기간} · {N}건` / `범위 미확정` |
+| `STP-dry-run` | `reprocess` | 같은 화면 — 표본 재분석 카드(`ReprocessTrigger.tsx` `submit("sample")`, 전량 잠금 `sampleDone`) · 여정 문서 `STP-dry-run`(가정 — AC 없음) |
+| `STP-run-reprocess` | `reprocess` | 같은 화면 — 전량 재분석 카드(AC2.6 · AC2.4 · `submit("run")`, 버전 병존 고정 · 배치 체크포인트) |
+| `STP-compare-before-after` | `reprocess` | 같은 화면 — 재처리 전후 비교(AC3.2 · `PAT-before-after` · `Reprocess.tsx` 정렬·주목 임계) · 전후 추이(AC3.3) |
+| `STP-publish` | `reprocess` | 같은 화면 — 반영 또는 되돌리기(`POST /api/reprocess/publish` → 결정 이력 표 · 여정 문서 완료 기준 「결정이 기록됨」) |
 
-> `recorded`가 이 프로토타입 안에서 세션 한정인 것은 앞선 네 여정의 `recorded`와 같은 **프로토타입 규약**이다 —
-> 여정 문서가 `STP-publish`의 페인포인트로 적은 「재처리 반영 시각·로직 버전을 소비자 화면 주석으로 노출」을 문서
-> 자신이 **「백로그 후보」** 로 파킹했고, 프로토타입은 그 기능을 만들지 않는다. 다만 **제품의 결정 기록은 `#97`
-> (2026-09-21, 슬라이스 10 후반부) 이후 세션이 아니라 레이크에 남는다** — 여정 완료 기준 「결정이 기록됨」을 제품이
-> 먼저 닫았고, 목업의 `이 기록은 이 세션 안에서만 유지됩니다 — 제품 안에 남는 재처리 이력은 아직 없습니다.` 문장은
-> 제품에 대해서는 더 이상 참이 아니다(이전 문면 「세션 안에서만 유지되는 것은 미구현이 아니라 범위 결정이다」는 그
-> 커밋 이후 사실과 어긋났고 rct_20260921-0006이 정정했다). 그 편차와 구현 전용 결정 이력 표는
-> `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 「결정의 영속화」 행이 받고, 목업을 영속 이력으로 다시
-> 그릴지는 디자인 결정으로 남는다. 소비자 화면 주석의 실제 노출은 여전히 백로그다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-scope-range` | `reprocess` | 화면 교체 | 첫 진입 — 컨트롤 줄·lede 와 「불러오는 중…」 만, 카드·pill 없음 | `Reprocess.tsx` (`!data && !error`) | 딥링크 `#STP-scope-range/loading` |
+| `api-error` | `STP-scope-range` | `reprocess` | 화면 교체 | 서빙 응답 실패 — 「API 오류: … — Go 서빙(:8080)이 떠 있고 …」 | `Reprocess.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-scope-range/api-error` |
+| `index-not-ready` | `STP-scope-range` | `reprocess` | 화면 교체 | 「인덱스 준비 중: 원문·분석 기록 인덱스가 아직 만들어지지 않았습니다 — …」 | `IndexNotReady.tsx` · `Reprocess.tsx` (`error === INDEX_NOT_READY`) | 딥링크 `#STP-scope-range/index-not-ready` |
+| `trigger-off` | `STP-scope-range` | `reprocess` | 화면 교체 | 실행 배선 없음 — 트리거 불가 note(`표본 실행 · 전량 실행 · 반영/되돌리기는 지금 이 화면에서 일으킬 수 없습니다.` + 서빙 `trigger.note` + `--analyzer-version` 안내), 표본·전량·결정 카드가 사라짐 | `Reprocess.tsx` (`!data.trigger.available`) | 딥링크 `#STP-scope-range/trigger-off` |
+| `empty-scope` | `STP-scope-range` | `reprocess` | 얹힘 | 보관된 원문 0건 — 구간 표 대신 「이 조합에는 보관된 원문이 없습니다.」, pill 「범위 미확정」, 표본 버튼·단계 CTA 잠김 | `Reprocess.tsx` (`scope.total === 0`) · 여정 문서 §4 4행의 상황 | 기간 「지난 24시간」 + 축 「전세계」(최근 24시간 수집이 빈 축) |
+| `no-silver` | `STP-scope-range` | `reprocess` | 얹힘 | 분석 레코드 없음 — 전후 표 대신 「이 범위에는 분석 레코드가 아직 없습니다 — …」 | `Reprocess.tsx` (`REASON_TEXT["no-silver"]`) | 위와 같은 조작 |
+| `single-version` | `STP-scope-range` | `reprocess` | 얹힘 | 한 버전뿐(구현의 기본 상태) — 사유 문장 + 버전 표(`로직 버전`·`레코드`·`처음 분석`·`마지막 분석`) | `Reprocess.tsx` (`REASON_TEXT["single-version"]` · `versions.length > 0`) | 기간 「지난 24시간」(한국 — 새 로직 레코드만 있음) |
+| `all-done` | `STP-scope-range` | `reprocess` | 얹힘 | 재분석 대상 0건 — 구간 배지 「완료」, 표본 실행 잠김 + 「이 범위에는 목표 버전으로 다시 분석할 원문이 없습니다 — …」 | `Reprocess.tsx` (`b.todo === 0` → 「완료」) · `ReprocessTrigger.tsx` (`data.scope.todo === 0`) | 기간 「지난 24시간」 · 또는 전량 실행이 끝난 뒤 |
+| `eta-unobserved` | `STP-scope-range` | `reprocess` | 얹힘 | 예상 소요 「— (관측된 처리 속도 없음)」 — 숫자를 지어내지 않는다 | 여정 문서 `STP-scope-range` 페인포인트 · `Reprocess.tsx` (`scope.eta_minutes === null`) | 축 「미국」 |
+| `sample-submitting` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 제출 중 — 버튼 「제출 중…」(잠김) | `ReprocessTrigger.tsx` (`busy === "sample"`) | 「표본 실행」 직후 |
+| `sample-active` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 런 대기·실행 중 — sub 「표본을 새 로직으로 돌리는 중…」, 런 표 배지 `대기`/`실행 중`, 실행 버튼 셋 잠김, 폴링 | `ReprocessTrigger.tsx` (`isActive(lastSample)` · `anyActive` · `POLL_MS`) | 「표본 실행」 뒤 런이 끝날 때까지 |
+| `full-unlocked` | `STP-dry-run` | `reprocess` | 얹힘 | 표본 완료 — 태그 「전량 실행이 열렸습니다」, KV 「열림」·「임계 초과 N개 / M개 대상」, 「로직을 고치고 표본부터 다시」 | `ReprocessTrigger.tsx` (`sampleDone`) · 여정 문서 §4 1행 | 표본 런이 「완료」 가 되면 |
+| `submit-failed` | `STP-dry-run` | `reprocess` | 얹힘 | 제출 실패 — 「실행하지 못했습니다:」 + 서빙 오류 문면 | `ReprocessTrigger.tsx` (`error`) · `reprocess_trigger.go` (400 `sample_size 는 1~500 이어야 한다`) | 표본 크기를 600 으로 두고 「표본 실행」 |
+| `run-locked` | `STP-run-reprocess` | `reprocess` | 얹힘 | 표본 전 — 「표본을 먼저 돌리세요.」, 전량 실행 잠김 | 여정 문서 `STP-dry-run` 페인포인트 · `ReprocessTrigger.tsx` (`!sampleDone`) | 표본 없이 단계 3 을 연다 |
+| `run-active` | `STP-run-reprocess` | `reprocess` | 얹힘 | 전량 런 실행 중 — sub 「범위 전체를 다시 분석하는 중…」, 런 표, 폴링 | `ReprocessTrigger.tsx` (`isActive(lastFull)`) | 「전량 실행」 뒤 런이 끝날 때까지 |
+| `interrupted` | `STP-run-reprocess` | `reprocess` | 얹힘 | 도중에 끊김 — 런 표 「실패」 행 + 「도중에 끊겼습니다.」(+ Workflow message) + 실행 버튼 문면 「체크포인트부터 이어서 재개」 | 여정 문서 §4 2행 · `ReprocessTrigger.tsx` (`failed(lastFull)`) | 배치 크기 400 이상으로 「전량 실행」(가정 — 큰 배치는 단계 시간 제한에 걸린다. 재개는 이어서 끝난다) |
+| `over-threshold` | `STP-compare-before-after` | `reprocess` | 얹힘 | 임계 초과 — 행 배지 「검토 필요」 + 「임계를 넘는 항목이 N건 있습니다.」 + 원문 확인 이탈 | 여정 문서 §4 3행 · `STP-compare-before-after` 페인포인트 · `Reprocess.tsx` (`over.length > 0`) | 전량 뒤 기본 임계 2%p(10 으로 올리면 해소) |
+| `no-decision` | `STP-publish` | `reprocess` | 얹힘 | 지금 서빙 버전 「— (결정 없음 · 레코드별 최신)」 | `ReprocessTrigger.tsx` (`servingVersion` 공란) | 결정 전 기본 |
+| `invalid` | `STP-publish` | `reprocess` | 얹힘 | 결정 입력 검증 실패 — 「실행하지 못했습니다: 반영할지 되돌릴지를 먼저 고르세요.」 / 근거 공란 문구 | `ReprocessTrigger.tsx` (`!decision` · `!memo.trim()`) | 빈 「결정 기록」 제출 |
+| `no-rollback` | `STP-publish` | `reprocess` | 얹힘 | 롤백 대상 없음 — 「되돌릴 이전 버전이 없습니다 — 두 버전이 병존해야 되돌릴 수 있습니다.」 | `ReprocessTrigger.tsx` (`!target`, `rollbackTarget`) | 기간 「지난 24시간」(한 버전) · 결정 없음에서 「이전 버전으로 되돌린다」 제출 |
+| `decide-locked` | `STP-publish` | `reprocess` | 얹힘 | 진행 중인 런이 있는 동안 「결정 기록」 잠김 | `ReprocessTrigger.tsx` (`busy !== null` 또는 `anyActive` 이면 `disabled`) | 결정 기록 직후(결정 런이 대기 중) |
+| `recorded` | `STP-publish` | `reprocess` | 얹힘 | 「결정을 기록했습니다.」 + `새 결과({v})를 반영`/`이전 버전({v})으로 롤백` + 「배치가 그 버전으로 Gold 를 다시 세우면 서빙 버전이 바뀝니다.」 | 여정 문서 완료 기준 · `ReprocessTrigger.tsx` (`recorded`) | 결정을 고르고 근거를 채워 제출 |
+| `decision-history` | `STP-publish` | `reprocess` | 얹힘 | 결정 이력 표 — 레이크에 남은 결정(`기록 시각`·`결정`·`버전`·`근거`), 마지막 결정이 지금 서빙 버전 | `ReprocessTrigger.tsx` (`trigger.decisions.length > 0`) · `POST /api/reprocess/publish` | 결정 런이 「완료」 가 되면 |
 
-여정 문서 §4 3·4행(임계 초과 → `JRN-spike-verification`, 원문 누락 → `JRN-ingestion-recovery`)은 이 여정을 벗어나는
-인계라 상태가 아니라 **이탈 컨트롤**이다. 이 페이지는 §4 3·4·5행을 화면 4의 「재처리 중 이런 상황이라면」 목록으로
-모아 두었다 — 그 셋은 모두 **전후 비교를 보고 나서야 갈리는** 갈래이고, 1·2행(표본 불일치 · 중단 재개)은 각각
-자기 화면의 배너 상태로 위 표에 있다.
+**의도적 제외**
+- 목표 로직 버전을 비우면 실행 버튼 셋이 잠기는 것(`!version.trim()`)은 입력을 비워 재현되지만 구현에 그 상태를 말하는
+  문면이 없어 상태로 등재하지 않는다 — 문면을 지어내지 않는다.
+- 「제출 중…」 은 표본 실행 하나만 상태로 등재한다. 전량 실행·결정 기록 버튼도 같은 문면으로 바뀌고(런타임) 경로가 같다.
+- 런 phase `Error`(배지 「오류」)는 `Failed`(「실패」)와 같은 처리(`failed()`)라 `interrupted` 하나로 받는다.
+- 폴링 실패 — 구현이 그리지 않는다(`ReprocessTrigger.tsx` 「a missed poll is not an error to show」).
+- 재조회 실패가 이전 데이터 위에 얹히는 API 오류 — 첫 진입 실패(`api-error`, 화면 교체)만 그린다. 같은 note 다.
+- 결정 제출의 서빙 오류 — `submit-failed` 와 같은 「실행하지 못했습니다:」 note 다.
+- 구현 화면 하단 mapstrip — 문서 메타라 메타 레이어에 둔다.
+- 소비자 화면 주석의 실제 노출 — 여정 문서가 백로그 후보로 파킹했다(체크박스와 KV 「소비자 주석」 은 그린다).
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-17)
+- `over-budget` 배너(`이 범위는 한 번에 돌리기에 큽니다 …`) — `BUDGET = 12000` mock 상수였고 서빙에 실행 상한이 없다.
+  건수·예상 소요 표기(여정 문서의 대응 방향)는 고른 범위 KV 가 한다.
+- 표본 추출 옵션 「새 로직이 건드리는 대상 우선」, 표본 전후 판정 표(`표본 대상`·`이전 판정`·`새 판정`·`건수`·`변화`),
+  `sample-mismatch` 배너와 그 전량 잠금(재분류 40% mock 상한) — 표본 결과는 전후 표가 읽고 런 표가 Workflow 상태를 본다.
+  §4 1행은 표본 요약 카드의 「로직을 고치고 표본부터 다시」(버전을 고치면 그 버전의 표본이 0건이라 전량이 다시 잠긴다)로 남긴다.
+- `keep-version` 해제 체크박스 · `overwrite-warning` 배너 · KV `덮어쓰기`/`불가 (덮어씀)` · 「덮어썼다면 되돌릴 자리가 없습니다」 —
+  제품에 덮어쓰기 경로가 없다(Silver `(record_id, analyzer_version)` 병존).
+- 적용 로직 `<select>` 와 예시 버전 `v2.4`/`v2.5-rc` — 서빙에 버전 목록이 없다(자유 입력 두 칸, 기본값 `target_version`).
+- 전후 표의 행 사유 주석(`분류 정교화`·`표기 변형 통합`·`대상 분리`)과 「설명됨」 배지 — 서빙에 변화 사유가 없다(배지는 `임계 이내`).
+- `split-unanalyzed` 체크박스와 `low-confidence` 배너 — 미분석·저신뢰 몫은 상시 note 로 보고한다(AC2.5).
+- 「재처리 중 이런 상황이라면」 분기 표(힌트 `비교만으로 닫히지 않는 갈래는 여기서 갈라집니다.`) — 갈래마다 그 상황이 보이는
+  note 안의 이탈 컨트롤로 옮겼다(아래).
+- `recorded` 의 「이 기록은 이 세션 안에서만 유지됩니다 — 제품 안에 남는 재처리 이력은 아직 없습니다.」 — 제품에 대해 거짓이다.
+  결정은 레이크에 남고 결정 이력 표가 그것을 보여 준다.
+- interrupted 의 「{N}건까지 처리」, 실행 결과 KV(`처리 건수`·`되짚기 키 보존`·`결과 버전`), 진행 loadbox 두 개, 되돌릴 수 있나
+  카드의 `처리 건수`·`되짚기 키 보존` — 서빙은 런의 phase·message 만 안다. 진행은 런 표 배지와 카드 sub 가 말한다.
+- 범위 폼 `<select>` 셋 · 정렬 `<select>`(「현재 점유율 순」) · 고정 소스 옵션 `us-desk`/`gl-agg` — 구현 컨트롤 줄(기간·축 라디오 +
+  축 pill + 응답에서 오는 소스 옵션)과 정렬 라디오(「이후 점유율 순」)로.
+- 「결정과 근거를 모두 채워야 기록됩니다.」 정적 배너 — 구현처럼 실행 오류 note 의 검증 문구 두 종으로.
+- 사이드바 하단 「분석 로직 v2.4 · 배포 2시간 전 / 마지막 재처리 09-18 21:40 KST」 — 구현과 같은 고정 문면으로.
+
+여정 문서 §4 다섯 행은 모두 그 상황이 화면에 보이는 자리의 컨트롤이다. 1행(표본이 의도와 다름 → `STP-dry-run`)은 단계 2
+표본 요약 카드의 「로직을 고치고 표본부터 다시」(표본이 끝나야 보인다), 2행(실패·중단 → `STP-run-reprocess`)은 단계 3 의
+`interrupted` note 안 「체크포인트부터 이어서 재개 →」(구현의 실행 버튼 문면 전환과 같은 요청을 다시 낸다), 3행(임계 초과 →
+`JRN-spike-verification`)은 단계 4 임계 초과 note 의 이탈 컨트롤, 4행(원문 누락 → `JRN-ingestion-recovery`)과 5행(저신뢰 급증 →
+`STP-compare-before-after`)은 단계 4 미분석·저신뢰 note 의 두 컨트롤이다 — 본문 미확보는 미분석으로 빠지므로(AC2.5) 원문 누락은
+그 몫의 증가로 드러나고, 5행의 처리(분리 적재하고 비중을 보고)는 상시 note 와 「보류 몫의 전후 추이 보기」(전후 추이 카드의 대상을
+미분석·저신뢰로)다. 다른 여정으로 넘기는 3·4행은 「여정 끝」 표지를 단다. 구현에는 §4 컨트롤이 하나도 없다(구현 쪽 편차).
+정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
 
 > **분기 표는 부분으로 서지 않는다 (2026-09-28, rct_20260928-0005).** `재처리 중 이런 상황이라면` 과
 > `검증 중 이런 상황이라면` 두 목록은 각자 힌트 문장이 갈래 집합의 **완전성**을 주장하는 집합 장치라, 목적지가
@@ -324,36 +621,93 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 
 #### `JRN-judgment-debug`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `no-match` | 찾는 분석 결과가 없음 — 레코드 번호 형식 안내 | 여정 문서 `STP-pin-record` 페인포인트(제보가 제목만 들고 와 헤맨다) | 화면 1의 검색에 없는 레코드 번호를 친다 |
-| `parse-mismatch` | 응답의 최종 판단과 저장값이 어긋남 — 저장값이 응답 안 첫 JSON(초안)에서 읽힘 | 여정 문서 `STP-read-exchange` 페인포인트(모델이 틀렸는지 파서가 틀렸는지) | 제보 링크의 기본 결과 `R-2609-0412` 로 화면 2에 들어간다 |
-| `call-failed` | 모델 호출 실패 — 재시도 횟수·마지막 오류를 보이고 결과는 미분석 | PRD-4 AC4.2(호출 실패도 기록) | 화면 1에서 `R-2609-0398` 을 고르고 화면 2로 |
-| `not-called` | 모델을 부르지 않은 결과 — 미호출 사유와 입력 점검으로 가는 분기 | 여정 문서 §4 2행 | 화면 1에서 `R-2609-0377`(본문 미확보)을 고르고 화면 2로 |
-| `reused` | 응답 재사용 결과 — 원 호출 기록으로 가는 분기 | 여정 문서 §4 3행 | 화면 1에서 `R-2609-0365` 를 고르고 화면 2로 |
-| `no-call-record` | 호출 기록이 없는 결과(기록 도입 이전) — 표본 재분석으로 넘기는 분기 | 여정 문서 §4 4행 | 화면 1에서 `R-2608-2210` 을 고르고 화면 2로 |
-| `body-mismatch` | 분석에 쓴 본문 버전 ≠ 보관된 최신 버전 — 분석 뒤 수정 횟수 표기 | 여정 문서 `STP-check-input` 페인포인트(어느 버전으로 판단했는지) | 화면 1에서 `R-2609-0351` 을 고르고 화면 3으로 |
-| `body-empty` | 본문이 사실상 비어 있음(링크만 있거나 안내 문구뿐) | 여정 문서 `STP-check-input` 사용자 행동(본문이 비었거나 잘렸는지) | 화면 1에서 `R-2609-0420` 을 고르고 화면 3으로 |
-| `run-concentrated` | 고른 증상이 이 실행에 몰림 — 기준 대비 비율과 직전 실행 건수 | 여정 문서 `STP-scan-run` 사용자 행동(같은 증상이 얼마나 몰렸는지) | 화면 4 기본 상태(기준 2%). 「몰림 기준 %」를 올리면 해소 |
-| `run-stage-failed` | 실행이 분석 단계에서 중단 — 멈춘 지점까지의 건수·사유, 집계 미실행 | PRD-4 AC4.1(중단된 실행도 그 시점까지 기록) | 화면 4의 「실행」 `<select>` 에서 09-23 23:00 을 고른다 |
-| `invalid` | 원인 판정 입력 검증 실패 | 이 task 결정 | 화면 5에서 원인 미선택 또는 판정 메모 공란으로 「판정 기록」 제출 |
-| `recorded` | 원인 판정 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 원인을 고르고 메모를 채워 제출 |
+다섯 단계가 모두 같은 화면 `debug`(`Debug.tsx`, 토프바 제목 = nav 라벨 `판단 디버깅`, `useTopbar` 를 쓰지 않아 pill 없음)다.
+구현은 검색 카드 · 고른 결과 · 응답↔저장값 · 모델 호출 기록 · 입력 점검 · 배치 실행 · 증상 · 원인 판정 · 이어지는 길을 한 화면에
+세로로 쌓으므로, 각 단계는 그 화면 전체를 같은 구조로 다시 그리고 단계로 들어오면 그 단계가 보는 카드로 스크롤한다.
+예시 레코드 번호는 실제 규약(수집 해시 앞 열두 자리 16진수)을 따르고, 실행·호출 번호·단계 이름·상태 값은 서빙 응답의
+원값(`scheduled` · `succeeded` · `analysis` · `call_failed` …)을 구현처럼 그대로 보인다.
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가 `STP-route-cause`의
-> 페인포인트로 적은 「판정 메모를 레코드·실행에 남기기」를 문서 자신이 **「현재 AC 없음 — 백로그 후보」** 로
-> 파킹했다. 화면도 그 사실을 성공 배너에 그대로 적는다 — 다른 여정의 `recorded` 와 같은 규약이다.
-> 이 페이지가 그리는 기록(호출·실행)은 PRD-4 AC4.1~4.3 이 요구하는 계약이고, 그 계약은 **제품에 착지해 있다**
-> (AC4.1 `#130` · AC4.2 `#134` · AC4.3 `#137`, 2026-09-24~25). 계약 실체는 `contracts/silver/pipeline_run.avsc`·
-> `llm_call.avsc`·`analysis.avsc` 와 `econ_core/runlog.py`·`calllog.py` 이며, Silver 분석 레코드는 `run_id` 와
-> `call_id`(호출이 없었으면 `no_call_reason`)로 실행·호출을 가리킨다. **아직 없는 것은 그 기록을 그리는
-> 화면뿐이다** — 조회 경로는 2026-09-28 에 섰다(rct_20260928-0005): `/api/debug` 가 `record_id` 로 그 레코드의
-> 분석 버전들과 호출 기록(미호출이면 사유 · 재사용이면 원 호출 한 홉)과 소속 실행의 단계 기록·증상 집계를
-> 내려주고, `go/internal/store` 가 `pipeline_run`·`llm_call` 두 객체 데이터셋을 읽는다. 이전 문면(「아직 없는
-> 것은 조회 경로뿐이다 — `/api/debug` 는 스텁이고 `Missing` 이 `debug_read_path` 하나를 말한다」)은 그 착지로
-> 낡았다. **화면도 2026-09-28 에 섰다(rct_20260928-0006)** — `web/src/screens/Debug.tsx` 가 `BUILT` 에 들어가
-> `/debug` 가 그 조회 경로를 읽는다. 직전 문면(「화면은 여전히 `Placeholder` 다」)은 그 착지로 낡았다. 그래서 이
-> 페이지가 먼저 보여 주던 「조회 경로가 생겼을 때의 모습」은 이제 대조할 구현을 갖는다. 이전 문면(계약이 「아직 구현 전」이며 목업이 그것을 먼저 보여 준다는 서술)은 2026-09-24
-> 작성 시점에는 참이었고 위 세 착지로 낡았다 — rct_20260926-0011 이 정정했다.
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-pin-record` | `debug` | AC4.3 · AC2.6 · `Debug.tsx` 전체(머리 lede · 분석 결과 찾기[검색 · 증상 세 묶음 · `찾기` · 목록 표 · 「제목 기록 없음」] · 고른 결과 · 응답↔저장값 · 모델 호출 기록 · 모델이 받은 입력 · 보관된 원문 · 대조 요약 · 배치 실행 · 증상이 몰렸나 · 원인 판정 · 판정 뒤 이어지는 길) — 이 단계는 검색 카드와 고른 결과를 본다. 「원문 열기 ↗」 는 원문 주소가 있을 때만(`input?.source_url`) · 운영 알림 카드는 여정 문서 터치포인트·§4 1행(아래 상태 `alert-entry`) |
+| `STP-read-exchange` | `debug` | 같은 화면 — 모델 호출 기록(`CMP-kv`) · 응답↔저장값(`CMP-table`) (AC4.2 · `Debug.tsx` `compareRows`·`lastJSONObject`) |
+| `STP-check-input` | `debug` | 같은 화면 — 모델이 받은 입력 · 보관된 원문(원문 버전 `<select>`) · 대조 요약 (AC4.2 · AC2.6 · AC1.7 · `Debug.tsx` `sentKnown`·`staleBy`·`emptyish`) |
+| `STP-scan-run` | `debug` | 같은 화면 — 배치 실행 단계 표(`PAT-integrity-panel` 계열, 입력 = 결과별 합) · 증상이 몰렸나(`CMP-metric`) 와 「목록 보기」 드릴다운 (AC4.1 · AC4.3 · `Debug.tsx` `stageBalance`·`updateParams({symptom, run_id})`) |
+| `STP-route-cause` | `debug` | 같은 화면 — 원인 판정(근거 표 · 원인 라디오 · 판정 메모 · 「판정 기록」) · 판정 뒤 이어지는 길 (여정 문서 `STP-route-cause` · `Debug.tsx` `CAUSES`) |
+
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-pin-record` | `debug` | 화면 교체 | 첫 진입 — lede · 「레코드 {번호}의 판단 기록을 불러오는 중…」 · 검색 카드 안 「목록을 불러오는 중…」 | `Debug.tsx` (`!data && !error` · `!list && !listError`) | 딥링크 `#STP-pin-record/loading` |
+| `index-not-ready` | `STP-pin-record` | `debug` | 화면 교체 | 원문·분석 기록 인덱스 준비 전(503 `index_not_ready`) — 검색 카드 안에 한 번만 | `IndexNotReady.tsx` · `Debug.tsx` (`listError === INDEX_NOT_READY`, 상세 쪽은 「once is enough」 로 생략) | 딥링크 `#STP-pin-record/index-not-ready` |
+| `api-error` | `STP-pin-record` | `debug` | 얹힘 | 상세 조회 실패 — 화면 머리 「API 오류: … Go 서빙(:8080)…」, 아래 카드 없음 | `Debug.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-pin-record/api-error` |
+| `detail-loading` | `STP-pin-record` | `debug` | 얹힘 | 레코드를 고른 직후 — 「레코드 {번호}의 판단 기록을 불러오는 중…」 | `Debug.tsx` (`!data && !error`, `query` 있음) | 목록에서 다른 레코드 라디오를 고른다 |
+| `list-error` | `STP-pin-record` | `debug` | 얹힘 | 목록 조회 실패 — 검색 카드 안 「API 오류: …」 | `Debug.tsx` (`listError && listError !== INDEX_NOT_READY`) | 딥링크 `#STP-pin-record/list-error` |
+| `list-loading` | `STP-pin-record` | `debug` | 얹힘 | 조건을 바꾼 뒤 목록 재조회 — 「목록을 불러오는 중…」 | `Debug.tsx` (`!list && !listError`, `listReload`) | 「찾기」 제출 또는 증상 `<select>` 변경 |
+| `no-match` | `STP-pin-record` | `debug` | 얹힘 | 찾는 결과 0건 — 레코드 번호는 제보 링크 `record_id=` 뒤의 값이라는 안내 | 여정 문서 `STP-pin-record` 페인포인트 · `Debug.tsx` (`listRows.length === 0`) | 검색에 없는 번호를 넣고 「찾기」 |
+| `truncated` | `STP-pin-record` | `debug` | 얹힘 | 맞는 결과가 상한(50건)을 넘음 — 「맞는 결과 N건 가운데 앞 50건만 보입니다」 | `Debug.tsx` (`list.truncated`) · 서빙 `debugRecordsLimit` | 딥링크 `#STP-pin-record/truncated` |
+| `alert-entry` | `STP-pin-record` | `debug` | 얹힘 | 운영 알림 링크로 실행 단위에서 진입 — 「실행 기록부터 보기」 | 여정 문서 §4 1행 · `STP-pin-record` 터치포인트 「운영 알림 카드」 · 가정(구현 없음 — 아래 걷어낸 표면의 판정) | 딥링크 `#STP-pin-record/alert-entry` |
+| `requested-missing` | `STP-pin-record` | `debug` | 얹힘 | 링크의 레코드에 분석 결과가 없음 — 「조회가 실패한 것이 아니라 되짚을 판단이 없습니다」 | `Debug.tsx` (`selection === "requested-missing"`) | 딥링크 `#STP-pin-record/requested-missing` |
+| `no-records` | `STP-pin-record` | `debug` | 얹힘 | 분석된 레코드가 아직 하나도 없음 | `Debug.tsx` (`!data.found`, `selection` 이 `empty`) | 딥링크 `#STP-pin-record/no-records` |
+| `auto-pick` | `STP-pin-record` | `debug` | 얹힘 | 조회 없이 열어 첫 레코드를 자동 선택 — 고른 결과 카드 note | `Debug.tsx` (`selection === "auto"`) | 딥링크 `#STP-pin-record/auto-pick` |
+| `multi-version` | `STP-pin-record` | `debug` | 얹힘 | 재처리로 분석 버전이 둘 이상 병존 — 버전별 분석 로직·실행·호출 | AC4.3(병존하는 두 로직 버전이 각자 다른 실행·호출을 가리킴) · `Debug.tsx` (`versions.length > 1` note) · 가정(버전별 표는 AC4.3 검증 항목을 화면에 옮긴 것, 구현은 개수만) | 목록에서 `b05f7a2c6e19` 를 고른다 |
+| `parse-mismatch` | `STP-read-exchange` | `debug` | 얹힘 | 응답의 최종 판단 ≠ 저장값 — 읽는 쪽을 먼저 의심 | 여정 문서 `STP-read-exchange` 페인포인트 · `Debug.tsx` (`mismatched.length > 0`) | 기본 레코드 `a3f9c21e07b4`(제보 링크) |
+| `parse-failed` | `STP-read-exchange` | `debug` | 얹힘 | 응답을 읽지 못함(형식 깨짐) — 원문은 그대로, 읽지 못한 사유 | AC4.2(파싱 실패·형식이 깨진 응답도 기록 · 「파싱 결과 또는 실패 사유」) · `Debug.tsx` `OUTCOME_LABEL.parse_failed` · 가정(배너 문면 — 구현은 근거 표에만 적는다) | 목록에서 `7c3d05e8b2f9` 를 고른다 |
+| `call-failed` | `STP-read-exchange` | `debug` | 얹힘 | 모델 호출 실패 — 재시도 횟수·마지막 오류, 결과는 미분석 | AC4.2 · `Debug.tsx` (`call_outcome === "call_failed"`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `no-reply` | `STP-read-exchange` | `debug` | 얹힘 | 응답 원문 없음 — 빈 칸 대신 「보여 줄 원문이 없습니다」 | `Debug.tsx` (`response_raw === null`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `not-called` | `STP-read-exchange` | `debug` | 얹힘 | 모델을 부르지 않음 — 미호출 사유(본문 미확보 · 키워드 분석기) | 여정 문서 §4 2행 · AC4.3 · `Debug.tsx` (`exchange.state === "no-call"`, `NO_CALL_LABEL`) | 목록에서 `c71e4f02ad88`(본문 미확보) 또는 `4e8a1f6d93b0`(키워드 분석기) |
+| `reused` | `STP-read-exchange` | `debug` | 얹힘 | 이전 응답 재사용 — 원 호출 기록으로 | 여정 문서 §4 3행 · AC4.2 · `Debug.tsx` (`reusedView`) | 목록에서 `0d9a6b7e2f15` 를 고른다 |
+| `no-call-record` | `STP-read-exchange` | `debug` | 얹힘 | 호출 기록 도입 이전 분석 — 표본 재분석으로 재현 | 여정 문서 §4 4행 · `Debug.tsx` (`exchange.state === "unrecorded"`) | 목록에서 `2b6e91f4c0a7` 를 고른다 |
+| `call-record-absent` | `STP-read-exchange` | `debug` | 얹힘 | 가리키는 호출 기록이 레이크에 없음 | `Debug.tsx` (`exchange.state === "call-record-absent"`) | 목록에서 `d6c4a90e3b72`(제목 기록 없음) 를 고른다 |
+| `body-mismatch` | `STP-check-input` | `debug` | 얹힘 | 분석에 쓴 본문 ≠ 지금 보관된 최신 본문 — 분석 뒤 수정 횟수 | 여정 문서 `STP-check-input` 페인포인트 · AC1.7 · `Debug.tsx` (`staleBy > 0`) | 목록에서 `e48c0b93a7d2` 를 고른다 |
+| `body-empty` | `STP-check-input` | `debug` | 얹힘 | 본문이 사실상 비어 있음(본문 미수집 · 안내 문구뿐) | 여정 문서 `STP-check-input` 사용자 행동 · `Debug.tsx` (`emptyish`) | 목록에서 `9f27d3c50e61` 또는 `c71e4f02ad88` |
+| `run-stage-failed` | `STP-scan-run` | `debug` | 얹힘 | 실행이 도중에 멈춤 — 멈춘 지점까지 건수·사유, 뒤 단계 없음 | AC4.1(중단된 실행도 그 시점까지 기록) · `Debug.tsx` (`stage_status === "failed"`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `run-running` | `STP-scan-run` | `debug` | 얹힘 | 실행이 아직 진행 중 — 종료 시각 자리에 「아직 진행 중」 | `Debug.tsx` (`run_ended_at ?? "아직 진행 중"`) | 딥링크 `#STP-scan-run/run-running` |
+| `no-run-record` | `STP-scan-run` | `debug` | 얹힘 | 실행 기록이 레이크에 없음 — 「실행이 없었던 것이 아니라 기록이 없습니다」 | `Debug.tsx` (`run` 이 `null`) | 목록에서 `2b6e91f4c0a7` 를 고른다 |
+| `run-filter` | `STP-scan-run` | `debug` | 얹힘 | 실행 기록 → 레코드 목록 드릴다운 — 검색 카드가 그 실행·증상으로 좁혀지고 「전체 실행으로 넓히기」 | AC4.3(실행 기록에서 레코드 목록으로 이동) · 여정 문서 `STP-scan-run` 페인포인트 · `Debug.tsx` (`runFilter`) | 증상이 몰렸나의 「목록 보기」 |
+| `invalid` | `STP-route-cause` | `debug` | 얹힘 | 판정 입력 검증 실패(원인 미선택 · 메모 공란) | `Debug.tsx` (`setInvalid`) | 원인 없이, 또는 메모 없이 「판정 기록」 |
+| `recorded` | `STP-route-cause` | `debug` | 얹힘 | 판정 기록됨 — 이 화면 안에서만 유지 | 여정 문서 `STP-route-cause`(판정 보존은 백로그) · `Debug.tsx` (`setRecorded`) | 원인을 고르고 메모를 채워 「판정 기록」 |
+
+**의도적 제외**
+- 상세 조회만 인덱스 준비 중인 갈래(`Debug.tsx` 의 머리 `IndexNotReady`) — 두 조회가 같은 서빙 인덱스를 읽어 함께 503 이 되므로
+  구현 주석(「once is enough」)대로 `index-not-ready` 한 상태로 그린다.
+- 화면 끝 `MapStrip`(되짚는 레코드 · 분석 버전 · 속한 실행 칩) — `CMP-mapstrip` 은 화면을 여정·가치에 잇는 문서 장치라
+  `JRN-daily-scan` 과 같이 메타 레이어에 둔다. 칩의 세 값은 고른 결과 카드 머리 배지 · 버전 note · kv 「실행」 에 이미 있다.
+- 「원문 열기 ↗」 의 실제 새 탭 · 「원문 추적 상세에서 보기」 의 `/trace` 착지 — 여정 밖 행동이라 그려 두되 누르면 안내만 뜬다.
+- 실행 진행 중(`run-running`)의 나머지 칸(최종 상태 `running`, 진행 중 단계 표)은 딥링크가 종료 시각 자리만 바꾼다 — 예시 실행이
+  전부 끝난 실행이라 진행 중 실행 데이터를 따로 두지 않았다.
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-17)
+- 운영 알림 카드의 「평소보다 많습니다 (23건)」 주장 — 실행 간 기준선이 계약·서빙에 없다. 카드 자체는 여정 문서 터치포인트·§4 1행
+  근거로 남기되 상시 표면이 아니라 알림 링크로 들어온 상태(`alert-entry`)로 바꿨다.
+- 배치 실행 카드의 `실행` `<select>`(예시 실행 넷) · sub 꼬리 「고른 결과를 만든 실행」/「최근 실행을 보여 줍니다」 · kv `분석 코드` —
+  실행 목록 라우트와 실행의 분석 코드 필드가 없다. 기록 없는 결과는 `no-run-record` 로 그린다.
+- 증상이 몰렸나의 `증상` `<select>` 다섯 · `몰림 기준 %` 입력 · `run-concentrated` 배너(직전 실행 비교 · 「이 실행부터 분석 코드가
+  바뀌었습니다」) · 「해당 결과:」 번호 나열 — 실행 단위 tally 는 서빙 세 묶음뿐이고 직전 실행 기준선이 없다. 레코드 목록으로 내려가는
+  길은 구현의 「목록 보기」 드릴다운(`run-filter`)으로 그린다.
+- 검색 카드 증상 필터의 평면 다섯 항목과 「분류가 의심됨」 — 서빙이 거를 수 있는 세 묶음(`optgroup`)으로 바꿨다. 검색은 입력 즉시가
+  아니라 「찾기」 제출로 조회한다.
+- 원인 판정의 일괄 적용 체크박스(「같은 실행에서 같은 증상인 결과 N건에도…」) · kv `판정 대상`/`원인` · 원인 힌트(「모은 근거로 보면…」) —
+  레코드 증상 분류와 실행 단위 건수, 판정 영속화가 없다. `invalid`·`recorded` 는 구현에 있어 남는다.
+- 전송본 해시 줄의 「보관 원문으로 재구성한 요청과 바이트 일치 ✓」 — 하지 않은 대조라 구현처럼 `sha256 {해시}` 만 둔다.
+- 고른 결과 kv `레코드`·`출처`·`수집 주기`·`분석 결과`·`만든 실행` — 구현의 아홉 키(상태 · 분위기 · 신뢰도 · 대상 국가 · 서술 대상 ·
+  분석 로직 · 분석 시각 · 실행 · 원문 주소)로 바꿨다. 출처·수집 주기는 `/api/debug` 의 `input` 에 없다.
+- 토프바 pill `tb-rec`(고른 레코드 번호) — `Debug.tsx` 는 `useTopbar` 를 쓰지 않아 pill 이 없다. 사이드바 하단의 분석 로직·최근 실행
+  문면 — 구현 고정 문면(`수집 정상 · 12개 소스` / `마지막 수집 14:00 KST`)으로 바꿨다.
+- 호출 실패 레코드의 지어낸 응답 원문(「(응답 없음) 1차 시도: HTTP 429…」) — 구현은 `response_raw` 가 `null` 이면 `no-reply` 로 적는다.
+- 예시 레코드 번호 `R-2609-0412` 꼴 — 실제 `record_id` 규약(12자리 16진수)과 무일치 안내 문면(`record_id=` 뒤의 값)으로 바꿨다.
+
+여정 문서 §4 1행(운영 알림 → 실행부터)은 그 상황이 생기는 단계 1 의 `alert-entry` 안 「실행 기록부터 보기」 다. 2·3·4행(미호출 →
+입력 점검, 재사용 → 원 호출, 기록 없음 → 표본 재분석)은 단계 2 의 모델 호출 기록 카드 안에 구현 순서대로 있고, 4행은 여정을
+벗어나는 인계라 「여정 끝」 표지를 단다. 5·6행(입력 → 수집 복구, 로직 → 소급 적용)은 단계 5 의 「판정 뒤 이어지는 길」 이며 둘 다
+「여정 끝」 표지를 단다 — 5행의 목적지는 여정 문서대로 `JRN-ingestion-recovery#STP-locate-gap` 이다(구현은 `/reprocess`, 설계 트래커
+「판정 뒤 이어지는 길 첫 갈래」 행). 7행(조사 도중 이탈)은 결론을 못 내는 자리인 같은 카드의 「이 결과부터 다시 보기」 로, §4 순서와
+DOM 순서가 함께 맞는다. 같은 화면이 다섯 단계에 있으므로 각 분기 컨트롤은 그 단계의 사본에만 `data-goto` 를 달고, 다른 단계의 같은
+컨트롤은 같은 행동을 한다. 정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
+
+> `recorded` 가 화면 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다 — 여정 문서가 `STP-route-cause` 페인포인트의
+> 「판정 메모를 레코드·실행에 남기기」를 「현재 AC 없음 — 백로그 후보」로 파킹했고, 구현(`Debug.tsx`)도 성공 배너에 그 사실을 적는다.
+> 이 페이지가 그리는 기록(실행·호출)은 PRD-4 AC4.1~4.3 이 요구하는 계약이며 계약·조회 경로(`/api/debug` · `/api/debug/records`)·
+> 화면(`Debug.tsx`)이 모두 제품에 착지해 있다.
 
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
