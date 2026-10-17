@@ -58,7 +58,7 @@
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
 | `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` |
-| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
+| `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음 — 단계는 라우트 없는 화면 `integrity`) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
 | `JRN-logic-backfill` | `docs/mockups/JRN-logic-backfill.html` | `reprocess` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` |
 | `JRN-judgment-debug` | `docs/mockups/JRN-judgment-debug.html` | (없음) | `STP-pin-record`, `STP-read-exchange`, `STP-check-input`, `STP-scan-run`, `STP-route-cause` |
 
@@ -92,8 +92,6 @@
 | `STP-drilldown-articles` | `fairness` | 기여 뉴스 목록 (소스·수집 시각·본문 중복 표기). 이 단계는 `#174`(2026-09-27, AC3.10)로 구현에 열렸다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(`STP-verify-in-trend`·`STP-backfill` 행과 같은 규약) |
 | `STP-open-origin` | `trace` | 원문 역추적 · 보존 원문 · 링크 상태 배지 |
 | `STP-judge` | `trace` | 판정과 종료. 여정 문서가 이 단계의 터치포인트를 「`trace.html` / 제품 외부(리포트·메모)」로 적었고, 그중 **제품 안에 있던 몫**을 이 여정 페이지가 판정 화면으로 흡수했다. 판정 결과의 **영속화(검증 이력·플래그)는 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다. |
-| (페이지 수준) 토프바 — 크럼 `급등 검증` · `.ctl` pill `tb-basis` | `fairness` | **단계 밖 장치.** `<header class="topbar">`(`:503-511`)에 있어 어느 `data-step` 에도 들어 있지 않고 페이지 전체에 걸린다 — 위 규약의 페이지 수준 절대로 이 페이지가 흡수한 두 화면 중 더 앞선 `fairness` 가 받는다. 단계 하나를 빌려준 `dash` 에는 얹지 않는다(그 토프바는 `JRN-daily-scan` 의 것이다). 구현 편차는 설계 트래커 「페이지 수준 토프바 부재」 행이 대조한다. |
-| (페이지 수준) `.branches` 분기 표 — `검증 중 이런 상황이라면` | `fairness` | **단계 밖 장치.** 마지막 섹션 `STP-judge` 가 닫힌 뒤(`:830-870`)에 오므로 어느 `data-step` 에도 들어 있지 않다 — 같은 귀속 근거로 `fairness` 가 받는다. 다섯 갈래의 목적지는 `trace`·`fairness`·`reprocess` 로 흩어지지만 장치를 거는 자리는 하나다. 같은 장치가 `JRN-logic-backfill` 에서는 단계 **안**에 있어 그 단계의 화면(`reprocess`)이 받았다. 구현 편차는 설계 트래커 「페이지 수준 분기 표 … 전면 부재」 행이 대조한다. |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -104,11 +102,11 @@
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
-| `STP-spot-anomaly` | `reprocess` | 무결성 패널. 시도·성공·실패·중복을 **네 칸으로 분리**해 「시도 0(스케줄 미실행)」과 「성공 0(소스 오류)」을 구분한다 — 여정 문서가 이 단계의 페인포인트로 적은 구분이다 |
-| `STP-locate-gap` | `reprocess` | 무결성 테이블. 축·소스·시간 3중 필터 |
-| `STP-diagnose-source` | `reprocess` | 상태 배지 + 수집 메타데이터. 원인 판정에 따라 필요한 메타만 남긴다 |
-| `STP-backfill` | `reprocess` | 실행 컨트롤. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — `reprocess`는 `#94`(2026-09-21, 슬라이스 10 전반부)로 `App.tsx`의 `BUILT`에 들었다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(이전 문면 「`reprocess` 화면 자체가 `BUILT` 밖이라 목업↔구현 대조는 아직 열리지 않는다」는 그 커밋 이후 사실과 어긋났고 rct_20260921-0003이 정정했다). 이 단계의 그릇은 아직 구현에 없고(허용목록 `STP-backfill` 행), 세우는 일은 `docs-impl` 몫이다 |
-| `STP-verify-integrity` | `reprocess` | 보정 전후 비교 패널과 이력 기록. 보정 이력의 **영속화는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
+| `STP-spot-anomaly` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 무결성 패널. 시도·성공·실패·중복을 **네 칸으로 분리**해 「시도 0(스케줄 미실행)」과 「성공 0(소스 오류)」을 구분한다 — 여정 문서가 이 단계의 페인포인트로 적은 구분이다 |
+| `STP-locate-gap` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 무결성 테이블. 축·소스·시간 3중 필터 |
+| `STP-diagnose-source` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 상태 배지 + 수집 메타데이터. 원인 판정에 따라 필요한 메타만 남긴다 |
+| `STP-backfill` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 실행 컨트롤. **이 단계는 화면 단위 `reprocess.html` 에 대응물이 없던 🔴 미시각화 단계**였고 이 여정 페이지가 원본으로 새로 그렸다 — `reprocess`는 `#94`(2026-09-21, 슬라이스 10 전반부)로 `App.tsx`의 `BUILT`에 들었다 — **이 단계의 카피·구조는 `tbm_econ-opinion-monitor-mockup-render`의 「등재된 편차」 허용목록이 대조한다**(이전 문면 「`reprocess` 화면 자체가 `BUILT` 밖이라 목업↔구현 대조는 아직 열리지 않는다」는 그 커밋 이후 사실과 어긋났고 rct_20260921-0003이 정정했다). 이 단계의 그릇은 아직 구현에 없고(허용목록 `STP-backfill` 행), 세우는 일은 `docs-impl` 몫이다 |
+| `STP-verify-integrity` | `integrity` | 라우트 없는 화면 `integrity`(수집 무결성 콘솔) — 2026-10-17 요건 9 도입 때 `reprocess` 귀속에서 분리했다. 이 여정의 단계는 재처리 콘솔과 화면 구조가 다르고(같은 화면 id 는 구조가 같아야 한다), 구현 라우트는 아직 없다. 이전 비고: 보정 전후 비교 패널과 이력 기록. 보정 이력의 **영속화는 여정 문서가 「백로그 후보」로 파킹**한 항목이라 화면에도 구현에도 대응물이 없다 |
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -131,10 +129,12 @@
 > 일어난다 — `JRN-logic-backfill` 이관으로 그 조건이 충족돼 `reprocess.html` 을 삭제했다. 화면 id 행은 규약대로
 > 존속하고 파일만 흡수한 여정 페이지로 옮겨간다.
 >
-> **한 화면의 귀속 단계가 두 여정 페이지에 흩어진다** — `JRN-ingestion-recovery` 의 다섯 단계도 `reprocess` 귀속이고
-> `JRN-logic-backfill` 의 다섯 단계도 그렇다. `trend` 가 `JRN-daily-scan` 과 `JRN-axis-contrast` 에 흩어진 것과 같은
-> 모양이며, 「Mockup 파일」 표의 파일 칸은 그중 **그 화면의 이름을 가진 여정**(여기서는 `JRN-logic-backfill`)을 적는다.
-> 각 여정 페이지는 같은 화면을 자기 여정의 맥락으로 다시 그린 **원본**이지 복제가 아니다(규칙 2의 중복이 아니다).
+> **한 화면의 귀속 단계가 여러 여정 페이지에 흩어질 수 있다** — `trend` 가 `JRN-daily-scan` 과 `JRN-axis-contrast` 에,
+> `dash` 가 `JRN-daily-scan` 과 `JRN-spike-verification` 에 흩어진 것이 그 모양이다. 「Mockup 파일」 표의 파일 칸은 그중
+> **그 화면의 이름을 가진 여정**을 적는다. 각 여정 페이지는 같은 화면을 자기 여정의 맥락으로 다시 그리되, 요건 9 이후로는
+> **구조가 같아야 한다**(같은 `data-role` 집합 — 게이트 R14). 바뀌는 것은 보이는 데이터·진입 맥락·전진 행동뿐이다.
+> `JRN-ingestion-recovery` 의 다섯 단계는 2026-10-17 까지 `reprocess` 귀속이었다 — 재처리 콘솔과 구조가 달라 라우트 없는
+> 화면 `integrity` 로 분리했다.
 
 **`fairness`는 2026-09-20(`rct_20260920-0001`, 슬라이스 8)로, `trace`는 같은 날(`rct_20260920-0002`,
 슬라이스 9)로 둘 다 `BUILT`에 들어왔다** — 이 여정 페이지를 공유하는 두 화면이 모두 구현됐으므로 이 절의
