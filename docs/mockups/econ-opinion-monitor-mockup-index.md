@@ -452,36 +452,93 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 
 #### `JRN-judgment-debug`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `no-match` | 찾는 분석 결과가 없음 — 레코드 번호 형식 안내 | 여정 문서 `STP-pin-record` 페인포인트(제보가 제목만 들고 와 헤맨다) | 화면 1의 검색에 없는 레코드 번호를 친다 |
-| `parse-mismatch` | 응답의 최종 판단과 저장값이 어긋남 — 저장값이 응답 안 첫 JSON(초안)에서 읽힘 | 여정 문서 `STP-read-exchange` 페인포인트(모델이 틀렸는지 파서가 틀렸는지) | 제보 링크의 기본 결과 `R-2609-0412` 로 화면 2에 들어간다 |
-| `call-failed` | 모델 호출 실패 — 재시도 횟수·마지막 오류를 보이고 결과는 미분석 | PRD-4 AC4.2(호출 실패도 기록) | 화면 1에서 `R-2609-0398` 을 고르고 화면 2로 |
-| `not-called` | 모델을 부르지 않은 결과 — 미호출 사유와 입력 점검으로 가는 분기 | 여정 문서 §4 2행 | 화면 1에서 `R-2609-0377`(본문 미확보)을 고르고 화면 2로 |
-| `reused` | 응답 재사용 결과 — 원 호출 기록으로 가는 분기 | 여정 문서 §4 3행 | 화면 1에서 `R-2609-0365` 를 고르고 화면 2로 |
-| `no-call-record` | 호출 기록이 없는 결과(기록 도입 이전) — 표본 재분석으로 넘기는 분기 | 여정 문서 §4 4행 | 화면 1에서 `R-2608-2210` 을 고르고 화면 2로 |
-| `body-mismatch` | 분석에 쓴 본문 버전 ≠ 보관된 최신 버전 — 분석 뒤 수정 횟수 표기 | 여정 문서 `STP-check-input` 페인포인트(어느 버전으로 판단했는지) | 화면 1에서 `R-2609-0351` 을 고르고 화면 3으로 |
-| `body-empty` | 본문이 사실상 비어 있음(링크만 있거나 안내 문구뿐) | 여정 문서 `STP-check-input` 사용자 행동(본문이 비었거나 잘렸는지) | 화면 1에서 `R-2609-0420` 을 고르고 화면 3으로 |
-| `run-concentrated` | 고른 증상이 이 실행에 몰림 — 기준 대비 비율과 직전 실행 건수 | 여정 문서 `STP-scan-run` 사용자 행동(같은 증상이 얼마나 몰렸는지) | 화면 4 기본 상태(기준 2%). 「몰림 기준 %」를 올리면 해소 |
-| `run-stage-failed` | 실행이 분석 단계에서 중단 — 멈춘 지점까지의 건수·사유, 집계 미실행 | PRD-4 AC4.1(중단된 실행도 그 시점까지 기록) | 화면 4의 「실행」 `<select>` 에서 09-23 23:00 을 고른다 |
-| `invalid` | 원인 판정 입력 검증 실패 | 이 task 결정 | 화면 5에서 원인 미선택 또는 판정 메모 공란으로 「판정 기록」 제출 |
-| `recorded` | 원인 판정 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 5에서 원인을 고르고 메모를 채워 제출 |
+다섯 단계가 모두 같은 화면 `debug`(`Debug.tsx`, 토프바 제목 = nav 라벨 `판단 디버깅`, `useTopbar` 를 쓰지 않아 pill 없음)다.
+구현은 검색 카드 · 고른 결과 · 응답↔저장값 · 모델 호출 기록 · 입력 점검 · 배치 실행 · 증상 · 원인 판정 · 이어지는 길을 한 화면에
+세로로 쌓으므로, 각 단계는 그 화면 전체를 같은 구조로 다시 그리고 단계로 들어오면 그 단계가 보는 카드로 스크롤한다.
+예시 레코드 번호는 실제 규약(수집 해시 앞 열두 자리 16진수)을 따르고, 실행·호출 번호·단계 이름·상태 값은 서빙 응답의
+원값(`scheduled` · `succeeded` · `analysis` · `call_failed` …)을 구현처럼 그대로 보인다.
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가 `STP-route-cause`의
-> 페인포인트로 적은 「판정 메모를 레코드·실행에 남기기」를 문서 자신이 **「현재 AC 없음 — 백로그 후보」** 로
-> 파킹했다. 화면도 그 사실을 성공 배너에 그대로 적는다 — 다른 여정의 `recorded` 와 같은 규약이다.
-> 이 페이지가 그리는 기록(호출·실행)은 PRD-4 AC4.1~4.3 이 요구하는 계약이고, 그 계약은 **제품에 착지해 있다**
-> (AC4.1 `#130` · AC4.2 `#134` · AC4.3 `#137`, 2026-09-24~25). 계약 실체는 `contracts/silver/pipeline_run.avsc`·
-> `llm_call.avsc`·`analysis.avsc` 와 `econ_core/runlog.py`·`calllog.py` 이며, Silver 분석 레코드는 `run_id` 와
-> `call_id`(호출이 없었으면 `no_call_reason`)로 실행·호출을 가리킨다. **아직 없는 것은 그 기록을 그리는
-> 화면뿐이다** — 조회 경로는 2026-09-28 에 섰다(rct_20260928-0005): `/api/debug` 가 `record_id` 로 그 레코드의
-> 분석 버전들과 호출 기록(미호출이면 사유 · 재사용이면 원 호출 한 홉)과 소속 실행의 단계 기록·증상 집계를
-> 내려주고, `go/internal/store` 가 `pipeline_run`·`llm_call` 두 객체 데이터셋을 읽는다. 이전 문면(「아직 없는
-> 것은 조회 경로뿐이다 — `/api/debug` 는 스텁이고 `Missing` 이 `debug_read_path` 하나를 말한다」)은 그 착지로
-> 낡았다. **화면도 2026-09-28 에 섰다(rct_20260928-0006)** — `web/src/screens/Debug.tsx` 가 `BUILT` 에 들어가
-> `/debug` 가 그 조회 경로를 읽는다. 직전 문면(「화면은 여전히 `Placeholder` 다」)은 그 착지로 낡았다. 그래서 이
-> 페이지가 먼저 보여 주던 「조회 경로가 생겼을 때의 모습」은 이제 대조할 구현을 갖는다. 이전 문면(계약이 「아직 구현 전」이며 목업이 그것을 먼저 보여 준다는 서술)은 2026-09-24
-> 작성 시점에는 참이었고 위 세 착지로 낡았다 — rct_20260926-0011 이 정정했다.
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-pin-record` | `debug` | AC4.3 · AC2.6 · `Debug.tsx` 전체(머리 lede · 분석 결과 찾기[검색 · 증상 세 묶음 · `찾기` · 목록 표 · 「제목 기록 없음」] · 고른 결과 · 응답↔저장값 · 모델 호출 기록 · 모델이 받은 입력 · 보관된 원문 · 대조 요약 · 배치 실행 · 증상이 몰렸나 · 원인 판정 · 판정 뒤 이어지는 길) — 이 단계는 검색 카드와 고른 결과를 본다. 「원문 열기 ↗」 는 원문 주소가 있을 때만(`input?.source_url`) · 운영 알림 카드는 여정 문서 터치포인트·§4 1행(아래 상태 `alert-entry`) |
+| `STP-read-exchange` | `debug` | 같은 화면 — 모델 호출 기록(`CMP-kv`) · 응답↔저장값(`CMP-table`) (AC4.2 · `Debug.tsx` `compareRows`·`lastJSONObject`) |
+| `STP-check-input` | `debug` | 같은 화면 — 모델이 받은 입력 · 보관된 원문(원문 버전 `<select>`) · 대조 요약 (AC4.2 · AC2.6 · AC1.7 · `Debug.tsx` `sentKnown`·`staleBy`·`emptyish`) |
+| `STP-scan-run` | `debug` | 같은 화면 — 배치 실행 단계 표(`PAT-integrity-panel` 계열, 입력 = 결과별 합) · 증상이 몰렸나(`CMP-metric`) 와 「목록 보기」 드릴다운 (AC4.1 · AC4.3 · `Debug.tsx` `stageBalance`·`updateParams({symptom, run_id})`) |
+| `STP-route-cause` | `debug` | 같은 화면 — 원인 판정(근거 표 · 원인 라디오 · 판정 메모 · 「판정 기록」) · 판정 뒤 이어지는 길 (여정 문서 `STP-route-cause` · `Debug.tsx` `CAUSES`) |
+
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-pin-record` | `debug` | 화면 교체 | 첫 진입 — lede · 「레코드 {번호}의 판단 기록을 불러오는 중…」 · 검색 카드 안 「목록을 불러오는 중…」 | `Debug.tsx` (`!data && !error` · `!list && !listError`) | 딥링크 `#STP-pin-record/loading` |
+| `index-not-ready` | `STP-pin-record` | `debug` | 화면 교체 | 원문·분석 기록 인덱스 준비 전(503 `index_not_ready`) — 검색 카드 안에 한 번만 | `IndexNotReady.tsx` · `Debug.tsx` (`listError === INDEX_NOT_READY`, 상세 쪽은 「once is enough」 로 생략) | 딥링크 `#STP-pin-record/index-not-ready` |
+| `api-error` | `STP-pin-record` | `debug` | 얹힘 | 상세 조회 실패 — 화면 머리 「API 오류: … Go 서빙(:8080)…」, 아래 카드 없음 | `Debug.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-pin-record/api-error` |
+| `detail-loading` | `STP-pin-record` | `debug` | 얹힘 | 레코드를 고른 직후 — 「레코드 {번호}의 판단 기록을 불러오는 중…」 | `Debug.tsx` (`!data && !error`, `query` 있음) | 목록에서 다른 레코드 라디오를 고른다 |
+| `list-error` | `STP-pin-record` | `debug` | 얹힘 | 목록 조회 실패 — 검색 카드 안 「API 오류: …」 | `Debug.tsx` (`listError && listError !== INDEX_NOT_READY`) | 딥링크 `#STP-pin-record/list-error` |
+| `list-loading` | `STP-pin-record` | `debug` | 얹힘 | 조건을 바꾼 뒤 목록 재조회 — 「목록을 불러오는 중…」 | `Debug.tsx` (`!list && !listError`, `listReload`) | 「찾기」 제출 또는 증상 `<select>` 변경 |
+| `no-match` | `STP-pin-record` | `debug` | 얹힘 | 찾는 결과 0건 — 레코드 번호는 제보 링크 `record_id=` 뒤의 값이라는 안내 | 여정 문서 `STP-pin-record` 페인포인트 · `Debug.tsx` (`listRows.length === 0`) | 검색에 없는 번호를 넣고 「찾기」 |
+| `truncated` | `STP-pin-record` | `debug` | 얹힘 | 맞는 결과가 상한(50건)을 넘음 — 「맞는 결과 N건 가운데 앞 50건만 보입니다」 | `Debug.tsx` (`list.truncated`) · 서빙 `debugRecordsLimit` | 딥링크 `#STP-pin-record/truncated` |
+| `alert-entry` | `STP-pin-record` | `debug` | 얹힘 | 운영 알림 링크로 실행 단위에서 진입 — 「실행 기록부터 보기」 | 여정 문서 §4 1행 · `STP-pin-record` 터치포인트 「운영 알림 카드」 · 가정(구현 없음 — 아래 걷어낸 표면의 판정) | 딥링크 `#STP-pin-record/alert-entry` |
+| `requested-missing` | `STP-pin-record` | `debug` | 얹힘 | 링크의 레코드에 분석 결과가 없음 — 「조회가 실패한 것이 아니라 되짚을 판단이 없습니다」 | `Debug.tsx` (`selection === "requested-missing"`) | 딥링크 `#STP-pin-record/requested-missing` |
+| `no-records` | `STP-pin-record` | `debug` | 얹힘 | 분석된 레코드가 아직 하나도 없음 | `Debug.tsx` (`!data.found`, `selection` 이 `empty`) | 딥링크 `#STP-pin-record/no-records` |
+| `auto-pick` | `STP-pin-record` | `debug` | 얹힘 | 조회 없이 열어 첫 레코드를 자동 선택 — 고른 결과 카드 note | `Debug.tsx` (`selection === "auto"`) | 딥링크 `#STP-pin-record/auto-pick` |
+| `multi-version` | `STP-pin-record` | `debug` | 얹힘 | 재처리로 분석 버전이 둘 이상 병존 — 버전별 분석 로직·실행·호출 | AC4.3(병존하는 두 로직 버전이 각자 다른 실행·호출을 가리킴) · `Debug.tsx` (`versions.length > 1` note) · 가정(버전별 표는 AC4.3 검증 항목을 화면에 옮긴 것, 구현은 개수만) | 목록에서 `b05f7a2c6e19` 를 고른다 |
+| `parse-mismatch` | `STP-read-exchange` | `debug` | 얹힘 | 응답의 최종 판단 ≠ 저장값 — 읽는 쪽을 먼저 의심 | 여정 문서 `STP-read-exchange` 페인포인트 · `Debug.tsx` (`mismatched.length > 0`) | 기본 레코드 `a3f9c21e07b4`(제보 링크) |
+| `parse-failed` | `STP-read-exchange` | `debug` | 얹힘 | 응답을 읽지 못함(형식 깨짐) — 원문은 그대로, 읽지 못한 사유 | AC4.2(파싱 실패·형식이 깨진 응답도 기록 · 「파싱 결과 또는 실패 사유」) · `Debug.tsx` `OUTCOME_LABEL.parse_failed` · 가정(배너 문면 — 구현은 근거 표에만 적는다) | 목록에서 `7c3d05e8b2f9` 를 고른다 |
+| `call-failed` | `STP-read-exchange` | `debug` | 얹힘 | 모델 호출 실패 — 재시도 횟수·마지막 오류, 결과는 미분석 | AC4.2 · `Debug.tsx` (`call_outcome === "call_failed"`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `no-reply` | `STP-read-exchange` | `debug` | 얹힘 | 응답 원문 없음 — 빈 칸 대신 「보여 줄 원문이 없습니다」 | `Debug.tsx` (`response_raw === null`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `not-called` | `STP-read-exchange` | `debug` | 얹힘 | 모델을 부르지 않음 — 미호출 사유(본문 미확보 · 키워드 분석기) | 여정 문서 §4 2행 · AC4.3 · `Debug.tsx` (`exchange.state === "no-call"`, `NO_CALL_LABEL`) | 목록에서 `c71e4f02ad88`(본문 미확보) 또는 `4e8a1f6d93b0`(키워드 분석기) |
+| `reused` | `STP-read-exchange` | `debug` | 얹힘 | 이전 응답 재사용 — 원 호출 기록으로 | 여정 문서 §4 3행 · AC4.2 · `Debug.tsx` (`reusedView`) | 목록에서 `0d9a6b7e2f15` 를 고른다 |
+| `no-call-record` | `STP-read-exchange` | `debug` | 얹힘 | 호출 기록 도입 이전 분석 — 표본 재분석으로 재현 | 여정 문서 §4 4행 · `Debug.tsx` (`exchange.state === "unrecorded"`) | 목록에서 `2b6e91f4c0a7` 를 고른다 |
+| `call-record-absent` | `STP-read-exchange` | `debug` | 얹힘 | 가리키는 호출 기록이 레이크에 없음 | `Debug.tsx` (`exchange.state === "call-record-absent"`) | 목록에서 `d6c4a90e3b72`(제목 기록 없음) 를 고른다 |
+| `body-mismatch` | `STP-check-input` | `debug` | 얹힘 | 분석에 쓴 본문 ≠ 지금 보관된 최신 본문 — 분석 뒤 수정 횟수 | 여정 문서 `STP-check-input` 페인포인트 · AC1.7 · `Debug.tsx` (`staleBy > 0`) | 목록에서 `e48c0b93a7d2` 를 고른다 |
+| `body-empty` | `STP-check-input` | `debug` | 얹힘 | 본문이 사실상 비어 있음(본문 미수집 · 안내 문구뿐) | 여정 문서 `STP-check-input` 사용자 행동 · `Debug.tsx` (`emptyish`) | 목록에서 `9f27d3c50e61` 또는 `c71e4f02ad88` |
+| `run-stage-failed` | `STP-scan-run` | `debug` | 얹힘 | 실행이 도중에 멈춤 — 멈춘 지점까지 건수·사유, 뒤 단계 없음 | AC4.1(중단된 실행도 그 시점까지 기록) · `Debug.tsx` (`stage_status === "failed"`) | 목록에서 `5be0d8a1c934` 를 고른다 |
+| `run-running` | `STP-scan-run` | `debug` | 얹힘 | 실행이 아직 진행 중 — 종료 시각 자리에 「아직 진행 중」 | `Debug.tsx` (`run_ended_at ?? "아직 진행 중"`) | 딥링크 `#STP-scan-run/run-running` |
+| `no-run-record` | `STP-scan-run` | `debug` | 얹힘 | 실행 기록이 레이크에 없음 — 「실행이 없었던 것이 아니라 기록이 없습니다」 | `Debug.tsx` (`run` 이 `null`) | 목록에서 `2b6e91f4c0a7` 를 고른다 |
+| `run-filter` | `STP-scan-run` | `debug` | 얹힘 | 실행 기록 → 레코드 목록 드릴다운 — 검색 카드가 그 실행·증상으로 좁혀지고 「전체 실행으로 넓히기」 | AC4.3(실행 기록에서 레코드 목록으로 이동) · 여정 문서 `STP-scan-run` 페인포인트 · `Debug.tsx` (`runFilter`) | 증상이 몰렸나의 「목록 보기」 |
+| `invalid` | `STP-route-cause` | `debug` | 얹힘 | 판정 입력 검증 실패(원인 미선택 · 메모 공란) | `Debug.tsx` (`setInvalid`) | 원인 없이, 또는 메모 없이 「판정 기록」 |
+| `recorded` | `STP-route-cause` | `debug` | 얹힘 | 판정 기록됨 — 이 화면 안에서만 유지 | 여정 문서 `STP-route-cause`(판정 보존은 백로그) · `Debug.tsx` (`setRecorded`) | 원인을 고르고 메모를 채워 「판정 기록」 |
+
+**의도적 제외**
+- 상세 조회만 인덱스 준비 중인 갈래(`Debug.tsx` 의 머리 `IndexNotReady`) — 두 조회가 같은 서빙 인덱스를 읽어 함께 503 이 되므로
+  구현 주석(「once is enough」)대로 `index-not-ready` 한 상태로 그린다.
+- 화면 끝 `MapStrip`(되짚는 레코드 · 분석 버전 · 속한 실행 칩) — `CMP-mapstrip` 은 화면을 여정·가치에 잇는 문서 장치라
+  `JRN-daily-scan` 과 같이 메타 레이어에 둔다. 칩의 세 값은 고른 결과 카드 머리 배지 · 버전 note · kv 「실행」 에 이미 있다.
+- 「원문 열기 ↗」 의 실제 새 탭 · 「원문 추적 상세에서 보기」 의 `/trace` 착지 — 여정 밖 행동이라 그려 두되 누르면 안내만 뜬다.
+- 실행 진행 중(`run-running`)의 나머지 칸(최종 상태 `running`, 진행 중 단계 표)은 딥링크가 종료 시각 자리만 바꾼다 — 예시 실행이
+  전부 끝난 실행이라 진행 중 실행 데이터를 따로 두지 않았다.
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-17)
+- 운영 알림 카드의 「평소보다 많습니다 (23건)」 주장 — 실행 간 기준선이 계약·서빙에 없다. 카드 자체는 여정 문서 터치포인트·§4 1행
+  근거로 남기되 상시 표면이 아니라 알림 링크로 들어온 상태(`alert-entry`)로 바꿨다.
+- 배치 실행 카드의 `실행` `<select>`(예시 실행 넷) · sub 꼬리 「고른 결과를 만든 실행」/「최근 실행을 보여 줍니다」 · kv `분석 코드` —
+  실행 목록 라우트와 실행의 분석 코드 필드가 없다. 기록 없는 결과는 `no-run-record` 로 그린다.
+- 증상이 몰렸나의 `증상` `<select>` 다섯 · `몰림 기준 %` 입력 · `run-concentrated` 배너(직전 실행 비교 · 「이 실행부터 분석 코드가
+  바뀌었습니다」) · 「해당 결과:」 번호 나열 — 실행 단위 tally 는 서빙 세 묶음뿐이고 직전 실행 기준선이 없다. 레코드 목록으로 내려가는
+  길은 구현의 「목록 보기」 드릴다운(`run-filter`)으로 그린다.
+- 검색 카드 증상 필터의 평면 다섯 항목과 「분류가 의심됨」 — 서빙이 거를 수 있는 세 묶음(`optgroup`)으로 바꿨다. 검색은 입력 즉시가
+  아니라 「찾기」 제출로 조회한다.
+- 원인 판정의 일괄 적용 체크박스(「같은 실행에서 같은 증상인 결과 N건에도…」) · kv `판정 대상`/`원인` · 원인 힌트(「모은 근거로 보면…」) —
+  레코드 증상 분류와 실행 단위 건수, 판정 영속화가 없다. `invalid`·`recorded` 는 구현에 있어 남는다.
+- 전송본 해시 줄의 「보관 원문으로 재구성한 요청과 바이트 일치 ✓」 — 하지 않은 대조라 구현처럼 `sha256 {해시}` 만 둔다.
+- 고른 결과 kv `레코드`·`출처`·`수집 주기`·`분석 결과`·`만든 실행` — 구현의 아홉 키(상태 · 분위기 · 신뢰도 · 대상 국가 · 서술 대상 ·
+  분석 로직 · 분석 시각 · 실행 · 원문 주소)로 바꿨다. 출처·수집 주기는 `/api/debug` 의 `input` 에 없다.
+- 토프바 pill `tb-rec`(고른 레코드 번호) — `Debug.tsx` 는 `useTopbar` 를 쓰지 않아 pill 이 없다. 사이드바 하단의 분석 로직·최근 실행
+  문면 — 구현 고정 문면(`수집 정상 · 12개 소스` / `마지막 수집 14:00 KST`)으로 바꿨다.
+- 호출 실패 레코드의 지어낸 응답 원문(「(응답 없음) 1차 시도: HTTP 429…」) — 구현은 `response_raw` 가 `null` 이면 `no-reply` 로 적는다.
+- 예시 레코드 번호 `R-2609-0412` 꼴 — 실제 `record_id` 규약(12자리 16진수)과 무일치 안내 문면(`record_id=` 뒤의 값)으로 바꿨다.
+
+여정 문서 §4 1행(운영 알림 → 실행부터)은 그 상황이 생기는 단계 1 의 `alert-entry` 안 「실행 기록부터 보기」 다. 2·3·4행(미호출 →
+입력 점검, 재사용 → 원 호출, 기록 없음 → 표본 재분석)은 단계 2 의 모델 호출 기록 카드 안에 구현 순서대로 있고, 4행은 여정을
+벗어나는 인계라 「여정 끝」 표지를 단다. 5·6행(입력 → 수집 복구, 로직 → 소급 적용)은 단계 5 의 「판정 뒤 이어지는 길」 이며 둘 다
+「여정 끝」 표지를 단다 — 5행의 목적지는 여정 문서대로 `JRN-ingestion-recovery#STP-locate-gap` 이다(구현은 `/reprocess`, 설계 트래커
+「판정 뒤 이어지는 길 첫 갈래」 행). 7행(조사 도중 이탈)은 결론을 못 내는 자리인 같은 카드의 「이 결과부터 다시 보기」 로, §4 순서와
+DOM 순서가 함께 맞는다. 같은 화면이 다섯 단계에 있으므로 각 분기 컨트롤은 그 단계의 사본에만 `data-goto` 를 달고, 다른 단계의 같은
+컨트롤은 같은 행동을 한다. 정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
+
+> `recorded` 가 화면 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다 — 여정 문서가 `STP-route-cause` 페인포인트의
+> 「판정 메모를 레코드·실행에 남기기」를 「현재 AC 없음 — 백로그 후보」로 파킹했고, 구현(`Debug.tsx`)도 성공 배너에 그 사실을 적는다.
+> 이 페이지가 그리는 기록(실행·호출)은 PRD-4 AC4.1~4.3 이 요구하는 계약이며 계약·조회 경로(`/api/debug` · `/api/debug/records`)·
+> 화면(`Debug.tsx`)이 모두 제품에 착지해 있다.
 
 ## 화면 → 여정 단계 → 가치 → 디자인 시스템 항목
 
