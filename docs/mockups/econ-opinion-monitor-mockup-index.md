@@ -311,16 +311,56 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 
 #### `JRN-axis-contrast`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `loading` | 세 축을 같은 기준으로 재집계 중 | 이 task 결정 | 화면 1에서 「기준 적용」 제출 |
-| `axis-empty` | 특정 축의 수집이 비어 있음 — 0%가 아니라 비교에서 제외 | 여정 문서 §4 1행 | 화면 1에서 기간을 「최근 24시간」으로 두고 「기준 적용」 제출(해외 축 시간당 수집 미도착) |
-| `no-selection` | 편차 대상 미선택 — 상세로 넘어갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 선택 패널) |
-| `no-outlier` | 임계를 넘는 대상 없음 — 「차이 없음」도 결론 | 이 task 결정(여정 완료 기준의 "또는 차이 없음을 확인" 갈래) | 화면 4에서 「격차 임계(%p)」를 실측 최대 격차 위로 올린다 |
-| `alias-merged` | 표기 변형을 같은 대상으로 통합 — 통합 전후를 구분 표기 | 여정 문서 §4 4행 | 화면 4에서 「표기 변형을 같은 대상으로 통합」 체크 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-open-compare` | `compare` | AC3.7 · AC3.8 · `Compare.tsx` (도입 문단 · 세 축 공통 기준 줄 · 축 구분 note · 출처 축 3열 — 순위 행 `원시 {n}건` · 한 눈금 막대 · 분위기 미니 막대 · 이탈 카드 2) · `PAT-axis-compare` · 여정 문서 `STP-open-compare` 페인포인트(기준을 동기화하고 화면에 명시) |
+| `STP-scan-axis-tops` | `compare` | 같은 화면 — 순위 행의 공통/고유 표시 (여정 문서 `STP-scan-axis-tops` 페인포인트 · AC3.7 · AC3.4 · AC3.2 의 「동일 대상 = 한 집계 키」) |
+| `STP-disambiguate-axis` | `compare` | 같은 화면 — 축 구분 note(`Compare.tsx`) · 열 머리 `{축} · 출처 축` · 「대상 국가」 select (여정 문서 `STP-disambiguate-axis` 페인포인트 「두 기준을 별도 컨트롤로」 · AC1.3 · AC2.1) |
+| `STP-pick-outlier` | `compare` | 같은 화면 — 격차 후보 행 (여정 문서 `STP-pick-outlier` 터치포인트·페인포인트) · 순위 행 클릭 → 추세 상세 (`Compare.tsx` `onOpen` → `/trend?axis&subject`) |
+| `STP-verify-in-trend` | `trend` | AC3.5 · AC3.2 · `Trend.tsx` (`JRN-daily-scan` 의 `STP-drill-trend` 와 같은 구조) · 축·대상 승계 `Trend.tsx` (`useSearchParams`) |
 
-여정 문서 §4 2·3행(수집량 차이 의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은
-이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 화면 2·3에 있다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-open-compare` | `compare` | 화면 교체 | 첫 진입 — 도입 문단과 「불러오는 중…」 만 | `Compare.tsx` (`!data && !error`) | 딥링크 `#STP-open-compare/loading` |
+| `api-error` | `STP-open-compare` | `compare` | 화면 교체 | 서빙 응답 실패 — 도입 문단과 「API 오류」 안내만(열·이탈 카드 없음) | `Compare.tsx` (`error` · `{data && …}`) | 딥링크 `#STP-open-compare/api-error` |
+| `axis-empty` | `STP-open-compare` | `compare` | 얹힘 | 전세계 축 수집 없음 — 그 열을 0%가 아니라 「비교에서 제외」, 공통/고유·격차를 남은 두 축으로 다시 셈 | 여정 문서 §4 1행 · `Compare.tsx` `AxisRows` (`top_subjects.length === 0`) | 딥링크 `#STP-open-compare/axis-empty` (그 상황의 데이터로 연다) |
+| `no-sentiment` | `STP-open-compare` | `compare` | 얹힘 | 한 열의 분위기 집계 없음 — 미니 막대 대신 「분위기 집계 없음」 | AC3.7 · `Compare.tsx` `MiniSent` (`total <= 0`) | 딥링크 `#STP-open-compare/no-sentiment` |
+| `no-outlier` | `STP-pick-outlier` | `compare` | 얹힘 | 한 축에만 있는 대상 0건 — 「차이 없음」도 결론 | 여정 문서 완료 기준(「또는 "차이 없음"을 확인」) | 「대상 국가」 를 「글로벌 (특정 국가 아님)」 으로 |
+| `alias-merged` | `STP-pick-outlier` | `compare` | 얹힘 | 표기 변형 통합 — 통합 규칙 안내와 통합 전후 표(축 · 적힌 표기 · 통합 전 · 통합 후) | 여정 문서 §4 4행 · AC3.2 · AC2.2 | 딥링크 `#STP-pick-outlier/alias-merged` |
+| `trend-loading` | `STP-verify-in-trend` | `trend` | 화면 교체 | 첫 진입 — 축 전환 컨트롤 + 「불러오는 중…」 | `Trend.tsx` (`!data && !error`) | 딥링크 `#STP-verify-in-trend/trend-loading` |
+| `trend-error` | `STP-verify-in-trend` | `trend` | 얹힘 | 서빙 응답 실패 — 「API 오류」 안내 | `Trend.tsx` (`error`) | 딥링크 `#STP-verify-in-trend/trend-error` |
+| `trend-empty` | `STP-verify-in-trend` | `trend` | 화면 교체 | 축에 집계 버킷 없음 — 빈 차트를 0% 로 그리지 않는다 | `Trend.tsx` (`series.length === 0`) | 딥링크 `#STP-verify-in-trend/trend-empty` |
+
+**의도적 제외**
+- `trend` 의 축별 라인(한 대상의 세 축 시계열)과 「표시할 축」 체크박스 — 여정 문서 `STP-verify-in-trend` 터치포인트(v0.2)가
+  적었지만 AC3.5 는 대상별 추세·상위 대상 비교·대상 선택만 정하고, `Trend.tsx` 는 한 번에 한 축을 그린다(축 전환 라디오).
+  `trend` 는 `JRN-daily-scan` 과 같은 구조여야 하므로 이 페이지에서만 다르게 그리지 않는다 — 축별 대조는 화면 안 축 전환으로
+  한다. 여정 문서 터치포인트를 고칠지 화면에 세울지는 사용자 결정으로 남긴다.
+- `compare`·`trend` 의 mapstrip — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- 기간 승계 — `compare` 는 서빙이 고른 버킷 하나를 비교해 넘길 기간이 없다. 승계는 축·대상만 한다(`Compare.tsx` `onOpen`).
+- 대상 국가 select 는 구현에 없다(서빙·Gold 에 대상 국가 차원 없음) — 여정 문서가 요구해 그린다. 공통/고유 표시 · 격차 후보
+  행 · 통합 안내 · 빈 열의 「남은 두 축으로 대조 계속」 도 같은 처지다(구현 편차는 설계 트래커 「등재된 편차」 의 `compare` 행들).
+
+**걷어낸 목업 전용 표면** (AC·구현·여정 문서 근거 없음, 2026-10-18)
+- 비교 기준 폼(`기간` select · `수집량 정규화` 체크박스 · `기준 적용`)과 그 재집계 `loading`, 「수집 현황」 카드, 토프바 pill
+  `최근 7일 · 정규화` — 여정 문서의 대응은 기준을 「강제로 동기화하고 화면에 명시」이지 고르게 하는 것이 아니다. 명시는
+  구현의 「세 축 공통 기준」 줄이, 원시/정규화 구분(AC3.8)은 순위 행의 `원시 {n}건` 이 한다.
+- 순위 행의 증감 `+2.1` 칸.
+- 「대상 찾기」 검색 · 「한 축에만 있는 대상만 보기」 필터 — 여정 문서는 공통/고유를 배지로 구분하라고만 한다.
+- 「출처 축 — 어디서 수집했는가」 select 와 출처×대상 교차 표(건수·비중) — 출처 축은 열 자체(AC3.7 세 열 고정)이고
+  터치포인트는 축 기준 주석이다. 대상 국가만 별도 select 로 남겼다.
+- 격차 패널의 「격차 임계 (%p)」 · 「표기 변형을 같은 대상으로 통합」 체크박스 · 「선택한 대상」 카드와 `no-selection` 상태 —
+  통합은 AC3.2 대로 집계가 하는 일이라 사용자가 켜는 스위치가 아니고, 페인포인트 대응이 「행 클릭 시 선택 대상을 유지한
+  채 상세로」라 중간 선택 카드가 없다. 격차 후보 행 자체는 터치포인트라 남겼고, `no-outlier` 는 임계 대신 「한 축에만
+  있는 대상 0건」 으로 판정한다.
+- 추세 단계의 「승계된 설정」 카드 · 카드 sub 「비교 뷰의 축·기간을 그대로 승계했습니다」 · 합성 「축별 시계열」 차트(`T-n`·`지금`)
+  · `점유율 %` 태그 — 단계 5 는 공유 화면 `trend` 그대로다. 승계는 표면이 아니라 동작(축·대상)으로 남는다.
+
+여정 문서 §4 1행(축 수집 없음)은 그 상황이 처음 보이는 단계 1 의 빈 열 안 「남은 두 축으로 대조 계속」, 4행(표기 변형)은
+격차 후보를 고르는 단계 4 의 통합 안내 안 「통합 후 순위로 다시 대조」 이고, 둘 다 단계 2 로 돌아간다. 2·3행(수집량 차이
+의심 → `JRN-spike-verification`, 축별 분위기 → `JRN-sentiment-shift`)은 구현 `Compare.tsx` 의 이탈 카드 둘이다 — 같은 화면이
+네 단계에 있으므로 분기 컨트롤은 그 상황이 생기는 단계 2·3 에만 달고 「여정 끝」 표지를 단다(분위기 이탈은
+`#STP-open-sentiment` 앵커로 착지한다). 정상 종료는 단계 5 의 「여정 끝 · 여정 완료」 표지다.
 
 #### `JRN-spike-verification`
 

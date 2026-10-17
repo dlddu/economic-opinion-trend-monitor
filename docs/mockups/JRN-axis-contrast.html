@@ -132,15 +132,6 @@ a{color:inherit;text-decoration:none}
 
 /* —— Canvas / sections —————————————————————————— */
 .canvas{padding:24px 26px 60px;flex:1;overflow:visible}
-.screen{display:none;animation:none}
-.screen.active{display:block}
-.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
-.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
-.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
-.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
-.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
-.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
-.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
   max-width:78ch;line-height:1.6;margin-bottom:20px}
@@ -345,6 +336,124 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
   table.tbl th,table.tbl td{padding:8px 8px}
   .formrow > *{flex:1 1 100%}
 }
+.trend-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.spk-row{display:grid;grid-template-columns:22px 1fr auto 64px 40px;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;cursor:pointer;font:inherit}
+.spk-row[aria-pressed=true]{background:var(--primary-soft)}
+.spk-row .meta{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.spk-row .rk{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.tbl tr.on td{background:var(--primary-soft)}
+/* ---- PAT-axis-compare (compare columns, 3-axis view) ---- */
+.cmp-basis {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cmp-basis .lab {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.cmp-basis .cmp-bucket {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  padding: 2px 8px;
+}
+
+.cmp-basis .cmp-unit {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.cmpcol .card-h h3 {
+  font-size: 14px;
+}
+
+.cmprow {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cmprow:last-of-type {
+  border-bottom: none;
+}
+
+.cmprow .top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cmprow .nm {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.cmprow .nm .meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.cmprow .pct {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  font-weight: 600;
+  flex: none;
+}
+
+.cmprow .bar {
+  height: 6px;
+  background: var(--neu-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cmprow .bar i {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.cmp-sent {
+  margin-top: 12px;
+}
+
+/* ---- 여정 이탈 카드 (compare) ----
+   목업은 이 산문을 `.muted` 에 인라인 style 로 얹는다. 구현 쪽 레이아웃 결정이라
+   목업에 없는 이름으로 선언한다(규칙 5 대조 규약). */
+.cmp-exits {
+  margin-top: 18px;
+}
+
+.cmp-exit-lede {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+
+.placeholder-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
 </style>
 <style>
 /* ---- 여정 페이지 전용(JRN-axis-contrast) ---- */
@@ -464,7 +573,7 @@ details.meta table.tbl{margin-top:10px}
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
           <span>대상 추세 상세</span>
         </a>
-        <a class="nav-item active" data-id="compare" href="JRN-axis-contrast.html">
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
           <span>3축 비교</span>
         </a>
@@ -505,265 +614,771 @@ details.meta table.tbl{margin-top:10px}
         <h2>3축 비교</h2>
       </div>
       <div class="spacer"></div>
-      <div class="ctl">
-        <span class="pill-ctl" id="tb-basis">최근 7일 &middot; 정규화</span>
-      </div>
     </header>
 
     <div class="canvas">
 
-      <!-- ============ 화면 1 · 3축 비교 뷰 진입 ============ -->
-      <section class="jstep" id="STP-open-compare" data-step="STP-open-compare" hidden>
+      <!-- ============ 단계 1 · 3축 비교 뷰 진입 — 화면 compare ============ -->
+      <section class="jstep" id="STP-open-compare" data-step="STP-open-compare" data-title="3축 비교 뷰 진입" hidden>
+
+      <div class="screen" data-screen="compare" data-title="3축 비교" data-pill="off">
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+
+        <div class="cmp-basis" data-role="basis">
+          <span class="lab">세 축 공통 기준</span>
+          <span class="cmp-bucket" data-role="basis-bucket">2026-10-17T14</span>
+          <span class="cmp-unit">시간 단위</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </div>
+
+        <div class="note">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div>
+            <b>두 가지 축이 다릅니다.</b> 이 화면의 열은 뉴스를 <b>수집한 출처 축</b>(KR / US / GLOBAL)입니다.
+            콘텐츠가 다루는 대상 국가는 별개이며, 미국 출처 뉴스가 한국 경제를 다룰 수 있습니다.
+          </div>
+        </div>
+
+        <form class="formrow" data-role="topic-form" style="margin:14px 0 16px">
+          <label class="fld" style="flex:0 1 300px">
+            <span class="fl">대상 국가 &mdash; 기사가 다루는 나라</span>
+            <select name="topic" data-role="topic">
+              <option value="ALL" selected>전체 대상 국가</option>
+              <option value="KR">한국 경제</option>
+              <option value="US">미국 경제</option>
+              <option value="GLOBAL">글로벌 (특정 국가 아님)</option>
+            </select>
+          </label>
+          <span class="hint" data-role="topic-hint" style="font-size:12px;color:var(--ink-3);padding-bottom:9px">열(출처 축)은 그대로 두고, 각 열을 이 나라를 다룬 기사로만 좁힙니다.</span>
+        </form>
+
         <div class="grid g-12">
-
-          <div class="card col-5">
-            <div class="card-h"><h3>비교 기준</h3><span class="sub">세 축에 같은 기준을 겁니다</span></div>
-            <div class="card-b">
-              <form id="sync-form">
-                <label class="fld" style="max-width:230px">
-                  <span class="fl">기간</span>
-                  <select id="range" name="range">
-                    <option value="7" selected>최근 7일</option>
-                    <option value="30">최근 30일</option>
-                    <option value="1">최근 24시간</option>
-                  </select>
-                </label>
-                <label class="chk" style="margin-top:16px">
-                  <input type="checkbox" id="normalize" name="normalize" checked />
-                  수집량 정규화 (축별 총 건수 대비 점유율로 환산)
-                </label>
-                <div class="stepact" style="margin-top:18px">
-                  <button type="submit" class="btn pri" id="sync-apply">기준 적용</button>
-                  <span class="hint">세 축에 동시에 적용됩니다.</span>
+            <div class="card col-4 cmpcol" data-axis="KR">
+              <div class="card-h">
+                <span class="axpill ax-kr"><span class="fl"></span>KR</span>
+                <h3>한국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-KR">
+                  <div data-role="rows-KR"></div>
+                  <div class="cmp-sent" data-role="sent-KR">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-KR" hidden>분위기 집계 없음</div>
                 </div>
-              </form>
-
-              <div class="note" style="margin-top:18px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <div>
-                  <b>기준은 축마다 따로 고를 수 없습니다.</b>
-                  축별로 기간이나 정규화가 다르면 순위 자체가 다른 것을 세게 되어 비교가 성립하지 않습니다.
+                <div class="placeholder-note cmp-empty" data-role="empty-KR" hidden>
+                  한국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-KR" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div class="card col-7">
-            <div class="card-h"><h3>수집 현황</h3><span class="sub" id="basis-sub">최근 7일 · 정규화 적용</span></div>
-            <div class="card-b">
-              <div class="loadbox" id="s-loading" data-state="loading" hidden>
-                세 축을 같은 기준으로 다시 집계하는 중&hellip;
-                <div class="bar"><i></i></div>
+            <div class="card col-4 cmpcol" data-axis="US">
+              <div class="card-h">
+                <span class="axpill ax-us"><span class="fl"></span>US</span>
+                <h3>미국 &middot; 출처 축</h3>
               </div>
+              <div class="card-b">
+                <div data-role="col-US">
+                  <div data-role="rows-US"></div>
+                  <div class="cmp-sent" data-role="sent-US">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-US" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-US" hidden>
+                  미국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-US" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="GLOBAL">
+              <div class="card-h">
+                <span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span>
+                <h3>전세계 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-GLOBAL">
+                  <div data-role="rows-GLOBAL"></div>
+                  <div class="cmp-sent" data-role="sent-GLOBAL">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-GLOBAL" data-state="no-sentiment" data-label="분위기 집계 없음" data-replaces="sent-GLOBAL" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-GLOBAL" data-state="axis-empty" data-label="축 수집 없음 — 비교에서 제외" data-replaces="col-GLOBAL" hidden>
+                  전세계 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-GLOBAL" href="#STP-scan-axis-tops" data-goto="JRN-axis-contrast#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
 
-              <div class="grid g-12" id="axiscards"></div>
-
-              <div class="banner warn" id="s-axis-empty" data-state="axis-empty" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>축 간 격차</h3>
+              <span class="sub" data-role="gap-sub">축 사이에서 가장 크게 벌어진 순</span>
+            </div>
+            <div class="card-b">
+              <div data-role="gaplist"></div>
+              <div class="note" data-role="no-outlier" style="margin-top:12px" hidden>
                 <div>
-                  <b><span id="empty-axis-name">전세계</span> 축은 이 기간에 수집된 항목이 없습니다.</b>
-                  0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  <b>한 축에만 있는 대상이 없습니다.</b> 비교한 축의 상위 대상이 모두 겹칩니다 &mdash; 남은 차이는 위의
+                  점유율 격차뿐이고, 그것이 작다면 <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
+                </div>
+              </div>
+              <div class="banner warn" data-role="alias" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div style="flex:1;min-width:0">
+                  <b>같은 대상이 축마다 다르게 적혀 있었습니다.</b>
+                  분류 판단이 없는 기사는 핵심 서술 대상의 정규화된 명칭으로 묶습니다 &mdash; 아래 두 표기를 하나의 대상
+                  「원/달러 환율」로 모았습니다. 통합 전에는 두 축의 고유 대상으로 갈려 보였습니다.
+                  <table class="tbl" style="margin-top:10px;background:var(--panel)">
+                    <thead><tr><th>출처 축</th><th>적힌 표기</th><th class="num">통합 전</th><th class="num">통합 후</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="axpill ax-kr"><span class="fl"></span>KR</span></td><td>원/달러 환율</td><td class="num">2.4% &middot; KR만</td><td class="num"><b>2.4% &middot; 공통 2축</b></td></tr>
+                      <tr><td><span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span></td><td>달러/원 환율</td><td class="num">1.9% &middot; GLOBAL만</td><td class="num"><b>1.9% &middot; 공통 2축</b></td></tr>
+                    </tbody>
+                  </table>
                   <div class="actions">
-                    <a class="btn sm pri" id="br-1" href="#STP-scan-axis-tops"
-                       data-goto="JRN-axis-contrast#STP-scan-axis-tops">남은 축으로 대조 계속</a>
+                    <a class="btn sm pri" data-role="alias-go" href="#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
+
+        <div class="grid g-12 cmp-exits">
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.</p>
+              <a class="btn ghost" data-role="fair-go" href="JRN-spike-verification.html#STP-check-normalized">수집량 차이인지 정규화로 확인 &rarr;</a>
+            </div>
+          </div>
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.</p>
+              <a class="btn ghost" data-role="sent-go" href="JRN-sentiment-shift.html#STP-open-sentiment">축별 분위기 분포 보기 &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen" data-screen="compare" data-state="loading" data-label="첫 진입 로딩" hidden>
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+        <div class="placeholder-note">불러오는 중&hellip;</div>
+      </div>
+      <div class="screen" data-screen="compare" data-state="api-error" data-label="API 오류" hidden>
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+        <div class="note">
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+      </div>
         <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-scan-axis-tops" id="cta-1">
-            축별 상위 대상 대조하기 <span class="ar">&rarr;</span>
-          </button>
+          <button type="button" class="cta" data-advance="STP-scan-axis-tops">축별 상위 대상 대조하기 <span class="ar">&rarr;</span></button>
+          <span class="hint">세 열이 같은 시점 &middot; 같은 기준인지 위의 기준 줄에서 먼저 확인합니다.</span>
         </div>
       </section>
 
-      <!-- ============ 화면 2 · 축별 상위 대상 대조 ============ -->
-      <section class="jstep" id="STP-scan-axis-tops" data-step="STP-scan-axis-tops" hidden>
+      <!-- ============ 단계 2 · 축별 상위 대상 대조 — 화면 compare ============ -->
+      <section class="jstep" id="STP-scan-axis-tops" data-step="STP-scan-axis-tops" data-title="축별 상위 대상 대조" hidden>
+
+      <div class="screen" data-screen="compare" data-title="3축 비교" data-pill="off">
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+
+        <div class="cmp-basis" data-role="basis">
+          <span class="lab">세 축 공통 기준</span>
+          <span class="cmp-bucket" data-role="basis-bucket">2026-10-17T14</span>
+          <span class="cmp-unit">시간 단위</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </div>
+
+        <div class="note">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div>
+            <b>두 가지 축이 다릅니다.</b> 이 화면의 열은 뉴스를 <b>수집한 출처 축</b>(KR / US / GLOBAL)입니다.
+            콘텐츠가 다루는 대상 국가는 별개이며, 미국 출처 뉴스가 한국 경제를 다룰 수 있습니다.
+          </div>
+        </div>
+
+        <form class="formrow" data-role="topic-form" style="margin:14px 0 16px">
+          <label class="fld" style="flex:0 1 300px">
+            <span class="fl">대상 국가 &mdash; 기사가 다루는 나라</span>
+            <select name="topic" data-role="topic">
+              <option value="ALL" selected>전체 대상 국가</option>
+              <option value="KR">한국 경제</option>
+              <option value="US">미국 경제</option>
+              <option value="GLOBAL">글로벌 (특정 국가 아님)</option>
+            </select>
+          </label>
+          <span class="hint" data-role="topic-hint" style="font-size:12px;color:var(--ink-3);padding-bottom:9px">열(출처 축)은 그대로 두고, 각 열을 이 나라를 다룬 기사로만 좁힙니다.</span>
+        </form>
+
+        <div class="grid g-12">
+            <div class="card col-4 cmpcol" data-axis="KR">
+              <div class="card-h">
+                <span class="axpill ax-kr"><span class="fl"></span>KR</span>
+                <h3>한국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-KR">
+                  <div data-role="rows-KR"></div>
+                  <div class="cmp-sent" data-role="sent-KR">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-KR" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-KR" hidden>
+                  한국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-KR" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="US">
+              <div class="card-h">
+                <span class="axpill ax-us"><span class="fl"></span>US</span>
+                <h3>미국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-US">
+                  <div data-role="rows-US"></div>
+                  <div class="cmp-sent" data-role="sent-US">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-US" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-US" hidden>
+                  미국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-US" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="GLOBAL">
+              <div class="card-h">
+                <span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span>
+                <h3>전세계 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-GLOBAL">
+                  <div data-role="rows-GLOBAL"></div>
+                  <div class="cmp-sent" data-role="sent-GLOBAL">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-GLOBAL" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-GLOBAL" hidden>
+                  전세계 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-GLOBAL" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>축 간 격차</h3>
+              <span class="sub" data-role="gap-sub">축 사이에서 가장 크게 벌어진 순</span>
+            </div>
+            <div class="card-b">
+              <div data-role="gaplist"></div>
+              <div class="note" data-role="no-outlier" style="margin-top:12px" hidden>
+                <div>
+                  <b>한 축에만 있는 대상이 없습니다.</b> 비교한 축의 상위 대상이 모두 겹칩니다 &mdash; 남은 차이는 위의
+                  점유율 격차뿐이고, 그것이 작다면 <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
+                </div>
+              </div>
+              <div class="banner warn" data-role="alias" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div style="flex:1;min-width:0">
+                  <b>같은 대상이 축마다 다르게 적혀 있었습니다.</b>
+                  분류 판단이 없는 기사는 핵심 서술 대상의 정규화된 명칭으로 묶습니다 &mdash; 아래 두 표기를 하나의 대상
+                  「원/달러 환율」로 모았습니다. 통합 전에는 두 축의 고유 대상으로 갈려 보였습니다.
+                  <table class="tbl" style="margin-top:10px;background:var(--panel)">
+                    <thead><tr><th>출처 축</th><th>적힌 표기</th><th class="num">통합 전</th><th class="num">통합 후</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="axpill ax-kr"><span class="fl"></span>KR</span></td><td>원/달러 환율</td><td class="num">2.4% &middot; KR만</td><td class="num"><b>2.4% &middot; 공통 2축</b></td></tr>
+                      <tr><td><span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span></td><td>달러/원 환율</td><td class="num">1.9% &middot; GLOBAL만</td><td class="num"><b>1.9% &middot; 공통 2축</b></td></tr>
+                    </tbody>
+                  </table>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="alias-go" href="#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid g-12 cmp-exits">
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.</p>
+              <a class="btn ghost" data-role="fair-go" href="JRN-spike-verification.html#STP-check-normalized" data-goto="JRN-spike-verification#STP-check-normalized" data-end="급등 검증 여정으로 인계">수집량 차이인지 정규화로 확인 &rarr;</a>
+            </div>
+          </div>
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.</p>
+              <a class="btn ghost" data-role="sent-go" href="JRN-sentiment-shift.html#STP-open-sentiment">축별 분위기 분포 보기 &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-disambiguate-axis">축 기준 확인하기 <span class="ar">&rarr;</span></button>
+          <span class="hint">「공통」은 여러 열에, 「KR만」 같은 표시는 그 열에만 있는 대상입니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 3 · 축 기준 구분 — 화면 compare ============ -->
+      <section class="jstep" id="STP-disambiguate-axis" data-step="STP-disambiguate-axis" data-title="축 기준 구분" hidden>
+
+      <div class="screen" data-screen="compare" data-title="3축 비교" data-pill="off">
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+
+        <div class="cmp-basis" data-role="basis">
+          <span class="lab">세 축 공통 기준</span>
+          <span class="cmp-bucket" data-role="basis-bucket">2026-10-17T14</span>
+          <span class="cmp-unit">시간 단위</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </div>
+
+        <div class="note">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div>
+            <b>두 가지 축이 다릅니다.</b> 이 화면의 열은 뉴스를 <b>수집한 출처 축</b>(KR / US / GLOBAL)입니다.
+            콘텐츠가 다루는 대상 국가는 별개이며, 미국 출처 뉴스가 한국 경제를 다룰 수 있습니다.
+          </div>
+        </div>
+
+        <form class="formrow" data-role="topic-form" style="margin:14px 0 16px">
+          <label class="fld" style="flex:0 1 300px">
+            <span class="fl">대상 국가 &mdash; 기사가 다루는 나라</span>
+            <select name="topic" data-role="topic">
+              <option value="ALL" selected>전체 대상 국가</option>
+              <option value="KR">한국 경제</option>
+              <option value="US">미국 경제</option>
+              <option value="GLOBAL">글로벌 (특정 국가 아님)</option>
+            </select>
+          </label>
+          <span class="hint" data-role="topic-hint" style="font-size:12px;color:var(--ink-3);padding-bottom:9px">열(출처 축)은 그대로 두고, 각 열을 이 나라를 다룬 기사로만 좁힙니다.</span>
+        </form>
+
+        <div class="grid g-12">
+            <div class="card col-4 cmpcol" data-axis="KR">
+              <div class="card-h">
+                <span class="axpill ax-kr"><span class="fl"></span>KR</span>
+                <h3>한국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-KR">
+                  <div data-role="rows-KR"></div>
+                  <div class="cmp-sent" data-role="sent-KR">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-KR" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-KR" hidden>
+                  한국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-KR" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="US">
+              <div class="card-h">
+                <span class="axpill ax-us"><span class="fl"></span>US</span>
+                <h3>미국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-US">
+                  <div data-role="rows-US"></div>
+                  <div class="cmp-sent" data-role="sent-US">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-US" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-US" hidden>
+                  미국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-US" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="GLOBAL">
+              <div class="card-h">
+                <span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span>
+                <h3>전세계 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-GLOBAL">
+                  <div data-role="rows-GLOBAL"></div>
+                  <div class="cmp-sent" data-role="sent-GLOBAL">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-GLOBAL" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-GLOBAL" hidden>
+                  전세계 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-GLOBAL" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>축 간 격차</h3>
+              <span class="sub" data-role="gap-sub">축 사이에서 가장 크게 벌어진 순</span>
+            </div>
+            <div class="card-b">
+              <div data-role="gaplist"></div>
+              <div class="note" data-role="no-outlier" style="margin-top:12px" hidden>
+                <div>
+                  <b>한 축에만 있는 대상이 없습니다.</b> 비교한 축의 상위 대상이 모두 겹칩니다 &mdash; 남은 차이는 위의
+                  점유율 격차뿐이고, 그것이 작다면 <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
+                </div>
+              </div>
+              <div class="banner warn" data-role="alias" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div style="flex:1;min-width:0">
+                  <b>같은 대상이 축마다 다르게 적혀 있었습니다.</b>
+                  분류 판단이 없는 기사는 핵심 서술 대상의 정규화된 명칭으로 묶습니다 &mdash; 아래 두 표기를 하나의 대상
+                  「원/달러 환율」로 모았습니다. 통합 전에는 두 축의 고유 대상으로 갈려 보였습니다.
+                  <table class="tbl" style="margin-top:10px;background:var(--panel)">
+                    <thead><tr><th>출처 축</th><th>적힌 표기</th><th class="num">통합 전</th><th class="num">통합 후</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="axpill ax-kr"><span class="fl"></span>KR</span></td><td>원/달러 환율</td><td class="num">2.4% &middot; KR만</td><td class="num"><b>2.4% &middot; 공통 2축</b></td></tr>
+                      <tr><td><span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span></td><td>달러/원 환율</td><td class="num">1.9% &middot; GLOBAL만</td><td class="num"><b>1.9% &middot; 공통 2축</b></td></tr>
+                    </tbody>
+                  </table>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="alias-go" href="#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid g-12 cmp-exits">
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.</p>
+              <a class="btn ghost" data-role="fair-go" href="JRN-spike-verification.html#STP-check-normalized">수집량 차이인지 정규화로 확인 &rarr;</a>
+            </div>
+          </div>
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.</p>
+              <a class="btn ghost" data-role="sent-go" href="JRN-sentiment-shift.html#STP-open-sentiment" data-goto="JRN-sentiment-shift#STP-open-sentiment" data-end="분위기 반전 여정으로 인계">축별 분위기 분포 보기 &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-pick-outlier">격차가 큰 대상 고르기 <span class="ar">&rarr;</span></button>
+          <span class="hint">열은 출처 축, 대상 국가는 위의 별도 선택입니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 4 · 편차 대상 선택 — 화면 compare ============ -->
+      <section class="jstep" id="STP-pick-outlier" data-step="STP-pick-outlier" data-title="편차 대상 선택" hidden>
+
+      <div class="screen" data-screen="compare" data-title="3축 비교" data-pill="off">
+        <p class="lede">같은 시점 &middot; 같은 기준으로 <b>한국 &middot; 미국 &middot; 전세계</b> 세 축을 나란히 두고, 무엇이 각 축의 경제 여론 중심인지 대조합니다.</p>
+
+        <div class="cmp-basis" data-role="basis">
+          <span class="lab">세 축 공통 기준</span>
+          <span class="cmp-bucket" data-role="basis-bucket">2026-10-17T14</span>
+          <span class="cmp-unit">시간 단위</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </div>
+
+        <div class="note">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div>
+            <b>두 가지 축이 다릅니다.</b> 이 화면의 열은 뉴스를 <b>수집한 출처 축</b>(KR / US / GLOBAL)입니다.
+            콘텐츠가 다루는 대상 국가는 별개이며, 미국 출처 뉴스가 한국 경제를 다룰 수 있습니다.
+          </div>
+        </div>
+
+        <form class="formrow" data-role="topic-form" style="margin:14px 0 16px">
+          <label class="fld" style="flex:0 1 300px">
+            <span class="fl">대상 국가 &mdash; 기사가 다루는 나라</span>
+            <select name="topic" data-role="topic">
+              <option value="ALL" selected>전체 대상 국가</option>
+              <option value="KR">한국 경제</option>
+              <option value="US">미국 경제</option>
+              <option value="GLOBAL">글로벌 (특정 국가 아님)</option>
+            </select>
+          </label>
+          <span class="hint" data-role="topic-hint" style="font-size:12px;color:var(--ink-3);padding-bottom:9px">열(출처 축)은 그대로 두고, 각 열을 이 나라를 다룬 기사로만 좁힙니다.</span>
+        </form>
+
+        <div class="grid g-12">
+            <div class="card col-4 cmpcol" data-axis="KR">
+              <div class="card-h">
+                <span class="axpill ax-kr"><span class="fl"></span>KR</span>
+                <h3>한국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-KR">
+                  <div data-role="rows-KR"></div>
+                  <div class="cmp-sent" data-role="sent-KR">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-KR" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-KR" hidden>
+                  한국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-KR" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="US">
+              <div class="card-h">
+                <span class="axpill ax-us"><span class="fl"></span>US</span>
+                <h3>미국 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-US">
+                  <div data-role="rows-US"></div>
+                  <div class="cmp-sent" data-role="sent-US">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-US" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-US" hidden>
+                  미국 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-US" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card col-4 cmpcol" data-axis="GLOBAL">
+              <div class="card-h">
+                <span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span>
+                <h3>전세계 &middot; 출처 축</h3>
+              </div>
+              <div class="card-b">
+                <div data-role="col-GLOBAL">
+                  <div data-role="rows-GLOBAL"></div>
+                  <div class="cmp-sent" data-role="sent-GLOBAL">
+                    <div class="sentbar"><i class="s-pos" data-seg="s-pos"></i><i class="s-neu" data-seg="s-neu"></i><i class="s-neg" data-seg="s-neg"></i><i class="s-mix" data-seg="s-mix"></i><i class="s-na" data-seg="s-na"></i></div>
+                    <div class="legend"><span><span class="d" style="background:var(--pos)"></span><span data-leg="s-pos">긍정 &mdash;</span></span><span><span class="d" style="background:var(--neu)"></span><span data-leg="s-neu">중립 &mdash;</span></span><span><span class="d" style="background:var(--neg)"></span><span data-leg="s-neg">부정 &mdash;</span></span><span><span class="d" style="background:var(--mix)"></span><span data-leg="s-mix">혼합 &mdash;</span></span><span><span class="d" style="background:var(--na)"></span><span data-leg="s-na">미분석 &mdash;</span></span></div>
+                  </div>
+                  <div class="placeholder-note cmp-nosent" data-role="nosent-GLOBAL" hidden>분위기 집계 없음</div>
+                </div>
+                <div class="placeholder-note cmp-empty" data-role="empty-GLOBAL" hidden>
+                  전세계 축은 이 시점에 수집된 항목이 없습니다. 0%로 그리지 않고 <b>비교에서 제외</b>합니다 &mdash; 수집이 없는
+                  것과 관심이 없는 것은 다릅니다.
+                  <div class="actions" style="margin-top:10px">
+                    <a class="btn sm pri" data-role="empty-go-GLOBAL" href="#STP-scan-axis-tops">남은 두 축으로 대조 계속 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="grid g-12" style="margin-top:16px">
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>축 간 격차</h3>
+              <span class="sub" data-role="gap-sub">축 사이에서 가장 크게 벌어진 순</span>
+            </div>
+            <div class="card-b">
+              <div data-role="gaplist"></div>
+              <div class="note" data-role="no-outlier" data-state="no-outlier" data-label="한 축에만 있는 대상 0건 — 차이 없음" style="margin-top:12px" hidden>
+                <div>
+                  <b>한 축에만 있는 대상이 없습니다.</b> 비교한 축의 상위 대상이 모두 겹칩니다 &mdash; 남은 차이는 위의
+                  점유율 격차뿐이고, 그것이 작다면 <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
+                </div>
+              </div>
+              <div class="banner warn" data-role="alias" data-state="alias-merged" data-label="표기 변형 통합 — 통합 전후 구분 표기" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div style="flex:1;min-width:0">
+                  <b>같은 대상이 축마다 다르게 적혀 있었습니다.</b>
+                  분류 판단이 없는 기사는 핵심 서술 대상의 정규화된 명칭으로 묶습니다 &mdash; 아래 두 표기를 하나의 대상
+                  「원/달러 환율」로 모았습니다. 통합 전에는 두 축의 고유 대상으로 갈려 보였습니다.
+                  <table class="tbl" style="margin-top:10px;background:var(--panel)">
+                    <thead><tr><th>출처 축</th><th>적힌 표기</th><th class="num">통합 전</th><th class="num">통합 후</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="axpill ax-kr"><span class="fl"></span>KR</span></td><td>원/달러 환율</td><td class="num">2.4% &middot; KR만</td><td class="num"><b>2.4% &middot; 공통 2축</b></td></tr>
+                      <tr><td><span class="axpill ax-gl"><span class="fl"></span>GLOBAL</span></td><td>달러/원 환율</td><td class="num">1.9% &middot; GLOBAL만</td><td class="num"><b>1.9% &middot; 공통 2축</b></td></tr>
+                    </tbody>
+                  </table>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="alias-go" href="#STP-scan-axis-tops" data-goto="JRN-axis-contrast#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid g-12 cmp-exits">
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.</p>
+              <a class="btn ghost" data-role="fair-go" href="JRN-spike-verification.html#STP-check-normalized">수집량 차이인지 정규화로 확인 &rarr;</a>
+            </div>
+          </div>
+          <div class="card col-6 cmp-exit">
+            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
+            <div class="card-b">
+              <p class="cmp-exit-lede">축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.</p>
+              <a class="btn ghost" data-role="sent-go" href="JRN-sentiment-shift.html#STP-open-sentiment">축별 분위기 분포 보기 &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-verify-in-trend"><span data-role="cta-gap">격차가 가장 큰 대상의 추세 확인</span> <span class="ar">&rarr;</span></button>
+          <span class="hint">순위 행이나 격차 행을 누르면 그 대상과 열의 축을 들고 바로 넘어갑니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 5 · 상세 추세로 확인 — 화면 trend ============ -->
+      <section class="jstep" id="STP-verify-in-trend" data-step="STP-verify-in-trend" data-title="상세 추세로 확인" hidden>
+
+      <div class="screen" data-screen="trend" data-title="대상 추세 상세" data-pill="off">
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="note" data-role="trend-error" data-state="trend-error" data-label="API 오류" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
         <div class="grid g-12">
           <div class="card col-9">
             <div class="card-h">
-              <h3>축별 상위 대상</h3><span class="sub" id="tops-sub">같은 기준 · 같은 시점</span>
-              <div class="r">
-                <span class="badge b-pos"><span class="d"></span>공통</span>
-                <span class="badge b-mix"><span class="d"></span>축 고유</span>
-              </div>
+              <h3>관심 점유율 추세</h3>
+              <span class="sub" data-role="tr-sub">일 단위 &middot; 정규화 비율(%) &middot; 2026-10-10 ~ 2026-10-16</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
             </div>
             <div class="card-b">
-              <div class="formrow" style="margin-bottom:14px">
-                <label class="fld" style="flex:1 1 220px">
-                  <span class="fl">대상 찾기</span>
-                  <input type="search" id="q" name="q" placeholder="예: 기준금리" autocomplete="off" />
+              <form data-role="tr-form">
+                <label class="chk">
+                  <input type="checkbox" name="tr-compare" data-role="tr-compare" />
+                  상위 대상 3개를 겹쳐 보기
                 </label>
-                <label class="chk" style="padding-bottom:8px">
-                  <input type="checkbox" id="only-unique" name="only-unique" />
-                  한 축에만 있는 대상만 보기
-                </label>
-              </div>
-              <div class="grid g-12" id="axistops"></div>
-            </div>
-          </div>
-
-          <div class="card col-3">
-            <div class="card-h"><h3>격차가 의심스러우면</h3></div>
-            <div class="card-b">
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
-                한 축만 유독 크다면, 관심이 큰 것인지 그 축의 수집이 많은 것인지부터 갈라야 합니다.
-              </p>
-              <a class="btn ghost" id="br-2" href="JRN-spike-verification.html#STP-check-normalized"
-                 data-goto="JRN-spike-verification#STP-check-normalized">수집량 차이인지 정규화로 확인 &rarr;</a>
-            </div>
-          </div>
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-disambiguate-axis" id="cta-2">
-            축 기준 확인하기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 3 · 축 기준 구분 ============ -->
-      <section class="jstep" id="STP-disambiguate-axis" data-step="STP-disambiguate-axis" hidden>
-        <div class="grid g-12">
-          <div class="card col-8">
-            <div class="card-h"><h3>축 기준</h3><span class="sub">두 기준은 서로 다릅니다</span></div>
-            <div class="card-b">
-              <div class="formrow">
-                <label class="fld" style="flex:1 1 220px">
-                  <span class="fl">출처 축 — 어디서 수집했는가</span>
-                  <select id="src-axis" name="src-axis">
-                    <option value="all" selected>전체 출처</option>
-                    <option value="KR">한국 언론</option>
-                    <option value="US">미국 언론</option>
-                    <option value="WW">그 밖의 해외 언론</option>
-                  </select>
-                </label>
-                <label class="fld" style="flex:1 1 220px">
-                  <span class="fl">대상 축 — 무엇을 다루는가</span>
-                  <select id="topic-axis" name="topic-axis">
-                    <option value="all" selected>전체 대상</option>
-                    <option value="KR">한국 경제</option>
-                    <option value="US">미국 경제</option>
-                    <option value="WW">글로벌 경제</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="note info" style="margin-top:18px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <div id="axis-note"></div>
-              </div>
-
-              <table class="tbl" style="margin-top:18px">
-                <thead><tr><th>출처</th><th>대상</th><th class="num">건수</th><th class="num">비중</th></tr></thead>
-                <tbody id="axis-matrix"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="card col-4">
-            <div class="card-h"><h3>분위기까지 보고 싶다면</h3></div>
-            <div class="card-b">
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
-                축별 관심 크기가 아니라 <b>어떤 논조</b>인지가 궁금해졌다면 분위기 흐름으로 넘어가세요.
-              </p>
-              <a class="btn ghost" id="br-3" href="JRN-sentiment-shift.html"
-                 data-goto="JRN-sentiment-shift#STP-open-sentiment">축별 분위기 분포 보기 &rarr;</a>
-            </div>
-          </div>
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-pick-outlier" id="cta-3">
-            격차가 큰 대상 고르기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 4 · 편차 대상 선택 ============ -->
-      <section class="jstep" id="STP-pick-outlier" data-step="STP-pick-outlier" hidden>
-        <div class="grid g-12">
-          <div class="card col-7">
-            <div class="card-h"><h3>축 간 격차</h3><span class="sub" id="gap-sub">최대 − 최소 점유율</span></div>
-            <div class="card-b">
-              <div class="formrow" style="margin-bottom:6px">
-                <label class="fld" style="flex:0 0 190px">
-                  <span class="fl">격차 임계 (%p)</span>
-                  <input type="number" id="gapthresh" name="gapthresh" min="0" max="40" step="1" value="5" />
-                </label>
-                <label class="chk" style="padding-bottom:8px">
-                  <input type="checkbox" id="alias-merge" name="alias-merge" />
-                  표기 변형을 같은 대상으로 통합
-                </label>
-              </div>
-
-              <div id="outlierlist"></div>
-
-              <div class="emptybox" id="s-no-outlier" data-state="no-outlier" hidden>
-                이 임계를 넘는 대상이 없습니다.<br/>
-                세 축의 관심사가 사실상 같다는 뜻입니다 &mdash; <b>&ldquo;차이 없음&rdquo;</b>도 결론입니다.
-              </div>
-
-              <div class="banner warn" id="s-alias" data-state="alias-merged" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 7h8M8 12h8M8 17h5"/><circle cx="12" cy="12" r="10"/></svg>
-                <div>
-                  <b>표기 변형 <span id="alias-n">1</span>건을 통합했습니다.</b>
-                  <span id="alias-what"></span>
-                  통합 전 점유율은 취소선으로, 통합 후는 굵게 함께 표기합니다.
-                  <div class="actions">
-                    <a class="btn sm pri" id="br-4" href="#STP-scan-axis-tops"
-                       data-goto="JRN-axis-contrast#STP-scan-axis-tops">통합 후 순위로 다시 대조</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card col-5">
-            <div class="card-h"><h3 id="pick-title">선택한 대상</h3><span class="sub" id="pick-sub">행을 고르면 열립니다</span></div>
-            <div class="card-b">
-              <div class="emptybox" id="pick-empty" data-state="no-selection">
-                왼쪽 순위에서 대상을 고르면<br/>축별 점유율과 격차가 여기 열립니다.
-              </div>
-              <div id="pick-body" hidden></div>
-            </div>
-          </div>
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-verify-in-trend" id="cta-4" disabled>
-            상세 추세로 확인하기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-4-hint">격차가 큰 대상을 먼저 고르세요.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 5 · 상세 추세로 확인 ============ -->
-      <section class="jstep" id="STP-verify-in-trend" data-step="STP-verify-in-trend" hidden>
-        <div class="grid g-12">
-          <div class="card col-12">
-            <div class="card-h">
-              <h3 id="trend-title">축별 시계열</h3><span class="sub" id="trend-sub">비교 뷰의 축·기간을 그대로 승계했습니다</span>
-              <div class="r"><span class="tag">점유율 %</span></div>
-            </div>
-            <div class="card-b">
-              <form id="trend-axes-form">
-                <div class="formrow">
-                  <span class="fl">표시할 축</span>
-                  <label class="chk"><input type="checkbox" name="show-axis" value="KR" checked /> 한국</label>
-                  <label class="chk"><input type="checkbox" name="show-axis" value="US" checked /> 미국</label>
-                  <label class="chk"><input type="checkbox" name="show-axis" value="WW" checked /> 전세계</label>
-                </div>
               </form>
-              <svg viewBox="0 0 740 210" width="100%" style="display:block" id="trendchart"></svg>
-              <div class="legend" id="trend-legend"></div>
+              <svg viewBox="0 0 740 270" width="100%" style="display:block;margin-top:10px" data-role="tr-chart"></svg>
+              <div class="legend" data-role="tr-legend"></div>
             </div>
           </div>
-
-          <div class="card col-5">
-            <div class="card-h"><h3>승계된 설정</h3><span class="sub">비교 뷰에서 그대로 가져왔습니다</span></div>
-            <div class="card-b" id="carried"></div>
+          <div class="col-3 grid">
+            <div class="card metric">
+              <div class="card-b">
+                <div class="ml">선택 대상 현재 점유율</div>
+                <div class="mv" data-role="tr-cur">&mdash;<small> %</small></div>
+                <div class="md"><span class="delta fl" data-role="tr-delta">&ndash;</span> 직전 일 대비</div>
+                <div class="actions" style="margin-top:10px">
+                  <a class="btn sm" href="#" data-role="tr-spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">급등의 진위 확인 &rarr;</a>
+                </div>
+              </div>
+            </div>
+            <div class="note">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              <div>이 차트는 <b>일 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만 서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.</div>
+            </div>
           </div>
+          <div class="card col-12">
+            <div class="card-h"><h3>상위 대상 비교</h3><span class="sub">같은 기간 &middot; 같은 축</span></div>
+            <div class="card-b" style="padding:0">
+              <table class="tbl" data-role="tr-table"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen" data-screen="trend" data-state="trend-loading" data-label="첫 진입 로딩" hidden>
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis-loading" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis-loading" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis-loading" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis-loading" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="emptybox">불러오는 중&hellip;</div>
+      </div>
+      <div class="screen" data-screen="trend" data-state="trend-empty" data-label="축에 집계 버킷 없음" hidden>
+
+        <form class="trend-ctl" data-role="tr-controls">
+          <div class="radios" data-role="tr-axis">
+            <label><input type="radio" name="tr-axis-empty" value="ALL" /> 전체</label>
+            <label><input type="radio" name="tr-axis-empty" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="tr-axis-empty" value="US" /> 미국</label>
+            <label><input type="radio" name="tr-axis-empty" value="GL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="tr-axpill"><i class="fl"></i>KR</span>
+          <span class="norm-flag">&#9635; 정규화 비율</span>
+        </form>
+        <div class="emptybox"><span data-role="tr-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다. 빈 차트를 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 관심이 0인 것은 다릅니다.</div>
+      </div>
+        <div class="stepact">
+          <span class="hint" data-end="여정 완료">격차가 기간 내내 이어졌는지, 최근에만 벌어졌는지를 선으로 봅니다.</span>
         </div>
       </section>
 
@@ -789,23 +1404,26 @@ details.meta table.tbl{margin-top:10px}
           <table class="tbl">
             <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
             <tbody>
-              <tr><td class="mono">STP-open-compare</td><td>한국·미국·전세계를 같은 기준으로 나란히 놓는다</td><td>3축 비교 패턴(PAT-axis-compare), 축 필(CMP-axpill)</td><td class="mono">AC3.7</td></tr>
-              <tr><td class="mono">STP-scan-axis-tops</td><td>동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다</td><td>축별 순위 목록(CMP-ranklist)</td><td class="mono">AC3.7 · AC3.4</td></tr>
-              <tr><td class="mono">STP-disambiguate-axis</td><td>지금 보는 축이 뉴스를 수집한 출처 축인지, 기사가 다루는 대상 국가인지 확인한다</td><td>축 기준 주석(CMP-note)</td><td class="mono">AC1.3 · AC2.1</td></tr>
-              <tr><td class="mono">STP-pick-outlier</td><td>한 축에만 두드러지거나 축 간 격차가 큰 대상을 고른다</td><td>순위 행 (행 클릭으로 선택 대상을 유지한 채 상세로 이동)</td><td class="mono">&mdash;</td></tr>
-              <tr><td class="mono">STP-verify-in-trend</td><td>선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다</td><td>라인 차트, 범례(CMP-legend)</td><td class="mono">AC3.5</td></tr>
+              <tr><td class="mono">STP-open-compare</td><td>한국·미국·전세계를 같은 기준으로 나란히 놓는다</td><td>3축 비교 패턴(PAT-axis-compare), 축 필(CMP-axpill) &mdash; 세 축 공통 기준 줄</td><td class="mono">AC3.7</td></tr>
+              <tr><td class="mono">STP-scan-axis-tops</td><td>동일 시점 축별 상위 서술 대상 목록을 훑으며 겹치는 것과 한쪽에만 있는 것을 가른다</td><td>축별 순위 목록(CMP-ranklist) &mdash; 공통/고유 표시</td><td class="mono">AC3.7 · AC3.4</td></tr>
+              <tr><td class="mono">STP-disambiguate-axis</td><td>지금 보는 축이 뉴스를 수집한 출처 축인지, 기사가 다루는 대상 국가인지 확인한다</td><td>축 기준 주석(CMP-note) &mdash; 출처 축(열)과 대상 국가(별도 select)</td><td class="mono">AC1.3 · AC2.1</td></tr>
+              <tr><td class="mono">STP-pick-outlier</td><td>한 축에만 두드러지거나 축 간 격차가 큰 대상을 고른다</td><td>격차 후보 순위 행 &mdash; 행 클릭으로 선택 대상과 축을 유지한 채 상세로 이동</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-verify-in-trend</td><td>선택한 대상의 축별 시계열을 열어 격차가 지속적인지 일시적인지 본다</td><td>라인 차트, 범례(CMP-legend) &mdash; 축별 라인·표시할 축 체크박스는 공유 화면 구조상 그리지 않음(인덱스 「의도적 제외」)</td><td class="mono">AC3.5</td></tr>
             </tbody>
           </table>
 
           <table class="tbl">
             <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
             <tbody>
-              <tr><td>특정 축의 수집 데이터가 비어 있음</td><td>화면 1 · 축 데이터 없음 배너</td><td class="mono">STP-scan-axis-tops</td></tr>
-              <tr><td>축 간 격차가 수집량 차이 때문으로 의심됨</td><td>화면 2 · 정규화 확인 이탈</td><td class="mono">JRN-spike-verification · STP-check-normalized</td></tr>
-              <tr><td>분위기까지 축별로 보고 싶어짐</td><td>화면 3 · 분위기 흐름 이탈</td><td class="mono">JRN-sentiment-shift · STP-open-sentiment</td></tr>
-              <tr><td>표기 변형으로 같은 대상이 축마다 다르게 잡힘</td><td>화면 4 · 표기 변형 통합 배너</td><td class="mono">STP-scan-axis-tops</td></tr>
+              <tr><td>특정 축의 수집 데이터가 비어 있음</td><td>화면 1 · 빈 열의 「남은 두 축으로 대조 계속」 (상태 axis-empty)</td><td class="mono">STP-scan-axis-tops</td></tr>
+              <tr><td>축 간 격차가 수집량 차이 때문으로 의심됨</td><td>화면 2 · 이탈 카드 「수집량 차이인지 정규화로 확인」</td><td class="mono">JRN-spike-verification · STP-check-normalized</td></tr>
+              <tr><td>분위기까지 축별로 보고 싶어짐</td><td>화면 3 · 이탈 카드 「축별 분위기 분포 보기」</td><td class="mono">JRN-sentiment-shift · STP-open-sentiment</td></tr>
+              <tr><td>표기 변형으로 같은 대상이 축마다 다르게 잡힘</td><td>화면 4 · 격차 카드의 통합 안내 · 통합 전후 표 (상태 alias-merged)</td><td class="mono">STP-scan-axis-tops</td></tr>
             </tbody>
           </table>
+
+          <p style="margin-top:14px"><b>범위 밖으로 둔 것</b> &mdash; 결론(온도차 판별)을 제품 안에 기록하는 폼은 두지 않는다.
+             여정은 추세 상세를 연 화면 5에서 끝난다 &mdash; 여정 문서 「범위 밖」 참조.</p>
 
           <div class="mapstrip" style="margin-top:16px">
             <span class="lab">visualizes</span>
@@ -816,7 +1434,7 @@ details.meta table.tbl{margin-top:10px}
             <span class="chip"><b>STP-pick-outlier</b></span>
             <span class="chip"><b>STP-verify-in-trend</b></span>
             <span class="chip v"><b>V2</b> 지역 축 비교</span>
-            <span class="chip">AC3.7 · AC3.4 · AC1.3 · AC2.1 · AC3.5</span>
+            <span class="chip">AC3.7 · AC3.4 · AC1.3 · AC2.1 · AC3.2 · AC3.5</span>
           </div>
         </div>
       </details>
@@ -825,414 +1443,548 @@ details.meta table.tbl{margin-top:10px}
   </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+
 <script>
 /* ============================================================
-   프로토타입 데이터 — 축별 상위 서술 대상.
-   share = 그 축 안에서의 점유율(%), n = 수집 건수, d = 직전 구간 대비 %p,
-   aliasOf = 표기 변형(통합 시 대상 id 로 합쳐진다).
+   JRN-axis-contrast · 지역 온도차 확인 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   단계 1~4 는 같은 화면 `compare`(Compare.tsx)를 같은 구조로 다시 그리고, 단계 5 는 화면
+   `trend`(Trend.tsx — JRN-daily-scan 과 같은 구조)다. 요소는 id 가 아니라 단계 섹션 안의
+   [data-role] 로 찾는다 — 같은 화면이 여러 단계에 있으므로.
    ============================================================ */
-var AXES = [
-  { id:'KR', label:'한국',   cls:'ax-kr' },
-  { id:'US', label:'미국',   cls:'ax-us' },
-  { id:'WW', label:'전세계', cls:'ax-gl' }
-];
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
+function RA(root, role){ return root ? Array.prototype.slice.call(root.querySelectorAll('[data-role=' + JSON.stringify(role) + ']')) : []; }
+function show(el, on){ if(el) el.hidden = !on; }
 
-var BASE = {
-  KR: [
-    { id:'bok-rate',  name:'한국은행 기준금리', share:18.4, n:186, d:+2.1 },
-    { id:'household', name:'가계부채',          share:12.1, n:98,  d:+4.4 },
-    { id:'usdkrw',    name:'원/달러 환율',      share:11.2, n:151, d:-0.6 },
-    { id:'samsung',   name:'삼성전자',          share:9.8,  n:204, d:+1.2 },
-    { id:'oil',       name:'국제 유가',         share:6.1,  n:70,  d:-1.1 }
-  ],
-  US: [
-    { id:'fed',    name:'연준 기준금리',   share:19.7, n:212, d:+1.4 },
-    { id:'nvidia', name:'엔비디아',        share:14.2, n:243, d:+3.9 },
-    { id:'cpi',    name:'미국 소비자물가', share:10.6, n:139, d:-2.2 },
-    { id:'oil',    name:'국제 유가',       share:7.4,  n:178, d:-0.9 },
-    { id:'samsung',name:'삼성전자',        share:2.1,  n:41,  d:+0.3 }
-  ],
-  WW: [
-    { id:'oil',          name:'국제 유가',      share:15.3, n:178, d:-0.4 },
-    { id:'supply',       name:'공급망',         share:11.9, n:112, d:+2.7 },
-    { id:'fed',          name:'연준 기준금리',  share:9.1,  n:120, d:+0.8 },
-    { id:'samsung',      name:'삼성전자',       share:3.4,  n:52,  d:+0.2 },
-    { id:'usdkrw-fx',    name:'달러/원 환율',   share:2.6,  n:31,  d:+0.1, aliasOf:'usdkrw', aliasName:'원/달러 환율' }
-  ]
+var S1 = 'STP-open-compare', S2 = 'STP-scan-axis-tops', S3 = 'STP-disambiguate-axis', S4 = 'STP-pick-outlier', S5 = 'STP-verify-in-trend';
+var ORDER = [S1, S2, S3, S4, S5];
+var CMP_STEPS = [S1, S2, S3, S4];
+
+/* ---------------- 화면 compare (Compare.tsx) 데이터 ----------------
+   /api/compare 는 최신 시간 버킷 하나에서 출처 축마다 상위 5개 대상과 분위기 분포를 준다.
+   대상 국가(AC2.1)로 좁힌 열은 여정 문서가 요구하는 컨트롤의 몫이라 서빙에는 아직 없다 —
+   여기서는 대상 국가별로 같은 모양의 열을 미리 둔다. 행: [대상, 정규화 점유율, 원시 건수],
+   분위기: [긍정, 중립, 부정, 혼합(분석 완료분 안의 비율), 미분석 비율]. */
+var CAXES = [
+  { id: 'KR',     name: '한국',   tr: 'KR' },
+  { id: 'US',     name: '미국',   tr: 'US' },
+  { id: 'GLOBAL', name: '전세계', tr: 'GL' }
+];
+var TOPIC_LABEL = { ALL: '전체 대상 국가', KR: '한국 경제', US: '미국 경제', GLOBAL: '글로벌 (특정 국가 아님)' };
+var CMP = {
+  ALL: {
+    KR:     { rows: [['통화정책·금리', 0.184, 23], ['부동산·주택', 0.121, 15], ['환율·외환', 0.112, 19], ['반도체', 0.098, 26], ['가계·소비', 0.071, 9]],
+              sent: [0.27, 0.36, 0.29, 0.08, 0.09] },
+    US:     { rows: [['통화정책·금리', 0.197, 31], ['AI·테크', 0.142, 38], ['물가', 0.106, 22], ['에너지·원자재', 0.074, 28], ['주식시장', 0.069, 17]],
+              sent: [0.33, 0.31, 0.24, 0.12, 0.06] },
+    GLOBAL: { rows: [['에너지·원자재', 0.153, 24], ['무역·통상', 0.119, 18], ['통화정책·금리', 0.091, 14], ['지정학·국제정세', 0.084, 11], ['반도체', 0.034, 6]],
+              sent: [0.18, 0.35, 0.37, 0.10, 0.11] }
+  },
+  KR: {
+    KR:     { rows: [['부동산·주택', 0.201, 14], ['통화정책·금리', 0.176, 17], ['가계·소비', 0.118, 8], ['환율·외환', 0.109, 13], ['반도체', 0.087, 15]],
+              sent: [0.22, 0.38, 0.32, 0.08, 0.10] },
+    US:     { rows: [['반도체', 0.244, 9], ['환율·외환', 0.198, 6], ['무역·통상', 0.163, 5], ['주식시장', 0.121, 4], ['통화정책·금리', 0.088, 3]],
+              sent: [0.30, 0.34, 0.26, 0.10, 0.07] },
+    GLOBAL: { rows: [['반도체', 0.262, 5], ['무역·통상', 0.187, 4], ['환율·외환', 0.142, 3], ['자동차·배터리', 0.118, 3], ['지정학·국제정세', 0.071, 2]],
+              sent: [0.25, 0.37, 0.28, 0.10, 0.12] }
+  },
+  US: {
+    KR:     { rows: [['통화정책·금리', 0.233, 8], ['환율·외환', 0.171, 6], ['주식시장', 0.138, 5], ['AI·테크', 0.102, 4], ['무역·통상', 0.094, 3]],
+              sent: [0.24, 0.39, 0.27, 0.10, 0.08] },
+    US:     { rows: [['통화정책·금리', 0.214, 26], ['물가', 0.158, 19], ['AI·테크', 0.147, 30], ['고용·노동', 0.121, 14], ['주식시장', 0.083, 12]],
+              sent: [0.34, 0.30, 0.25, 0.11, 0.05] },
+    GLOBAL: { rows: [['통화정책·금리', 0.206, 7], ['무역·통상', 0.149, 5], ['물가', 0.121, 4], ['에너지·원자재', 0.097, 4], ['AI·테크', 0.064, 2]],
+              sent: [0.20, 0.36, 0.34, 0.10, 0.10] }
+  },
+  /* 특정 국가를 다루지 않는 기사 — 세 축이 같은 대상을 다룬다(「차이 없음」 갈래) */
+  GLOBAL: {
+    KR:     { rows: [['에너지·원자재', 0.214, 7], ['지정학·국제정세', 0.176, 6], ['무역·통상', 0.133, 4], ['통화정책·금리', 0.098, 3], ['물가', 0.071, 2]],
+              sent: [0.16, 0.36, 0.39, 0.09, 0.11] },
+    US:     { rows: [['에너지·원자재', 0.188, 9], ['무역·통상', 0.162, 8], ['지정학·국제정세', 0.149, 7], ['물가', 0.102, 5], ['통화정책·금리', 0.087, 4]],
+              sent: [0.21, 0.33, 0.36, 0.10, 0.07] },
+    GLOBAL: { rows: [['에너지·원자재', 0.226, 16], ['지정학·국제정세', 0.171, 12], ['무역·통상', 0.158, 11], ['통화정책·금리', 0.094, 7], ['물가', 0.079, 6]],
+              sent: [0.17, 0.35, 0.38, 0.10, 0.12] }
+  }
 };
 
-/* 최근 24시간에서는 해외 축의 시간당 수집이 아직 도착하지 않는다 —
-   여정 문서 §4 의 "특정 축의 수집 데이터가 비어 있음" 분기가 여기서 발생한다. */
-var RANGE_FACTOR = { '1':0.13, '7':1, '30':3.6 };
+/* 딥링크 #STP-open-compare/axis-empty 는 「전세계 축 수집 없음」 상황을 데이터로 연다 —
+   빈 열은 0%가 아니라 비교에서 빠지고, 공통/고유와 격차도 남은 두 축으로만 다시 센다. */
+var EMPTY_GLOBAL = false;
 
-function axisRows(ax){
-  if(state.range === '1' && ax === 'WW') return [];
-  /* 기간이 길수록 같은 대상의 수집 건수가 늘어난다 — 점유율(share)은 축 안의 비중이라 유지된다. */
-  var k = RANGE_FACTOR[state.range] || 1;
-  var list = (BASE[ax] || []).map(function(r){
-    var c = { id:r.id, name:r.name, share:r.share, n:Math.max(1, Math.round(r.n * k)), d:r.d };
-    if(r.aliasOf){ c.aliasOf = r.aliasOf; c.aliasName = r.aliasName; }
-    return c;
-  });
-  if(!state.aliasMerge) return list;
-  /* 표기 변형 통합: aliasOf 를 가진 행을 대상 행에 합치고, 없으면 이름만 정규화해 남긴다. */
-  var out = [], byId = {};
-  list.forEach(function(r){
-    var key = r.aliasOf || r.id;
-    if(byId[key]){ byId[key].share = Math.round((byId[key].share + r.share) * 10) / 10; byId[key].n += r.n; return; }
-    var copy = { id:key, name:r.aliasName || r.name, share:r.share, n:r.n, d:r.d, merged:!!r.aliasOf, was:r.share };
-    byId[key] = copy; out.push(copy);
-  });
-  return out;
+var state = {
+  topic: 'ALL', pick: null,
+  trAxis: 'KR', trSubject: null, overlay: false
+};
+var cur = null;
+
+function pct(x){ return (x * 100).toFixed(1) + '%'; }
+function column(topic, axis){
+  if(axis === 'GLOBAL' && EMPTY_GLOBAL) return null;
+  return (CMP[topic] || {})[axis] || null;
 }
+function liveAxes(){ return CAXES.filter(function(a){ var c = column(state.topic, a.id); return c && c.rows.length; }); }
 
-var state = { range:'7', normalize:true, q:'', onlyUnique:false, gapthresh:5,
-              aliasMerge:false, target:null, srcAxis:'all', topicAxis:'all',
-              hiddenAxes:{} };
-
-function $(id){ return document.getElementById(id); }
-function show(el, on){ if(el) el.hidden = !on; }
-function axLabel(id){ for(var i=0;i<AXES.length;i++){ if(AXES[i].id===id) return AXES[i].label; } return id; }
-function axCls(id){ for(var i=0;i<AXES.length;i++){ if(AXES[i].id===id) return AXES[i].cls; } return ''; }
-function liveAxes(){ return AXES.filter(function(a){ return axisRows(a.id).length > 0; }); }
-function emptyAxes(){ return AXES.filter(function(a){ return axisRows(a.id).length === 0; }); }
-
-/* 대상 id → 축별 점유율. 없는 축은 undefined(0 으로 그리지 않는다). */
-function byTarget(){
-  var map = {};
+/* 대상 → { 축: 점유율 } — 그 축의 상위 5개에 없으면 키가 없다(0 이 아니라 「상위 밖」). */
+function presence(){
+  var map = {}, order = [];
   liveAxes().forEach(function(a){
-    axisRows(a.id).forEach(function(r){
-      if(!map[r.id]) map[r.id] = { id:r.id, name:r.name, per:{}, merged:false };
-      map[r.id].per[a.id] = r.share;
-      if(r.merged) map[r.id].merged = true;
+    column(state.topic, a.id).rows.forEach(function(r){
+      if(!map[r[0]]){ map[r[0]] = {}; order.push(r[0]); }
+      map[r[0]][a.id] = r[1];
     });
   });
-  return map;
+  return { map: map, order: order };
 }
 
-/* ---------------- 화면 1 : 비교 기준 ---------------- */
-function renderAxisCards(){
-  var live = liveAxes();
-  $('axiscards').innerHTML = AXES.map(function(a){
-    var rows = axisRows(a.id);
-    var total = rows.reduce(function(s, r){ return s + r.n; }, 0);
-    var dead = rows.length === 0;
-    return '<div class="card flat col-4" style="border-color:var(--line-2)">'
-      + '<div class="card-b">'
-      + '<span class="axpill ' + a.cls + '"><i class="fl"></i>' + a.label + '</span>'
-      + '<div class="metric" style="padding:12px 0 0">'
-      + '<div class="mv" style="font-size:24px">' + (dead ? '&mdash;' : total + '<small>건</small>') + '</div>'
-      + '<div class="md">' + (dead ? '이 기간 수집 없음 · 비교 제외' : rows.length + '개 대상 · ' + (state.normalize ? '정규화 점유율' : '원시 건수')) + '</div>'
-      + '</div></div></div>';
-  }).join('');
-  var dead = emptyAxes();
-  $('empty-axis-name').textContent = dead.length ? dead.map(function(a){ return a.label; }).join(' · ') : '';
-  show($('s-axis-empty'), dead.length > 0);
-  var basis = (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일')
-            + ' · ' + (state.normalize ? '정규화' : '원시 건수');
-  $('tb-basis').textContent = basis;
-  $('basis-sub').textContent = basis + ' · 비교 축 ' + live.length + '개';
+/* 격차 후보 — 축 사이에서 가장 크게 벌어진 순. 어느 축 상위에 없으면 그 축 몫을 0 으로 쳐서 줄을 세우되
+   화면에는 0% 가 아니라 「상위 밖」 으로 적는다(상위 5개 밖일 뿐 관심이 0 인 것은 아니다). */
+function gapCandidates(){
+  var p = presence(), live = liveAxes();
+  return p.order.map(function(name){
+    var per = p.map[name], ids = Object.keys(per);
+    var vals = ids.map(function(k){ return per[k]; });
+    var hi = Math.max.apply(null, vals), lo = Math.min.apply(null, vals);
+    var top = ids.filter(function(k){ return per[k] === hi; })[0];
+    var all = ids.length === live.length;
+    return { name: name, per: per, n: ids.length, all: all, gap: hi - lo, score: all ? hi - lo : hi, axis: top };
+  }).sort(function(a, b){ return b.score - a.score; });
 }
 
-function applyBasis(withLoading){
-  if(!withLoading){ renderAxisCards(); renderTops(); renderOutliers(); return; }
-  show($('s-loading'), true);
-  $('axiscards').setAttribute('hidden', '');
-  show($('s-axis-empty'), false);
-  window.setTimeout(function(){
-    show($('s-loading'), false);
-    $('axiscards').removeAttribute('hidden');
-    renderAxisCards(); renderTops(); renderOutliers();
-  }, 180);
+function badge(name, axisId, p, liveN){
+  var n = Object.keys(p.map[name]).length;
+  if(liveN < 2) return '';
+  if(n === 1) return ' <span class="axpill ' + ({ KR: 'ax-kr', US: 'ax-us', GLOBAL: 'ax-gl' })[axisId]
+    + '" style="margin-left:6px;font-size:10px;padding:1px 7px">' + axisId + '만</span>';
+  return ' <span class="tag" style="margin-left:6px">공통 ' + n + '축</span>';
 }
 
-/* ---------------- 화면 2 : 축별 상위 대상 ---------------- */
-function renderTops(){
-  var map = byTarget(), q = state.q.trim();
-  var live = liveAxes();
-  $('axistops').innerHTML = live.map(function(a){
-    var rows = axisRows(a.id).filter(function(r){
-      if(q && r.name.indexOf(q) < 0) return false;
-      if(state.onlyUnique){
-        var t = map[r.id];
-        if(t && Object.keys(t.per).length > 1) return false;
-      }
-      return true;
-    });
-    var col = live.length === 3 ? 'col-4' : live.length === 2 ? 'col-6' : 'col-12';
-    var body = rows.length
-      ? '<div class="ranklist">' + rows.map(function(r, i){
-          var t = map[r.id], common = t && Object.keys(t.per).length > 1;
-          var dcls = r.d > 0.3 ? 'up' : r.d < -0.3 ? 'dn' : 'fl';
-          return '<div class="rankrow" style="grid-template-columns:22px 1fr 74px 46px;cursor:default">'
-            + '<span class="rk">' + (i + 1) + '</span>'
-            + '<span class="nm">' + r.name
-            + ' <span class="badge ' + (common ? 'b-pos' : 'b-mix') + '"><span class="d"></span>'
-            + (common ? '공통' : '고유') + '</span></span>'
-            + '<span class="share"><span class="bar"><i style="width:' + Math.min(100, r.share * 4) + '%"></i></span>'
-            + '<span class="pct">' + r.share.toFixed(1) + '%</span></span>'
-            + '<span class="dlt ' + dcls + '">' + (r.d > 0 ? '+' : '') + r.d.toFixed(1) + '</span>'
-            + '</div>';
-        }).join('') + '</div>'
-      : '<div class="emptybox" style="padding:22px 10px">조건에 맞는 대상이 없습니다.</div>';
-    return '<div class="' + col + '">'
-      + '<div class="row" style="margin-bottom:8px"><span class="axpill ' + a.cls + '"><i class="fl"></i>' + a.label + '</span></div>'
-      + body + '</div>';
-  }).join('');
-  $('tops-sub').textContent = (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일')
-    + ' · 비교 축 ' + live.length + '개';
-}
+function renderCompare(s){
+  R(s, 'topic').value = state.topic;
+  var p = presence(), live = liveAxes();
+  var all = [];
+  live.forEach(function(a){ column(state.topic, a.id).rows.forEach(function(r){ all.push(r[1]); }); });
+  /* 같은 눈금 — 축 간 점유율은 막대를 같은 최댓값에 대고 그려야만 비교된다(구현 maxShare). */
+  var maxShare = Math.max.apply(null, all.concat([0.0001]));
 
-/* ---------------- 화면 3 : 축 기준 구분 ---------------- */
-var MATRIX = [
-  { src:'KR', topic:'KR', n:412 }, { src:'KR', topic:'US', n:74 },  { src:'KR', topic:'WW', n:58 },
-  { src:'US', topic:'KR', n:36 },  { src:'US', topic:'US', n:468 }, { src:'US', topic:'WW', n:121 },
-  { src:'WW', topic:'KR', n:19 },  { src:'WW', topic:'US', n:96 },  { src:'WW', topic:'WW', n:287 }
-];
-
-function renderMatrix(){
-  var rows = MATRIX.filter(function(m){
-    return (state.srcAxis === 'all' || m.src === state.srcAxis)
-        && (state.topicAxis === 'all' || m.topic === state.topicAxis);
-  });
-  var total = rows.reduce(function(s, m){ return s + m.n; }, 0) || 1;
-  $('axis-matrix').innerHTML = rows.map(function(m){
-    return '<tr><td><span class="axpill ' + axCls(m.src) + '"><i class="fl"></i>' + axLabel(m.src) + ' 언론</span></td>'
-      + '<td><span class="tag">' + axLabel(m.topic) + ' 경제</span></td>'
-      + '<td class="num">' + m.n + '</td>'
-      + '<td class="num">' + (m.n / total * 100).toFixed(1) + '%</td></tr>';
-  }).join('');
-  var cross = rows.filter(function(m){ return m.src !== m.topic; })
-                  .reduce(function(s, m){ return s + m.n; }, 0);
-  $('axis-note').innerHTML = '<b>출처 축과 대상 축은 다릅니다.</b> 지금 조건에서 '
-    + '출처와 대상이 <b>어긋나는</b> 기사가 ' + cross + '건(' + (cross / total * 100).toFixed(1) + '%)입니다 — '
-    + '예를 들어 미국 언론이 다룬 한국 경제 기사는 &ldquo;미국 관심사&rdquo;가 아니라 &ldquo;한국 경제에 대한 미국 언론의 관심&rdquo;입니다.';
-}
-
-/* ---------------- 화면 4 : 편차 대상 ---------------- */
-function gapsOf(){
-  var map = byTarget(), live = liveAxes(), out = [];
-  Object.keys(map).forEach(function(k){
-    var t = map[k];
-    var vals = live.map(function(a){ return t.per[a.id]; });
-    var present = vals.filter(function(v){ return typeof v === 'number'; });
-    if(!present.length) return;
-    var hi = Math.max.apply(null, present);
-    var lo = vals.some(function(v){ return typeof v !== 'number'; }) ? 0 : Math.min.apply(null, present);
-    out.push({ id:t.id, name:t.name, per:t.per, gap:Math.round((hi - lo) * 10) / 10, merged:t.merged });
-  });
-  out.sort(function(a, b){ return b.gap - a.gap; });
-  return out;
-}
-
-function renderOutliers(){
-  var live = liveAxes();
-  var list = gapsOf().filter(function(g){ return g.gap >= state.gapthresh; });
-  $('outlierlist').innerHTML = list.map(function(g){
-    var cells = live.map(function(a){
-      var v = g.per[a.id];
-      return '<span class="axpill ' + a.cls + '" style="margin-right:6px"><i class="fl"></i>'
-        + a.label + ' ' + (typeof v === 'number' ? v.toFixed(1) + '%' : '없음') + '</span>';
+  CAXES.forEach(function(a){
+    var c = column(state.topic, a.id);
+    var empty = !c || !c.rows.length;
+    show(R(s, 'col-' + a.id), !empty);
+    show(R(s, 'empty-' + a.id), empty);
+    if(empty) return;
+    R(s, 'rows-' + a.id).innerHTML = c.rows.map(function(r, i){
+      return '<div class="cmprow" style="cursor:pointer" data-subject="' + esc(r[0]) + '" data-axis="' + a.id + '">'
+        + '<div class="top"><span class="nm">' + (i + 1) + '. ' + esc(r[0])
+        + '<span class="meta">원시 ' + r[2] + '건</span>' + badge(r[0], a.id, p, live.length) + '</span>'
+        + '<span class="pct">' + pct(r[1]) + '</span></div>'
+        + '<div class="bar"><i style="width:' + pct(r[1] / maxShare) + '"></i></div></div>';
     }).join('');
-    var pressed = (state.target && state.target.id === g.id) ? 'true' : 'false';
-    return '<button type="button" class="trow" data-target="' + g.id + '" aria-pressed="' + pressed + '">'
-      + '<span class="row" style="justify-content:space-between;margin-bottom:7px">'
-      + '<span style="font-weight:600;font-size:13px">' + g.name
-      + (g.merged ? ' <span class="tag">통합됨</span>' : '') + '</span>'
-      + '<span class="mono" style="font-size:11.5px;color:var(--ink-2);font-weight:600">격차 '
-      + g.gap.toFixed(1) + '%p</span></span>'
-      + '<span class="wrap">' + cells + '</span></button>';
-  }).join('');
-  show($('s-no-outlier'), list.length === 0);
-  $('gap-sub').textContent = '최대 − 최소 점유율 · 임계 ' + state.gapthresh + '%p 이상 ' + list.length + '건';
-
-  var merged = gapsOf().filter(function(g){ return g.merged; });
-  if(state.aliasMerge && merged.length){
-    $('alias-n').textContent = merged.length;
-    $('alias-what').textContent = merged.map(function(g){ return g.name; }).join(' · ') + ' — ';
-  }
-  show($('s-alias'), state.aliasMerge && merged.length > 0);
-
-  $('outlierlist').querySelectorAll('.trow').forEach(function(b){
-    b.addEventListener('click', function(){ pickTarget(b.getAttribute('data-target')); });
-  });
-  if(state.target && !list.some(function(g){ return g.id === state.target.id; })) clearPick();
-}
-
-function clearPick(){
-  state.target = null;
-  show($('pick-body'), false); show($('pick-empty'), true);
-  $('pick-title').textContent = '선택한 대상';
-  $('pick-sub').textContent = '행을 고르면 열립니다';
-  $('cta-4').disabled = true;
-  $('cta-4-hint').textContent = '격차가 큰 대상을 먼저 고르세요.';
-}
-
-function pickTarget(id){
-  var g = null, all = gapsOf();
-  for(var i = 0; i < all.length; i++){ if(all[i].id === id) g = all[i]; }
-  if(!g) return;
-  state.target = g;
-  renderOutliers();
-  $('pick-title').textContent = g.name;
-  $('pick-sub').textContent = '축 간 격차 ' + g.gap.toFixed(1) + '%p';
-  show($('pick-empty'), false);
-  show($('pick-body'), true);
-  $('pick-body').innerHTML = liveAxes().map(function(a){
-    var v = g.per[a.id];
-    return '<div class="kv"><span class="k">' + a.label + '</span><span class="v">'
-      + (typeof v === 'number' ? v.toFixed(1) + '%' : '데이터 없음') + '</span></div>';
-  }).join('') + '<p class="muted" style="margin-top:14px;font-size:12px;line-height:1.6">'
-    + '이 대상을 고른 채 상세로 넘어가면 축·기간 설정이 그대로 승계됩니다.</p>';
-  $('cta-4').disabled = false;
-  $('cta-4-hint').textContent = '';
-}
-
-/* ---------------- 화면 5 : 축별 시계열 ---------------- */
-function trendSeries(){
-  var g = state.target, live = liveAxes();
-  var n = state.range === '1' ? 8 : state.range === '30' ? 10 : 7;
-  return live.map(function(a){
-    var base = g && typeof g.per[a.id] === 'number' ? g.per[a.id] : null;
-    if(base === null) return { axis:a, pts:null };
-    var pts = [];
-    for(var i = 0; i < n; i++){
-      var wobble = Math.sin((i + a.id.charCodeAt(0)) * 0.9) * 1.6;
-      pts.push(Math.max(0.4, Math.round((base + wobble) * 10) / 10));
-    }
-    return { axis:a, pts:pts, n:n };
-  });
-}
-
-function drawTrend(){
-  var series = trendSeries().filter(function(s){ return s.pts && !state.hiddenAxes[s.axis.id]; });
-  var x0 = 52, x1 = 716, base = 176, top = 22, Hh = base - top;
-  var all = series.reduce(function(acc, s){ return acc.concat(s.pts); }, [0]);
-  var max = Math.max.apply(null, all) * 1.15 || 1;
-  var n = series.length ? series[0].pts.length : 1;
-  var svg = '';
-  [0, 0.5, 1].forEach(function(p){
-    var y = base - p * Hh;
-    svg += '<line class="gridline ' + (p === 0 ? 'zero' : '') + '" x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y + '"/>';
-    svg += '<text class="axlab" x="' + (x0 - 8) + '" y="' + (y + 3) + '" text-anchor="end">'
-        + (max * p).toFixed(0) + '%</text>';
-  });
-  for(var i = 0; i < n; i++){
-    var lx = x0 + (x1 - x0) * (n === 1 ? 0 : i / (n - 1));
-    var lbl = i === n - 1 ? '지금' : 'T-' + (n - 1 - i);
-    svg += '<text class="axlab" x="' + lx.toFixed(1) + '" y="196" text-anchor="middle">' + lbl + '</text>';
-  }
-  series.forEach(function(s){
-    var d = s.pts.map(function(v, i){
-      var lx = x0 + (x1 - x0) * (s.pts.length === 1 ? 0 : i / (s.pts.length - 1));
-      var ly = base - (v / max) * Hh;
-      return (i ? 'L' : 'M') + lx.toFixed(1) + ' ' + ly.toFixed(1);
-    }).join(' ');
-    svg += '<path d="' + d + '" fill="none" stroke="var(--' + s.axis.cls + ')" stroke-width="2.4" stroke-linejoin="round"/>';
-    s.pts.forEach(function(v, i){
-      var lx = x0 + (x1 - x0) * (s.pts.length === 1 ? 0 : i / (s.pts.length - 1));
-      var ly = base - (v / max) * Hh;
-      svg += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="2.6" fill="var(--' + s.axis.cls + ')"/>';
+    /* 분위기 미니 막대 — 미분석은 따로 떼고 나머지 넷을 분석 완료분 비율로 줄인다(구현 MiniSent). */
+    var d = c.sent, scale = 1 - d[4];
+    var w = { 's-pos': d[0] * scale, 's-neu': d[1] * scale, 's-neg': d[2] * scale, 's-mix': d[3] * scale, 's-na': d[4] };
+    var sent = R(s, 'sent-' + a.id);
+    Array.prototype.forEach.call(sent.querySelectorAll('[data-seg]'), function(seg){
+      seg.style.width = (w[seg.getAttribute('data-seg')] * 100).toFixed(1) + '%';
+    });
+    var LBL = { 's-pos': '긍정', 's-neu': '중립', 's-neg': '부정', 's-mix': '혼합', 's-na': '미분석' };
+    Array.prototype.forEach.call(sent.querySelectorAll('[data-leg]'), function(l){
+      var k = l.getAttribute('data-leg');
+      l.textContent = LBL[k] + ' ' + (w[k] * 100).toFixed(0) + '%';
     });
   });
-  $('trendchart').innerHTML = svg;
-  $('trend-legend').innerHTML = series.map(function(s){
-    return '<span><i class="d" style="background:var(--' + s.axis.cls + ')"></i>' + s.axis.label + '</span>';
+
+  /* 격차 후보 행 */
+  var cands = gapCandidates();
+  R(s, 'gap-sub').textContent = TOPIC_LABEL[state.topic] + ' · 비교한 축 ' + live.length + '개 · 축 사이에서 가장 크게 벌어진 순';
+  R(s, 'gaplist').innerHTML = cands.slice(0, 6).map(function(g){
+    var pills = live.map(function(a){
+      var v = g.per[a.id];
+      return '<span class="axpill ' + ({ KR: 'ax-kr', US: 'ax-us', GLOBAL: 'ax-gl' })[a.id] + '" style="margin-right:6px"><span class="fl"></span>'
+        + a.id + ' ' + (typeof v === 'number' ? pct(v) : '상위 밖') + '</span>';
+    }).join('');
+    var right = g.all ? '격차 ' + (g.gap * 100).toFixed(1) + '%p' : (g.n === 1 ? g.axis + ' 상위에만' : live.length - g.n + '개 축 상위 밖');
+    return '<button type="button" class="trow" data-subject="' + esc(g.name) + '" data-axis="' + g.axis + '">'
+      + '<span class="row" style="justify-content:space-between;margin-bottom:7px">'
+      + '<span style="font-weight:600;font-size:13px">' + esc(g.name) + '</span>'
+      + '<span class="mono" style="font-size:11.5px;color:var(--ink-2);font-weight:600">' + right + '</span></span>'
+      + '<span class="wrap">' + pills + '</span></button>';
   }).join('');
-  $('trend-title').textContent = (state.target ? state.target.name + ' · ' : '') + '축별 시계열';
-  $('carried').innerHTML =
-      '<div class="kv"><span class="k">기간</span><span class="v">'
-    + (state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일') + '</span></div>'
-    + '<div class="kv"><span class="k">정규화</span><span class="v">' + (state.normalize ? '적용' : '미적용') + '</span></div>'
-    + '<div class="kv"><span class="k">비교 축</span><span class="v">'
-    + liveAxes().map(function(a){ return a.label; }).join(' · ') + '</span></div>'
-    + '<div class="kv"><span class="k">선택 대상</span><span class="v">'
-    + (state.target ? state.target.name : '미선택') + '</span></div>';
+  show(R(s, 'no-outlier'), live.length >= 2 && cands.every(function(g){ return g.all; }));
+
+  var cta = R(sec(S4), 'cta-gap');
+  if(cta && cur === S4){
+    var t = state.pick || (cands[0] ? { subject: cands[0].name, axis: cands[0].axis } : null);
+    cta.textContent = t ? '‘' + t.subject + '’ ' + t.axis + ' 열의 추세 확인' : '격차가 가장 큰 대상의 추세 확인';
+  }
+}
+
+/* ---------------- 화면 trend (Trend.tsx) — JRN-daily-scan 과 같은 렌더 ---------------- */
+var AXES = {
+  ALL: { label: '전체', cls: 'ax-all', code: 'ALL' },
+  KR:  { label: '한국', cls: 'ax-kr', code: 'KR' },
+  US:  { label: '미국', cls: 'ax-us', code: 'US' },
+  GL:  { label: '전세계', cls: 'ax-gl', code: 'GLOBAL' }
+};
+var DAYS = ['2026-10-11','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16','2026-10-17'];
+
+/* 추세의 모양 — 「계속 이랬던 거네」(평탄)와 「이번 주만 그런 거였네」(최근 급등)를 둘 다 볼 수 있게. */
+var SHAPE = { 'AI·테크': [.42,.46,.5,.58,.7,.86,1], '지정학·국제정세': [.5,.52,.55,.6,.72,.88,1],
+              '부동산·주택': [.97,1.03,.99,1.02,.98,1.01,1], '물가': [1.35,1.3,1.24,1.18,1.1,1.04,1],
+              '반도체': [.96,1.04,1.01,.97,1.03,.99,1] };
+var WAVE = [1.06,.97,1.03,.95,1.02,.98,1];
+function seriesOf(name, last){
+  var k = SHAPE[name] || WAVE;
+  return k.map(function(f){ return Math.round(last * f * 10) / 10; });
+}
+/* 축별 추세 목록 — compare 열에 나온 대상은 모두 그 축의 추세 상세에서 고를 수 있어야 한다. */
+var TDATA = (function(){
+  var out = { KR: [], US: [], GL: [], ALL: [] }, acc = {};
+  CAXES.forEach(function(a){
+    /* 전체 대상 국가 열의 점유율을 그대로, 대상 국가로 좁혔을 때만 나오는 대상은 그 몫을 줄여 둔다. */
+    var seen = {};
+    CMP.ALL[a.id].rows.forEach(function(r){ seen[r[0]] = r[1] * 100; });
+    ['KR', 'US', 'GLOBAL'].forEach(function(t){
+      CMP[t][a.id].rows.forEach(function(r){
+        if(CMP.ALL[a.id].rows.some(function(q){ return q[0] === r[0]; })) return;
+        seen[r[0]] = Math.max(seen[r[0]] || 0, r[1] * 100 * 0.35);
+      });
+    });
+    Object.keys(seen).forEach(function(n){
+      var v = Math.round(seen[n] * 10) / 10;
+      out[a.tr].push({ name: n, share: v, s: seriesOf(n, v) });
+      acc[n] = (acc[n] || 0) + v / 3;
+    });
+    out[a.tr].sort(function(x, y){ return y.share - x.share; });
+  });
+  Object.keys(acc).forEach(function(n){ var v = Math.round(acc[n] * 10) / 10; out.ALL.push({ name: n, share: v, s: seriesOf(n, v) }); });
+  out.ALL.sort(function(x, y){ return y.share - x.share; });
+  return out;
+})();
+function rows(axis){ return TDATA[axis] || []; }
+function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+function dcls(d){ return d > 0.05 ? 'up' : (d < -0.05 ? 'dn' : 'fl'); }
+function dtext(d){
+  if(d > 0.05) return '&#9650; ' + d.toFixed(1) + '%p';
+  if(d < -0.05) return '&#9660; ' + Math.abs(d).toFixed(1) + '%p';
+  return '&ndash;';
+}
+
+var STROKES = ['var(--ax-us)', 'var(--ax-gl)', 'var(--ink-3)'];
+function trendSeries(){
+  var list = rows(state.trAxis);
+  var selName = state.trSubject && list.some(function(r){ return r.name === state.trSubject; })
+    ? state.trSubject : (list[0] ? list[0].name : null);
+  return list.slice(0, 4).map(function(r){ return { r: r, selected: r.name === selName }; })
+    .concat(list.slice(4).filter(function(r){ return r.name === selName; }).map(function(r){ return { r: r, selected: true }; }));
+}
+function strokeOf(series, i){
+  if(series[i].selected) return 'var(--primary)';
+  var n = 0; for(var k = 0; k < i; k++) if(!series[k].selected) n++;
+  return STROKES[n % STROKES.length];
+}
+function renderTrend(s){
+  var list = rows(state.trAxis);
+  var base = s.querySelector('.screen[data-screen="trend"]:not([data-state])');
+  var emptyScr = s.querySelector('.screen[data-state="trend-empty"]');
+  var a = AXES[state.trAxis];
+  Array.prototype.forEach.call(s.querySelectorAll('[data-role="tr-axis"] input'), function(i){ i.checked = (i.value === state.trAxis); });
+  RA(s, 'tr-axpill').forEach(function(p){ p.className = 'axpill ' + a.cls; p.innerHTML = '<i class="fl"></i>' + a.code; });
+  R(s, 'tr-compare').checked = state.overlay;
+  if(!list.length){
+    base.hidden = true; emptyScr.hidden = false;
+    R(emptyScr, 'tr-empty-axis').textContent = a.label;
+    return;
+  }
+  if(!emptyScr.hasAttribute('data-jm-forced')){ emptyScr.hidden = true; }
+  if(!s.querySelector('.screen[data-screen="trend"][data-state]:not([hidden])')) base.hidden = false;
+
+  var series = trendSeries();
+  var sel = series.filter(function(x){ return x.selected; })[0];
+  var drawn = state.overlay ? series : [sel];
+  R(s, 'tr-sub').textContent = '일 단위 · 정규화 비율(%) · ' + DAYS[0] + ' ~ ' + DAYS[DAYS.length - 1];
+
+  var x0 = 56, x1 = 716, top = 20, bl = 220;
+  var peak = Math.max.apply(null, series.reduce(function(acc, x){ return acc.concat(x.r.s); }, [1]));
+  var ceil = Math.ceil(peak / 5) * 5;
+  var X = function(i){ return x0 + i * (x1 - x0) / (DAYS.length - 1); };
+  var Y = function(v){ return bl - v / ceil * (bl - top); };
+  var svg = '';
+  for(var g = 0; g <= 5; g++){
+    var v = ceil * g / 5;
+    svg += '<line class="gridline' + (g === 0 ? ' zero' : '') + '" x1="' + x0 + '" y1="' + Y(v) + '" x2="' + x1 + '" y2="' + Y(v) + '"/>'
+      + '<text class="axlab" x="' + (x0 - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + (g === 0 ? '0' : v.toFixed(0) + '%') + '</text>';
+  }
+  DAYS.forEach(function(d, i){ svg += '<text class="axlab" x="' + X(i) + '" y="' + (bl + 20) + '" text-anchor="middle">' + d.slice(5) + '</text>'; });
+  drawn.forEach(function(x){
+    var i = series.indexOf(x), c = strokeOf(series, i);
+    svg += '<polyline fill="none" stroke="' + c + '" stroke-width="' + (x.selected ? 2.6 : 2) + '"'
+      + (x.selected ? '' : ' stroke-dasharray="2 4"') + ' points="'
+      + x.r.s.map(function(v, k){ return X(k).toFixed(1) + ',' + Y(v).toFixed(1); }).join(' ') + '"/>';
+    if(x.selected) svg += '<circle fill="' + c + '" cx="' + X(DAYS.length - 1) + '" cy="' + Y(x.r.s[x.r.s.length - 1]).toFixed(1) + '" r="4.5"/>';
+  });
+  R(s, 'tr-chart').innerHTML = svg;
+  R(s, 'tr-legend').innerHTML = drawn.map(function(x){
+    return '<span><i class="d" style="background:' + strokeOf(series, series.indexOf(x)) + '"></i>' + esc(x.r.name) + '</span>';
+  }).join('');
+  R(s, 'tr-cur').innerHTML = sel.r.s[sel.r.s.length - 1].toFixed(1) + '<small> %</small>';
+  var last = sel.r.s[sel.r.s.length - 1] - sel.r.s[sel.r.s.length - 2];
+  var td = R(s, 'tr-delta');
+  td.className = 'delta ' + dcls(last); td.innerHTML = dtext(last);
+  show(R(s, 'tr-spike-go').parentElement, state.trAxis !== 'ALL');
+  R(s, 'tr-table').innerHTML = '<thead><tr><th>대상</th><th class="num">현재 점유율</th><th class="num">구간 평균</th>'
+    + '<th class="num">직전 일 대비</th></tr></thead><tbody>'
+    + series.map(function(x, i){
+        var dl = x.r.s[x.r.s.length - 1] - x.r.s[x.r.s.length - 2];
+        return '<tr class="click' + (x.selected ? ' on' : '') + '" data-subject="' + esc(x.r.name) + '" aria-selected="' + x.selected + '">'
+          + '<td><i class="d" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:' + strokeOf(series, i) + '"></i>' + esc(x.r.name) + '</td>'
+          + '<td class="num">' + x.r.s[x.r.s.length - 1].toFixed(1) + '%</td>'
+          + '<td class="num">' + avg(x.r.s).toFixed(1) + '%</td>'
+          + '<td class="num"><span class="delta ' + dcls(dl) + '">' + dtext(dl) + '</span></td></tr>';
+      }).join('') + '</tbody>';
+}
+
+function render(step){
+  var s = sec(step); if(!s) return;
+  if(CMP_STEPS.indexOf(step) >= 0) renderCompare(s); else renderTrend(s);
 }
 
 /* ---------------- 여정 워커 ---------------- */
 (function(){
-  var order = ['STP-open-compare','STP-scan-axis-tops','STP-disambiguate-axis','STP-pick-outlier','STP-verify-in-trend'];
-  var secs = {}, rails = {};
-  order.forEach(function(id){
-    secs[id] = document.getElementById(id);
-    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
-  });
-  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
 
   function go(id, push){
-    if(order.indexOf(id) < 0) return;
+    if(ORDER.indexOf(id) < 0) return;
+    var from = cur;
     cur = id;
-    var i = order.indexOf(id);
-    order.forEach(function(o, k){
-      secs[o].hidden = (o !== id);
-      if(rails[o]){
-        rails[o].classList.toggle('on', o === id);
-        rails[o].classList.toggle('done', k < i);
-      }
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if(rails[o]){ rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
     });
     if(prevBtn) prevBtn.disabled = (i === 0);
-    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
-    if(id === 'STP-verify-in-trend') drawTrend();
+    if(nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    /* compare → trend 로 넘어가면 고른 대상과 그 열의 축을 승계한다(구현의 /trend?axis&subject).
+       고르지 않고 넘어가면 격차 후보 1위를 들고 간다. */
+    if(id === S5 && CMP_STEPS.indexOf(from) >= 0){
+      var c = gapCandidates()[0];
+      var t = state.pick || (c ? { subject: c.name, axis: c.axis } : null);
+      if(t){
+        state.trAxis = CAXES.filter(function(a){ return a.id === t.axis; })[0].tr;
+        state.trSubject = t.subject;
+      }
+    }
+    JM.enter(id);
+    render(id);
     if(push && location.hash !== '#' + id) location.hash = '#' + id;
   }
   window.__journeyGo = go;
 
-  document.querySelectorAll('[data-advance]').forEach(function(b){
-    b.addEventListener('click', function(){
-      if(b.disabled) return;
-      go(b.getAttribute('data-advance'), true);
-    });
-  });
-  document.querySelectorAll('[data-goto-step]').forEach(function(b){
-    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
-  });
-  document.querySelectorAll('[data-goto]').forEach(function(a){
-    var parts = (a.getAttribute('data-goto') || '').split('#');
-    if(parts[0] === 'JRN-axis-contrast'){
-      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+  function pickAndGo(el){
+    state.pick = { subject: el.getAttribute('data-subject'), axis: el.getAttribute('data-axis') };
+    go(S5, true);
+  }
+
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-goto],.cmprow[data-subject],.trow[data-subject],tr.click[data-subject]') : null;
+    if(!el) return;
+    if(el.hasAttribute('data-advance')){ if(!el.disabled) go(el.getAttribute('data-advance'), true); return; }
+    if(el.hasAttribute('data-goto-step')){ go(el.getAttribute('data-goto-step'), true); return; }
+    if(el.hasAttribute('data-goto')){
+      var p = el.getAttribute('data-goto').split('#');
+      if(p[0] === 'JRN-axis-contrast'){ e.preventDefault(); go(p[1], true); }
+      return;
     }
+    if(el.classList.contains('cmprow') || el.classList.contains('trow')){ pickAndGo(el); return; }
+    if(el.matches('tr.click')){ state.trSubject = el.getAttribute('data-subject'); render(cur); return; }
   });
-  if(prevBtn) prevBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
-  if(nextBtn) nextBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  document.addEventListener('submit', function(e){ e.preventDefault(); });
+  document.addEventListener('change', function(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    var host = el.closest('[data-role="tr-axis"]');
+    if(host){ state.trAxis = el.value; state.trSubject = null; render(cur); return; }
+    if(role === 'topic'){ state.topic = el.value; state.pick = null; render(cur); return; }
+    if(role === 'tr-compare'){ state.overlay = el.checked; render(cur); return; }
+  });
+
+  if(prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i > 0) go(ORDER[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i < ORDER.length - 1) go(ORDER[i + 1], true); });
 
   function fromHash(){
-    var h = (location.hash || '').replace(/^#/, '');
-    go(order.indexOf(h) >= 0 ? h : order[0], false);
+    var p = JM.parseHash();
+    /* 빈 축 데이터는 그 딥링크가 켜고, 다른 상태의 딥링크가 끈다 — 단계만 옮길 때는 그대로 둔다(같은 데이터). */
+    if(p.state) EMPTY_GLOBAL = (p.state === 'axis-empty');
+    go(ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0], false);
+    if(p.state) JM.showState(cur, p.state);
   }
   window.addEventListener('hashchange', fromHash);
-
-  /* 제품 컨트롤 배선 */
-  $('sync-form').addEventListener('submit', function(e){
-    e.preventDefault();
-    state.range = $('range').value;
-    state.normalize = $('normalize').checked;
-    state.target = null;
-    applyBasis(true);
-    clearPick();
-  });
-  $('q').addEventListener('input', function(){ state.q = this.value; renderTops(); });
-  $('only-unique').addEventListener('change', function(){ state.onlyUnique = this.checked; renderTops(); });
-  $('src-axis').addEventListener('change', function(){ state.srcAxis = this.value; renderMatrix(); });
-  $('topic-axis').addEventListener('change', function(){ state.topicAxis = this.value; renderMatrix(); });
-  $('gapthresh').addEventListener('input', function(){
-    var v = parseFloat(this.value); state.gapthresh = isNaN(v) ? 0 : v; renderOutliers();
-  });
-  $('alias-merge').addEventListener('change', function(){
-    state.aliasMerge = this.checked; renderTops(); renderOutliers();
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('input[name="show-axis"]'), function(c){
-    c.addEventListener('change', function(){ state.hiddenAxes[c.value] = !c.checked; drawTrend(); });
-  });
-  $('trend-axes-form').addEventListener('submit', function(e){ e.preventDefault(); });
-
-  renderAxisCards();
-  renderTops();
-  renderMatrix();
-  renderOutliers();
-  drawTrend();
   fromHash();
 })();
 </script>
