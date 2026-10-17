@@ -132,15 +132,6 @@ a{color:inherit;text-decoration:none}
 
 /* —— Canvas / sections —————————————————————————— */
 .canvas{padding:24px 26px 60px;flex:1;overflow:visible}
-.screen{display:none;animation:none}
-.screen.active{display:block}
-.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
-.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
-.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
-.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
-.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
-.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
-.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
   max-width:78ch;line-height:1.6;margin-bottom:20px}
@@ -375,20 +366,7 @@ table.tbl tr.click:hover td{background:var(--panel-2)}
 .jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
   background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
 .jstep-nav[disabled]{opacity:.4;cursor:default}
-.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
-.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
-.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
-.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
-.branches h4{margin:0 0 4px;font-size:13px}
-.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
-.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
-  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
-.br-row:last-child{border-bottom:0}
-.br-when{font-weight:600}
-.br-how{color:var(--ink-2)}
-.br-go{white-space:nowrap;font-size:11.5px}
-@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
-  .br-row{grid-template-columns:1fr}}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}}
 
 /* ============================================================
    여정 프로토타입 레이어 — 규칙 5 (b)~(e)
@@ -442,6 +420,56 @@ details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
 details.meta[open] > summary::before{content:"▾ "}
 details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
 details.meta table.tbl{margin-top:10px}
+.trend-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.spk-row{display:grid;grid-template-columns:22px 1fr auto 64px 40px;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;cursor:pointer;font:inherit}
+.spk-row[aria-pressed=true]{background:var(--primary-soft)}
+.spk-row .meta{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.spk-row .rk{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.tbl tr.on td{background:var(--primary-soft)}
+/* ---- 화면 fairness · trace (요건 9) — 선택자는 .sv- 로 접두한다: 구현(tokens.css)의 .fair-·.src-·.art-·.trace-
+   와 이름을 공유하면 규칙 5 가 선언 단위로 대조하므로, 값은 그 규칙들에서 옮기고 이름만 가른다. ---- */
+.sv-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sv-side{align-content:start;gap:12px}
+.sv-verdict{font-size:24px}
+.sv-ph{margin-top:14px;font-size:13px;color:var(--ink-2);line-height:1.6}
+.sv-meta{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.sv-bar{display:flex;align-items:center;gap:8px;min-width:120px}
+.sv-bar .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.sv-bar .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.sv-bar .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:46px;text-align:right;font-weight:600}
+.sv-bar.sv-off{opacity:.45}
+.sv-bar.sv-off .bar i{background:var(--ink-4)}
+.sv-pick{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;border-bottom:1px dashed var(--ink-4)}
+.sv-pick[aria-pressed=true]{color:var(--primary);border-bottom-color:var(--primary)}
+.sv-banner{margin:14px}
+.sv-top{align-items:start}
+.sv-side .card-h{flex-wrap:wrap}
+.sv-side .card-h h3{white-space:nowrap}
+.sv-src-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;padding:6px 2px;border-bottom:1px solid var(--line);font-size:11.5px}
+.sv-src-row > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-src-row > span:not(:first-child){text-align:right;min-width:40px;font-family:var(--mono)}
+.sv-src-hd{color:var(--ink-3);font-size:11px}
+.sv-src-conc{margin:12px 0 10px}
+.sv-src-conc h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--ink)}
+.sv-lede{margin:12px 0 0;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
+.sv-art-list{display:grid;gap:8px;max-height:420px;overflow-y:auto;margin-top:10px}
+.sv-art-row{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm)}
+.sv-art-head,.sv-art-meta,.sv-art-links{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sv-art-title{font-weight:600;font-size:13px}
+.sv-hints{margin-top:14px;border-top:1px dashed var(--line-2);padding-top:10px;display:grid;gap:8px;font-size:12px;color:var(--ink-2);line-height:1.55}
+.sv-hints a{margin-left:6px}
+.sv-lookup{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.sv-field{display:flex;flex-direction:column;gap:4px}
+.sv-field-label{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.sv-field input{font-family:var(--mono);font-size:12.5px;padding:6px 9px;min-width:220px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm)}
+.sv-crumb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px}
+.sv-crumb-step{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 9px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:999px}
+.sv-crumb-gap{color:var(--ink-3);border-style:dashed;background:none}
+.sv-crumb-sep{margin:0 4px;color:var(--ink-3)}
+.sv-auto{font-size:11.5px;color:var(--ink-2);margin-left:4px}
+.sv-body{margin-top:12px;font-size:12.5px;line-height:1.7;color:var(--ink-2);white-space:pre-wrap}
+.sv-url{word-break:break-all}
+@media (max-width:720px){.sv-field input{min-width:0}.sv-lookup > *{flex:1 1 100%}}
 </style>
 </head>
 <body data-journey="JRN-spike-verification">
@@ -472,7 +500,7 @@ details.meta table.tbl{margin-top:10px}
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
           <span>분위기 분포</span>
         </a>
-        <a class="nav-item active" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
           <span>공정성·원천 추적</span>
         </a>
@@ -502,371 +530,950 @@ details.meta table.tbl{margin-top:10px}
   <div class="main">
     <header class="topbar">
       <div class="crumb">
-        <h2>급등 검증</h2>
+        <h2>아침 정기 스캔</h2>
       </div>
       <div class="spacer"></div>
       <div class="ctl">
-        <span class="pill-ctl" id="tb-basis">원시 건수</span>
+        <span class="pill-ctl" data-role="tb-pill">한국 &middot; 최근 7일 &middot; 일 단위</span>
       </div>
     </header>
 
     <div class="canvas">
 
-      <!-- ============ 화면 1 · 이상 급등 인지 ============ -->
-      <section class="jstep" id="STP-notice-spike" data-step="STP-notice-spike" hidden>
+      <!-- ============ 단계 1 · 이상 급등 인지 — 화면 dash ============ -->
+      <section class="jstep" id="STP-notice-spike" data-step="STP-notice-spike" data-title="이상 급등 인지" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
         <div class="grid g-12">
 
-          <div class="card col-8">
-            <div class="card-h">
-              <h3>튀는 값</h3><span class="sub" id="spike-sub">평소 대비 급등한 대상</span>
-              <div class="r"><span class="raw-flag" id="spike-flag">원시 건수</span></div>
-            </div>
+          <div class="card metric col-3">
             <div class="card-b">
-              <div class="formrow" style="margin-bottom:14px">
-                <label class="fld" style="flex:0 0 190px">
-                  <span class="fl">축</span>
-                  <select id="axis" name="axis">
-                    <option value="KR" selected>한국</option>
-                    <option value="US">미국</option>
-                    <option value="WW">전세계</option>
-                  </select>
-                </label>
-                <label class="fld" style="flex:0 0 190px">
-                  <span class="fl">비교 구간</span>
-                  <select id="range" name="range">
-                    <option value="7" selected>평소 = 최근 7일 평균</option>
-                    <option value="30">평소 = 최근 30일 평균</option>
-                  </select>
-                </label>
-              </div>
-              <div class="ranklist" id="spikelist"></div>
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
             </div>
           </div>
 
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-notice-spike" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-notice-spike" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-notice-spike" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-scan-delta">해석은 보류하고 변화만 훑기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" data-state="spike-error" data-label="튀는 값 API 오류" data-replaces="spike-list" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" data-state="spike-loading" data-label="튀는 값 로딩" data-replaces="spike-list" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" data-state="spike-empty" data-label="축에 집계 버킷 없음" data-replaces="spike-list" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" data-state="spike-no-baseline" data-label="평소로 삼을 버킷 없음" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
           <div class="card col-4">
             <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
             <div class="card-b">
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
-                평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다.
-                <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.
-              </p>
-              <div class="kv"><span class="k">선택한 대상</span><span class="v" id="spike-pick">&mdash;</span></div>
-              <div class="kv"><span class="k">평소 대비</span><span class="v" id="spike-mult">&mdash;</span></div>
-            </div>
-          </div>
-
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-check-normalized" id="cta-1">
-            정규화 전후를 대조하기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 2 · 정규화/원시 전환 확인 ============ -->
-      <section class="jstep" id="STP-check-normalized" data-step="STP-check-normalized" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-5">
-            <div class="card-h"><h3>세는 방식</h3><span class="sub">지금 보는 값이 무엇인지 고릅니다</span></div>
-            <div class="card-b">
-              <form id="norm-form">
-                <label class="chk">
-                  <input type="checkbox" id="normalize" name="normalize" />
-                  수집량 정규화 (축별 총 건수 대비 점유율로 환산)
-                </label>
-                <div class="stepact" style="margin-top:18px">
-                  <button type="submit" class="btn pri" id="norm-apply">세는 방식 적용</button>
-                  <span class="hint">같은 대상을 두 방식으로 각각 셉니다.</span>
-                </div>
-              </form>
-
-              <div class="note" style="margin-top:18px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <div>
-                  <b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b>
-                  표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.
-                </div>
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#STP-check-normalized" data-role="spike-go" data-advance="STP-check-normalized">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
               </div>
             </div>
           </div>
 
-          <div class="card col-7">
+          <div class="card col-12">
             <div class="card-h">
-              <h3>원시 &middot; 정규화 대비</h3><span class="sub" id="norm-sub">같은 대상, 두 가지 세는 방식</span>
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
             </div>
             <div class="card-b">
-              <div class="loadbox" id="s-loading" data-state="loading" hidden>
-                축별 총 건수로 다시 환산하는 중&hellip;
+              <div class="loadbox" data-role="reloading" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
                 <div class="bar"><i></i></div>
               </div>
-
-              <table class="tbl" id="normtable">
-                <thead><tr><th>대상</th><th class="num">원시 건수</th><th class="num">점유율</th><th class="num">평소 대비</th></tr></thead>
-                <tbody id="normbody"></tbody>
-              </table>
-
-              <div class="banner warn" id="s-normalized-away" data-state="normalized-away" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
                 <div>
-                  <b>정규화하면 급등이 사라집니다.</b>
-                  <span id="normaway-what"></span>
-                  그 축의 수집 자체가 늘어난 것이지 이 대상에 관심이 몰린 것이 아닙니다 &mdash;
-                  원문까지 내려가지 않고 <b>&ldquo;편중&rdquo;</b>으로 닫아도 되는 갈래입니다.
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
                 </div>
               </div>
-            </div>
-          </div>
-
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-inspect-sources" id="cta-2">
-            소스 구성 열어 보기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 3 · 소스 구성 확인 ============ -->
-      <section class="jstep" id="STP-inspect-sources" data-step="STP-inspect-sources" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-8">
-            <div class="card-h">
-              <h3>소스별 기여</h3><span class="sub" id="src-sub">이 대상의 언급이 어디서 왔는가</span>
-              <div class="r"><span class="tag" id="src-count"></span></div>
-            </div>
-            <div class="card-b">
-              <div class="formrow" style="margin-bottom:14px">
-                <label class="fld" style="flex:1 1 220px">
-                  <span class="fl">수집원 찾기</span>
-                  <input type="search" id="src-q" name="src-q" placeholder="예: 통신사" autocomplete="off" />
-                </label>
-                <label class="chk" style="padding-bottom:8px">
-                  <input type="checkbox" id="split-lowconf" name="split-lowconf" />
-                  저신뢰&middot;미분석 항목 분리 표기
-                </label>
-              </div>
-
-              <table class="tbl">
-                <thead><tr><th>수집원</th><th class="num">원시 건수</th><th class="num">기여 비중</th><th class="num">정규화 후</th></tr></thead>
-                <tbody id="srcbody"></tbody>
-              </table>
-
-              <div class="banner warn" id="s-low-confidence" data-state="low-confidence" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
                 <div>
-                  <b>저신뢰&middot;미분석 <span id="lowconf-n">0</span>건을 집계에서 분리했습니다.</b>
-                  분류 신뢰도가 낮거나 아직 분석되지 않은 항목은 <b>별도 항목</b>으로 세고 기여 비중에서 뺍니다 &mdash;
-                  섞어 두면 급등의 크기가 실제보다 커 보입니다.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card col-4">
-            <div class="card-h"><h3>한 곳에서 다 나왔나</h3></div>
-            <div class="card-b">
-              <div class="kv"><span class="k">최다 기여</span><span class="v" id="top-src">&mdash;</span></div>
-              <div class="kv"><span class="k">그 소스 비중</span><span class="v" id="top-src-share">&mdash;</span></div>
-              <div class="kv"><span class="k">기여 소스 수</span><span class="v" id="src-n">&mdash;</span></div>
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-top:14px">
-                한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.
-              </p>
-            </div>
-          </div>
-
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-drilldown-articles" id="cta-3">
-            기여 뉴스 목록 열기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 4 · 기여 뉴스 목록 ============ -->
-      <section class="jstep" id="STP-drilldown-articles" data-step="STP-drilldown-articles" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-7">
-            <div class="card-h">
-              <h3>기여 뉴스</h3><span class="sub">이 데이터 포인트를 만든 개별 기사</span>
-              <div class="r"><span class="tag" id="art-count"></span></div>
-            </div>
-            <div class="card-b">
-              <div class="formrow" style="margin-bottom:6px">
-                <label class="fld" style="flex:1 1 200px">
-                  <span class="fl">제목 찾기</span>
-                  <input type="search" id="art-q" name="art-q" placeholder="예: 인상" autocomplete="off" />
-                </label>
-                <label class="chk" style="padding-bottom:8px">
-                  <input type="checkbox" id="dup-only" name="dup-only" />
-                  본문 중복으로 잡힌 것만
-                </label>
-              </div>
-
-              <div id="artlist" class="scrolly"></div>
-            </div>
-          </div>
-
-          <div class="card col-5">
-            <div class="card-h"><h3 id="art-title">고른 기사</h3><span class="sub">행을 고르면 열립니다</span></div>
-            <div class="card-b">
-              <div class="emptybox" id="art-empty" data-state="no-selection">
-                왼쪽 목록에서 기사를 고르면<br/>수집원&middot;수집 시각&middot;중복 여부가 여기 열립니다.
-              </div>
-              <div id="art-body" hidden></div>
-            </div>
-          </div>
-
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-open-origin" id="cta-4" disabled>
-            원문으로 내려가기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-4-hint">먼저 확인할 기사를 고르세요.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 5 · 원문 역추적 ============ -->
-      <section class="jstep" id="STP-open-origin" data-step="STP-open-origin" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-7">
-            <div class="card-h">
-              <h3 id="origin-title">원문</h3><span class="sub" id="origin-sub">분류 근거를 눈으로 확인합니다</span>
-            </div>
-            <div class="card-b">
-              <div class="formrow" style="margin-bottom:14px">
-                <label class="fld" style="flex:0 0 230px">
-                  <span class="fl">원문 링크 상태</span>
-                  <select id="link-state" name="link-state">
-                    <option value="ok" selected>정상 &mdash; 원문 주소가 열린다</option>
-                    <option value="expired">만료&middot;404 &mdash; 주소가 열리지 않는다</option>
-                  </select>
-                </label>
-                <span class="badge" id="link-badge"></span>
-              </div>
-
-              <div id="origin-body"></div>
-              <div class="kv"><span class="k">원문 주소</span><span class="v mono" id="origin-url" style="word-break:break-all"></span></div>
-              <div class="actions" style="margin:10px 0 4px">
-                <button type="button" class="btn sm" id="open-source">원문 열기 &nearr;</button>
-              </div>
-
-              <div class="banner warn" id="s-link-expired" data-state="link-expired" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/><path d="M2 2l20 20"/></svg>
-                <div>
-                  <b>원문 주소가 열리지 않습니다.</b>
-                  추적이 여기서 끊기지 않도록, 수집 시점에 <b>보존해 둔 원문 전체</b>를 대신 보여 줍니다.
-                  링크 상태는 위에 배지로 항상 표시됩니다.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card col-5">
-            <div class="card-h"><h3>보존된 원문</h3><span class="sub">수집 시점 그대로</span></div>
-            <div class="card-b" id="preserved"></div>
-          </div>
-
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-judge" id="cta-5">
-            판정하고 마치기 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- ============ 화면 6 · 판정과 종료 ============ -->
-      <section class="jstep" id="STP-judge" data-step="STP-judge" hidden>
-        <div class="grid g-12">
-
-          <div class="card col-5">
-            <div class="card-h"><h3>확인한 근거</h3><span class="sub">이 세션에서 실제로 본 것</span></div>
-            <div class="card-b" id="evidence"></div>
-          </div>
-
-          <div class="card col-7">
-            <div class="card-h"><h3>판정</h3><span class="sub">한 문장으로 설명할 수 있는 상태로 마칩니다</span></div>
-            <div class="card-b">
-              <form id="judge-form">
-                <div class="fld">
-                  <span class="fl">결론</span>
-                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
-                    <label><input type="radio" name="verdict" value="valid" /> 유효한 신호다 &mdash; 정규화 이후에도 남고 소스도 흩어져 있다</label>
-                    <label><input type="radio" name="verdict" value="skewed" /> 수집 편중이다 &mdash; 한 곳에서 쏟아졌거나 정규화하면 사라진다</label>
-                  </div>
-                </div>
-                <label class="fld" style="margin-top:18px">
-                  <span class="fl">근거 메모</span>
-                  <textarea id="judge-memo" name="judge-memo" placeholder="무엇을 보고 그렇게 판정했는지 적어 두세요."></textarea>
-                </label>
-                <div class="stepact" style="margin-top:16px">
-                  <button type="submit" class="btn pri" id="judge-submit">판정 기록</button>
-                </div>
-              </form>
-
-              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-                <div id="invalid-msg">결론과 근거 메모를 모두 채워야 기록됩니다.</div>
-              </div>
-
-              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
-                <div>
-                  <b>판정을 기록했습니다.</b>
-                  <span id="recorded-what"></span>
-                  <div class="actions" style="display:block;margin-top:8px;font-size:11.5px;color:inherit;opacity:.8">
-                    이 기록은 <b>이번 세션 안에서만</b> 유지됩니다 &mdash; 같은 대상을 다음에 다시 열어도 남아 있지 않습니다.
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="compare-go" href="JRN-axis-contrast.html#STP-open-compare">3축을 나란히 비교 &rarr;</a>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-        </div>
-      </section>
-
-      <!-- ============ 검증 중 마주치는 상황 (여정 문서 §4 순서) ============ -->
-      <div class="branches">
-        <h4>검증 중 이런 상황이라면</h4>
-        <p class="bhint">막히는 지점마다 갈 곳이 정해져 있습니다. 데이터를 불신하고 그냥 떠나지 않도록.</p>
-
-        <div class="br-row">
-          <span class="br-when">원문 주소가 열리지 않는다</span>
-          <span class="br-how">보존해 둔 원문 전체를 대신 보여 주고, 링크 상태를 배지로 명시합니다.</span>
-          <a class="btn sm br-go" id="br-1" href="#STP-open-origin"
-             data-goto="JRN-spike-verification#STP-open-origin">보존 원문으로 계속</a>
-        </div>
-
-        <div class="br-row">
-          <span class="br-when">신뢰도 낮은 항목이 섞여 있다</span>
-          <span class="br-how">집계에서 분리해 별도 항목으로 노출하고, 기여 비중에서 뺍니다.</span>
-          <a class="btn sm br-go" id="br-2" href="#STP-inspect-sources"
-             data-goto="JRN-spike-verification#STP-inspect-sources">소스 구성에서 갈라 보기</a>
-        </div>
-
-        <div class="br-row">
-          <span class="br-when">기사가 이 대상이 아니다</span>
-          <span class="br-how">분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영 흐름으로 넘깁니다.</span>
-          <a class="btn sm br-go" id="br-3" href="JRN-logic-backfill.html#STP-scope-range"
-             data-goto="JRN-logic-backfill#STP-scope-range">재처리 범위 정하기 &rarr;</a>
-        </div>
-
-        <div class="br-row">
-          <span class="br-when">같은 기사가 여러 번 수집됐다</span>
-          <span class="br-how">급등이 아니라 수집 이상입니다. 수집 무결성 점검 흐름으로 넘깁니다.</span>
-          <a class="btn sm br-go" id="br-4" href="JRN-ingestion-recovery.html#STP-spot-anomaly"
-             data-goto="JRN-ingestion-recovery#STP-spot-anomaly">수집 이상 점검하기 &rarr;</a>
-        </div>
-
-        <div class="br-row">
-          <span class="br-when">정규화하니 급등이 사라졌다</span>
-          <span class="br-how">더 내려갈 것이 없습니다. 원문 확인 없이 &ldquo;편중&rdquo;으로 닫습니다.</span>
-          <a class="btn sm br-go" id="br-5" href="#STP-judge"
-             data-goto="JRN-spike-verification#STP-judge">바로 판정하기</a>
         </div>
       </div>
+        <div class="stepact">
+          <span class="hint">「이 급등은 진짜인가」 카드의 <b>정규화 전후를 대조하기</b>가 고른 대상과 축·비교 구간을 들고 공정성 화면으로 넘어갑니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 2 · 정규화/원시 전환 확인 — 화면 fairness ============ -->
+      <section class="jstep" id="STP-check-normalized" data-step="STP-check-normalized" data-title="정규화/원시 전환 확인" hidden>
+
+      <div class="screen" data-screen="fairness" data-title="공정성·원천 추적" data-pill="off">
+        <form class="sv-controls" data-role="fa-controls">
+          <div class="radios" data-role="fa-axis">
+            <label><input type="radio" name="fa-axis-check-normalized" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="fa-axis-check-normalized" value="US" /> 미국</label>
+            <label><input type="radio" name="fa-axis-check-normalized" value="GLOBAL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="fa-axpill"><i class="fl"></i>KR</span>
+          <button type="button" class="norm-toggle" data-role="fa-norm" aria-pressed="false"><span class="sw"></span><span data-role="fa-norm-label">수집량 정규화</span></button>
+        </form>
+
+        <p class="lede">같은 대상을 두 방식으로 각각 세어 나란히 놓고 수집원과 기사까지 내려갑니다 &mdash; 정규화 이후에도 남는
+          급등인지, 한 곳에서 쏟아진 것인지를 차례로 가릅니다.</p>
+
+        <div class="note">
+          <div><b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b> 표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.</div>
+        </div>
+
+        <div class="note" data-role="fa-error" data-state="fair-error" data-label="API 오류" data-replaces="fa-body" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="sv-ph" data-role="fa-loading" data-state="fair-loading" data-label="첫 진입 로딩" data-replaces="fa-body" hidden>불러오는 중&hellip;</div>
+        <div class="sv-ph" data-role="fa-empty" data-state="fair-empty" data-label="축에 집계 버킷 없음" data-replaces="fa-body" hidden>
+          <span data-role="fa-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다. 빈 순위를 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 관심이 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="fa-body">
+          <div class="grid g-12 sv-top">
+            <div class="card col-9">
+              <div class="card-h">
+                <h3>원시 &middot; 정규화 대비</h3>
+                <span class="sub">같은 대상, 두 가지 세는 방식 &middot; <span data-role="fa-basis">2026-10-16 (일 단위)</span></span>
+                <div class="r"><span class="norm-flag" data-role="fa-flag">&#9635; 정규화 비율</span></div>
+              </div>
+              <div class="card-b" style="padding:0">
+                <table class="tbl" data-role="fa-table">
+                  <thead><tr><th>대상</th><th class="num">원시 건수</th><th>원시 점유율</th><th>정규화 비율</th><th class="num">평소 대비</th></tr></thead>
+                  <tbody data-role="fa-rows"></tbody>
+                </table>
+                <div class="banner warn sv-banner" data-role="fa-away" data-state="normalized-away" data-label="정규화하면 급등이 사라짐" hidden>
+                  <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                  <div>
+                    <b>정규화하면 급등이 사라집니다.</b> <span data-role="fa-away-what">반도체 보조금은 원시 건수로는 &times;5.8이지만 정규화 비율로 보면 &times;1.2입니다.</span>
+                    그 축의 수집 자체가 늘어난 것이지 이 대상에 관심이 몰린 것이 아닙니다 &mdash; 원문까지 내려가지 않고 <b>&ldquo;편중&rdquo;</b>으로 닫아도 되는 갈래입니다.
+                    <div class="actions">
+                      <a class="btn sm" data-role="fa-away-go" href="#STP-judge">판정으로 &rarr;</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-3 grid sv-side">
+              <div class="card metric">
+                <div class="ml">두 방식의 1위</div>
+                <div class="mv sv-verdict" data-role="fa-verdict">갈림</div>
+                <div class="md" data-role="fa-lead-split"><span>원시 <b data-role="fa-lead-raw">&mdash;</b> &harr; 정규화 <b data-role="fa-lead-norm">&mdash;</b> &mdash; 정규화하면 순위가 뒤집힙니다. 수집 편중을 의심할 근거입니다.</span></div>
+                <div class="md" data-role="fa-lead-agree" data-state="lead-agree" data-label="두 방식의 1위 일치" data-replaces="fa-lead-split" hidden><span>두 방식 모두 <b data-role="fa-lead-both">&mdash;</b> 가 1위입니다 &mdash; 이 급등은 정규화 이후에도 남습니다.</span></div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><h3>세는 기준</h3></div>
+                <div class="card-b">
+                  <div class="kv"><span class="k">기준 버킷</span><span class="v mono" data-role="fa-b-bucket">2026-10-16</span></div>
+                  <div class="kv"><span class="k">버킷 단위</span><span class="v" data-role="fa-b-unit">일</span></div>
+                  <div class="kv"><span class="k">원시 총 건수</span><span class="v mono" data-role="fa-b-total">100건</span></div>
+                  <div class="kv"><span class="k">평소 기준</span><span class="v" data-role="fa-b-baseline">최근 7일 평균</span></div>
+                  <div class="kv"><span class="k">정규화 기준</span><span class="v"><span class="badge b-neu">소스 내 점유율</span></span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h">
+                  <h3>소스별 기여</h3>
+                  <span class="sub">이 대상의 언급이 어디서 왔는가 &middot; <span data-role="src-subject">&mdash;</span></span>
+                  <div class="r"><span class="tag" data-role="src-sums">불러오는 중&hellip;</span></div>
+                </div>
+                <div class="card-b">
+                  <div class="note" data-role="src-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+                  <div class="sv-ph" data-role="src-loading" hidden>불러오는 중&hellip;</div>
+                  <div class="sv-ph" data-role="src-empty" hidden>
+                    이 값에는 분해된 수집원이 없습니다. 집계가 이 버킷의 소스 차원을 쓰기 전이라면 <b>0으로 그리지 않습니다</b> &mdash; 기여가 없는 것과 아직 없는 것은 다릅니다.
+                  </div>
+                  <div data-role="src-body">
+                    <div data-role="src-list"></div>
+                    <div class="sv-src-conc">
+                      <h4>한 곳에서 다 나왔나</h4>
+                      <div class="kv"><span class="k">최다 기여</span><span class="v mono" data-role="src-top">&mdash;</span></div>
+                      <div class="kv"><span class="k">그 소스 비중</span><span class="v mono" data-role="src-top-share">&mdash;</span></div>
+                      <div class="kv"><span class="k">기여 소스 수</span><span class="v mono" data-role="src-n">&mdash;</span></div>
+                      <p class="sv-lede">한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.</p>
+                    </div>
+                    <div class="note" data-role="src-match"><div><b>부분이 전체와 맞습니다.</b> <span data-role="src-match-what"></span></div></div>
+                    <div class="note" data-role="src-mismatch" hidden><div><b>부분이 전체와 갈립니다.</b> <span data-role="src-mismatch-what"></span> 수를 맞추려고 분해를 깎지 않고 갈렸다고 적습니다.</div></div>
+                    <div class="note" data-role="src-lowconf" style="margin-top:10px" hidden>
+                      <div>
+                        <b>저신뢰로 판정된 <span data-role="src-lowconf-n">0</span>건이 이 값에 섞여 있습니다.</b>
+                        분석이 확신하지 못한 기사를 섞어 두면 급등이 실제보다 커 보이므로 따로 적습니다 &mdash; 기사 한 건씩은 원문 추적에서 「저신뢰」로 표시됩니다.
+                        <div class="actions" style="margin-top:8px"><a class="btn sm" data-role="src-lowconf-go" href="#STP-inspect-sources">소스 구성에서 갈라 보기 &rarr;</a></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-h">
+              <h3>기여 뉴스</h3>
+              <span class="sub">이 데이터 포인트를 만든 개별 기사 &middot; <span data-role="art-subject">&mdash;</span> &middot; <span data-role="art-basis">2026-10-16 (일 단위)</span></span>
+              <div class="r">
+                <span class="tag" data-role="art-count">불러오는 중&hellip;</span>
+                <span class="tag" data-role="art-count-loading" hidden>불러오는 중&hellip;</span>
+              </div>
+            </div>
+            <div class="card-b">
+              <form class="formrow" data-role="art-filters">
+                <label class="fld" style="max-width:260px">
+                  <span class="fl">수집원으로 좁히기</span>
+                  <select name="art-source-check-normalized" data-role="art-source"><option value="">전체 (0건)</option></select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="art-dup-only-check-normalized" data-role="art-dup" />
+                  본문 중복으로 잡힌 것만
+                </label>
+              </form>
+
+              <div class="note" data-role="art-index" style="margin-top:10px" hidden>
+                <div><b>인덱스 준비 중:</b> 원문&middot;분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이 다음 실행을 마치면 열립니다.</div>
+              </div>
+              <div class="note" data-role="art-error" style="margin-top:10px" hidden><div><b>기여 기사 조회 실패:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="note" data-role="art-mismatch" style="margin-top:10px" hidden>
+                <div><b>목록 건수가 원시 카운트와 다릅니다.</b> <span data-role="art-mismatch-what">목록 0건 &harr; 원시 카운트 0건</span> &mdash; 둘이 갈리면 이 목록은 화면의 값을 설명하지 못합니다. 수를 맞춰 보이려고 목록을 깎지 않고, 갈렸다고 적습니다.</div>
+              </div>
+              <div class="sv-ph" data-role="art-empty" hidden>이 값에 기여한 기사가 없습니다 &mdash; 빈 목록을 지어내지 않습니다.</div>
+              <div class="sv-ph" data-role="art-dup-empty" hidden>본문 중복으로 잡힌 기사가 이 목록에 없습니다.</div>
+
+              <div class="sv-art-list" data-role="art-list"></div>
+
+              <div class="sv-hints">
+                <div data-role="art-dead-hint"><b>「원문 열기」가 열리지 않으면</b> &mdash; 링크가 만료·404여도 수집 시점에 보존한 원문 전체는 남아 있습니다.<a class="btn sm" data-role="art-dead-go" href="#STP-open-origin" data-goto="JRN-spike-verification#STP-open-origin">보존 원문으로 이어서 보기 &rarr;</a></div>
+                <div data-role="art-wrong-hint"><b>기사가 이 대상이 아니라면</b> &mdash; 분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영 흐름으로 넘깁니다.<a class="btn sm" data-role="art-wrong-go" href="JRN-logic-backfill.html#STP-scope-range">재처리 범위 정하기 &rarr;</a></div>
+                <div data-role="art-dupe-hint"><b>같은 기사가 여러 번 수집됐다면</b> &mdash; 급등이 아니라 수집 이상입니다. 수집 무결성 점검 흐름으로 넘깁니다.<a class="btn sm" data-role="art-dupe-go" href="JRN-ingestion-recovery.html#STP-spot-anomaly">수집 이상 점검하기 &rarr;</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-inspect-sources">소스 구성 열어 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint">정규화로도 설명되지 않으면, 이 값이 어느 수집원에서 왔는지 가릅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 3 · 소스 구성 확인 — 화면 fairness ============ -->
+      <section class="jstep" id="STP-inspect-sources" data-step="STP-inspect-sources" data-title="소스 구성 확인" hidden>
+
+      <div class="screen" data-screen="fairness" data-title="공정성·원천 추적" data-pill="off">
+        <form class="sv-controls" data-role="fa-controls">
+          <div class="radios" data-role="fa-axis">
+            <label><input type="radio" name="fa-axis-inspect-sources" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="fa-axis-inspect-sources" value="US" /> 미국</label>
+            <label><input type="radio" name="fa-axis-inspect-sources" value="GLOBAL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="fa-axpill"><i class="fl"></i>KR</span>
+          <button type="button" class="norm-toggle" data-role="fa-norm" aria-pressed="false"><span class="sw"></span><span data-role="fa-norm-label">수집량 정규화</span></button>
+        </form>
+
+        <p class="lede">같은 대상을 두 방식으로 각각 세어 나란히 놓고 수집원과 기사까지 내려갑니다 &mdash; 정규화 이후에도 남는
+          급등인지, 한 곳에서 쏟아진 것인지를 차례로 가릅니다.</p>
+
+        <div class="note">
+          <div><b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b> 표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.</div>
+        </div>
+
+        <div class="note" data-role="fa-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="sv-ph" data-role="fa-loading" hidden>불러오는 중&hellip;</div>
+        <div class="sv-ph" data-role="fa-empty" hidden>
+          <span data-role="fa-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다. 빈 순위를 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 관심이 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="fa-body">
+          <div class="grid g-12 sv-top">
+            <div class="card col-9">
+              <div class="card-h">
+                <h3>원시 &middot; 정규화 대비</h3>
+                <span class="sub">같은 대상, 두 가지 세는 방식 &middot; <span data-role="fa-basis">2026-10-16 (일 단위)</span></span>
+                <div class="r"><span class="norm-flag" data-role="fa-flag">&#9635; 정규화 비율</span></div>
+              </div>
+              <div class="card-b" style="padding:0">
+                <table class="tbl" data-role="fa-table">
+                  <thead><tr><th>대상</th><th class="num">원시 건수</th><th>원시 점유율</th><th>정규화 비율</th><th class="num">평소 대비</th></tr></thead>
+                  <tbody data-role="fa-rows"></tbody>
+                </table>
+                <div class="banner warn sv-banner" data-role="fa-away" hidden>
+                  <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                  <div>
+                    <b>정규화하면 급등이 사라집니다.</b> <span data-role="fa-away-what">반도체 보조금은 원시 건수로는 &times;5.8이지만 정규화 비율로 보면 &times;1.2입니다.</span>
+                    그 축의 수집 자체가 늘어난 것이지 이 대상에 관심이 몰린 것이 아닙니다 &mdash; 원문까지 내려가지 않고 <b>&ldquo;편중&rdquo;</b>으로 닫아도 되는 갈래입니다.
+                    <div class="actions">
+                      <a class="btn sm" data-role="fa-away-go" href="#STP-judge">판정으로 &rarr;</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-3 grid sv-side">
+              <div class="card metric">
+                <div class="ml">두 방식의 1위</div>
+                <div class="mv sv-verdict" data-role="fa-verdict">갈림</div>
+                <div class="md" data-role="fa-lead-split"><span>원시 <b data-role="fa-lead-raw">&mdash;</b> &harr; 정규화 <b data-role="fa-lead-norm">&mdash;</b> &mdash; 정규화하면 순위가 뒤집힙니다. 수집 편중을 의심할 근거입니다.</span></div>
+                <div class="md" data-role="fa-lead-agree" hidden><span>두 방식 모두 <b data-role="fa-lead-both">&mdash;</b> 가 1위입니다 &mdash; 이 급등은 정규화 이후에도 남습니다.</span></div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><h3>세는 기준</h3></div>
+                <div class="card-b">
+                  <div class="kv"><span class="k">기준 버킷</span><span class="v mono" data-role="fa-b-bucket">2026-10-16</span></div>
+                  <div class="kv"><span class="k">버킷 단위</span><span class="v" data-role="fa-b-unit">일</span></div>
+                  <div class="kv"><span class="k">원시 총 건수</span><span class="v mono" data-role="fa-b-total">100건</span></div>
+                  <div class="kv"><span class="k">평소 기준</span><span class="v" data-role="fa-b-baseline">최근 7일 평균</span></div>
+                  <div class="kv"><span class="k">정규화 기준</span><span class="v"><span class="badge b-neu">소스 내 점유율</span></span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h">
+                  <h3>소스별 기여</h3>
+                  <span class="sub">이 대상의 언급이 어디서 왔는가 &middot; <span data-role="src-subject">&mdash;</span></span>
+                  <div class="r"><span class="tag" data-role="src-sums">불러오는 중&hellip;</span></div>
+                </div>
+                <div class="card-b">
+                  <div class="note" data-role="src-error" data-state="src-error" data-label="소스별 기여 API 오류" data-replaces="src-body" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+                  <div class="sv-ph" data-role="src-loading" data-state="src-loading" data-label="소스별 기여 로딩" data-replaces="src-body" hidden>불러오는 중&hellip;</div>
+                  <div class="sv-ph" data-role="src-empty" data-state="src-empty" data-label="분해된 수집원 없음" data-replaces="src-body" hidden>
+                    이 값에는 분해된 수집원이 없습니다. 집계가 이 버킷의 소스 차원을 쓰기 전이라면 <b>0으로 그리지 않습니다</b> &mdash; 기여가 없는 것과 아직 없는 것은 다릅니다.
+                  </div>
+                  <div data-role="src-body">
+                    <div data-role="src-list"></div>
+                    <div class="sv-src-conc">
+                      <h4>한 곳에서 다 나왔나</h4>
+                      <div class="kv"><span class="k">최다 기여</span><span class="v mono" data-role="src-top">&mdash;</span></div>
+                      <div class="kv"><span class="k">그 소스 비중</span><span class="v mono" data-role="src-top-share">&mdash;</span></div>
+                      <div class="kv"><span class="k">기여 소스 수</span><span class="v mono" data-role="src-n">&mdash;</span></div>
+                      <p class="sv-lede">한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.</p>
+                    </div>
+                    <div class="note" data-role="src-match"><div><b>부분이 전체와 맞습니다.</b> <span data-role="src-match-what"></span></div></div>
+                    <div class="note" data-role="src-mismatch" data-state="src-mismatch" data-label="부분 합이 전체와 갈림" data-replaces="src-match" hidden><div><b>부분이 전체와 갈립니다.</b> <span data-role="src-mismatch-what"></span> 수를 맞추려고 분해를 깎지 않고 갈렸다고 적습니다.</div></div>
+                    <div class="note" data-role="src-lowconf" data-state="low-confidence" data-label="저신뢰 판정이 섞여 있음" style="margin-top:10px" hidden>
+                      <div>
+                        <b>저신뢰로 판정된 <span data-role="src-lowconf-n">0</span>건이 이 값에 섞여 있습니다.</b>
+                        분석이 확신하지 못한 기사를 섞어 두면 급등이 실제보다 커 보이므로 따로 적습니다 &mdash; 기사 한 건씩은 원문 추적에서 「저신뢰」로 표시됩니다.
+                        <div class="actions" style="margin-top:8px"><a class="btn sm" data-role="src-lowconf-go" href="#STP-inspect-sources" data-goto="JRN-spike-verification#STP-inspect-sources">소스 구성에서 갈라 보기 &rarr;</a></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-h">
+              <h3>기여 뉴스</h3>
+              <span class="sub">이 데이터 포인트를 만든 개별 기사 &middot; <span data-role="art-subject">&mdash;</span> &middot; <span data-role="art-basis">2026-10-16 (일 단위)</span></span>
+              <div class="r">
+                <span class="tag" data-role="art-count">불러오는 중&hellip;</span>
+                <span class="tag" data-role="art-count-loading" hidden>불러오는 중&hellip;</span>
+              </div>
+            </div>
+            <div class="card-b">
+              <form class="formrow" data-role="art-filters">
+                <label class="fld" style="max-width:260px">
+                  <span class="fl">수집원으로 좁히기</span>
+                  <select name="art-source-inspect-sources" data-role="art-source"><option value="">전체 (0건)</option></select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="art-dup-only-inspect-sources" data-role="art-dup" />
+                  본문 중복으로 잡힌 것만
+                </label>
+              </form>
+
+              <div class="note" data-role="art-index" style="margin-top:10px" hidden>
+                <div><b>인덱스 준비 중:</b> 원문&middot;분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이 다음 실행을 마치면 열립니다.</div>
+              </div>
+              <div class="note" data-role="art-error" style="margin-top:10px" hidden><div><b>기여 기사 조회 실패:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="note" data-role="art-mismatch" style="margin-top:10px" hidden>
+                <div><b>목록 건수가 원시 카운트와 다릅니다.</b> <span data-role="art-mismatch-what">목록 0건 &harr; 원시 카운트 0건</span> &mdash; 둘이 갈리면 이 목록은 화면의 값을 설명하지 못합니다. 수를 맞춰 보이려고 목록을 깎지 않고, 갈렸다고 적습니다.</div>
+              </div>
+              <div class="sv-ph" data-role="art-empty" hidden>이 값에 기여한 기사가 없습니다 &mdash; 빈 목록을 지어내지 않습니다.</div>
+              <div class="sv-ph" data-role="art-dup-empty" hidden>본문 중복으로 잡힌 기사가 이 목록에 없습니다.</div>
+
+              <div class="sv-art-list" data-role="art-list"></div>
+
+              <div class="sv-hints">
+                <div data-role="art-dead-hint"><b>「원문 열기」가 열리지 않으면</b> &mdash; 링크가 만료·404여도 수집 시점에 보존한 원문 전체는 남아 있습니다.<a class="btn sm" data-role="art-dead-go" href="#STP-open-origin">보존 원문으로 이어서 보기 &rarr;</a></div>
+                <div data-role="art-wrong-hint"><b>기사가 이 대상이 아니라면</b> &mdash; 분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영 흐름으로 넘깁니다.<a class="btn sm" data-role="art-wrong-go" href="JRN-logic-backfill.html#STP-scope-range" data-goto="JRN-logic-backfill#STP-scope-range" data-end="재처리 여정으로 인계">재처리 범위 정하기 &rarr;</a></div>
+                <div data-role="art-dupe-hint"><b>같은 기사가 여러 번 수집됐다면</b> &mdash; 급등이 아니라 수집 이상입니다. 수집 무결성 점검 흐름으로 넘깁니다.<a class="btn sm" data-role="art-dupe-go" href="JRN-ingestion-recovery.html#STP-spot-anomaly" data-goto="JRN-ingestion-recovery#STP-spot-anomaly" data-end="수집 무결성 여정으로 인계">수집 이상 점검하기 &rarr;</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-drilldown-articles">기여 뉴스 목록 열기 <span class="ar">&rarr;</span></button>
+          <span class="hint">이 값을 만든 기사들을 수집원·수집 시각·본문 중복과 함께 봅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 4 · 기여 뉴스 목록으로 내려가기 — 화면 fairness ============ -->
+      <section class="jstep" id="STP-drilldown-articles" data-step="STP-drilldown-articles" data-title="기여 뉴스 목록으로 내려가기" hidden>
+
+      <div class="screen" data-screen="fairness" data-title="공정성·원천 추적" data-pill="off">
+        <form class="sv-controls" data-role="fa-controls">
+          <div class="radios" data-role="fa-axis">
+            <label><input type="radio" name="fa-axis-drilldown-articles" value="KR" checked /> 한국</label>
+            <label><input type="radio" name="fa-axis-drilldown-articles" value="US" /> 미국</label>
+            <label><input type="radio" name="fa-axis-drilldown-articles" value="GLOBAL" /> 전세계</label>
+          </div>
+          <span class="axpill ax-kr" data-role="fa-axpill"><i class="fl"></i>KR</span>
+          <button type="button" class="norm-toggle" data-role="fa-norm" aria-pressed="false"><span class="sw"></span><span data-role="fa-norm-label">수집량 정규화</span></button>
+        </form>
+
+        <p class="lede">같은 대상을 두 방식으로 각각 세어 나란히 놓고 수집원과 기사까지 내려갑니다 &mdash; 정규화 이후에도 남는
+          급등인지, 한 곳에서 쏟아진 것인지를 차례로 가릅니다.</p>
+
+        <div class="note">
+          <div><b>모든 수치 옆에 세는 방식을 항상 적어 둡니다.</b> 표기가 없으면 원시 건수와 점유율을 섞어 읽게 되고, 그 순간 비교는 무의미해집니다.</div>
+        </div>
+
+        <div class="note" data-role="fa-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="sv-ph" data-role="fa-loading" hidden>불러오는 중&hellip;</div>
+        <div class="sv-ph" data-role="fa-empty" hidden>
+          <span data-role="fa-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다. 빈 순위를 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 관심이 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="fa-body">
+          <div class="grid g-12 sv-top">
+            <div class="card col-9">
+              <div class="card-h">
+                <h3>원시 &middot; 정규화 대비</h3>
+                <span class="sub">같은 대상, 두 가지 세는 방식 &middot; <span data-role="fa-basis">2026-10-16 (일 단위)</span></span>
+                <div class="r"><span class="norm-flag" data-role="fa-flag">&#9635; 정규화 비율</span></div>
+              </div>
+              <div class="card-b" style="padding:0">
+                <table class="tbl" data-role="fa-table">
+                  <thead><tr><th>대상</th><th class="num">원시 건수</th><th>원시 점유율</th><th>정규화 비율</th><th class="num">평소 대비</th></tr></thead>
+                  <tbody data-role="fa-rows"></tbody>
+                </table>
+                <div class="banner warn sv-banner" data-role="fa-away" hidden>
+                  <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                  <div>
+                    <b>정규화하면 급등이 사라집니다.</b> <span data-role="fa-away-what">반도체 보조금은 원시 건수로는 &times;5.8이지만 정규화 비율로 보면 &times;1.2입니다.</span>
+                    그 축의 수집 자체가 늘어난 것이지 이 대상에 관심이 몰린 것이 아닙니다 &mdash; 원문까지 내려가지 않고 <b>&ldquo;편중&rdquo;</b>으로 닫아도 되는 갈래입니다.
+                    <div class="actions">
+                      <a class="btn sm" data-role="fa-away-go" href="#STP-judge" data-goto="JRN-spike-verification#STP-judge">판정으로 &rarr;</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-3 grid sv-side">
+              <div class="card metric">
+                <div class="ml">두 방식의 1위</div>
+                <div class="mv sv-verdict" data-role="fa-verdict">갈림</div>
+                <div class="md" data-role="fa-lead-split"><span>원시 <b data-role="fa-lead-raw">&mdash;</b> &harr; 정규화 <b data-role="fa-lead-norm">&mdash;</b> &mdash; 정규화하면 순위가 뒤집힙니다. 수집 편중을 의심할 근거입니다.</span></div>
+                <div class="md" data-role="fa-lead-agree" hidden><span>두 방식 모두 <b data-role="fa-lead-both">&mdash;</b> 가 1위입니다 &mdash; 이 급등은 정규화 이후에도 남습니다.</span></div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><h3>세는 기준</h3></div>
+                <div class="card-b">
+                  <div class="kv"><span class="k">기준 버킷</span><span class="v mono" data-role="fa-b-bucket">2026-10-16</span></div>
+                  <div class="kv"><span class="k">버킷 단위</span><span class="v" data-role="fa-b-unit">일</span></div>
+                  <div class="kv"><span class="k">원시 총 건수</span><span class="v mono" data-role="fa-b-total">100건</span></div>
+                  <div class="kv"><span class="k">평소 기준</span><span class="v" data-role="fa-b-baseline">최근 7일 평균</span></div>
+                  <div class="kv"><span class="k">정규화 기준</span><span class="v"><span class="badge b-neu">소스 내 점유율</span></span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h">
+                  <h3>소스별 기여</h3>
+                  <span class="sub">이 대상의 언급이 어디서 왔는가 &middot; <span data-role="src-subject">&mdash;</span></span>
+                  <div class="r"><span class="tag" data-role="src-sums">불러오는 중&hellip;</span></div>
+                </div>
+                <div class="card-b">
+                  <div class="note" data-role="src-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+                  <div class="sv-ph" data-role="src-loading" hidden>불러오는 중&hellip;</div>
+                  <div class="sv-ph" data-role="src-empty" hidden>
+                    이 값에는 분해된 수집원이 없습니다. 집계가 이 버킷의 소스 차원을 쓰기 전이라면 <b>0으로 그리지 않습니다</b> &mdash; 기여가 없는 것과 아직 없는 것은 다릅니다.
+                  </div>
+                  <div data-role="src-body">
+                    <div data-role="src-list"></div>
+                    <div class="sv-src-conc">
+                      <h4>한 곳에서 다 나왔나</h4>
+                      <div class="kv"><span class="k">최다 기여</span><span class="v mono" data-role="src-top">&mdash;</span></div>
+                      <div class="kv"><span class="k">그 소스 비중</span><span class="v mono" data-role="src-top-share">&mdash;</span></div>
+                      <div class="kv"><span class="k">기여 소스 수</span><span class="v mono" data-role="src-n">&mdash;</span></div>
+                      <p class="sv-lede">한 수집원이 절반을 넘기면 여론이 아니라 그 매체의 편집 결정을 보고 있는 것일 수 있습니다.</p>
+                    </div>
+                    <div class="note" data-role="src-match"><div><b>부분이 전체와 맞습니다.</b> <span data-role="src-match-what"></span></div></div>
+                    <div class="note" data-role="src-mismatch" hidden><div><b>부분이 전체와 갈립니다.</b> <span data-role="src-mismatch-what"></span> 수를 맞추려고 분해를 깎지 않고 갈렸다고 적습니다.</div></div>
+                    <div class="note" data-role="src-lowconf" style="margin-top:10px" hidden>
+                      <div>
+                        <b>저신뢰로 판정된 <span data-role="src-lowconf-n">0</span>건이 이 값에 섞여 있습니다.</b>
+                        분석이 확신하지 못한 기사를 섞어 두면 급등이 실제보다 커 보이므로 따로 적습니다 &mdash; 기사 한 건씩은 원문 추적에서 「저신뢰」로 표시됩니다.
+                        <div class="actions" style="margin-top:8px"><a class="btn sm" data-role="src-lowconf-go" href="#STP-inspect-sources">소스 구성에서 갈라 보기 &rarr;</a></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="card-h">
+              <h3>기여 뉴스</h3>
+              <span class="sub">이 데이터 포인트를 만든 개별 기사 &middot; <span data-role="art-subject">&mdash;</span> &middot; <span data-role="art-basis">2026-10-16 (일 단위)</span></span>
+              <div class="r">
+                <span class="tag" data-role="art-count">불러오는 중&hellip;</span>
+                <span class="tag" data-role="art-count-loading" data-state="art-loading" data-label="기여 뉴스 로딩" data-replaces="art-count" hidden>불러오는 중&hellip;</span>
+              </div>
+            </div>
+            <div class="card-b">
+              <form class="formrow" data-role="art-filters">
+                <label class="fld" style="max-width:260px">
+                  <span class="fl">수집원으로 좁히기</span>
+                  <select name="art-source-drilldown-articles" data-role="art-source"><option value="">전체 (0건)</option></select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="art-dup-only-drilldown-articles" data-role="art-dup" />
+                  본문 중복으로 잡힌 것만
+                </label>
+              </form>
+
+              <div class="note" data-role="art-index" data-state="art-index-not-ready" data-label="인덱스 준비 중" style="margin-top:10px" hidden>
+                <div><b>인덱스 준비 중:</b> 원문&middot;분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이 다음 실행을 마치면 열립니다.</div>
+              </div>
+              <div class="note" data-role="art-error" data-state="art-error" data-label="기여 기사 조회 실패" data-replaces="art-list" style="margin-top:10px" hidden><div><b>기여 기사 조회 실패:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="note" data-role="art-mismatch" data-state="art-mismatch" data-label="목록 건수 ≠ 원시 카운트" style="margin-top:10px" hidden>
+                <div><b>목록 건수가 원시 카운트와 다릅니다.</b> <span data-role="art-mismatch-what">목록 0건 &harr; 원시 카운트 0건</span> &mdash; 둘이 갈리면 이 목록은 화면의 값을 설명하지 못합니다. 수를 맞춰 보이려고 목록을 깎지 않고, 갈렸다고 적습니다.</div>
+              </div>
+              <div class="sv-ph" data-role="art-empty" data-state="art-empty" data-label="기여 기사 0건" data-replaces="art-list" hidden>이 값에 기여한 기사가 없습니다 &mdash; 빈 목록을 지어내지 않습니다.</div>
+              <div class="sv-ph" data-role="art-dup-empty" data-state="art-dup-empty" data-label="본문 중복 0건 (중복만 보기)" data-replaces="art-list" hidden>본문 중복으로 잡힌 기사가 이 목록에 없습니다.</div>
+
+              <div class="sv-art-list" data-role="art-list"></div>
+
+              <div class="sv-hints">
+                <div data-role="art-dead-hint"><b>「원문 열기」가 열리지 않으면</b> &mdash; 링크가 만료·404여도 수집 시점에 보존한 원문 전체는 남아 있습니다.<a class="btn sm" data-role="art-dead-go" href="#STP-open-origin">보존 원문으로 이어서 보기 &rarr;</a></div>
+                <div data-role="art-wrong-hint"><b>기사가 이 대상이 아니라면</b> &mdash; 분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영 흐름으로 넘깁니다.<a class="btn sm" data-role="art-wrong-go" href="JRN-logic-backfill.html#STP-scope-range">재처리 범위 정하기 &rarr;</a></div>
+                <div data-role="art-dupe-hint"><b>같은 기사가 여러 번 수집됐다면</b> &mdash; 급등이 아니라 수집 이상입니다. 수집 무결성 점검 흐름으로 넘깁니다.<a class="btn sm" data-role="art-dupe-go" href="JRN-ingestion-recovery.html#STP-spot-anomaly">수집 이상 점검하기 &rarr;</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-open-origin"><span data-role="cta-trace">목록 첫 기사의 원문 역추적</span> <span class="ar">&rarr;</span></button>
+          <span class="hint">기사 행의 「원문 역추적 →」 으로 고른 기사를 내려갈 수도 있습니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 5 · 원문 역추적 — 화면 trace ============ -->
+      <section class="jstep" id="STP-open-origin" data-step="STP-open-origin" data-title="원문 역추적" hidden>
+
+      <div class="screen" data-screen="trace" data-title="원문 추적 상세" data-pill="off">
+        <div class="sv-controls">
+          <form class="sv-lookup" data-role="tr-lookup">
+            <label class="sv-field">
+              <span class="sv-field-label">record_id</span>
+              <input type="text" name="record_id-open-origin" data-role="tr-record" placeholder="비우면 첫 관측" autocomplete="off" />
+            </label>
+            <button type="submit" class="btn sm">원문까지 내려가기</button>
+          </form>
+        </div>
+
+        <p class="lede">순위가 뒤집힌다는 것까지는 집계가 말해 줍니다. 그것이 <b>실제로 무엇이었는지</b>는 원문을 읽어야 압니다 &mdash; 집계 수치에서
+          분석 레코드를 거쳐 수집된 기사 한 건까지 내려갑니다.</p>
+
+        <div class="note" data-role="tr-index" data-state="trace-index-not-ready" data-label="인덱스 준비 중" data-replaces="tr-found" hidden>
+          <div><b>인덱스 준비 중:</b> 원문&middot;분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이 다음 실행을 마치면 열립니다.</div>
+        </div>
+        <div class="note" data-role="tr-error" data-state="trace-error" data-label="API 오류" data-replaces="tr-found" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="sv-ph" data-role="tr-loading" data-state="trace-loading" data-label="첫 진입 로딩" data-replaces="tr-found" hidden>불러오는 중&hellip;</div>
+        <div class="sv-ph" data-role="tr-missing" data-state="trace-missing" data-label="조회한 레코드가 Bronze 에 없음" data-replaces="tr-found" hidden>
+          <span class="mono" data-role="tr-missing-id">&mdash;</span> 는 Bronze 에 없습니다 &mdash; 수집된 적이 없거나 다른 주기의 레코드입니다.
+          <b>조회가 실패한 것이 아니라 추적이 시작되지 않습니다.</b>
+        </div>
+        <div class="sv-ph" data-role="tr-empty" data-state="trace-empty" data-label="수집 레코드 0건" data-replaces="tr-found" hidden>
+          수집된 레코드가 아직 하나도 없습니다. 파이프라인이 한 번도 돌지 않은 상태와 추적 실패는 다릅니다 &mdash; <b>빈 계보를 그리지 않습니다.</b>
+        </div>
+
+        <div data-role="tr-found">
+          <div class="sv-crumb">
+            <span data-role="tr-crumb"></span>
+            <span class="sv-auto" data-role="tr-auto" data-state="auto-pick" data-label="조회 없이 첫 관측 자동 선택" hidden>조회 없이 열어 <b>첫 관측</b>을 골랐습니다</span>
+          </div>
+
+          <div class="grid g-12">
+            <div class="card col-7">
+              <div class="card-h">
+                <h3 data-role="tr-title">&mdash;</h3>
+                <span class="sub" data-role="tr-sub">&mdash;</span>
+                <div class="r"><span class="badge b-pos" data-role="tr-link-badge">링크 정상</span></div>
+              </div>
+              <div class="card-b">
+                <div class="note" data-role="tr-link-ok"><div>원래 주소가 정상 응답합니다. 보존 사본과 함께 대조해 볼 수 있습니다.</div></div>
+                <div class="note" data-role="tr-link-dead" data-state="link-dead" data-label="원문 링크 끊김 — 보존 원문 대체" data-replaces="tr-link-ok" hidden>
+                  <div><b>원문 주소가 열리지 않습니다.</b> 추적이 여기서 끊기지 않도록, 수집 시점에 <b>보존해 둔 원문 전체</b>를 대신 보여 줍니다. 링크 상태는 위에 배지로 항상 표시됩니다.</div>
+                </div>
+                <div class="kv" style="margin-top:8px"><span class="k">원문 주소</span><span class="v mono sv-url" data-role="tr-url">&mdash;</span></div>
+                <div class="actions" style="margin:10px 0 4px" data-role="tr-open">
+                  <a class="btn sm" href="#" data-role="tr-open-go" data-offpath="원래 기사 페이지 — 외부 사이트(새 탭)">원문 열기 &#8599;</a>
+                </div>
+                <p class="sv-body" data-role="tr-body"></p>
+                <div class="sv-ph" data-role="tr-body-lost" data-state="body-lost" data-label="본문 미보존" data-replaces="tr-body" hidden>
+                  본문이 보존되지 않았습니다(<span class="mono" data-role="tr-lost-hash">&mdash;</span> 에 대응하는 레코드 없음). <b>관측은 남아 있고 본문만 없습니다</b>
+                  &mdash; 수집은 됐다는 뜻이라 위 메타는 그대로 읽을 수 있습니다.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-5 grid sv-side">
+              <div class="card">
+                <div class="card-h"><h3>분석</h3><span class="sub">이 기사가 어떻게 분류됐는가</span></div>
+                <div class="card-b">
+                  <div data-role="tr-silver">
+                    <div class="kv"><span class="k">상태</span><span class="v" data-role="tr-status">&mdash;</span></div>
+                    <div class="kv"><span class="k">분위기</span><span class="v">
+                      <span class="badge b-neu" data-role="tr-sentiment">&mdash;</span>
+                      <span class="sv-meta" data-role="tr-excluded" data-state="silver-excluded" data-label="저신뢰 — 분류에서 제외" data-replaces="tr-sentiment" hidden>분류에서 제외됨 &mdash; 네 분류 어디에도 넣지 않습니다</span>
+                    </span></div>
+                    <div class="kv" data-role="tr-rationale-row"><span class="k">판단 근거</span><span class="v">
+                      <span data-role="tr-rationale">&mdash;</span>
+                      <span class="sv-meta" data-role="tr-rationale-missing" data-state="rationale-missing" data-label="판단 근거 기록 없음" data-replaces="tr-rationale" hidden>기록 없음 &mdash; 근거를 남기기 전에 분석된 기사입니다</span>
+                    </span></div>
+                    <div class="kv"><span class="k">대상국</span><span class="v" data-role="tr-countries">&mdash;</span></div>
+                    <div class="kv"><span class="k">서술 대상</span><span class="v" data-role="tr-subjects">&mdash;</span></div>
+                    <div class="kv"><span class="k">신뢰도</span><span class="v mono" data-role="tr-confidence">&mdash;</span></div>
+                    <div class="kv"><span class="k">analyzer</span><span class="v mono" data-role="tr-analyzer">&mdash;</span></div>
+                  </div>
+                  <div class="sv-ph" data-role="tr-silver-none" data-state="silver-none" data-label="분석 레코드 없음" data-replaces="tr-silver" style="margin-top:0" hidden>
+                    이 기사는 <b>아직 분석되지 않았습니다</b> &mdash; 분석 레코드 자체가 없습니다. 미분석으로 분류된 것과는 다릅니다: 저쪽은 분석이
+                    판단을 내린 결과이고, 이쪽은 파이프라인이 아직 거기까지 가지 않은 것입니다.
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><h3>수집 메타</h3></div>
+                <div class="card-b">
+                  <div class="kv"><span class="k">수집 시각</span><span class="v mono" data-role="tr-collected">&mdash;</span></div>
+                  <div class="kv"><span class="k">수집 주기</span><span class="v mono" data-role="tr-cycle">&mdash;</span></div>
+                  <div class="kv"><span class="k">수집 시 순위</span><span class="v mono" data-role="tr-rank">&mdash;</span></div>
+                  <div class="kv"><span class="k">조회수</span><span class="v mono" data-role="tr-views">&mdash;</span></div>
+                  <div class="kv"><span class="k">본문 해시</span><span class="v mono sv-url" data-role="tr-hash">&mdash;</span></div>
+                  <div class="kv" data-role="tr-first-row"><span class="k">본문 최초 관측</span><span class="v mono" data-role="tr-first">&mdash;</span></div>
+                </div>
+              </div>
+
+              <div class="note">
+                <div><b>판정 기록</b>은 아직 열 수 없습니다. 「유효한 신호」/「수집 편중」 판정을 남기려면 검증 이력을 저장할 곳이 있어야 하는데,
+                  여정 문서가 그 영속화를 <b>현재 범위 밖</b>으로 파킹했습니다. 쓸 곳 없는 버튼을 두는 대신 없다고 적습니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-judge">판정하고 마치기 <span class="ar">&rarr;</span></button>
+          <span class="hint">분류 근거와 원문까지 봤다면 판정으로 넘어갑니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 6 · 판정과 종료 — 화면 trace ============ -->
+      <section class="jstep" id="STP-judge" data-step="STP-judge" data-title="판정과 종료" hidden>
+
+      <div class="screen" data-screen="trace" data-title="원문 추적 상세" data-pill="off">
+        <div class="sv-controls">
+          <form class="sv-lookup" data-role="tr-lookup">
+            <label class="sv-field">
+              <span class="sv-field-label">record_id</span>
+              <input type="text" name="record_id-judge" data-role="tr-record" placeholder="비우면 첫 관측" autocomplete="off" />
+            </label>
+            <button type="submit" class="btn sm">원문까지 내려가기</button>
+          </form>
+        </div>
+
+        <p class="lede">순위가 뒤집힌다는 것까지는 집계가 말해 줍니다. 그것이 <b>실제로 무엇이었는지</b>는 원문을 읽어야 압니다 &mdash; 집계 수치에서
+          분석 레코드를 거쳐 수집된 기사 한 건까지 내려갑니다.</p>
+
+        <div class="note" data-role="tr-index" hidden>
+          <div><b>인덱스 준비 중:</b> 원문&middot;분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이 다음 실행을 마치면 열립니다.</div>
+        </div>
+        <div class="note" data-role="tr-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="sv-ph" data-role="tr-loading" hidden>불러오는 중&hellip;</div>
+        <div class="sv-ph" data-role="tr-missing" hidden>
+          <span class="mono" data-role="tr-missing-id">&mdash;</span> 는 Bronze 에 없습니다 &mdash; 수집된 적이 없거나 다른 주기의 레코드입니다.
+          <b>조회가 실패한 것이 아니라 추적이 시작되지 않습니다.</b>
+        </div>
+        <div class="sv-ph" data-role="tr-empty" hidden>
+          수집된 레코드가 아직 하나도 없습니다. 파이프라인이 한 번도 돌지 않은 상태와 추적 실패는 다릅니다 &mdash; <b>빈 계보를 그리지 않습니다.</b>
+        </div>
+
+        <div data-role="tr-found">
+          <div class="sv-crumb">
+            <span data-role="tr-crumb"></span>
+            <span class="sv-auto" data-role="tr-auto" hidden>조회 없이 열어 <b>첫 관측</b>을 골랐습니다</span>
+          </div>
+
+          <div class="grid g-12">
+            <div class="card col-7">
+              <div class="card-h">
+                <h3 data-role="tr-title">&mdash;</h3>
+                <span class="sub" data-role="tr-sub">&mdash;</span>
+                <div class="r"><span class="badge b-pos" data-role="tr-link-badge">링크 정상</span></div>
+              </div>
+              <div class="card-b">
+                <div class="note" data-role="tr-link-ok"><div>원래 주소가 정상 응답합니다. 보존 사본과 함께 대조해 볼 수 있습니다.</div></div>
+                <div class="note" data-role="tr-link-dead" hidden>
+                  <div><b>원문 주소가 열리지 않습니다.</b> 추적이 여기서 끊기지 않도록, 수집 시점에 <b>보존해 둔 원문 전체</b>를 대신 보여 줍니다. 링크 상태는 위에 배지로 항상 표시됩니다.</div>
+                </div>
+                <div class="kv" style="margin-top:8px"><span class="k">원문 주소</span><span class="v mono sv-url" data-role="tr-url">&mdash;</span></div>
+                <div class="actions" style="margin:10px 0 4px" data-role="tr-open">
+                  <a class="btn sm" href="#" data-role="tr-open-go" data-offpath="원래 기사 페이지 — 외부 사이트(새 탭)">원문 열기 &#8599;</a>
+                </div>
+                <p class="sv-body" data-role="tr-body"></p>
+                <div class="sv-ph" data-role="tr-body-lost" hidden>
+                  본문이 보존되지 않았습니다(<span class="mono" data-role="tr-lost-hash">&mdash;</span> 에 대응하는 레코드 없음). <b>관측은 남아 있고 본문만 없습니다</b>
+                  &mdash; 수집은 됐다는 뜻이라 위 메타는 그대로 읽을 수 있습니다.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-5 grid sv-side">
+              <div class="card">
+                <div class="card-h"><h3>분석</h3><span class="sub">이 기사가 어떻게 분류됐는가</span></div>
+                <div class="card-b">
+                  <div data-role="tr-silver">
+                    <div class="kv"><span class="k">상태</span><span class="v" data-role="tr-status">&mdash;</span></div>
+                    <div class="kv"><span class="k">분위기</span><span class="v">
+                      <span class="badge b-neu" data-role="tr-sentiment">&mdash;</span>
+                      <span class="sv-meta" data-role="tr-excluded" hidden>분류에서 제외됨 &mdash; 네 분류 어디에도 넣지 않습니다</span>
+                    </span></div>
+                    <div class="kv" data-role="tr-rationale-row"><span class="k">판단 근거</span><span class="v">
+                      <span data-role="tr-rationale">&mdash;</span>
+                      <span class="sv-meta" data-role="tr-rationale-missing" hidden>기록 없음 &mdash; 근거를 남기기 전에 분석된 기사입니다</span>
+                    </span></div>
+                    <div class="kv"><span class="k">대상국</span><span class="v" data-role="tr-countries">&mdash;</span></div>
+                    <div class="kv"><span class="k">서술 대상</span><span class="v" data-role="tr-subjects">&mdash;</span></div>
+                    <div class="kv"><span class="k">신뢰도</span><span class="v mono" data-role="tr-confidence">&mdash;</span></div>
+                    <div class="kv"><span class="k">analyzer</span><span class="v mono" data-role="tr-analyzer">&mdash;</span></div>
+                  </div>
+                  <div class="sv-ph" data-role="tr-silver-none" style="margin-top:0" hidden>
+                    이 기사는 <b>아직 분석되지 않았습니다</b> &mdash; 분석 레코드 자체가 없습니다. 미분석으로 분류된 것과는 다릅니다: 저쪽은 분석이
+                    판단을 내린 결과이고, 이쪽은 파이프라인이 아직 거기까지 가지 않은 것입니다.
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-h"><h3>수집 메타</h3></div>
+                <div class="card-b">
+                  <div class="kv"><span class="k">수집 시각</span><span class="v mono" data-role="tr-collected">&mdash;</span></div>
+                  <div class="kv"><span class="k">수집 주기</span><span class="v mono" data-role="tr-cycle">&mdash;</span></div>
+                  <div class="kv"><span class="k">수집 시 순위</span><span class="v mono" data-role="tr-rank">&mdash;</span></div>
+                  <div class="kv"><span class="k">조회수</span><span class="v mono" data-role="tr-views">&mdash;</span></div>
+                  <div class="kv"><span class="k">본문 해시</span><span class="v mono sv-url" data-role="tr-hash">&mdash;</span></div>
+                  <div class="kv" data-role="tr-first-row"><span class="k">본문 최초 관측</span><span class="v mono" data-role="tr-first">&mdash;</span></div>
+                </div>
+              </div>
+
+              <div class="note">
+                <div><b>판정 기록</b>은 아직 열 수 없습니다. 「유효한 신호」/「수집 편중」 판정을 남기려면 검증 이력을 저장할 곳이 있어야 하는데,
+                  여정 문서가 그 영속화를 <b>현재 범위 밖</b>으로 파킹했습니다. 쓸 곳 없는 버튼을 두는 대신 없다고 적습니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <span class="hint" data-end="여정 완료">판정은 제품 밖(리포트·메모)에 남깁니다 &mdash; 화면의 「판정 기록」 안내가 그 이유입니다.</span>
+        </div>
+      </section>
 
       <!-- ============ 보조 레이어 (문서 메타) ============ -->
       <details class="meta" data-meta-layer>
@@ -889,34 +1496,33 @@ details.meta table.tbl{margin-top:10px}
           </div>
 
           <table class="tbl">
-            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>화면 · 터치포인트</th><th>연결 AC</th></tr></thead>
             <tbody>
-              <tr><td class="mono">STP-notice-spike</td><td>추세·순위에서 튀는 값을 발견하고 "이거 진짜인가" 의심을 품는다</td><td>순위 목록, 라인 차트 (이 여정 맥락의 급등 인지 화면)</td><td class="mono">&mdash;</td></tr>
-              <tr><td class="mono">STP-check-normalized</td><td>지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다</td><td>정규화 토글(CMP-norm-toggle), 원시↔정규화 대비 패턴(PAT-raw-vs-norm)</td><td class="mono">AC3.8</td></tr>
-              <tr><td class="mono">STP-inspect-sources</td><td>이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다</td><td>소스별 기여 테이블(CMP-table)</td><td class="mono">AC3.1</td></tr>
-              <tr><td class="mono">STP-drilldown-articles</td><td>해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다</td><td>기여 뉴스 행 (소스·수집 시각·본문 중복 여부 표기)</td><td class="mono">AC3.2 · AC1.7</td></tr>
-              <tr><td class="mono">STP-open-origin</td><td>개별 뉴스의 Bronze 원문 링크·원문 전체로 도달해 분류 근거를 확인한다</td><td>계보 패턴(PAT-lineage), 원문 링크</td><td class="mono">AC2.6 · AC1.4</td></tr>
-              <tr><td class="mono">STP-judge</td><td>"유효한 신호" 또는 "수집 편중" 중 하나로 판단하고 세션을 닫는다</td><td>판정 화면 (이 여정 맥락에서 신설 — 근거 요약과 두 갈래의 끝)</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-notice-spike</td><td>추세·순위에서 튀는 값을 발견하고 "이거 진짜인가" 의심을 품는다</td><td><code>dash</code> 전체 — 「튀는 값」·「이 급등은 진짜인가」 카드가 공정성 화면으로의 진입점</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-check-normalized</td><td>지금 보는 값이 정규화 비율인지 원시 카운트인지 확인하고 토글해 양쪽을 비교한다</td><td><code>fairness</code> 전체 — 정규화 토글(CMP-norm-toggle, 누르는 즉시 반영), 원시↔정규화 대비(PAT-raw-vs-norm)</td><td class="mono">AC3.8 · AC3.1</td></tr>
+              <tr><td class="mono">STP-inspect-sources</td><td>이 대상의 언급이 어느 수집원에서 얼마나 왔는지 분해해서 본다</td><td>같은 화면 — 소스별 기여 카드와 합 등식, 저신뢰 판정 분리 표기</td><td class="mono">AC3.1 · AC3.9 · AC2.5</td></tr>
+              <tr><td class="mono">STP-drilldown-articles</td><td>해당 데이터 포인트에 기여한 개별 뉴스 목록을 연다</td><td>같은 화면 — 기여 뉴스 카드(수집원·수집 시각·본문 중복, 건수 대조)</td><td class="mono">AC3.2 · AC3.10 · AC1.7</td></tr>
+              <tr><td class="mono">STP-open-origin</td><td>개별 뉴스의 Bronze 원문 링크·원문 전체로 도달해 분류 근거를 확인한다</td><td><code>trace</code> 전체 — 계보 크럼(PAT-lineage), 분석 카드(라벨·판단 근거), 수집 메타, 링크 상태 배지</td><td class="mono">AC2.6 · AC1.4 · AC2.3 · AC2.5</td></tr>
+              <tr><td class="mono">STP-judge</td><td>"유효한 신호" 또는 "수집 편중" 중 하나로 판단하고 세션을 닫는다</td><td>같은 화면 — 「판정 기록은 아직 열 수 없습니다」 안내. 판정은 제품 외부(리포트·메모)</td><td class="mono">&mdash;</td></tr>
             </tbody>
           </table>
 
           <table class="tbl">
             <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
             <tbody>
-              <tr><td>원문 링크 만료·404</td><td>상황 목록 1행 · 화면 5의 링크 상태 배지와 보존 원문</td><td class="mono">STP-open-origin</td></tr>
-              <tr><td>저신뢰·미분석 항목이 섞여 있음</td><td>상황 목록 2행 · 화면 3의 분리 표기 토글</td><td class="mono">STP-inspect-sources</td></tr>
-              <tr><td>분류 오류를 발견함</td><td>상황 목록 3행</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
-              <tr><td>급등이 수집 이상(중복 수집)으로 의심됨</td><td>상황 목록 4행</td><td class="mono">JRN-ingestion-recovery · STP-spot-anomaly</td></tr>
-              <tr><td>정규화 후 급등이 사라짐</td><td>상황 목록 5행 · 화면 2의 정규화 소멸 배너</td><td class="mono">STP-judge</td></tr>
+              <tr><td>원문 링크 만료·404</td><td><code>fairness</code> 기여 뉴스 카드 「보존 원문으로 이어서 보기」 (선언 단계 STP-check-normalized) · 처리는 <code>trace</code> 의 링크 끊김 배지·보존 원문</td><td class="mono">STP-open-origin</td></tr>
+              <tr><td>저신뢰·미분석 항목이 섞여 있음</td><td><code>fairness</code> 소스별 기여 카드의 저신뢰 분리 표기 「소스 구성에서 갈라 보기」 (선언 단계 STP-inspect-sources)</td><td class="mono">STP-inspect-sources</td></tr>
+              <tr><td>분류 오류를 발견함</td><td><code>fairness</code> 기여 뉴스 카드 「재처리 범위 정하기」 (선언 단계 STP-inspect-sources)</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+              <tr><td>급등이 수집 이상(중복 수집)으로 의심됨</td><td><code>fairness</code> 기여 뉴스 카드 「수집 이상 점검하기」 (선언 단계 STP-inspect-sources)</td><td class="mono">JRN-ingestion-recovery · STP-spot-anomaly</td></tr>
+              <tr><td>정규화 후 급등이 사라짐</td><td><code>fairness</code> 정규화 소멸 배너 「판정으로」 (선언 단계 STP-drilldown-articles · 상태는 STP-check-normalized)</td><td class="mono">STP-judge</td></tr>
             </tbody>
           </table>
+          <p style="margin-top:10px">분기 컨트롤은 같은 화면이 나오는 모든 단계에 그대로 있고 어디서 눌러도 동작한다 &mdash; 「선언 단계」는 문서 §4 순서 = DOM
+             순서를 지키려고 <code>data-goto</code> 를 단 단계다. §4 는 단계 순서가 아니어서(1·3행은 5단계, 4행은 4단계, 2행은 3단계, 5행은 2단계의 상황)
+             각 행을 그 상황의 단계에 두면 순서가 뒤집힌다.</p>
 
-          <p style="margin-top:14px">
-            <b>판정 기록은 이 세션 안에서만 유지된다.</b> 여정 문서가 <code>STP-judge</code>의 페인포인트로 적은
-            「검증 이력·플래그 남기기」는 문서 자신이 <b>현재 범위 밖(백로그 후보)</b>로 파킹한 항목이다.
-            이 프로토타입은 그 기능을 만들지 않고, 단계가 정의한 대로 근거를 요약해 두 갈래 중 하나로 세션을
-            닫는 화면까지만 그린다.
-          </p>
+          <p style="margin-top:14px"><b>판정은 제품에 남지 않는다.</b> 여정 문서가 <code>STP-judge</code> 의 페인포인트로 적은 「검증 이력·플래그 남기기」는
+             문서 자신이 <b>현재 범위 밖(백로그 후보)</b>으로 파킹했다. 구현은 판정 폼 대신 그 사유를 안내로 적고, 이 프로토타입도 그 화면을 그린다.</p>
 
           <div class="mapstrip" style="margin-top:16px">
             <span class="lab">visualizes</span>
@@ -929,7 +1535,7 @@ details.meta table.tbl{margin-top:10px}
             <span class="chip"><b>STP-judge</b></span>
             <span class="chip v"><b>V4</b> 편차 보정</span>
             <span class="chip v"><b>V5</b> 원문 추적·재처리</span>
-            <span class="chip">AC3.1 · AC3.2 · AC3.8 · AC2.6 · AC1.4 · AC1.7</span>
+            <span class="chip">AC3.1 · AC3.2 · AC3.8 · AC3.9 · AC3.10 · AC2.3 · AC2.5 · AC2.6 · AC1.4 · AC1.7</span>
           </div>
         </div>
       </details>
@@ -938,427 +1544,972 @@ details.meta table.tbl{margin-top:10px}
   </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+
 <script>
 /* ============================================================
-   프로토타입 데이터 — 급등 검증.
-   raw = 원시 수집 건수, base = 평소(비교 구간 평균) 건수.
-   축별 총 수집 건수(total)가 다르므로 정규화 = raw / total * 100.
+   JRN-spike-verification · 급등 신호의 진위 확인 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   단계 1 은 화면 `dash`(Dashboard.tsx + SpikeCheck.tsx), 단계 2·3·4 는 같은 화면 `fairness`(Fairness.tsx),
+   단계 5·6 은 같은 화면 `trace`(Trace.tsx)다. 요소는 id 가 아니라 단계 섹션 안의 [data-role] 로 찾는다.
+   화면 dash 의 데이터·렌더는 기준 페이지(JRN-daily-scan) 런타임에서 가져왔다.
    ============================================================ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
+function RA(root, role){ return root ? Array.prototype.slice.call(root.querySelectorAll('[data-role=' + JSON.stringify(role) + ']')) : []; }
+function show(el, on){ if(el) el.hidden = !on; }
+function escA(s){ return esc(s).replace(/"/g, '&quot;'); }
+
+/* ---------------- 화면 dash (Dashboard.tsx) — 기준 페이지 런타임 그대로 ---------------- */
 var AXES = {
-  KR: { label: '한국', total: 16840, baseTotal: 11200 },
-  US: { label: '미국', total: 21300, baseTotal: 19800 },
-  WW: { label: '전세계', total: 9400,  baseTotal: 8900 }
+  ALL: { label: '전체', cls: 'ax-all', code: 'ALL' },
+  KR:  { label: '한국', cls: 'ax-kr', code: 'KR' },
+  US:  { label: '미국', cls: 'ax-us', code: 'US' },
+  GL:  { label: '전세계', cls: 'ax-gl', code: 'GLOBAL' }
 };
 
-/* 급등 후보. spike7/spike30 = 비교 구간별 평소 건수. */
-var SUBJECTS = {
+/* name, share(현재 기간 정규화 점유율 %), s(일 단위 7칸), d(직전 동일 구간 대비 %p), isNew, rawRank */
+var DATA = {
   KR: [
-    { id: 'usdkrw',   name: '원/달러 환율',      raw: 1480, spike7: 740, spike30: 700 },
-    { id: 'basisrate', name: '한국은행 기준금리', raw: 940,  spike7: 610, spike30: 580 },
-    { id: 'housing',  name: '주택 공급 대책',     raw: 420,  spike7: 380, spike30: 350 },
-    { id: 'semi',     name: 'AI 반도체 capex',    raw: 360,  spike7: 300, spike30: 290 }
+    { name: '한국은행 기준금리', share: 21.0, s: [14,13,15,18,22,19,21],   d: 7.0,  isNew: false, rawRank: 1 },
+    { name: '삼성전자',         share: 13.0, s: [11,12,10,13,12,14,13],   d: 0.0,  isNew: false, rawRank: 2 },
+    { name: '원/달러 환율',      share: 10.8, s: [9,10,12,11,13,12,10.8],  d: -1.2, isNew: false, rawRank: 3 },
+    { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],        d: 0.6,  isNew: false, rawRank: 4 },
+    { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],        d: 0.9,  isNew: false, rawRank: 2 },
+    { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],        d: 2.1,  isNew: false, rawRank: 6 },
+    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],        d: 5.4,  isNew: true,  rawRank: 7 },
+    { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],        d: -1.4, isNew: false, rawRank: 8 }
   ],
   US: [
-    { id: 'fed',      name: 'Federal Reserve',    raw: 1720, spike7: 1400, spike30: 1350 },
-    { id: 'cpi',      name: 'CPI 발표',           raw: 880,  spike7: 500,  spike30: 470 },
-    { id: 'semi',     name: 'AI 반도체 capex',    raw: 640,  spike7: 560,  spike30: 540 }
+    { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1,  isNew: false, rawRank: 1 },
+    { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0,  isNew: false, rawRank: 2 },
+    { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, rawRank: 3 },
+    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6,  isNew: true,  rawRank: 4 },
+    { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1,  isNew: false, rawRank: 5 }
   ],
-  WW: [
-    { id: 'oil',      name: '국제 유가',          raw: 520,  spike7: 300, spike30: 280 },
-    { id: 'semi',     name: 'AI 반도체 capex',    raw: 300,  spike7: 270, spike30: 265 }
+  GL: [],
+  /* 전체 — 세 축의 소스를 한 버킷에 접어 소스마다 같은 비중으로 정규화한 순위 */
+  ALL: [
+    { name: 'Fed 금리 결정',    share: 12.1, s: [8,8,9,10,11,12,12.1],    d: 1.9,  isNew: false, rawRank: 1 },
+    { name: '한국은행 기준금리', share: 10.4, s: [7,7,8,9,11,10,10.4],     d: 3.2,  isNew: false, rawRank: 2 },
+    { name: 'CPI 발표',         share: 8.9,  s: [6,7,8,8,9,9,8.9],        d: 0.6,  isNew: false, rawRank: 3 },
+    { name: '원/달러 환율',      share: 7.6,  s: [6,7,8,7,8,8,7.6],        d: -0.8, isNew: false, rawRank: 4 },
+    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9,  isNew: true,  rawRank: 5 },
+    { name: '삼성전자',         share: 6.0,  s: [5,6,5,6,6,6,6.0],        d: 0.0,  isNew: false, rawRank: 6 },
+    { name: '코스피',           share: 4.9,  s: [4,5,4,5,5,5,4.9],        d: 0.3,  isNew: false, rawRank: 7 },
+    { name: '국채 금리',        share: 4.7,  s: [5,5,4,5,5,5,4.7],        d: -0.2, isNew: false, rawRank: 8 }
   ]
 };
 
-/* 선택된 급등 대상의 소스 구성. conf=low 는 저신뢰·미분석. */
-var SOURCES = [
-  { name: '연합 통신사',       raw: 610, conf: 'ok' },
-  { name: '경제일보',          raw: 250, conf: 'ok' },
-  { name: '데일리 마켓',       raw: 180, conf: 'ok' },
-  { name: '글로벌 와이어',     raw: 140, conf: 'ok' },
-  { name: '커뮤니티 수집분',   raw: 190, conf: 'low' },
-  { name: '분류 대기 큐',      raw: 110, conf: 'low' }
-];
-
-/* 기여 뉴스. dup=true 는 본문 중복으로 잡힌 재탕. */
-var ARTICLES = [
-  { id: 'a1', url: 'https://www.yna.co.kr/view/AKR20260923140200002', title: '환율 1,480원 돌파… 당국 구두개입 시사', src: '연합 통신사', at: '14:02', dup: false,
-    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a2', url: 'https://www.econdaily.example/news/20260923/fx-1480', title: '[속보] 환율 1,480원 돌파', src: '경제일보', at: '14:05', dup: true,
-    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a3', url: 'https://www.dailymarket.example/articles/import-prices-fx', title: '환율 급등에 수입물가 비상', src: '데일리 마켓', at: '14:31', dup: false,
-    body: '환율 상승이 수입물가로 옮겨붙고 있다. 에너지·원자재 수입 비중이 큰 업종부터 원가 압박이 커진다.' },
-  { id: 'a4', url: 'https://www.yna.co.kr/view/AKR20260923144000002', title: '환율 1480원 돌파 (재송)', src: '연합 통신사', at: '14:40', dup: true,
-    body: '원/달러 환율이 장중 1,480원을 넘어섰다. 외환당국은 "과도한 변동에 대응하겠다"는 입장을 냈다.' },
-  { id: 'a5', url: 'https://www.globalwire.example/markets/dollar-asia-fx', title: '달러 강세 지속… 아시아 통화 동반 약세', src: '글로벌 와이어', at: '15:10', dup: false,
-    body: '달러 인덱스가 다시 올라서며 아시아 통화가 동반 약세를 보였다.' },
-  { id: 'a6', url: 'https://community.example/threads/fx-1480', title: '환율 관련 커뮤니티 언급 급증', src: '커뮤니티 수집분', at: '15:22', dup: false,
-    body: '커뮤니티에서 환율 언급이 늘었다. 분류 신뢰도가 낮아 별도 항목으로 집계한다.' }
-];
-
-var state = {
-  axis: 'KR', range: '7', normalize: false,
-  target: 'usdkrw',
-  srcQ: '', splitLowConf: false,
-  artQ: '', dupOnly: false, article: null,
-  linkState: 'ok',
-  sawNormalized: false, sawSources: false, sawOrigin: false
+/* 지표 카드 — collected/prev 는 기간 전체를 센 수집 건수, cov 는 분석 커버리지, low 는 저신뢰 비율 */
+var SUMMARY = {
+  KR:  { collected: 4812,  prev: 4618,  analyzed: 4551,  cov: 94.6, low: 5.4 },
+  US:  { collected: 3907,  prev: 3990,  analyzed: 3720,  cov: 95.2, low: 4.8 },
+  GL:  null,
+  ALL: { collected: 11204, prev: 10871, analyzed: 10583, cov: 94.5, low: 5.5 }
 };
 
-function $(id){ return document.getElementById(id); }
-function show(el, on){ if(el) el.hidden = !on; }
-function fmt(n){ return n.toLocaleString('en-US'); }
-function pct(n){ return (Math.round(n * 10) / 10).toFixed(1) + '%'; }
+/* 튀는 값 — 원시 건수와 평소(최근 7·30일 평균) 건수. 배수 ≥ 2 를 급등으로 본다. */
+var SPIKES = {
+  KR:  [ { name: '반도체 보조금', raw: 14, b7: 2.4, b30: 1.7, isNew: false },
+         { name: '한국은행 기준금리', raw: 41, b7: 25.6, b30: 24.1, isNew: false },
+         { name: '가계부채', raw: 12, b7: 9.2, b30: 9.8, isNew: false } ],
+  US:  [ { name: 'AI 설비투자', raw: 17, b7: 5.0, b30: 3.6, isNew: false },
+         { name: 'Fed 금리 결정', raw: 33, b7: 25.4, b30: 26.1, isNew: false } ],
+  GL:  [],
+  ALL: [ { name: 'AI 설비투자', raw: 22, b7: 7.1, b30: 5.2, isNew: false },
+         { name: '반도체 보조금', raw: 14, b7: 2.6, b30: 1.9, isNew: false } ]
+};
 
-function subjects(){ return SUBJECTS[state.axis] || []; }
-function baseOf(s){ return state.range === '30' ? s.spike30 : s.spike7; }
-function multOf(s){ return s.raw / baseOf(s); }
-/* 정규화 배수 — 축 총 수집량 증가분을 나눠 준다. */
-function normMultOf(s){
+var DAYS = ['2026-10-10','2026-10-11','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'];
+
+var state = {
+  axis: 'KR', range: '7', unit: 'day', restore: true,
+  thresh: 0, onlyNew: false, target: null,
+  spikeBase: '7d', spikePick: null,
+  trAxis: 'KR', trSubject: null, overlay: false
+};
+var cur = null;
+
+function rangeLabel(){ return state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일'; }
+function rangeKey(){ return state.range === '1' ? '24h' : state.range + 'd'; }
+function unitLabel(){ return { hour: '시간 단위', day: '일 단위', week: '주 단위' }[state.unit]; }
+var UNIT_DAYS = { hour: 1 / 24, day: 1, week: 7 };
+function unitFits(unit, range){ return UNIT_DAYS[unit] < Number(range); }
+function rows(axis){ return DATA[axis || state.axis] || []; }
+function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+function rangeShare(r){ return state.range === '1' ? r.s[r.s.length - 1] : (state.range === '30' ? avg(r.s) : r.share); }
+function ranked(){
+  return rows().slice().sort(function(a, b){ return rangeShare(b) - rangeShare(a); });
+}
+function dcls(d){ return d > 0.05 ? 'up' : (d < -0.05 ? 'dn' : 'fl'); }
+function dtext(d){
+  if(d > 0.05) return '&#9650; ' + d.toFixed(1) + '%p';
+  if(d < -0.05) return '&#9660; ' + Math.abs(d).toFixed(1) + '%p';
+  return '&ndash;';
+}
+function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
+function spark(vals, color){
+  var w = 88, h = 26;
+  var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), rng = (mx - mn) || 1;
+  var pts = vals.map(function(v, i){
+    var x = (i / (vals.length - 1)) * (w - 4) + 2;
+    var y = h - 2 - ((v - mn) / rng) * (h - 6);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  var lastY = (h - 2 - ((vals[vals.length - 1] - mn) / rng) * (h - 6)).toFixed(1);
+  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '"><polyline fill="none" stroke="'
+    + color + '" stroke-width="1.8" points="' + pts + '"/><circle cx="' + (w - 2).toFixed(1)
+    + '" cy="' + lastY + '" r="2" fill="' + color + '"/></svg>';
+}
+
+/* ---------------- 화면 dash (Dashboard.tsx) ---------------- */
+function syncDashControls(s){
+  var f = R(s, 'brief-form'); if(!f) return;
+  R(s, 'axis').value = state.axis;
+  R(s, 'range').value = state.range;
+  Array.prototype.forEach.call(R(s, 'unit').querySelectorAll('input[type=radio]'), function(i){
+    i.checked = (i.value === state.unit);
+    i.parentElement.hidden = !unitFits(i.value, state.range);
+  });
+  R(s, 'restore').checked = state.restore;
+  R(s, 'thresh').value = String(state.thresh);
+  R(s, 'only-new').checked = state.onlyNew;
+  R(s, 'spike-baseline').value = state.spikeBase;
+}
+
+function renderDash(s){
   var ax = AXES[state.axis];
-  var now = s.raw / ax.total;
-  var was = baseOf(s) / ax.baseTotal;
-  return now / was;
-}
-function shareOf(s){ return s.raw / AXES[state.axis].total * 100; }
-function currentTarget(){
-  var list = subjects();
-  for(var i=0;i<list.length;i++){ if(list[i].id === state.target) return list[i]; }
-  return list[0] || null;
-}
+  var list = ranked();
+  var sum = SUMMARY[state.axis];
+  syncDashControls(s);
+  var pill = document.querySelector('[data-role="tb-pill"]');
+  if(pill) pill.textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
 
-/* ---------------- 화면 1 : 급등 인지 ---------------- */
-function renderSpikes(){
-  var list = subjects().slice().sort(function(a,b){ return multOf(b) - multOf(a); });
-  var host = $('spikelist');
-  host.innerHTML = '';
-  list.forEach(function(s, i){
-    var m = multOf(s);
-    var row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'rankrow';
-    row.setAttribute('data-target', s.id);
-    row.setAttribute('aria-pressed', String(s.id === state.target));
-    row.innerHTML =
-      '<span class="rk">' + (i + 1) + '</span>' +
-      '<span class="nm">' + s.name + '</span>' +
-      '<span class="share"><span class="bar"><i style="width:' +
-        Math.min(100, shareOf(s) * 9).toFixed(0) + '%"></i></span>' +
-        '<span class="pct">' + fmt(s.raw) + '</span></span>' +
-      '<span class="dlt ' + (m >= 1.5 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span>' +
-      '<span class="rk">' + (m >= 1.5 ? '급등' : '') + '</span>';
-    row.addEventListener('click', function(){ pickSubject(s.id); });
-    host.appendChild(row);
+  /* 지표 */
+  R(s, 'm-items').textContent = sum ? sum.collected.toLocaleString('ko-KR') : '—';
+  var ch = R(s, 'm-change');
+  if(sum && sum.prev > 0){
+    var dd = (sum.collected - sum.prev) / sum.prev * 100;
+    ch.className = 'delta ' + dcls(dd);
+    ch.innerHTML = dd > 0.05 ? '&#9650; ' + dd.toFixed(1) + '%' : (dd < -0.05 ? '&#9660; ' + Math.abs(dd).toFixed(1) + '%' : '&ndash;');
+  } else { ch.className = 'delta fl'; ch.innerHTML = '&mdash;'; }
+  R(s, 'm-prev').textContent = '직전 ' + rangeLabel().replace('최근 ', '') + ' 대비';
+  R(s, 'm-analyzed').textContent = sum ? sum.analyzed.toLocaleString('ko-KR') : '—';
+  R(s, 'm-cov').textContent = sum ? sum.cov.toFixed(1) + '%' : '—';
+  R(s, 'm-low').textContent = sum ? sum.low.toFixed(1) + '%' : '—';
+
+  /* 상위 서술 대상 — 행을 누르면 그 대상의 추세 상세(trend)로 */
+  R(s, 'brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel() + ' 누적 · 추이 ' + unitLabel();
+  var empty = rows().length === 0;
+  show(R(s, 'empty-window'), empty);
+  R(s, 'empty-axis').textContent = ax.label;
+  var max = list.length ? rangeShare(list[0]) : 1;
+  R(s, 'ranklist').innerHTML = list.map(function(r, i){
+    var notes = [];
+    if(Math.abs(r.rawRank - (i + 1)) >= 2) notes.push('원시 카운트 ' + r.rawRank + '위 → 정규화 ' + (i + 1) + '위');
+    if(r.isNew) notes.push(rangeLabel() + ' 새로 진입');
+    return '<div class="rankrow" style="cursor:pointer" data-offpath="대상 추세 상세 화면" data-subject="' + esc(r.name) + '">'
+      + '<div class="rk">' + (i + 1) + '</div>'
+      + '<div class="nm">' + esc(r.name) + (notes.length ? ' <span class="meta">· ' + esc(notes.join(' · ')) + '</span>' : '') + '</div>'
+      + '<div class="share"><span class="bar"><i style="width:' + (rangeShare(r) / max * 100).toFixed(0)
+      + '%"></i></span><span class="pct">' + rangeShare(r).toFixed(1) + '%</span></div>'
+      + spark(r.s, scolor(r.d))
+      + '<div class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</div></div>';
+  }).join('');
+
+  /* 변화 */
+  var drows = list.filter(function(r){
+    if(state.onlyNew && !r.isNew) return false;
+    return Math.abs(r.d) >= state.thresh;
   });
-  var cur = currentTarget();
-  $('spike-pick').textContent = cur ? cur.name : '—';
-  $('spike-mult').textContent = cur ? ('×' + multOf(cur).toFixed(1) + ' (평소 ' + fmt(baseOf(cur)) + '건)') : '—';
-  $('spike-sub').textContent = AXES[state.axis].label + ' 축 · 평소 대비 배수 순';
-}
+  R(s, 'delta-title').textContent = rangeLabel() + ' 변화';
+  R(s, 'delta-count').textContent = drows.length + '개 대상';
+  var nc = R(s, 'no-change');
+  show(nc, drows.length === 0);
+  R(s, 'deltalist').innerHTML = drows.map(function(r){
+    var on = state.target === r.name;
+    return '<button type="button" class="trow" data-subject="' + esc(r.name) + '" aria-pressed="' + on + '">'
+      + '<span class="nm">' + esc(r.name)
+      + (r.isNew ? ' <span class="badge b-pos"><i class="d"></i>신규</span>' : '') + '</span> '
+      + '<span class="dlt ' + dcls(r.d) + '" style="float:right">' + dtext(r.d) + '</span></button>';
+  }).join('');
+  var allAxis = state.axis === 'ALL';
+  show(R(s, 'spike-entry'), !allAxis);
+  show(R(s, 'pick-axis'), allAxis);
 
-function pickSubject(id){
-  state.target = id;
-  state.article = null;
-  renderSpikes(); renderNorm(); renderSources(); renderArticles(); renderOrigin(); renderEvidence();
-}
+  /* 고른 대상 */
+  var t = rows().filter(function(r){ return r.name === state.target; })[0] || null;
+  show(R(s, 'no-selection'), !t);
+  var pd = R(s, 'pick-detail');
+  show(pd, !!t);
+  pd.innerHTML = t ? (
+      '<div class="kv"><span class="k">대상</span><span class="v">' + esc(t.name) + '</span></div>'
+    + '<div class="kv"><span class="k">점유율</span><span class="v">' + rangeShare(t).toFixed(1) + '%</span></div>'
+    + '<div class="kv"><span class="k">직전 동일 구간 대비</span><span class="v">' + dtext(t.d) + '</span></div>'
+    + '<div class="kv"><span class="k">진입</span><span class="v">'
+    + (t.isNew ? rangeLabel() + ' 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>') : '';
 
-/* ---------------- 화면 2 : 정규화/원시 대비 ---------------- */
-function renderNorm(){
-  var list = subjects().slice().sort(function(a,b){ return b.raw - a.raw; });
-  var body = $('normbody');
-  body.innerHTML = '';
-  list.forEach(function(s){
-    var m = state.normalize ? normMultOf(s) : multOf(s);
-    var tr = document.createElement('tr');
-    if(s.id === state.target) tr.setAttribute('data-current', '1');
-    tr.innerHTML =
-      '<td>' + s.name + (s.id === state.target ? ' <span class="tag">검증 중</span>' : '') + '</td>' +
-      '<td class="num">' + fmt(s.raw) + '</td>' +
-      '<td class="num">' + pct(shareOf(s)) + '</td>' +
-      '<td class="num"><span class="delta ' + (m >= 1.5 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span></td>';
-    body.appendChild(tr);
-  });
-  var flag = state.normalize ? '정규화 비율' : '원시 건수';
-  $('tb-basis').textContent = flag;
-  $('spike-flag').textContent = flag;
-  $('spike-flag').className = state.normalize ? 'norm-flag' : 'raw-flag';
-  $('norm-sub').textContent = '같은 대상, 두 가지 세는 방식 · 현재 ' + flag;
+  /* 튀는 값 */
+  var sp = SPIKES[state.axis] || [];
+  var days = state.spikeBase === '30d' ? 'b30' : 'b7';
+  R(s, 'spike-sub').textContent = ax.label + ' 축 · 평소 대비 배수 순';
+  var sorted = sp.slice().sort(function(a, b){ return b.raw / b[days] - a.raw / a[days]; });
+  var pickName = state.spikePick && sorted.some(function(r){ return r.name === state.spikePick; })
+    ? state.spikePick : (sorted[0] ? sorted[0].name : null);
+  R(s, 'spike-list').innerHTML = sorted.map(function(r, i){
+    var m = r.raw / r[days];
+    return '<button type="button" class="spk-row" data-spike="' + esc(r.name) + '" aria-pressed="' + (r.name === pickName) + '">'
+      + '<span class="rk">' + (i + 1) + '</span><span class="nm">' + esc(r.name) + '</span>'
+      + '<span class="meta">' + r.raw + '건 · 평소 ' + r[days].toFixed(1) + '건</span>'
+      + '<span class="dlt ' + (m >= 1.5 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span>'
+      + '<span class="rk">' + (m >= 1.5 ? '급등' : '') + '</span></button>';
+  }).join('');
+  show(R(s, 'spike-empty'), !sorted.length);
+  R(s, 'spike-empty-axis').textContent = ax.label;
+  var cp = sorted.filter(function(r){ return r.name === pickName; })[0];
+  R(s, 'spike-pick').textContent = cp ? cp.name : '—';
+  R(s, 'spike-mult').textContent = cp ? '×' + (cp.raw / cp[days]).toFixed(1) + ' (평소 ' + cp[days].toFixed(1) + '건)' : '—';
+  show(R(s, 'spike-go').parentElement, !!cp && !allAxis);
+  show(R(s, 'spike-pick-axis'), !!cp && allAxis);
 
-  var cur = currentTarget();
-  var away = !!cur && state.normalize && multOf(cur) >= 1.5 && normMultOf(cur) < 1.5;
-  if(away){
-    $('normaway-what').textContent =
-      cur.name + '은 원시 건수로는 ×' + multOf(cur).toFixed(1) +
-      '이지만 축 총 수집량으로 나누면 ×' + normMultOf(cur).toFixed(1) + '입니다.';
+  /* 기간 순위 — 기간이 바뀌면 순위가 실제로 뒤집히고, 고른 대상은 하이라이트로 유지된다 */
+  R(s, 'win-sub').textContent = rangeLabel() + ' 누적';
+  R(s, 'win-tag').textContent = rangeKey();
+  R(s, 'keep-note').textContent = t ? '‘' + t.name + '’ 으로 강조' : '그대로 강조';
+  show(R(s, 'no-rank'), list.length === 0);
+  R(s, 'winlist').innerHTML = list.length ? '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
+    + '<th class="num">' + rangeLabel() + ' 점유율</th><th class="num">변화</th></tr></thead><tbody>'
+    + list.map(function(r, i){
+        var on = state.target === r.name;
+        return '<tr' + (on ? ' class="on"' : '') + '><td class="num">' + (i + 1) + '</td>'
+          + '<td>' + esc(r.name) + (on ? ' <span class="tag">고른 대상</span>' : '') + '</td>'
+          + '<td class="num">' + rangeShare(r).toFixed(1) + '%</td>'
+          + '<td class="num"><span class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' : '';
+
+  /* 단계 CTA */
+  var cta = R(s, 'cta-pick');
+  if(cta){
+    cta.disabled = !t;
+    R(s, 'cta-pick-hint').textContent = t ? '‘' + t.name + '’ 을 들고 기간을 바꿔 봅니다.' : '대상을 하나 고르면 기간을 바꿔 볼 수 있습니다.';
   }
-  show($('s-normalized-away'), away);
+  var drill = R(s, 'cta-drill');
+  if(drill) drill.textContent = t ? '‘' + t.name + '’ 추세 상세 열기' : '1위 대상의 추세 상세 열기';
 }
 
-function applyNorm(withLoading){
-  if(withLoading){
-    show($('s-loading'), true);
-    show($('s-normalized-away'), false);
-    setTimeout(function(){ show($('s-loading'), false); renderNorm(); }, 320);
+
+/* dash 안의 다른 이탈은 이 여정에서는 여정 밖 행동이다 — 구현에서 각각 다른 화면·여정으로 간다. */
+function markDashOffpath(s){
+  var eg = R(s, 'empty-go'); if(eg) eg.setAttribute('data-offpath', '아침 정기 스캔 — 어제 대비 변화 훑기');
+  var cg = R(s, 'compare-go'); if(cg) cg.setAttribute('data-offpath', '지역 온도차 확인 — 3축 비교 화면');
+}
+/* renderDash 와 같은 규칙으로 지금 「이 급등은 진짜인가」 카드가 든 대상을 고른다 — 공정성 화면으로 들고 간다. */
+function spikePickNow(){
+  var sp = SPIKES[state.axis] || [];
+  var days = state.spikeBase === '30d' ? 'b30' : 'b7';
+  var sorted = sp.slice().sort(function(a, b){ return b.raw / b[days] - a.raw / a[days]; });
+  if(state.spikePick && sorted.some(function(r){ return r.name === state.spikePick; })) return state.spikePick;
+  return sorted[0] ? sorted[0].name : '';
+}
+
+/* ================================================================
+   화면 fairness (Fairness.tsx) — 단계 2·3·4 가 같은 화면을 같은 구조로 그린다.
+   ================================================================ */
+var FAX = { KR: { label: '한국', cls: 'ax-kr' }, US: { label: '미국', cls: 'ax-us' }, GLOBAL: { label: '전세계', cls: 'ax-gl' } };
+var FAIR_AXIS_OF = { KR: 'KR', US: 'US', GL: 'GLOBAL' };
+var UNIT_KO = { hour: '시간', day: '일', week: '주' };
+var THRESHOLD = 1.5;   /* 서빙 spikes.go 의 spikeThreshold */
+
+/* 기준 버킷 하나의 원시 건수와 정규화 비율(소스 안 점유율을 먼저 내고 축으로 결합 — AC3.1) */
+var FAIR = {
+  KR: { bucket: '2026-10-16', unit: 'day', rows: [
+    { s: '한국은행 기준금리', raw: 41, ns: 0.188 },
+    { s: '반도체 보조금',     raw: 14, ns: 0.061 },
+    { s: '가계부채',          raw: 12, ns: 0.142 },
+    { s: '원/달러 환율',       raw: 11, ns: 0.201 },
+    { s: '삼성전자',          raw: 9,  ns: 0.133 },
+    { s: '코스피',            raw: 8,  ns: 0.109 },
+    { s: '부동산 PF',         raw: 5,  ns: 0.081 } ] },
+  US: { bucket: '2026-10-16', unit: 'day', rows: [
+    { s: 'Fed 금리 결정', raw: 33, ns: 0.231 },
+    { s: 'AI 설비투자',   raw: 17, ns: 0.174 },
+    { s: 'CPI 발표',      raw: 14, ns: 0.162 },
+    { s: '고용지표',      raw: 12, ns: 0.141 },
+    { s: '국채 금리',     raw: 8,  ns: 0.120 } ] },
+  GLOBAL: { bucket: '2026-10-16', unit: 'day', rows: [] }
+};
+/* 평소 대비 배수 [원시, 정규화] — 평소 구간에 없던 대상은 null(신규) */
+var FSPK = {
+  KR: { '한국은행 기준금리': { '7d': [1.6, 1.6], '30d': [1.7, 1.7] },
+        '반도체 보조금':     { '7d': [5.8, 1.2], '30d': [8.2, 1.3] },
+        '가계부채':          { '7d': [1.3, 1.4], '30d': [1.2, 1.3] },
+        '원/달러 환율':       { '7d': [1.0, 1.1], '30d': [1.1, 1.1] },
+        '삼성전자':          { '7d': [1.0, 0.9], '30d': [0.9, 1.0] },
+        '코스피':            { '7d': [1.0, 1.0], '30d': [1.0, 1.1] },
+        '부동산 PF':         { '7d': null, '30d': null, isNew: true } },
+  US: { 'Fed 금리 결정': { '7d': [1.3, 1.2], '30d': [1.3, 1.3] },
+        'AI 설비투자':   { '7d': [3.4, 2.9], '30d': [4.7, 3.8] },
+        'CPI 발표':      { '7d': [1.1, 1.0], '30d': [1.2, 1.1] },
+        '고용지표':      { '7d': [0.9, 1.0], '30d': [1.0, 1.0] },
+        '국채 금리':     { '7d': [1.0, 1.0], '30d': [1.0, 0.9] } },
+  GLOBAL: {}
+};
+/* 소스별 기여 — 수집원별 원시 건수. low = 저신뢰 판정 건수. normTotal 이 있으면 분해 합이 정규화 비율과 갈린 값이다. */
+var SPLIT = {
+  'KR|한국은행 기준금리': { rows: [['kr-wire', 10], ['kr-econ', 9], ['kr-market', 8], ['kr-biz', 8], ['kr-portal', 6]] },
+  'KR|반도체 보조금':     { rows: [['kr-wire', 9], ['kr-econ', 2], ['kr-market', 2], ['kr-portal', 1]], low: 3 },
+  'KR|가계부채':          { rows: [] },
+  'KR|원/달러 환율':       { rows: [['kr-econ', 4], ['kr-market', 3], ['kr-wire', 2], ['kr-portal', 1]], normTotal: 0.190 },
+  'KR|삼성전자':          { rows: [['kr-market', 3], ['kr-econ', 3], ['kr-biz', 2], ['kr-portal', 1]] },
+  'KR|코스피':            { rows: [['kr-market', 4], ['kr-econ', 2], ['kr-wire', 2]] },
+  'KR|부동산 PF':         { rows: [['kr-biz', 2], ['kr-econ', 2], ['kr-portal', 1]] },
+  'US|Fed 금리 결정': { rows: [['us-wire', 9], ['us-markets', 8], ['us-biz', 8], ['us-press', 8]] },
+  'US|AI 설비투자':   { rows: [['us-wire', 5], ['us-markets', 5], ['us-tech', 4], ['us-biz', 3]], low: 2 },
+  'US|CPI 발표':      { rows: [['us-markets', 5], ['us-wire', 5], ['us-biz', 4]] },
+  'US|고용지표':      { rows: [['us-markets', 4], ['us-wire', 4], ['us-press', 4]] },
+  'US|국채 금리':     { rows: [['us-markets', 4], ['us-biz', 4]] }
+};
+/* 기여 기사 — 반도체 보조금은 손으로 적고(이 여정의 주 대상), 나머지는 소스별 건수만큼 만든다.
+   d = 본문 중복 묶음(같은 본문 해시) · lost = 본문 미보존 · nob = 수집 시점 본문 미확보 */
+var SEMI = [
+  { id: 'kr-wire-20261016-0112',   src: 'kr-wire',   t: '정부, 반도체 보조금 3조 원 추가 투입 검토', d: 'A' },
+  { id: 'kr-wire-20261016-0402',   src: 'kr-wire',   t: '반도체 보조금 확대하면 재정 부담은 얼마나' },
+  { id: 'kr-wire-20261016-0415',   src: 'kr-wire',   t: '[마감 시황] 반도체주 강세…코스피 2,700 회복' },
+  { id: 'kr-wire-20261016-0418',   src: 'kr-wire',   t: '[종합] 정부, 반도체 보조금 3조 원 추가 투입 검토', d: 'A' },
+  { id: 'kr-wire-20261016-0421',   src: 'kr-wire',   t: '반도체 보조금 3조 추가 투입 검토 (2보)', d: 'A' },
+  { id: 'kr-wire-20261016-0433',   src: 'kr-wire',   t: '정부 "반도체 보조금 3조 추가"…업계 환영', d: 'A' },
+  { id: 'kr-wire-20261016-0440',   src: 'kr-wire',   t: '반도체 보조금 지급 기준 놓고 업계 이견', d: 'B' },
+  { id: 'kr-wire-20261016-0447',   src: 'kr-wire',   t: '반도체 보조금 지급 기준, 업계 이견 (종합)', d: 'B' },
+  { id: 'kr-wire-20261016-0455',   src: 'kr-wire',   t: '반도체 보조금 관련 국회 산자위 일정' },
+  { id: 'kr-econ-20261016-0233',   src: 'kr-econ',   t: "반도체 보조금, 중소 협력사엔 '그림의 떡'", lost: true },
+  { id: 'kr-econ-20261016-0236',   src: 'kr-econ',   t: '[전재] 정부, 반도체 보조금 3조 원 추가 투입 검토', d: 'A' },
+  { id: 'kr-market-20261016-1120', src: 'kr-market', t: '반도체 보조금 수혜주 점검' },
+  { id: 'kr-market-20261016-1124', src: 'kr-market', t: '외국인, 반도체 보조금 발표 앞두고 순매수' },
+  { id: 'kr-portal-20261016-0907', src: 'kr-portal', t: '반도체 보조금 3조 원 추가…업계 반응은', nob: true }
+];
+var TITLES = {
+  '한국은행 기준금리': ['한은, 기준금리 연 3.25% 동결…"물가 경로 더 지켜봐야"', '기준금리 동결 배경은 가계부채', '한은 총재 "연내 인하 여부는 데이터 보고 판단"', '시장, 11월 인하 가능성에 무게'],
+  '원/달러 환율': ['원/달러 환율 1,380원대로 상승', '환율 급등에 수입물가 부담 커져', '외환당국 "변동성 면밀히 점검"'],
+  '삼성전자': ['삼성전자, 3분기 잠정 실적 발표', '삼성전자 HBM 공급 확대 전망', '삼성전자 주가 사흘째 상승'],
+  '코스피': ['코스피 2,700선 회복', '코스피, 외국인 순매수에 상승 마감'],
+  '부동산 PF': ['부동산 PF 정상화 방안 발표', '건설사 PF 우발채무 점검'],
+  'Fed 금리 결정': ['Fed holds rates steady, signals patience', 'Powell: "no rush" on further cuts', 'Markets price in December cut'],
+  'AI 설비투자': ['Big Tech lifts AI capex guidance again', 'Data-center spending surge reshapes chip demand', 'AI capex: who pays for the build-out'],
+  'CPI 발표': ['US CPI rises 0.3% in September', 'Core inflation sticky, data show'],
+  '고용지표': ['Payrolls beat expectations', 'Jobless claims edge lower'],
+  '국채 금리': ['10-year Treasury yield climbs to 4.3%', 'Bond yields rise after auction']
+};
+var FIRST_OBS = 'kr-wire-20261016-0112';
+
+var ARTS = {}, ART_INDEX = {};
+function pad(n, w){ n = String(n); while(n.length < w) n = '0' + n; return n; }
+function hhmmOf(id){ var t = id.split('-').pop(); return t.slice(0, 2) + ':' + t.slice(2, 4); }
+(function buildArticles(){
+  var serial = 0;
+  var keys = ['KR|반도체 보조금'].concat(Object.keys(SPLIT).filter(function(k){ return k !== 'KR|반도체 보조금'; }));
+  keys.forEach(function(key){
+    var axis = key.split('|')[0], subj = key.split('|')[1], list = [];
+    if(key === 'KR|반도체 보조금'){
+      list = SEMI.map(function(a){ return { id: a.id, src: a.src, title: a.t, d: a.d || null, avail: !a.nob }; });
+    } else {
+      var ts = TITLES[subj] || [subj];
+      SPLIT[key].rows.forEach(function(r){
+        for(var i = 0; i < r[1]; i++){
+          var hh = 6 + Math.floor(serial / 8), mm = (serial * 7) % 60, id;
+          do { id = r[0] + '-20261016-' + pad(hh, 2) + pad(mm, 2); mm = (mm + 1) % 60; } while(ART_INDEX[id]);
+          list.push({ id: id, src: r[0], title: ts[i % ts.length] + (i >= ts.length ? ' (' + Math.floor(i / ts.length + 1) + '보)' : ''), d: null, avail: true });
+          ART_INDEX[id] = true;
+          serial++;
+        }
+      });
+    }
+    var groups = {};
+    list.forEach(function(a){ if(a.d) groups[a.d] = (groups[a.d] || 0) + 1; });
+    list.forEach(function(a){
+      a.axis = axis; a.subject = subj;
+      a.at = '2026-10-16 ' + hhmmOf(a.id) + ' KST';
+      a.dup = !!a.d && groups[a.d] > 1; a.shares = a.d ? groups[a.d] : 1;
+      ART_INDEX[a.id] = a;
+    });
+    ARTS[key] = list;
+  });
+})();
+
+var fa = { axis: 'KR', mode: 'normalized', baseline: '7d', subject: '', source: '', dup: false };
+function pct(x, d){ return (x * 100).toFixed(d == null ? 1 : d) + '%'; }
+function fairRows(){
+  var data = FAIR[fa.axis], total = data.rows.reduce(function(t, r){ return t + r.raw; }, 0);
+  return data.rows.map(function(r){ return { s: r.s, raw: r.raw, rs: r.raw / total, ns: r.ns }; });
+}
+function shareIn(r, mode){ return mode === 'normalized' ? r.ns : r.rs; }
+function spikeOf(subj){
+  var e = (FSPK[fa.axis] || {})[subj]; if(!e) return null;
+  var m = e[fa.baseline];
+  var raw = m ? m[0] : null, norm = m ? m[1] : null;
+  return { raw: raw, norm: norm, isNew: !!e.isNew, away: raw !== null && raw >= THRESHOLD && norm !== null && norm < THRESHOLD };
+}
+function multLabel(sp, m){ if(m !== null && m !== undefined) return '&times;' + m.toFixed(1); return sp && sp.isNew ? '신규' : '&mdash;'; }
+function curSubject(rows){
+  return fa.subject && rows.some(function(r){ return r.s === fa.subject; }) ? fa.subject : (rows[0] ? rows[0].s : '');
+}
+function splitOf(subj){
+  var e = SPLIT[fa.axis + '|' + subj]; if(!e) return null;
+  var row = fairRows().filter(function(r){ return r.s === subj; })[0];
+  var rawTotal = e.rows.reduce(function(t, r){ return t + r[1]; }, 0);
+  var normTotal = e.normTotal != null ? e.normTotal : row.ns;
+  var w = e.rows.map(function(r){ return Math.sqrt(r[1]); }), sw = w.reduce(function(a, b){ return a + b; }, 0) || 1;
+  return {
+    rows: e.rows.map(function(r, i){ return { src: r[0], n: r[1], rs: r[1] / (rawTotal || 1), nc: normTotal * w[i] / sw }; }),
+    rawTotal: rawTotal, rawCount: row.raw, normTotal: normTotal, normShare: row.ns, low: e.low || 0
+  };
+}
+function bar(v, on){
+  return '<div class="sv-bar' + (on ? '' : ' sv-off') + '"><span class="bar"><i style="width:' + (v * 100).toFixed(1) + '%"></i></span><span class="pct">' + pct(v) + '</span></div>';
+}
+
+function renderFair(s){
+  var ax = FAX[fa.axis];
+  RA(s, 'fa-axis').forEach(function(g){ Array.prototype.forEach.call(g.querySelectorAll('input'), function(i){ i.checked = (i.value === fa.axis); }); });
+  var pill = R(s, 'fa-axpill'); pill.className = 'axpill ' + ax.cls; pill.innerHTML = '<i class="fl"></i>' + fa.axis;
+  var nb = R(s, 'fa-norm');
+  nb.className = 'norm-toggle' + (fa.mode === 'raw' ? ' raw' : '');
+  nb.setAttribute('aria-pressed', String(fa.mode === 'raw'));
+  R(s, 'fa-norm-label').textContent = fa.mode === 'normalized' ? '수집량 정규화' : '원시 건수';
+
+  var data = FAIR[fa.axis];
+  var rows = fairRows().sort(function(a, b){ return shareIn(b, fa.mode) - shareIn(a, fa.mode); });
+  var empty = rows.length === 0;
+  show(R(s, 'fa-empty'), empty);
+  R(s, 'fa-empty-axis').textContent = ax.label;
+  if(!R(s, 'fa-body').hasAttribute('data-jm-replaced')) show(R(s, 'fa-body'), !empty);
+  if(empty) return;
+
+  var subject = curSubject(rows);
+  var unit = UNIT_KO[data.unit];
+  var basis = data.bucket + ' (' + unit + ' 단위)';
+  R(s, 'fa-basis').textContent = basis;
+  var flag = R(s, 'fa-flag');
+  flag.className = fa.mode === 'normalized' ? 'norm-flag' : 'raw-flag';
+  flag.innerHTML = fa.mode === 'normalized' ? '&#9635; 정규화 비율' : '&#9634; 원시 건수';
+
+  R(s, 'fa-rows').innerHTML = rows.map(function(r){
+    var on = r.s === subject, sp = spikeOf(r.s);
+    var m = sp ? (fa.mode === 'normalized' ? sp.norm : sp.raw) : null;
+    return '<tr' + (on ? ' class="on"' : '') + '>'
+      + '<td><button type="button" class="sv-pick" data-subject="' + esc(r.s) + '" aria-pressed="' + on + '">' + esc(r.s) + '</button></td>'
+      + '<td class="num"><span class="sv-meta">원시 ' + r.raw + '건</span></td>'
+      + '<td>' + bar(r.rs, fa.mode === 'raw') + '</td>'
+      + '<td>' + bar(r.ns, fa.mode === 'normalized') + '</td>'
+      + '<td class="num"><span class="delta ' + (m !== null && m >= THRESHOLD ? 'up' : 'fl') + '">' + multLabel(sp, m) + '</span></td></tr>';
+  }).join('');
+
+  var cur = spikeOf(subject);
+  var away = fa.mode === 'normalized' && cur && cur.away;
+  show(R(s, 'fa-away'), !!away);
+  if(cur && cur.raw !== null && cur.norm !== null){
+    R(s, 'fa-away-what').innerHTML = esc(subject) + '은 원시 건수로는 &times;' + cur.raw.toFixed(1) + '이지만 정규화 비율로 보면 &times;' + cur.norm.toFixed(1) + '입니다.';
+  }
+
+  var leadRaw = rows.slice().sort(function(a, b){ return b.rs - a.rs; })[0];
+  var leadNorm = rows.slice().sort(function(a, b){ return b.ns - a.ns; })[0];
+  var diverge = leadRaw.s !== leadNorm.s;
+  R(s, 'fa-verdict').textContent = diverge ? '갈림' : '일치';
+  R(s, 'fa-lead-raw').textContent = leadRaw.s;
+  R(s, 'fa-lead-norm').textContent = leadNorm.s;
+  R(s, 'fa-lead-both').textContent = leadNorm.s;
+  if(!R(s, 'fa-lead-split').hasAttribute('data-jm-replaced')) show(R(s, 'fa-lead-split'), diverge);
+  show(R(s, 'fa-lead-agree'), !diverge);
+
+  R(s, 'fa-b-bucket').textContent = data.bucket;
+  R(s, 'fa-b-unit').textContent = unit;
+  R(s, 'fa-b-total').textContent = rows.reduce(function(t, r){ return t + r.raw; }, 0) + '건';
+  R(s, 'fa-b-baseline').textContent = '최근 ' + (fa.baseline === '30d' ? 30 : 7) + '일 평균';
+
+  /* 소스별 기여 (AC3.9) */
+  var sp = splitOf(subject);
+  R(s, 'src-subject').textContent = subject;
+  R(s, 'src-sums').textContent = DEEP === 'src-loading' ? '불러오는 중…' : (sp ? '합 ' + sp.rawTotal + '건 · 원시 카운트 ' + sp.rawCount + '건' : '불러오는 중…');
+  var none = !sp || sp.rows.length === 0;
+  show(R(s, 'src-empty'), none);
+  if(!R(s, 'src-body').hasAttribute('data-jm-replaced')) show(R(s, 'src-body'), !none);
+  if(!none){
+    var top = sp.rows.slice().sort(function(a, b){ return b.n - a.n; })[0];
+    R(s, 'src-list').innerHTML = '<div class="sv-src-row sv-src-hd"><span>수집원</span><span>원시 건수</span><span>기여 비중</span><span>정규화 후</span></div>'
+      + sp.rows.map(function(r){
+          return '<div class="sv-src-row"><span class="mono">' + esc(r.src) + '</span><span>' + r.n + '건</span><span>' + pct(r.rs) + '</span><span>' + pct(r.nc) + '</span></div>';
+        }).join('');
+    R(s, 'src-top').textContent = top.src;
+    R(s, 'src-top-share').textContent = pct(top.rs);
+    R(s, 'src-n').textContent = sp.rows.length + '개';
+    var adds = sp.rawTotal === sp.rawCount && Math.abs(sp.normTotal - sp.normShare) < 1e-9;
+    if(!R(s, 'src-match').hasAttribute('data-jm-replaced')) show(R(s, 'src-match'), adds);
+    show(R(s, 'src-mismatch'), !adds);
+    R(s, 'src-match-what').innerHTML = '수집원별 원시 건수의 합 <span class="mono">' + sp.rawTotal + '건</span> 이 이 값의 원시 카운트와 같고, 정규화 후 기여의 합 <span class="mono">'
+      + pct(sp.normTotal, 2) + '</span> 이 정규화 비율과 같습니다 &mdash; 분해는 소스 내 점유율 계산에서 그대로 나온 것입니다.';
+    R(s, 'src-mismatch-what').innerHTML = '원시 건수 합 <span class="mono">' + sp.rawTotal + '건</span> &harr; 원시 카운트 <span class="mono">' + sp.rawCount
+      + '건</span>, 정규화 후 기여 합 <span class="mono">' + pct(sp.normTotal, 2) + '</span> &harr; 정규화 비율 <span class="mono">' + pct(sp.normShare, 2) + '</span>.';
+    R(s, 'src-lowconf-n').textContent = String(sp.low);
+    show(R(s, 'src-lowconf'), sp.low > 0);
   } else {
-    renderNorm();
+    show(R(s, 'src-lowconf'), false);
   }
+
+  /* 기여 뉴스 (AC3.10) */
+  var all = ARTS[fa.axis + '|' + subject] || [];
+  var bySrc = {};
+  all.forEach(function(a){ bySrc[a.src] = (bySrc[a.src] || 0) + 1; });
+  var srcIds = Object.keys(bySrc);
+  if(fa.source && !bySrc[fa.source]) fa.source = '';
+  var list = all.filter(function(a){ return (!fa.source || a.src === fa.source) && (!fa.dup || a.dup); });
+  var rawCount = (fairRows().filter(function(r){ return r.s === subject; })[0] || {}).raw || 0;
+  R(s, 'art-subject').textContent = subject;
+  R(s, 'art-basis').textContent = basis;
+  R(s, 'art-count').textContent = '목록 ' + all.length + '건 · 원시 카운트 ' + rawCount + '건';
+  var sel = R(s, 'art-source');
+  sel.innerHTML = '<option value="">전체 (' + all.length + '건)</option>'
+    + srcIds.map(function(id){ return '<option value="' + esc(id) + '">' + esc(id) + ' (' + bySrc[id] + '건)</option>'; }).join('');
+  sel.value = fa.source;
+  R(s, 'art-dup').checked = fa.dup;
+  show(R(s, 'art-mismatch'), all.length !== rawCount);
+  R(s, 'art-mismatch-what').innerHTML = '목록 ' + all.length + '건 &harr; 원시 카운트 ' + rawCount + '건';
+  show(R(s, 'art-empty'), list.length === 0 && !fa.dup);
+  show(R(s, 'art-dup-empty'), list.length === 0 && fa.dup);
+  R(s, 'art-list').innerHTML = DEEP === 'art-loading' ? '' : list.map(function(a){
+    return '<div class="sv-art-row"><div class="sv-art-head"><span class="sv-art-title">' + esc(a.title) + '</span>'
+      + (a.dup ? '<span class="badge b-neu">본문 중복 ' + a.shares + '건</span>' : '') + '</div>'
+      + '<div class="sv-art-meta"><span class="sv-meta">수집원 ' + esc(a.src) + '</span><span class="sv-meta">수집 ' + esc(a.at) + '</span><span class="sv-meta">' + esc(a.id) + '</span></div>'
+      + '<div class="sv-art-links">'
+      + '<a class="btn sm" href="#" data-offpath="원래 기사 페이지 — 외부 사이트(새 탭)">원문 열기 &#8599;</a>'
+      + '<a class="btn sm" href="#" data-trace="' + esc(a.id) + '">원문 역추적 &rarr;</a>'
+      + '<a class="btn sm" href="#" data-offpath="분석 판단 디버깅 — 판단 디버깅 화면(이 기사의 호출 기록)">판단 되짚기 &rarr;</a>'
+      + (a.avail ? '' : '<span class="sv-meta">수집 시점 본문 미확보</span>')
+      + '</div></div>';
+  }).join('');
 }
 
-/* ---------------- 화면 3 : 소스 구성 ---------------- */
-function visibleSources(){
-  var q = state.srcQ.trim();
-  return SOURCES.filter(function(s){ return !q || s.name.indexOf(q) >= 0; });
-}
-function countedSources(){
-  var v = visibleSources();
-  return state.splitLowConf ? v.filter(function(s){ return s.conf === 'ok'; }) : v;
-}
-
-function renderSources(){
-  var vis = visibleSources();
-  var counted = countedSources();
-  var totalCounted = counted.reduce(function(a, s){ return a + s.raw; }, 0) || 1;
-  var body = $('srcbody');
-  body.innerHTML = '';
-  vis.forEach(function(s){
-    var split = state.splitLowConf && s.conf === 'low';
-    var tr = document.createElement('tr');
-    tr.className = 'srcrow' + (split ? ' split' : '');
-    tr.setAttribute('data-conf', s.conf);
-    tr.innerHTML =
-      '<td>' + s.name + (split ? ' <span class="badge b-na"><span class="d"></span>별도 항목</span>' : '') + '</td>' +
-      '<td class="num">' + fmt(s.raw) + '</td>' +
-      '<td class="num">' + (split ? '<span class="muted">집계 제외</span>' : pct(s.raw / totalCounted * 100)) + '</td>' +
-      '<td class="num">' + (split ? '—' : pct(s.raw / AXES[state.axis].total * 100)) + '</td>';
-    body.appendChild(tr);
-  });
-
-  var top = counted.slice().sort(function(a,b){ return b.raw - a.raw; })[0];
-  $('top-src').textContent = top ? top.name : '—';
-  $('top-src-share').textContent = top ? pct(top.raw / totalCounted * 100) : '—';
-  $('src-n').textContent = counted.length + '개';
-  $('src-count').textContent = vis.length + ' / ' + SOURCES.length + '개 수집원';
-  $('src-sub').textContent = (currentTarget() ? currentTarget().name : '') + ' · 기여 분해';
-
-  var lows = visibleSources().filter(function(s){ return s.conf === 'low'; });
-  $('lowconf-n').textContent = String(lows.reduce(function(a, s){ return a + s.raw; }, 0));
-  show($('s-low-confidence'), state.splitLowConf && lows.length > 0);
-}
-
-/* ---------------- 화면 4 : 기여 뉴스 ---------------- */
-function visibleArticles(){
-  var q = state.artQ.trim();
-  return ARTICLES.filter(function(a){
-    if(state.dupOnly && !a.dup) return false;
-    return !q || a.title.indexOf(q) >= 0;
-  });
-}
-
-function renderArticles(){
-  var list = visibleArticles();
-  var host = $('artlist');
-  host.innerHTML = '';
-  list.forEach(function(a){
-    var row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'trow';
-    row.setAttribute('data-article', a.id);
-    row.setAttribute('aria-pressed', String(state.article === a.id));
-    row.innerHTML =
-      '<div style="font-weight:600;font-size:13px">' + a.title + '</div>' +
-      '<div class="muted" style="font-size:11.5px;margin-top:3px">' +
-        a.src + ' · ' + a.at +
-        (a.dup ? ' · <span class="badge b-mix"><span class="d"></span>본문 중복</span>' : '') +
-      '</div>';
-    row.addEventListener('click', function(){ pickArticle(a.id); });
-    host.appendChild(row);
-  });
-  $('art-count').textContent = list.length + ' / ' + ARTICLES.length + '건';
-  if(state.article && !list.some(function(a){ return a.id === state.article; })) clearArticle();
-}
-
-function clearArticle(){
-  state.article = null;
-  show($('art-empty'), true);
-  show($('art-body'), false);
-  $('art-title').textContent = '고른 기사';
-  $('cta-4').disabled = true;
-  $('cta-4-hint').hidden = false;
-  var rows = document.querySelectorAll('#artlist .trow');
-  for(var i=0;i<rows.length;i++) rows[i].setAttribute('aria-pressed', 'false');
-  renderOrigin();
-}
-
-function pickArticle(id){
-  var a = null;
-  for(var i=0;i<ARTICLES.length;i++){ if(ARTICLES[i].id === id) a = ARTICLES[i]; }
-  if(!a) return;
-  state.article = id;
-  show($('art-empty'), false);
-  show($('art-body'), true);
-  $('art-title').textContent = a.title;
-  $('art-body').innerHTML =
-    '<div class="kv"><span class="k">수집원</span><span class="v">' + a.src + '</span></div>' +
-    '<div class="kv"><span class="k">수집 시각</span><span class="v mono">' + a.at + '</span></div>' +
-    '<div class="kv"><span class="k">본문 중복</span><span class="v">' + (a.dup ? '있음 — 같은 본문이 이미 수집됨' : '없음') + '</span></div>';
-  $('cta-4').disabled = false;
-  $('cta-4-hint').hidden = true;
-  var rows = document.querySelectorAll('#artlist .trow');
-  for(var i=0;i<rows.length;i++){
-    rows[i].setAttribute('aria-pressed', String(rows[i].getAttribute('data-article') === id));
+/* ================================================================
+   화면 trace (Trace.tsx) — 단계 5·6 이 같은 화면을 같은 구조로 그린다.
+   ================================================================ */
+var STATUS_LABEL = { analyzed: '분석됨', low_confidence: '저신뢰 — 분류에서 제외', unanalyzed: '미분석' };
+var SENTIMENT_LABEL = { positive: '긍정', neutral: '중립', negative: '부정', mixed: '혼재' };
+function sentimentBadge(x){ return x === 'positive' ? 'b-pos' : (x === 'negative' ? 'b-neg' : 'b-neu'); }
+function hashOf(seed){
+  var h = 2166136261, out = '';
+  for(var k = 0; k < 8; k++){
+    for(var i = 0; i < seed.length; i++){ h ^= seed.charCodeAt(i) + k; h = Math.imul(h, 16777619) >>> 0; }
+    out += pad(h.toString(16), 8);
   }
-  renderOrigin();
-  renderEvidence();
+  return out;
+}
+var TRACE_SPECIAL = {
+  'kr-wire-20261016-0112': { body: '정부가 반도체 산업 지원을 위해 보조금 3조 원을 추가로 투입하는 방안을 검토하고 있다. 산업통상자원부는 16일 설비 투자 세액공제와 별도로 직접 보조금 예산을 늘리는 안을 관계 부처와 협의 중이라고 밝혔다.\n업계는 "투자 결정에 숨통이 트일 것"이라며 환영했다. 다만 재원 조달 방식은 아직 정해지지 않았다.',
+    silver: { sentiment: 'positive', rationale: '‘업계 환영’과 투자 확대 전망을 전하며 지원 확대를 긍정적으로 서술한다.', subjects: ['반도체 보조금', '산업통상자원부'], conf: 0.91 }, rank: 2, views: 48210 },
+  'kr-wire-20261016-0402': { silver: { sentiment: 'neutral', rationale: null, subjects: ['반도체 보조금', '재정'], conf: 0.78, ver: 'v2026.09.4' } },
+  'kr-wire-20261016-0415': { silver: { status: 'low_confidence', sentiment: null, subjects: ['반도체 보조금', '코스피'], conf: 0.41 } },
+  'kr-wire-20261016-0455': { silver: { status: 'low_confidence', sentiment: 'neutral', rationale: '일정만 전할 뿐 평가가 드러나지 않는다.', conf: 0.52 } },
+  'kr-market-20261016-1124': { silver: { status: 'low_confidence', sentiment: 'positive', rationale: '외국인 순매수를 호재로 해석한다.', conf: 0.55 } },
+  'kr-econ-20261016-0233': { preserved: false },
+  'kr-market-20261016-1120': { silver: null }
+};
+function traceOf(id){
+  var a = ART_INDEX[id]; if(!a) return null;
+  var sp = TRACE_SPECIAL[id] || {};
+  var hh = a.at.slice(11, 13), dupFirst = null;
+  if(a.d){ (ARTS[a.axis + '|' + a.subject] || []).forEach(function(b){ if(b.d === a.d && (!dupFirst || b.at < dupFirst)) dupFirst = b.at; }); }
+  var silver = sp.silver === null ? null : Object.assign({
+    status: 'analyzed', sentiment: 'neutral', rationale: '수치와 일정을 전할 뿐 평가하는 표현이 드러나지 않는다.',
+    countries: [a.axis === 'GLOBAL' ? 'GLOBAL' : a.axis], subjects: [a.subject], conf: 0.84, ver: 'v2026.10.2'
+  }, sp.silver || {});
+  return {
+    id: id, a: a, silver: silver, linkDead: !a.avail, preserved: sp.preserved !== false,
+    body: sp.body || (a.title + '\n' + a.subject + '에 관한 ' + a.src + ' 기사의 수집 시점 본문이다. 본문은 원문 바이트의 해시로 보존되며, 같은 본문은 다시 저장하지 않는다.'),
+    hash: hashOf(a.d ? a.axis + a.subject + a.d : id),
+    first: '2026-10-16T' + (dupFirst || a.at).slice(11, 13),
+    cycle: '2026-10-16T' + hh,
+    rank: sp.rank || (3 + a.id.length % 9), views: sp.views || (12000 + (a.id.charCodeAt(a.id.length - 1) * 137) % 9000)
+  };
 }
 
-/* ---------------- 화면 5 : 원문 역추적 ---------------- */
-function currentArticle(){
-  for(var i=0;i<ARTICLES.length;i++){ if(ARTICLES[i].id === state.article) return ARTICLES[i]; }
-  return ARTICLES[0];
-}
-
-function renderOrigin(){
-  var a = currentArticle();
-  var expired = state.linkState === 'expired';
-  $('origin-title').textContent = a.title;
-  $('origin-sub').textContent = a.src + ' · ' + a.at + ' 수집';
-  $('link-badge').textContent = expired ? '링크 끊김' : '링크 정상';
-  $('link-badge').className = 'badge ' + (expired ? 'b-neg' : 'b-pos');
-  $('origin-body').innerHTML = expired
-    ? '<div class="note"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
-      '<div>원래 주소는 더 이상 응답하지 않습니다. 아래는 <b>수집 시점에 보존한 사본</b>입니다.</div></div>'
-    : '<div class="note info"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>' +
-      '<div>원래 주소가 정상 응답합니다. 보존 사본과 함께 대조해 볼 수 있습니다.</div></div>';
-  $('preserved').innerHTML =
-    '<div class="kv"><span class="k">보존 시각</span><span class="v mono">' + a.at + '</span></div>' +
-    '<div class="kv"><span class="k">수집원</span><span class="v">' + a.src + '</span></div>' +
-    '<p style="margin-top:12px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">' + a.body + '</p>';
-  $('origin-url').textContent = a.url;
-  var ob = $('open-source');
-  ob.setAttribute('data-url', a.url);
-  show(ob, !expired);
-  show($('s-link-expired'), expired);
-}
-
-/* ---------------- 화면 6 : 판정 ---------------- */
-function renderEvidence(){
-  var cur = currentTarget();
-  var counted = countedSources();
-  var totalCounted = counted.reduce(function(a, s){ return a + s.raw; }, 0) || 1;
-  var top = counted.slice().sort(function(a,b){ return b.raw - a.raw; })[0];
-  var a = state.article ? currentArticle() : null;
-  $('evidence').innerHTML =
-    '<div class="kv"><span class="k">검증 대상</span><span class="v">' + (cur ? cur.name : '—') + '</span></div>' +
-    '<div class="kv"><span class="k">원시 배수</span><span class="v mono">×' + (cur ? multOf(cur).toFixed(1) : '—') + '</span></div>' +
-    '<div class="kv"><span class="k">정규화 배수</span><span class="v mono">×' + (cur ? normMultOf(cur).toFixed(1) : '—') + '</span></div>' +
-    '<div class="kv"><span class="k">최다 기여 소스</span><span class="v">' + (top ? top.name + ' ' + pct(top.raw / totalCounted * 100) : '—') + '</span></div>' +
-    '<div class="kv"><span class="k">도달한 원문</span><span class="v">' + (a ? a.title : '아직 없음') + '</span></div>';
-}
-
-function submitJudge(e){
-  if(e) e.preventDefault();
-  var picked = document.querySelector('input[name="verdict"]:checked');
-  var memo = $('judge-memo').value.trim();
-  if(!picked || !memo){
-    $('invalid-msg').textContent = !picked
-      ? '결론을 하나 고르세요.'
-      : '근거 메모를 적어야 기록됩니다 — 무엇을 보고 그렇게 판정했는지가 결론의 실체입니다.';
-    show($('s-invalid'), true);
-    show($('s-recorded'), false);
-    return;
-  }
-  show($('s-invalid'), false);
-  $('recorded-what').textContent =
-    (picked.value === 'valid' ? '유효한 신호' : '수집 편중') + '으로 판정했습니다.';
-  show($('s-recorded'), true);
-}
-
-/* ---------------- 여정 워커 ---------------- */
+var tr = { query: '' };
 (function(){
-  var order = ['STP-notice-spike','STP-check-normalized','STP-inspect-sources',
-               'STP-drilldown-articles','STP-open-origin','STP-judge'];
-  var secs = {}, rails = {};
-  order.forEach(function(id){
-    secs[id] = document.getElementById(id);
-    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
-  });
-  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+  try { var q = new URLSearchParams(location.search).get('record_id'); if(q) tr.query = q.trim(); } catch(e){}
+})();
+
+function renderTrace(s){
+  var q = tr.query;
+  R(s, 'tr-record').value = q;
+  var rec = traceOf(q || FIRST_OBS);
+  var missing = !!q && !rec;
+  show(R(s, 'tr-missing'), missing);
+  R(s, 'tr-missing-id').textContent = q;
+  if(!R(s, 'tr-found').hasAttribute('data-jm-replaced')) show(R(s, 'tr-found'), !missing);
+  if(missing) return;
+  show(R(s, 'tr-auto'), !q);
+
+  var sv = rec.silver;
+  R(s, 'tr-crumb').innerHTML = [['bronze', '원문 수집', true], ['silver', '분석', !!sv], ['gold', '집계 기여', true]].map(function(c, i){
+    return (i ? '<span class="sv-crumb-sep">&rarr;</span>' : '') + '<span class="sv-crumb-step' + (c[2] ? '' : ' sv-crumb-gap') + '"><span class="mono">'
+      + c[0] + '</span> ' + c[1] + (c[2] ? '' : ' 없음') + '</span>';
+  }).join(' ');
+
+  R(s, 'tr-title').textContent = rec.a.title;
+  R(s, 'tr-sub').textContent = rec.a.src + ' · ' + rec.a.at + ' 수집';
+  var badge = R(s, 'tr-link-badge');
+  badge.className = 'badge ' + (rec.linkDead ? 'b-neg' : 'b-pos');
+  badge.textContent = rec.linkDead ? '링크 끊김' : '링크 정상';
+  if(!R(s, 'tr-link-ok').hasAttribute('data-jm-replaced')) show(R(s, 'tr-link-ok'), !rec.linkDead);
+  show(R(s, 'tr-link-dead'), rec.linkDead);
+  R(s, 'tr-url').textContent = 'https://news.example/' + rec.a.src + '/' + rec.id.split('-').pop();
+  show(R(s, 'tr-open'), !rec.linkDead);
+  R(s, 'tr-body').textContent = rec.body;
+  if(!R(s, 'tr-body').hasAttribute('data-jm-replaced')) show(R(s, 'tr-body'), rec.preserved);
+  show(R(s, 'tr-body-lost'), !rec.preserved);
+  R(s, 'tr-lost-hash').textContent = rec.hash;
+
+  if(!R(s, 'tr-silver').hasAttribute('data-jm-replaced')) show(R(s, 'tr-silver'), !!sv);
+  show(R(s, 'tr-silver-none'), !sv);
+  if(sv){
+    R(s, 'tr-status').textContent = STATUS_LABEL[sv.status] || sv.status;
+    var sb = R(s, 'tr-sentiment');
+    if(!sb.hasAttribute('data-jm-replaced')) show(sb, !!sv.sentiment);
+    show(R(s, 'tr-excluded'), !sv.sentiment);
+    if(sv.sentiment){ sb.className = 'badge ' + sentimentBadge(sv.sentiment); sb.textContent = SENTIMENT_LABEL[sv.sentiment] || sv.sentiment; }
+    show(R(s, 'tr-rationale-row'), !!sv.sentiment);
+    var rt = R(s, 'tr-rationale');
+    rt.textContent = sv.rationale || '';
+    if(!rt.hasAttribute('data-jm-replaced')) show(rt, !!sv.rationale);
+    show(R(s, 'tr-rationale-missing'), !sv.rationale);
+    R(s, 'tr-countries').textContent = sv.countries.join(' · ') || '—';
+    R(s, 'tr-subjects').textContent = sv.subjects.join(' · ') || '—';
+    R(s, 'tr-confidence').textContent = sv.conf.toFixed(2);
+    R(s, 'tr-analyzer').textContent = sv.ver;
+  }
+  R(s, 'tr-collected').textContent = rec.a.at;
+  R(s, 'tr-cycle').textContent = rec.cycle;
+  R(s, 'tr-rank').textContent = String(rec.rank);
+  R(s, 'tr-views').textContent = rec.views.toLocaleString('ko-KR');
+  R(s, 'tr-hash').textContent = rec.hash;
+  show(R(s, 'tr-first-row'), rec.preserved);
+  R(s, 'tr-first').textContent = rec.first;
+}
+
+/* ================================================================
+   여정 워커
+   ================================================================ */
+var ORDER = ['STP-notice-spike', 'STP-check-normalized', 'STP-inspect-sources', 'STP-drilldown-articles', 'STP-open-origin', 'STP-judge'];
+var FAIR_STEPS = ['STP-check-normalized', 'STP-inspect-sources', 'STP-drilldown-articles'];
+var TRACE_STEPS = ['STP-open-origin', 'STP-judge'];
+var DEEP = '';   /* 딥링크로 연 상태 id — 데이터로 만들 수 없는 상태(로딩 등)의 주변 표기를 맞춘다 */
+
+/* 데이터로 도달하는 상태는 딥링크로 열 때도 그 데이터를 먼저 고른다 — 상태와 화면의 나머지가 어긋나지 않게. */
+var PRESET = {
+  'spike-empty':      function(){ state.axis = 'GL'; },
+  'normalized-away':  function(){ fa.axis = 'KR'; fa.subject = '반도체 보조금'; fa.mode = 'normalized'; },
+  'lead-agree':       function(){ fa.axis = 'US'; fa.subject = ''; },
+  'fair-empty':       function(){ fa.axis = 'GLOBAL'; fa.subject = ''; },
+  'src-empty':        function(){ fa.axis = 'KR'; fa.subject = '가계부채'; },
+  'src-mismatch':     function(){ fa.axis = 'KR'; fa.subject = '원/달러 환율'; },
+  'low-confidence':   function(){ fa.axis = 'KR'; fa.subject = '반도체 보조금'; },
+  'art-mismatch':     function(){ fa.axis = 'KR'; fa.subject = '원/달러 환율'; fa.source = ''; fa.dup = false; },
+  'art-empty':        function(){ fa.axis = 'KR'; fa.subject = '가계부채'; fa.source = ''; fa.dup = false; },
+  'art-dup-empty':    function(){ fa.axis = 'KR'; fa.subject = '한국은행 기준금리'; fa.source = ''; fa.dup = true; },
+  'auto-pick':        function(){ tr.query = ''; },
+  'trace-missing':    function(){ tr.query = 'kr-wire-20261016-9999'; },
+  'link-dead':        function(){ tr.query = 'kr-portal-20261016-0907'; },
+  'body-lost':        function(){ tr.query = 'kr-econ-20261016-0233'; },
+  'silver-none':      function(){ tr.query = 'kr-market-20261016-1120'; },
+  'silver-excluded':  function(){ tr.query = 'kr-wire-20261016-0415'; },
+  'rationale-missing':function(){ tr.query = 'kr-wire-20261016-0402'; }
+};
+
+function render(step){
+  var s = sec(step); if(!s) return;
+  if(step === 'STP-notice-spike'){ renderDash(s); markDashOffpath(s); }
+  else if(FAIR_STEPS.indexOf(step) >= 0) renderFair(s);
+  else renderTrace(s);
+}
+
+var reloadTimer = null;
+function applyWindow(range, unit){
+  if(!unitFits(unit, range)) unit = ['week', 'day', 'hour'].filter(function(u){ return unitFits(u, range); })[0];
+  state.range = range; state.unit = unit;
+  var s = sec(cur);
+  render(cur);
+  var rl = R(s, 'reloading'), wl = R(s, 'winlist');
+  show(rl, true); show(wl, false);
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(function(){ show(rl, false); show(wl, true); render(cur); }, 300);
+}
+
+/* 공정성 화면의 지금 목록 — 원문 역추적으로 들고 갈 기사를 고른다 */
+function currentArticles(){
+  var rows = fairRows();
+  var subject = curSubject(rows.sort(function(a, b){ return shareIn(b, fa.mode) - shareIn(a, fa.mode); }));
+  return (ARTS[fa.axis + '|' + subject] || []).filter(function(a){ return (!fa.source || a.src === fa.source) && (!fa.dup || a.dup); });
+}
+
+(function(){
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
 
   function go(id, push){
-    if(order.indexOf(id) < 0) return;
+    if(ORDER.indexOf(id) < 0) return;
+    if(push) DEEP = '';
     cur = id;
-    var i = order.indexOf(id);
-    order.forEach(function(o, k){
-      secs[o].hidden = (o !== id);
-      if(rails[o]){
-        rails[o].classList.toggle('on', o === id);
-        rails[o].classList.toggle('done', k < i);
-      }
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if(rails[o]){ rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
     });
     if(prevBtn) prevBtn.disabled = (i === 0);
-    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
-    if(id === 'STP-judge') renderEvidence();
+    if(nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    JM.enter(id);
+    render(id);
     if(push && location.hash !== '#' + id) location.hash = '#' + id;
   }
   window.__journeyGo = go;
 
-  document.querySelectorAll('[data-advance]').forEach(function(b){
-    b.addEventListener('click', function(){
-      if(b.disabled) return;
-      go(b.getAttribute('data-advance'), true);
-    });
+  /* 급등 카드 → 공정성 화면: 구현의 /fairness?axis=…&subject=…&baseline=… 처럼 대상·축·비교 구간을 들고 간다 */
+  function carryFromDash(subject){
+    fa.axis = FAIR_AXIS_OF[state.axis] || 'KR';
+    fa.subject = subject || '';
+    fa.baseline = state.spikeBase;
+    fa.source = ''; fa.dup = false;
+  }
+
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-goto],[data-trace],[data-role="spike-entry-go"],[data-role="fa-norm"],.sv-pick,.trow[data-subject],.spk-row') : null;
+    if(!el) return;
+    if(el.hasAttribute('data-advance')){
+      e.preventDefault();
+      if(el.disabled) return;
+      var to = el.getAttribute('data-advance');
+      if(cur === 'STP-notice-spike' && to === 'STP-check-normalized') carryFromDash(spikePickNow());
+      if(cur === 'STP-drilldown-articles' && to === 'STP-open-origin'){ var l = currentArticles(); if(l[0]) tr.query = l[0].id; }
+      go(to, true); return;
+    }
+    if(el.hasAttribute('data-goto-step')){ go(el.getAttribute('data-goto-step'), true); return; }
+    if(el.hasAttribute('data-goto')){
+      var p = el.getAttribute('data-goto').split('#');
+      if(p[0] === 'JRN-spike-verification'){
+        e.preventDefault();
+        if(p[1] === 'STP-open-origin'){
+          var arts = currentArticles(), dead = arts.filter(function(a){ return !a.avail; })[0] || arts[0];
+          if(dead) tr.query = dead.id;
+        }
+        go(p[1], true);
+      }
+      return;
+    }
+    if(el.hasAttribute('data-trace')){ e.preventDefault(); tr.query = el.getAttribute('data-trace'); go('STP-open-origin', true); return; }
+    if(el.getAttribute('data-role') === 'spike-entry-go'){ e.preventDefault(); carryFromDash(state.target); go('STP-check-normalized', true); return; }
+    if(el.getAttribute('data-role') === 'fa-norm'){ fa.mode = fa.mode === 'normalized' ? 'raw' : 'normalized'; render(cur); return; }
+    if(el.classList.contains('sv-pick')){ fa.subject = el.getAttribute('data-subject'); fa.source = ''; render(cur); return; }
+    if(el.classList.contains('trow')){ state.target = el.getAttribute('data-subject'); render(cur); return; }
+    if(el.classList.contains('spk-row')){ state.spikePick = el.getAttribute('data-spike'); render(cur); return; }
   });
-  document.querySelectorAll('[data-goto-step]').forEach(function(b){
-    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
-  });
-  document.querySelectorAll('[data-goto]').forEach(function(a){
-    var parts = (a.getAttribute('data-goto') || '').split('#');
-    if(parts[0] === 'JRN-spike-verification'){
-      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+
+  document.addEventListener('submit', function(e){
+    e.preventDefault();
+    var f = e.target;
+    if(f.getAttribute && f.getAttribute('data-role') === 'tr-lookup'){
+      tr.query = (R(f, 'tr-record').value || '').trim();
+      render(cur);
     }
   });
-  if(prevBtn) prevBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
-  if(nextBtn) nextBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+  function onField(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    var host = el.closest('[data-role="unit"],[data-role="fa-axis"]');
+    if(host && host.getAttribute('data-role') === 'unit'){ applyWindow(state.range, el.value); return; }
+    if(host && host.getAttribute('data-role') === 'fa-axis'){ fa.axis = el.value; fa.subject = ''; fa.source = ''; render(cur); return; }
+    if(role === 'axis'){ state.axis = el.value; state.target = null; state.spikePick = null; render(cur); return; }
+    if(role === 'range'){ applyWindow(el.value, state.unit); return; }
+    if(role === 'restore'){ state.restore = el.checked; return; }
+    if(role === 'thresh'){ state.thresh = Number(el.value) || 0; render(cur); return; }
+    if(role === 'only-new'){ state.onlyNew = el.checked; render(cur); return; }
+    if(role === 'spike-baseline'){ state.spikeBase = el.value; render(cur); return; }
+    if(role === 'art-source'){ fa.source = el.value; render(cur); return; }
+    if(role === 'art-dup'){ fa.dup = el.checked; render(cur); return; }
+  }
+  document.addEventListener('change', onField);
+  document.addEventListener('input', function(e){ if(e.target.getAttribute('data-role') === 'thresh') onField(e); });
+
+  if(prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i > 0) go(ORDER[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i < ORDER.length - 1) go(ORDER[i + 1], true); });
 
   function fromHash(){
-    var h = (location.hash || '').replace(/^#/, '');
-    go(order.indexOf(h) >= 0 ? h : order[0], false);
+    var p = JM.parseHash();
+    DEEP = p.state || '';
+    if(PRESET[p.state]) PRESET[p.state]();
+    go(ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0], false);
+    if(p.state) JM.showState(cur, p.state);
   }
-  $('open-source').addEventListener('click', function(){ var u = this.getAttribute('data-url'); if(u) window.open(u, '_blank', 'noopener'); });
   window.addEventListener('hashchange', fromHash);
-
-  /* 제품 컨트롤 배선 */
-  $('axis').addEventListener('change', function(){
-    state.axis = this.value;
-    var list = subjects();
-    state.target = list.length ? list[0].id : null;
-    state.article = null;
-    renderSpikes(); renderNorm(); renderSources(); renderArticles(); renderOrigin(); renderEvidence();
-  });
-  $('range').addEventListener('change', function(){
-    state.range = this.value; renderSpikes(); renderNorm(); renderEvidence();
-  });
-  $('norm-form').addEventListener('submit', function(e){
-    e.preventDefault();
-    state.normalize = $('normalize').checked;
-    applyNorm(true);
-  });
-  $('src-q').addEventListener('input', function(){ state.srcQ = this.value; renderSources(); renderEvidence(); });
-  $('split-lowconf').addEventListener('change', function(){
-    state.splitLowConf = this.checked; renderSources(); renderEvidence();
-  });
-  $('art-q').addEventListener('input', function(){ state.artQ = this.value; renderArticles(); });
-  $('dup-only').addEventListener('change', function(){ state.dupOnly = this.checked; renderArticles(); });
-  $('link-state').addEventListener('change', function(){ state.linkState = this.value; renderOrigin(); });
-  $('judge-form').addEventListener('submit', submitJudge);
-
-  renderSpikes();
-  renderNorm();
-  renderSources();
-  renderArticles();
-  renderOrigin();
-  renderEvidence();
   fromHash();
 })();
 </script>

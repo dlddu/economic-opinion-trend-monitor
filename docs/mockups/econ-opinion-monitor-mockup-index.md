@@ -364,27 +364,94 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 
 #### `JRN-spike-verification`
 
-| 상태 id | 상태 | 출처 | 도달 경로 (프로토타입 안에서) |
-|---|---|---|---|
-| `loading` | 축별 총 건수로 재환산 중 | 이 task 결정 | 화면 2에서 「세는 방식 적용」 제출 |
-| `normalized-away` | 정규화하면 급등이 사라짐 — 원문 확인 없이 「편중」으로 조기 종료할 수 있는 갈래 | 여정 문서 §4 5행 | 화면 2에서 「수집량 정규화」를 켜고 「세는 방식 적용」 제출(한국 축 기본 대상) |
-| `low-confidence` | 저신뢰·미분석 항목을 집계에서 분리 표기 | 여정 문서 §4 2행 | 화면 3에서 「저신뢰·미분석 항목 분리 표기」 체크 |
-| `no-selection` | 기여 뉴스 미선택 — 원문으로 내려갈 수 없음 | 이 task 결정 | 화면 4 진입 직후(오른쪽 상세 패널) |
-| `link-expired` | 원문 링크 만료·404 — 보존 원문 전체를 대체 표시하고 링크 상태를 배지로 명시 | 여정 문서 §4 1행 | 화면 5에서 「원문 링크 상태」를 '만료·404'로 선택 |
-| `invalid` | 판정 입력 검증 실패 | 이 task 결정 | 화면 6에서 결론 미선택 또는 근거 메모 공란으로 「판정 기록」 제출 |
-| `recorded` | 판정 기록 완료(성공) | 이 task 결정 — **세션 한정이며 영속 저장이 아니다** | 화면 6에서 결론을 고르고 근거 메모를 채워 제출 |
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-notice-spike` | `dash` | 여정 문서 `STP-notice-spike` 페인포인트(「급등 지점에서 공정성 화면으로 가는 진입점」) · `Dashboard.tsx` + `SpikeCheck.tsx` (화면 전체 — 기준 페이지와 같은 `screens_shared.dash_base`. 이 단계의 몫은 「튀는 값」·「이 급등은 진짜인가」 카드와 `정규화 전후를 대조하기 →`(`fairnessPath(axis, subject, baseline)`)) |
+| `STP-check-normalized` | `fairness` | AC3.8 · AC3.1 · `Fairness.tsx` (축 전환 · `CMP-axpill` · `CMP-norm-toggle` 즉시 토글 · 도입 lede · 표기 원칙 note · 원시·정규화 대비 표(`PAT-raw-vs-norm`, 행 선택 `setPicked`) · 정규화 소멸 배너 · 두 방식의 1위 · 세는 기준 · 소스별 기여 · 기여 뉴스) |
+| `STP-inspect-sources` | `fairness` | 같은 화면 — 소스별 기여 카드(AC3.9 · `Fairness.tsx` `split` · 합 등식 note `rawAdds && normAdds`) + 저신뢰 판정 분리 표기(AC2.5 · AC3.4 · 여정 문서 §4 2행) |
+| `STP-drilldown-articles` | `fairness` | 같은 화면 — 기여 뉴스 카드(AC3.10 · AC1.7 · `Fairness.tsx` `contrib` · 수집원 좁히기 · 본문 중복 필터 · 건수 대조 `reconciles` · 행 액션 셋) |
+| `STP-open-origin` | `trace` | AC2.6 · AC1.4 · AC2.3 · AC2.5 · `Trace.tsx` (record_id 조회 폼 · 계보 크럼 `PAT-lineage` · 원문 카드와 링크 상태 배지 · 분석 카드(라벨·판단 근거) · 수집 메타 · 판정 기록 note) |
+| `STP-judge` | `trace` | 여정 문서 `STP-judge` 터치포인트(「판정 화면 / 제품 외부」)·페인포인트(영속화는 범위 밖) · `Trace.tsx` (같은 화면 — 「판정 기록은 아직 열 수 없습니다」 note 가 제품 안에 있는 판정 표면의 전부) |
 
-> `recorded`가 세션 안에서만 유지되는 것은 미구현이 아니라 **범위 결정**이다. 여정 문서가
-> `STP-judge`의 페인포인트로 적은 「검증 이력·플래그 남기기」를 문서 자신이 **「현재 범위 밖, 백로그 후보」**
-> 로 파킹했다. 이 프로토타입은 그 기능을 만들지 않고 단계가 정의한 「판단하고 세션을 닫는다」까지만 그린다.
-> 백로그가 깨어나면 이 행의 출처와 화면 문구를 함께 고친다.
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `spike-loading` | `STP-notice-spike` | `dash` | 얹힘 | 「튀는 값」 첫 조회 — 「불러오는 중…」 | `SpikeCheck.tsx` (`!data && !error`) | 딥링크 `#STP-notice-spike/spike-loading` |
+| `spike-error` | `STP-notice-spike` | `dash` | 얹힘 | 「튀는 값」 서빙 응답 실패 — 「API 오류」 | `SpikeCheck.tsx` (`error`) | 딥링크 `#STP-notice-spike/spike-error` |
+| `spike-empty` | `STP-notice-spike` | `dash` | 얹힘 | 축에 집계 버킷 없음 — 「급등 없음」으로 그리지 않는다 | `SpikeCheck.tsx` (`rows.length === 0`, `spike-empty`) | 조회 조건 카드의 축을 「전세계」로 |
+| `spike-no-baseline` | `STP-notice-spike` | `dash` | 얹힘 | 평소로 삼을 버킷 없음 — 배수를 「—」로 둔다 | `SpikeCheck.tsx` (`!data.basis.has_baseline`, `spike-no-baseline`) | 딥링크 `#STP-notice-spike/spike-no-baseline` |
+| `fair-loading` | `STP-check-normalized` | `fairness` | 얹힘 | 첫 진입 — 축 전환·lede·표기 note 아래 「불러오는 중…」 | `Fairness.tsx` (`!data && !error`) | 딥링크 `#STP-check-normalized/fair-loading` |
+| `fair-error` | `STP-check-normalized` | `fairness` | 얹힘 | 서빙 응답 실패 — 「API 오류」 | `Fairness.tsx` (`error`) | 딥링크 `#STP-check-normalized/fair-error` |
+| `fair-empty` | `STP-check-normalized` | `fairness` | 얹힘 | 축에 집계 버킷 없음 — 빈 순위를 0% 로 그리지 않는다 | `Fairness.tsx` (`data && rows.length === 0`) | 화면 안 축 전환을 「전세계」로 |
+| `normalized-away` | `STP-check-normalized` | `fairness` | 얹힘 | 정규화하면 급등이 사라짐 — 원문 확인 없이 「편중」으로 닫아도 되는 갈래, 「판정으로 →」 | 여정 문서 §4 5행 · `Fairness.tsx` (`mode === "normalized" && current?.normalized_away`) | 대시보드에서 「반도체 보조금」을 들고 넘어온다(기본 경로) · 토글을 원시 건수로 바꾸면 사라진다 |
+| `lead-agree` | `STP-check-normalized` | `fairness` | 얹힘 | 두 방식의 1위 일치 — 「이 급등은 정규화 이후에도 남습니다」 | AC3.8 · `Fairness.tsx` (`!rankingDiverges`) | 화면 안 축 전환을 「미국」으로 |
+| `src-loading` | `STP-inspect-sources` | `fairness` | 얹힘 | 소스별 기여 조회 중 — 카드 안 「불러오는 중…」 | `Fairness.tsx` (`!split && !splitError`) | 딥링크 `#STP-inspect-sources/src-loading` |
+| `src-error` | `STP-inspect-sources` | `fairness` | 얹힘 | 소스별 기여 서빙 응답 실패 — 「API 오류」 | `Fairness.tsx` (`splitError`) | 딥링크 `#STP-inspect-sources/src-error` |
+| `src-empty` | `STP-inspect-sources` | `fairness` | 얹힘 | 분해된 수집원 없음 — 0 으로 그리지 않는다 | `Fairness.tsx` (`split.rows.length === 0`, `src-empty`) | 대비 표에서 「가계부채」를 고른다 |
+| `src-mismatch` | `STP-inspect-sources` | `fairness` | 얹힘 | 부분 합이 전체와 갈림 — 「부분이 전체와 갈립니다.」 | AC3.9 · `Fairness.tsx` (`!(rawAdds && normAdds)`) | 대비 표에서 「원/달러 환율」을 고른다 |
+| `low-confidence` | `STP-inspect-sources` | `fairness` | 얹힘 | 저신뢰로 판정된 기사가 이 값에 섞여 있음 — 건수를 따로 적고 「소스 구성에서 갈라 보기 →」 | 여정 문서 §4 2행 · AC2.5 · AC3.4 · 가정(구현에 아직 없는 표면 — 아래 산문) | 「반도체 보조금」(기본 경로) · 「한국은행 기준금리」를 고르면 사라진다 |
+| `art-loading` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 뉴스 조회 중 — 카드 머리 태그 「불러오는 중…」 | `Fairness.tsx` (`contrib` 이 아직 없음) | 딥링크 `#STP-drilldown-articles/art-loading` |
+| `art-index-not-ready` | `STP-drilldown-articles` | `fairness` | 얹힘 | 원문·분석 기록 인덱스가 아직 없음 — 「인덱스 준비 중」 | `Fairness.tsx` (`contribError === INDEX_NOT_READY`) · `IndexNotReady.tsx` | 딥링크 `#STP-drilldown-articles/art-index-not-ready` |
+| `art-error` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 기사 조회 실패 | `Fairness.tsx` (`contribError !== INDEX_NOT_READY`) | 딥링크 `#STP-drilldown-articles/art-error` |
+| `art-mismatch` | `STP-drilldown-articles` | `fairness` | 얹힘 | 목록 건수 ≠ 원시 카운트 — 목록을 깎지 않고 갈렸다고 적는다 | AC3.10 · `Fairness.tsx` (`!reconciles`) | 대비 표에서 「원/달러 환율」을 고른다 |
+| `art-empty` | `STP-drilldown-articles` | `fairness` | 얹힘 | 기여 기사 0건 — 빈 목록을 지어내지 않는다 | `Fairness.tsx` (`articles.length === 0 && !dupOnly`) | 대비 표에서 「가계부채」를 고른다 |
+| `art-dup-empty` | `STP-drilldown-articles` | `fairness` | 얹힘 | 「본문 중복으로 잡힌 것만」 에 남는 기사 0건 | AC1.7 · `Fairness.tsx` (`articles.length === 0 && dupOnly`) | 「한국은행 기준금리」를 고르고 「본문 중복으로 잡힌 것만」 체크 |
+| `trace-loading` | `STP-open-origin` | `trace` | 얹힘 | 첫 진입 — 조회 폼·lede 아래 「불러오는 중…」 | `Trace.tsx` (`!data && !error`) | 딥링크 `#STP-open-origin/trace-loading` |
+| `trace-error` | `STP-open-origin` | `trace` | 얹힘 | 서빙 응답 실패 — 「API 오류」 | `Trace.tsx` (`error && error !== INDEX_NOT_READY`) | 딥링크 `#STP-open-origin/trace-error` |
+| `trace-index-not-ready` | `STP-open-origin` | `trace` | 얹힘 | 원문·분석 기록 인덱스가 아직 없음 — 「인덱스 준비 중」 | `Trace.tsx` (`error === INDEX_NOT_READY`) · `IndexNotReady.tsx` | 딥링크 `#STP-open-origin/trace-index-not-ready` |
+| `trace-missing` | `STP-open-origin` | `trace` | 얹힘 | 조회한 record_id 가 Bronze 에 없음 — 추적이 시작되지 않는다 | `Trace.tsx` (`!data.found && selection === "requested-missing"`) | record_id 에 없는 값(예: `kr-wire-20261016-9999`)을 넣고 「원문까지 내려가기」 |
+| `trace-empty` | `STP-open-origin` | `trace` | 얹힘 | 수집 레코드 0건 — 빈 계보를 그리지 않는다 | `Trace.tsx` (`!data.found`, 그 밖의 selection) | 딥링크 `#STP-open-origin/trace-empty` |
+| `auto-pick` | `STP-open-origin` | `trace` | 얹힘 | 조회 없이 열어 첫 관측을 자동 선택 | `Trace.tsx` (`selection === "auto"`) | record_id 를 비우고 「원문까지 내려가기」(직접 진입도 같다) |
+| `link-dead` | `STP-open-origin` | `trace` | 얹힘 | 원문 링크 끊김 — 배지 「링크 끊김」, 보존 원문 전체로 대체, 「원문 열기」 없음 | 여정 문서 §4 1행 · AC1.4 · `Trace.tsx` (`linkDead = !bronze.body_available`) | 기여 뉴스에서 「수집 시점 본문 미확보」 행의 「원문 역추적 →」 (또는 「보존 원문으로 이어서 보기 →」) |
+| `body-lost` | `STP-open-origin` | `trace` | 얹힘 | 본문 미보존 — 관측은 남고 본문만 없다 | AC1.4 · `Trace.tsx` (`bodyLost = !bronze.body_preserved`) | record_id `kr-econ-20261016-0233` 조회 |
+| `silver-none` | `STP-open-origin` | `trace` | 얹힘 | 분석 레코드 없음 — 계보 크럼의 분석 칸이 끊김 | AC2.6 · `Trace.tsx` (`!silver`, 크럼 `present=false`) | record_id `kr-market-20261016-1120` 조회 |
+| `silver-excluded` | `STP-open-origin` | `trace` | 얹힘 | 저신뢰 — 분류에서 제외, 네 분류 어디에도 넣지 않음 | AC2.5 · `Trace.tsx` (`!silver.sentiment`) | record_id `kr-wire-20261016-0415` 조회 |
+| `rationale-missing` | `STP-open-origin` | `trace` | 얹힘 | 판단 근거 기록 없음 — 근거를 남기기 전에 분석된 기사 | AC2.3 · `Trace.tsx` (`sentiment_rationale ?? …`) | record_id `kr-wire-20261016-0402` 조회 |
 
-여정 문서 §4 3·4행(분류 오류 → `JRN-logic-backfill`, 수집 이상 → `JRN-ingestion-recovery`)은 이 여정을
-벗어나는 인계라 상태가 아니라 **이탈 컨트롤**이다. 이 페이지는 §4 5행 전체를 「검증 중 이런 상황이라면」
-목록으로 제품 평면에 모아 두었다 — 이 여정의 §4는 자기 단계로 되돌아오는 행(1·2·5)과 타 여정 인계(3·4)가
-섞여 있어 단계별로 흩어 놓으면 문서 순서와 화면 순서가 어긋나기 때문이다(예: 1행의 조건은 5단계에서만
-발생하는데 2행의 조건은 3단계에서 발생한다). 각 상황의 **처리**는 해당 화면 안에도 그대로 있다
-(1행 → 화면 5의 링크 상태 배지·보존 원문, 2행 → 화면 3의 분리 표기 토글, 5행 → 화면 2의 정규화 소멸 배너).
+**의도적 제외**
+- `dash` 의 화면 전체 상태(첫 진입 로딩 · API 오류 · Gold 없음 · 밤사이 수집 없음 · 변화 0건 · 비교 기준 없음 · 「전체」 축 안내 ·
+  대상 미선택 · 재집계 · 순위 0건)는 이 페이지에서 등재하지 않는다 — `JRN-daily-scan` 이 등재한다. 이 페이지의 `dash` 는 같은
+  구조로 그리고 「튀는 값」 카드의 상태만 맡는다(그쪽 「의도적 제외」 와 짝).
+- 「이 급등은 진짜인가」 카드의 「전체」 축 안내(`spike-pick-axis`)는 그리고 데이터로 도달하지만(축 「전체」) 상태로 등재하지 않는다 —
+  공유 마크업 `screens_shared.dash_base` 에 상태 훅이 없고, 이 작업은 그 마크업을 고치지 않는다.
+- `fairness`·`trace` 의 mapstrip(`MapStrip`) — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- `trace` 의 `trace-empty`(수집 레코드 0건)는 데이터로 만들지 않는다 — 이 프로토타입은 기사가 있는 축에서 시작한다. 딥링크로만 연다.
+- `fairness` 의 `fair-error`·`src-error`·`art-error` 는 구현이 서빙 오류 문자열을 그대로 붙인다 — 프로토타입은 문면 「서빙이 응답하지 않았습니다」로 대신한다.
+- 판정의 영속화(검증 이력·플래그) — 여정 문서가 「현재 범위 밖, 백로그 후보」로 파킹했다. 구현의 「판정 기록은 아직 열 수 없습니다」 note 가 그 사실을 화면에 적는다.
+
+**걷어낸 목업 전용 표면** (AC·구현 근거 없음, 2026-10-17)
+- 페이지 수준 토프바 크럼 「급등 검증」 과 pill `tb-basis`(원시 건수↔정규화 비율) — 토프바는 화면 단위다(`Topbar.tsx` 는 nav 라벨,
+  `fairness`·`trace` 는 `useTopbar` 를 쓰지 않아 pill 이 없다). 지금 토프바는 단계의 화면을 따라 `아침 정기 스캔`(pill 있음) ·
+  `공정성·원천 추적` · `원문 추적 상세` 로 바뀐다.
+- 페이지 수준 분기 목록 `.branches` 「검증 중 이런 상황이라면」 — 다섯 분기를 화면 안 그 상황의 자리로 옮겼다(아래 산문).
+- 「세는 방식」 폼 카드(체크박스 + 「세는 방식 적용」 제출 + 힌트)와 그 제출 뒤의 `loading`(「축별 총 건수로 다시 환산하는 중…」) —
+  구현은 같은 결정을 `CMP-norm-toggle` 즉시 토글로 둔다(응답에 두 값이 함께 온다). 대비 표도 한 컬럼(`점유율`)이 아니라 원시·정규화 두 컬럼이다.
+- 대비 표의 「검증 중」 태그 — 구현은 고른 행을 강조(`tr.fair-picked` · `.art-pick.on`)하고 태그를 두지 않는다.
+- 「수집원 찾기」 검색(소스별 기여)과 「제목 찾기」 검색(기여 뉴스) — 구현의 좁히기는 기여 뉴스의 「수집원으로 좁히기」 select 하나다.
+- 저신뢰·미분석 「분리 표기」 체크박스 — AC2.5 는 구분을 **항상** 요구하므로 켜고 끄는 토글의 근거가 없다. 분리 표기 자체는
+  남겼다(`low-confidence`, 아래 산문).
+- 「고른 기사」 상세 카드(빈 상태 `no-selection` 포함)와 단계 CTA 의 「먼저 확인할 기사를 고르세요」 잠금 — 구현은 행에서
+  `/trace?record_id=` 로 인계한다(「원문 역추적 →」).
+- 「원문 링크 상태」 시연 select(정상 / 만료·404)와 그것이 열던 `link-expired` — 링크 상태는 사용자가 고르지 않고 서빙이
+  `body_available` 로 준다(`link-dead`).
+- 「보존된 원문」 별도 카드 — 서빙이 내려주는 본문은 보존 사본 하나라 구현은 원문 카드 본문에 둔다.
+- 판정 폼(결론 라디오 2 · 근거 메모 · 「판정 기록」)과 「확인한 근거」 카드, 그 상태 `invalid`·`recorded` — 판정을 남길 곳이 없다
+  (여정 문서가 영속화를 범위 밖으로 파킹). 제품 안에 있는 판정 표면은 `trace` 의 「판정 기록은 아직 열 수 없습니다」 note 다.
+
+**분기 위치.** 다섯 갈래를 페이지 수준 목록에서 걷어 각 상황이 생기는 **화면 안의 자리**로 옮겼다 — 링크 만료·404(§4 1행)는
+기여 뉴스 카드의 「원문 열기」 옆 「보존 원문으로 이어서 보기 →」, 저신뢰 섞임(2행)은 소스별 기여 카드의 저신뢰 분리 표기
+「소스 구성에서 갈라 보기 →」, 분류 오류(3행)·중복 수집(4행)은 기여 뉴스 카드의 「재처리 범위 정하기 →」·「수집 이상 점검하기 →」
+(둘 다 여정 밖 인계라 「여정 끝」 표지), 정규화 후 소멸(5행)은 정규화 소멸 배너의 「판정으로 →」. 다섯 컨트롤 모두 `fairness`
+안에 있어 단계 2·3·4 어디서나 보이고 눌린다. **다만 §4 순서 = DOM 순서 규칙 때문에 `data-goto` 를 단 단계(선언 단계)는 그 상황의
+단계와 다르다** — §4 는 단계 순서가 아니다(1·3행은 5단계, 4행은 4단계, 2행은 3단계, 5행은 2단계의 상황). 그래서 1행은 단계 2,
+2·3·4행은 단계 3, 5행은 단계 4 의 `fairness` 에 선언했다(`normalized-away` 상태 자체는 단계 2 에 등재). 1·3행이 `trace` 가 아니라
+`fairness` 에 있는 것도 같은 이유다 — `trace` 는 `fairness` 뒤에 오므로 거기 두면 5행을 배너에 둘 수 없다. §4 행을 단계 순서
+(5·2·4·1·3행 순)로 다시 매기면 이 우회가 사라진다(여정 문서 소관).
+
+**`low-confidence` 의 근거(가정).** 구현의 소스별 기여 카드에는 저신뢰 분리 표기가 없다. 설계 트래커 「등재된 편차」 의
+`STP-inspect-sources` 행 ⑴ 은 「미분석 레코드는 서술 대상을 남기지 않아 분리해 실을 행이 없다」 고 판정했지만, 그 사유는 미분석에만
+맞다 — 분석기는 저신뢰(`confidence < 0.6`) 판정에도 서술 대상을 남기고(`econ_analysis/llm.py`), 집계는 그 기사를 대상 키로
+센다(`econ_aggregation/aggregate.py` `_pick_of`). 그래서 저신뢰 판정은 이 값에 실제로 섞이고, AC2.5(「집계·시각화에서 구분」)·AC3.4·
+§4 2행이 그 구분을 요구한다 — 건수를 따로 적는 표면으로 그렸다. 저신뢰 건수를 내려주는 서빙 필드는 아직 없다.
 
 #### `JRN-ingestion-recovery`
 
