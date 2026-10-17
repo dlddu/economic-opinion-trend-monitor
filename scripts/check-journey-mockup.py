@@ -21,6 +21,9 @@ tbm_econ-opinion-monitor-journey-mockup 모델의 판정 규칙을 기계적으�
   R11 설계 트래커 「문서 목록」의 mockup 파일 등재 ↔ 실파일 양방향 일치
   R12 **현재형 서술이 가리키는 mockup 파일이 실재한다** (규칙 7 의 기계화 — R10 의 파일 참조판)
   R13 **좌측 네비에 관한 산문 주장이 실측과 같다** (규칙 7 의 기계화 — R10 의 정성 서술판).
+  R14 **요건 9 구현 완전성의 정적 조건** — 모든 화면이 `.screen[data-screen]` 이고 화면 id 가
+      `nav.ts` 또는 인덱스의 「라우트 없는 화면 id」 안에 있으며, 단계별 (화면, 상태) 집합이 인덱스
+      「화면·상태 인벤토리 등재」 와 같고, 같은 화면 id 는 어디서든 구조(`data-role` 집합)가 같으며, 여정마다 「의도적 제외」 가 적혀 있다.
 """
 import os, re, sys, html
 
@@ -106,26 +109,24 @@ for line in idx.splitlines():
     if m:
         registered[m.group(1)] = m.group(2)
 
-# 인덱스 「상태 변형 등재」— 여정별 상태 id 집합. 하네스와 같은 표를 읽는다(단일 등재).
+# 인덱스 「화면·상태 인벤토리 등재」— 여정별 상태 id 집합(상태 표의 첫 칸). 하네스와 같은 표를 읽는다(단일 등재).
+INV_HEAD = "### 화면·상태 인벤토리 등재"
 registered_states = {}
-_sec = idx.split("### 상태 변형 등재")
+_sec = idx.split(INV_HEAD)
 if len(_sec) > 1:
-    for chunk in _sec[1].split("#### `")[1:]:
+    for chunk in _sec[1].split("\n## ")[0].split("\n### ")[0].split("\n#### `")[1:]:
         _jid = chunk.split("`")[0]
-        body = chunk.split("\n### ")[0]
-        ids, sep = [], False
-        for line in body.splitlines():
+        ids, in_states = [], False
+        for line in chunk.splitlines():
             if not line.startswith("|"):
-                if sep and ids:
-                    break
+                in_states = False
                 continue
-            if re.match(r"^\|[\s:-]+\|", line):
-                sep = True
+            if line.replace(" ", "").startswith("|상태id|"):
+                in_states = True
                 continue
-            if not sep:
+            if not in_states or re.match(r"^\|[\s:-]+\|", line):
                 continue
-            first = line.strip().lstrip("|").split("|")[0].strip()
-            mm = re.match(r"`([a-z0-9-]+)`", first)
+            mm = re.match(r"`([a-z0-9-]+)`", line.strip().lstrip("|").split("|")[0].strip())
             if mm:
                 ids.append(mm.group(1))
         registered_states[_jid] = ids
@@ -230,9 +231,11 @@ for jid, fn in sorted(declared.items()):
                    "실제 <select>/<input type=radio> 로 대체해야 한다")
 
     want_states = registered_states.get(jid)
-    got_states = re.findall(r'data-state\s*=\s*"([a-z0-9-]+)"', h)
+    # 스크립트 안의 선택자 문자열(`[data-state="…"]`)은 선언이 아니다 — 마크업에서만 센다.
+    got_states = re.findall(r'data-state\s*=\s*"([a-z0-9-]+)"',
+                            re.sub(r'<(script|style)\b.*?</\1>', '', h, flags=re.S))
     if want_states is None:
-        fail("R5", f"{fn}: 인덱스 「상태 변형 등재」에 `{jid}` 절이 없다(규칙 5(e) 기록 누락)")
+        fail("R5", f"{fn}: 인덱스 「화면·상태 인벤토리 등재」에 `{jid}` 절이 없다(규칙 5(e) 기록 누락)")
     elif sorted(set(got_states)) != sorted(set(want_states)):
         fail("R5", f"{fn}: data-state 집합 {sorted(set(got_states))} 가 "
                    f"인덱스 등재 {sorted(set(want_states))} 와 다르다")
@@ -577,6 +580,211 @@ if _dangling:
                 f"(규칙 7 — 한쪽만 갱신됨):\n    " + "\n    ".join(_dangling))
 else:
     ok("R12", f"현재형 서술 행 {_scanned}건의 mockup 파일 참조 전부 실재")
+
+# ---------------------------------------------------------------------------
+# R14  요건 9 — 구현 완전성의 정적 조건.
+#   기대값: 인덱스 「화면·상태 인벤토리 등재」 의 여정별 두 표
+#           (단계 · 화면 id · 근거) / (상태 id · 단계 · 화면 id · 방식 · 상태 · 근거 · 도달 경로)
+#   허용 화면 id: web/src/shell/nav.ts 의 SCREENS id + 인덱스 「라우트 없는 화면 id:」 선언
+#   (a) 단계 안의 모든 .screen 에 data-screen, 기본 화면엔 data-title, 상태엔 data-label
+#   (b) data-screen 값이 허용 집합 안
+#   (c) 단계별 화면 집합 == 등재, 상태마다 (단계, 화면, 방식) == 등재
+#   (d) 같은 화면 id 의 기본 화면은 어느 단계·어느 여정 페이지에서든 [data-role] 집합이 같다
+#       — 「같은 화면은 여정이 달라도 구조가 같다」
+#   (e) 여정마다 「의도적 제외」 문단이 있다(뺀 것이 없으면 '없음' 이라고 적는다)
+# ---------------------------------------------------------------------------
+from html.parser import HTMLParser
+
+_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
+         "source", "track", "wbr"}
+
+
+class _StepScan(HTMLParser):
+    """단계 섹션 → 화면·상태, 기본 화면 → data-role 집합."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack = []            # (tag, kind) kind ∈ {section, base, None}
+        self.step = None
+        self.base = None           # 현재 열려 있는 기본 화면 (step, sid, roles)
+        self.screens = {}          # step -> set(sid)
+        self.states = {}           # state -> (step, sid, mode)
+        self.bases = []            # (step, sid, frozenset(roles))
+        self.problems = []
+        self.host = []             # 열린 .screen 들의 sid 스택
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        kind = None
+        if tag == "section" and "data-step" in a:
+            self.step = a["data-step"]
+            self.screens.setdefault(self.step, set())
+            kind = "section"
+        classes = (a.get("class") or "").split()
+        is_screen = "screen" in classes and self.step is not None
+        if is_screen:
+            sid = a.get("data-screen")
+            if not sid:
+                self.problems.append(f"{self.step}: class=\"screen\" 에 data-screen 이 없다")
+                sid = "?"
+            self.screens[self.step].add(sid)
+            if "data-state" not in a:
+                if not a.get("data-title"):
+                    self.problems.append(f"{self.step}: 기본 화면 `{sid}` 에 data-title 이 없다(토프바 제목)")
+                self.base = [self.step, sid, set()]
+                kind = "base"
+            kind = kind or "screen"
+            self.host.append(sid)
+        elif self.base is not None and "data-role" in a:
+            self.base[2].add(a["data-role"])
+        if "data-state" in a:
+            st = a["data-state"]
+            if self.step is None:
+                self.problems.append(f"상태 `{st}` 가 어느 단계에도 들어 있지 않다")
+            elif is_screen:
+                self.states[st] = (self.step, a.get("data-screen"), "화면 교체")
+            elif self.host:
+                self.states[st] = (self.step, self.host[-1], "얹힘")
+            else:
+                self.problems.append(f"{self.step}: 상태 `{st}` 가 어느 .screen 에도 들어 있지 않다")
+            if not a.get("data-label"):
+                self.problems.append(f"{self.step}: 상태 `{st}` 에 data-label 이 없다")
+        if tag not in _VOID:
+            self.stack.append((tag, kind))
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in _VOID:
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        if tag in _VOID:
+            return
+        while self.stack:
+            t, kind = self.stack.pop()
+            if kind == "base":
+                self.bases.append((self.base[0], self.base[1], frozenset(self.base[2])))
+                self.base = None
+            if kind in ("base", "screen"):
+                self.host.pop()
+            if kind == "section":
+                self.step = None
+            if t == tag:
+                break
+
+
+def _tables(chunk):
+    """chunk 안의 마크다운 표들 → [(header_cells, [row_cells…])]"""
+    out, cur = [], None
+    for line in chunk.splitlines():
+        if not line.startswith("|"):
+            cur = None
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if re.match(r"^\|[\s:-]+\|", line):
+            continue
+        if cur is None:
+            cur = (cells, [])
+            out.append(cur)
+        else:
+            cur[1].append(cells)
+    return out
+
+
+def _tok(cell):
+    m = re.match(r"`([A-Za-z0-9-]+)`", cell)
+    return m.group(1) if m else None
+
+
+_nav_path = D("web", "src", "shell", "nav.ts")
+_nav_ids = set(re.findall(r'\bid:\s*"([a-z0-9-]+)"', read(_nav_path))) if os.path.exists(_nav_path) else set()
+inventory = {}
+_inv_parts = idx.split(INV_HEAD)
+if len(_inv_parts) < 2:
+    fail("R14", f"인덱스에 「{INV_HEAD.strip('# ')}」 절이 없다")
+    _allowed = _nav_ids
+else:
+    _inv = _inv_parts[1].split("\n## ")[0].split("\n### ")[0]
+    _m = re.search(r"라우트 없는 화면 id:\s*(.+)", _inv)
+    _unrouted = set(re.findall(r"`([a-z0-9-]+)`", _m.group(1))) if _m else set()
+    _allowed = _nav_ids | _unrouted
+    for chunk in _inv.split("\n#### `")[1:]:
+        _jid = chunk.split("`")[0]
+        body = chunk.split("`", 1)[1]
+        scr, sts = {}, {}
+        for head, rows in _tables(body):
+            if head[:2] == ["단계", "화면 id"]:
+                for c in rows:
+                    st, sc = _tok(c[0]), _tok(c[1])
+                    if not (st and sc):
+                        fail("R14", f"인벤토리 `{_jid}` 화면 표: 단계·화면 칸을 읽지 못했다 — {c[:2]}")
+                        continue
+                    scr.setdefault(st, set()).add(sc)
+                    if len(c) < 3 or not c[2].strip("—- "):
+                        fail("R14", f"인벤토리 `{_jid}` {st} `{sc}`: 근거 칸이 비었다")
+            elif head[:4] == ["상태 id", "단계", "화면 id", "방식"]:
+                for c in rows:
+                    k, st, sc = _tok(c[0]), _tok(c[1]), _tok(c[2])
+                    if not (k and st and sc) or c[3] not in ("화면 교체", "얹힘"):
+                        fail("R14", f"인벤토리 `{_jid}` 상태 표: 행을 읽지 못했다 — {c[:4]}")
+                        continue
+                    sts[k] = (st, sc, c[3])
+                    if len(c) < 6 or not c[5].strip("—- "):
+                        fail("R14", f"인벤토리 `{_jid}` 상태 `{k}`: 근거 칸이 비었다")
+        inventory[_jid] = {"screens": scr, "states": sts}
+        if "**의도적 제외**" not in body:
+            fail("R14", f"인벤토리 `{_jid}`: 「**의도적 제외**」 문단이 없다 — 뺀 것이 없으면 '없음' 이라고 적는다")
+
+_roles_by_screen = {}   # sid -> {frozenset(roles): [where…]}
+for _jid, _fn in sorted(declared.items()):
+    _h = re.sub(r"<(script|style)\b.*?</\1>", "", strip_comments(pages[_fn]), flags=re.S)
+    _p = _StepScan()
+    _p.feed(_h)
+    _before = len(fails)
+    for pr in _p.problems:
+        fail("R14", f"{_fn}: {pr}")
+    _bad_ids = sorted({s for v in _p.screens.values() for s in v} - _allowed)
+    if _bad_ids:
+        fail("R14", f"{_fn}: 허용되지 않은 화면 id {_bad_ids} — nav.ts SCREENS 또는 "
+                    f"인덱스 「라우트 없는 화면 id」 에 있어야 한다")
+    for _step, _sid, _roles in _p.bases:
+        _roles_by_screen.setdefault(_sid, {}).setdefault(_roles, []).append(f"{_fn}#{_step}")
+    inv = inventory.get(_jid)
+    if inv is None:
+        fail("R14", f"{_fn}: 인벤토리에 `{_jid}` 절이 없다")
+        continue
+    for _sid in journeys[_jid]["steps"]:
+        got = _p.screens.get(_sid, set())
+        exp = inv["screens"].get(_sid)
+        if exp is None:
+            fail("R14", f"{_fn}: 인벤토리 화면 표에 단계 `{_sid}` 행이 없다")
+        elif not got:
+            fail("R14", f"{_fn}: 단계 `{_sid}` 에 .screen[data-screen] 이 하나도 없다")
+        elif got != exp:
+            fail("R14", f"{_fn}: `{_sid}` 화면 {sorted(got)} ≠ 등재 {sorted(exp)}")
+    for _sid in sorted(set(inv["screens"]) - set(journeys[_jid]["steps"])):
+        fail("R14", f"인벤토리 `{_jid}`: 여정 문서에 없는 단계 `{_sid}`")
+    for k in sorted(set(inv["states"]) | set(_p.states)):
+        if k not in _p.states:
+            fail("R14", f"{_fn}: 등재된 상태 `{k}` 가 페이지에 없다")
+        elif k not in inv["states"]:
+            fail("R14", f"{_fn}: 상태 `{k}` 가 인벤토리 상태 표에 없다")
+        elif _p.states[k] != inv["states"][k]:
+            fail("R14", f"{_fn}: 상태 `{k}` 위치 {_p.states[k]} ≠ 등재 {inv['states'][k]}")
+    if len(fails) == _before:
+        ok("R14", f"{_fn}: 단계 {len(inv['screens'])} · 화면 "
+                  f"{sum(len(v) for v in inv['screens'].values())} · 상태 {len(inv['states'])} 가 인벤토리와 일치")
+
+for _sid, _variants in sorted(_roles_by_screen.items()):
+    if len(_variants) > 1:
+        _desc = []
+        _all = set().union(*_variants)
+        for _r, _w in _variants.items():
+            _desc.append(f"{_w[0]}(외 {len(_w) - 1}) 에만 없는 role {sorted(_all - _r)}")
+        fail("R14", f"화면 `{_sid}` 의 기본 화면 구조가 단계·여정마다 다르다 — " + " / ".join(_desc))
+    else:
+        ok("R14", f"화면 `{_sid}` 기본 화면 {len(next(iter(_variants.values())))}곳이 같은 구조"
+                  f"(role {len(next(iter(_variants)))}개)")
 
 print()
 if fails:

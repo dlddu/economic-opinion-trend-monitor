@@ -6,7 +6,7 @@
  *
  * 기대값은 언제나 **페이지 밖 SSOT** 에서 파싱한다:
  *   단계·분기  ← docs/user-journeys/JRN-<슬러그>.md
- *   상태 집합  ← docs/mockups/econ-opinion-monitor-mockup-index.md 「상태 변형 등재」
+ *   상태 집합  ← docs/mockups/econ-opinion-monitor-mockup-index.md 「화면·상태 인벤토리 등재」
  * 페이지 자신에게서 기대값을 읽으면 자기참조라 어떤 뮤테이션도 통과한다.
  *
  * 이 파일은 **여정 무관 범용 러너**다. `docs/mockups/*.html` 에서 `data-journey` 를
@@ -69,18 +69,20 @@ function readBranches(doc, jid) {
   return out;
 }
 
+/* 「화면·상태 인벤토리 등재」 의 여정 절에서 **상태 표**(머리 `| 상태 id | 단계 | …`)의 첫 칸만 읽는다.
+   같은 절의 화면 표(머리 `| 단계 | 화면 id | …`)는 정적 게이트 R14 가 읽는다. */
 function readStates(idxMd, jid) {
-  const m = idxMd.split('### 상태 변형 등재')[1];
+  const m = idxMd.split('### 화면·상태 인벤토리 등재')[1];
   if (!m) return [];
-  const sect = m.split('#### `' + jid + '`')[1];
+  const sect = m.split('\n## ')[0].split('\n### ')[0].split('#### `' + jid + '`')[1];
   if (!sect) return [];
-  const body = sect.split('\n####')[0].split('\n### ')[0];
+  const body = sect.split('\n#### ')[0];
   const out = [];
-  let sep = false;
+  let inStates = false;
   for (const line of body.split('\n')) {
-    if (!line.startsWith('|')) { if (sep && out.length) break; continue; }
-    if (/^\|[\s:-]+\|/.test(line)) { sep = true; continue; }
-    if (!sep) continue;
+    if (!line.startsWith('|')) { inStates = false; continue; }
+    if (/^\|\s*상태 id\s*\|/.test(line)) { inStates = true; continue; }
+    if (!inStates || /^\|[\s:-]+\|/.test(line)) continue;
     const first = line.trim().replace(/^\|/, '').split('|')[0].trim();
     const id = (first.match(/`([a-z0-9-]+)`/) || [])[1];
     if (id) out.push(id);
@@ -118,7 +120,7 @@ async function runJourney({ jid, file }, idxMd) {
   console.log('');
 
   if (!STEPS.length) { bad(`${jid}: 여정 문서에서 단계를 하나도 못 읽었다`); return; }
-  if (!STATES.length) { bad(`${jid}: 인덱스 「상태 변형 등재」에서 상태를 하나도 못 읽었다`); return; }
+  if (!STATES.length) { bad(`${jid}: 인덱스 「화면·상태 인벤토리 등재」에서 상태를 하나도 못 읽었다`); return; }
 
   const SCEN = path.join(SDIR, jid + '.js');
   if (!fs.existsSync(SCEN)) {
@@ -283,6 +285,57 @@ async function runJourney({ jid, file }, idxMd) {
         is(fs.existsSync(target), true, `(g) 타 여정 분기 → 착지 파일 ${href} 실재`);
       }
     });
+  }
+
+  /* (i) 요건 9 — 구현 완전성의 동적 조건.
+     화면은 구현 화면 그대로여야 하므로, 단계에 들어가면 셸(좌측 네비 active · 토프바 제목)이
+     그 단계의 화면 id 를 따라가야 한다. 등재된 상태는 전부 `#STP-x/<상태>` 딥링크로 바로 열려야
+     리뷰어·구현자가 데모 데이터를 조작하지 않고 볼 수 있다. 여정 밖 행동은 그려 두되 눌러도
+     여정 흐름이 움직이지 않는다. */
+  for (const sid of STEPS) {
+    const { w, d } = boot();
+    w.location.hash = '#' + sid;
+    w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+    const sec = d.querySelector(`section.jstep[data-step="${sid}"]`);
+    const scr = [...sec.querySelectorAll('.screen[data-screen]')].find(s => !s.hidden);
+    if (!scr) { bad(`(i) ${sid} 에 보이는 .screen[data-screen] 이 없다`); continue; }
+    const active = [...d.querySelectorAll('.sidebar .nav-item.active')].map(a => a.dataset.id);
+    const navIds = [...d.querySelectorAll('.sidebar .nav-item[data-id]')].map(a => a.dataset.id);
+    if (navIds.includes(scr.dataset.screen)) {
+      is(active, [scr.dataset.screen], `(i) ${sid} — 좌측 네비 active 가 화면 \`${scr.dataset.screen}\``);
+    } else {
+      is(active, [], `(i) ${sid} — 라우트 없는 화면 \`${scr.dataset.screen}\` 에서는 네비 active 가 없다`);
+    }
+    const h2 = d.querySelector('.topbar .crumb h2');
+    is(h2 && h2.textContent.trim(), scr.dataset.title, `(i) ${sid} — 토프바 제목이 화면의 data-title`);
+  }
+  for (const st of STATES) {
+    const { w, d } = boot();
+    const el = d.querySelector(`[data-state="${st}"]`);
+    if (!el) continue;   // 집합 불일치는 (e) 가 이미 잡는다
+    const sec = el.closest('section.jstep');
+    if (!sec) { bad(`(i) 상태 ${st} 가 어느 단계에도 들어 있지 않다`); continue; }
+    w.location.hash = '#' + sec.dataset.step + '/' + st;
+    w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+    is(visible(d), [sec.dataset.step], `(i) 딥링크 #${sec.dataset.step}/${st} 로 그 단계가 열린다`);
+    is(shown(d, st), true, `(i) 딥링크 #${sec.dataset.step}/${st} 로 상태 ${st} 가 보인다`);
+  }
+  {
+    const { w, d } = boot();
+    const off = [...d.querySelectorAll('[data-offpath]')].filter(e => !e.closest('[data-meta-layer]'));
+    for (const el of off) {
+      const sec = el.closest('section.jstep');
+      if (!sec) continue;
+      w.location.hash = '#' + sec.dataset.step;
+      w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+      const before = w.location.href;
+      click(w, el);
+      const label = (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 20);
+      if (w.location.href !== before || visible(d).join() !== sec.dataset.step) {
+        bad(`(i) 여정 밖 행동 「${label}」 이 여정 흐름을 움직였다`);
+      }
+    }
+    ok(`(i) 여정 밖 행동 ${off.length}건 — 눌러도 단계·주소가 그대로`);
   }
 
   {
