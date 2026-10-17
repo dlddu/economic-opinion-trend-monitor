@@ -132,15 +132,6 @@ a{color:inherit;text-decoration:none}
 
 /* —— Canvas / sections —————————————————————————— */
 .canvas{padding:24px 26px 60px;flex:1;overflow:visible}
-.screen{display:none;animation:none}
-.screen.active{display:block}
-.screen.active .stagger>*{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
-.screen.active .stagger>*:nth-child(1){animation-delay:.02s}
-.screen.active .stagger>*:nth-child(2){animation-delay:.07s}
-.screen.active .stagger>*:nth-child(3){animation-delay:.12s}
-.screen.active .stagger>*:nth-child(4){animation-delay:.17s}
-.screen.active .stagger>*:nth-child(5){animation-delay:.22s}
-.screen.active .stagger>*:nth-child(6){animation-delay:.27s}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
   max-width:78ch;line-height:1.6;margin-bottom:20px}
@@ -442,6 +433,15 @@ details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
 details.meta[open] > summary::before{content:"▾ "}
 details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
 details.meta table.tbl{margin-top:10px}
+/* ---- 화면 integrity (요건 9) ---- */
+.placeholder-note{margin-top:14px;font-size:13px;color:var(--ink-2)}
+table.tbl tr[aria-selected=true] td{background:var(--primary-soft)}
+table.tbl td.pick{width:28px}
+.radios.col{flex-direction:column;align-items:flex-start;gap:10px}
+.dlg{margin-top:14px;border:1px solid var(--line-3);border-radius:var(--r-md);background:var(--panel);box-shadow:var(--sh-pop);padding:14px 16px;font-size:12.5px;line-height:1.6}
+.dlg h4{margin:0 0 6px;font-size:13.5px}
+.dlg .actions{margin-top:12px;display:flex;gap:8px;justify-content:flex-end}
+.exit{font-size:12.5px;line-height:1.65;color:var(--ink-2);margin-bottom:10px}
 </style>
 </head>
 <body data-journey="JRN-ingestion-recovery">
@@ -483,7 +483,7 @@ details.meta table.tbl{margin-top:10px}
       </div>
       <div class="nav-group">
         <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
-        <a class="nav-item op active" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
+        <a class="nav-item op" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
           <span>재처리 콘솔</span>
         </a>
@@ -494,7 +494,7 @@ details.meta table.tbl{margin-top:10px}
       </div>
     </nav>
     <div class="sidebar-foot">
-      <span class="dot"></span>수집 점검 &middot; 12개 소스<br/>
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
       마지막 수집 14:00 KST
     </div>
   </aside>
@@ -506,108 +506,112 @@ details.meta table.tbl{margin-top:10px}
       </div>
       <div class="spacer"></div>
       <div class="ctl">
-        <span class="pill-ctl" id="tb-scope">구간 미선택</span>
+        <span class="pill-ctl" data-role="tb-pill">한국 &middot; 최근 24시간</span>
       </div>
     </header>
 
     <div class="canvas">
 
-      <!-- ============ 화면 1 — 수집 이상 인지 ============ -->
-      <section class="jstep" id="STP-spot-anomaly" data-step="STP-spot-anomaly" hidden>
+      <!-- ============ 단계 1 · 수집 이상 인지 — 화면 integrity ============ -->
+      <section class="jstep" id="STP-spot-anomaly" data-step="STP-spot-anomaly" data-title="수집 이상 인지" hidden>
+
+      <div class="screen" data-screen="integrity" data-title="수집 무결성 콘솔">
         <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 성공</div>
+              <div class="mv" data-role="m-ok">4,112</div>
+              <div class="md"><span class="delta fl" data-role="m-rate">85.7%</span> 시도 대비 성공률</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">재시도</div>
+              <div class="mv" data-role="m-retry">17</div>
+              <div class="md"><span data-role="m-retry-sub">회복 5건 &middot; 재시도 후 실패 52건</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">중복</div>
+              <div class="mv" data-role="m-dup">24</div>
+              <div class="md"><span data-role="m-dup-sub">링크 단위 21 &middot; 본문 단위 3</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">누락</div>
+              <div class="mv" data-role="m-miss">652</div>
+              <div class="md"><span data-role="m-miss-sub">시도 0 구간 1개 &middot; 실패 52건</span></div>
+            </div>
+          </div>
 
           <div class="card col-8">
             <div class="card-h">
               <h3>시간대별 수집 현황</h3>
-              <span class="sub" id="bk-sub">시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 봅니다</span>
+              <span class="sub" data-role="bk-sub">이상 구간 4개 / 8구간 &middot; 최근 24시간</span>
               <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
             </div>
             <div class="card-b">
               <div class="formrow" style="margin-bottom:14px">
                 <label class="fld" style="flex:0 0 142px">
                   <span class="fl">축</span>
-                  <select id="axis" name="axis">
+                  <select name="axis-spot-anomaly" data-role="axis">
                     <option value="KR" selected>한국</option>
                     <option value="US">미국</option>
-                    <option value="WW">전세계</option>
-                  </select>
-                </label>
-                <label class="fld" style="flex:0 0 168px">
-                  <span class="fl">점검 구간</span>
-                  <select id="win" name="win">
-                    <option value="24h" selected>최근 24시간</option>
-                    <option value="7d">최근 7일</option>
+                    <option value="GL">전세계</option>
                   </select>
                 </label>
                 <label class="chk" style="padding-bottom:8px">
-                  <input type="checkbox" id="only-bad" name="only-bad" />
+                  <input type="checkbox" name="only-bad-spot-anomaly" data-role="only-bad" />
                   이상 구간만 보기
                 </label>
               </div>
-
               <table class="tbl">
-                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">중복</th><th>상태</th></tr></thead>
-                <tbody id="bk-rows"></tbody>
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">재시도</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody data-role="bk-rows"></tbody>
               </table>
-
-              <div class="emptybox" id="s-no-anomaly" data-state="no-anomaly" hidden>
-                이 축·구간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 중복 0건 &mdash; 더 볼 것이 없습니다.
+              <div class="emptybox" data-role="no-anomaly" data-state="no-anomaly" data-label="이상 없음 — 볼 것 없음" hidden>
+                이 축의 최근 24시간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 실패 0건 &middot; 중복 0건
               </div>
             </div>
           </div>
 
           <div class="card col-4">
-            <div class="card-h"><h3>구간 요약</h3><span class="sub" id="sum-sub">구간을 고르면 열립니다</span></div>
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" data-role="sum-sub">구간 미선택</span></div>
             <div class="card-b">
-              <div id="sum-kv"></div>
-
-              <div class="banner err" id="s-attempt-zero" data-state="attempt-zero" hidden>
+              <p class="muted" data-role="no-bucket" data-state="no-bucket" data-label="구간 미선택" hidden style="font-size:12.5px;line-height:1.65">
+                왼쪽 표에서 구간을 고르면 시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 보여 줍니다.
+              </p>
+              <div data-role="sum-kv"></div>
+              <div class="banner err" data-role="attempt-zero" data-state="attempt-zero" data-label="시도 0 — 스케줄 미실행" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
                 <div>
                   <b>수집 시도 자체가 없습니다.</b>
-                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때 나오는 모양입니다.
-                  두 경우를 같은 0으로 두면 이상을 놓칩니다.
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때의 모양입니다.
+                  <div class="kv"><span class="k">자동 재시도</span><span class="v" data-role="az-retry">3회 &middot; 모두 기동 실패</span></div>
+                  <div class="kv"><span class="k">다음 주기 보정</span><span class="v" data-role="az-catchup">06:00 실행 &middot; 보정 실패</span></div>
                 </div>
-              </div>
-
-              <div class="note info" id="sum-note" style="margin-top:14px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <div>비정상으로 보이는 구간을 고르면 소스 단위로 좁혀 볼 수 있습니다.</div>
               </div>
             </div>
           </div>
 
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-locate-gap" id="cta-1" disabled>
-            소스 단위로 좁혀 보기 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-1-hint">이상해 보이는 구간을 먼저 고르세요.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 2 — 누락·중복 구간 특정 ============ -->
-      <section class="jstep" id="STP-locate-gap" data-step="STP-locate-gap" hidden>
-        <div class="grid g-12">
-          <div class="card col-12">
+          <div class="card col-8">
             <div class="card-h">
               <h3>구간 &middot; 소스 좁히기</h3>
-              <span class="sub" id="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <span class="sub" data-role="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
               <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
             </div>
             <div class="card-b">
-              <div class="formrow" style="margin-bottom:16px">
-                <label class="fld" style="flex:0 0 142px">
+              <div class="formrow" style="margin-bottom:14px">
+                <div class="fld" style="flex:0 0 auto">
                   <span class="fl">축</span>
-                  <select id="f-axis" name="f-axis">
-                    <option value="KR" selected>한국</option>
-                    <option value="US">미국</option>
-                    <option value="WW">전세계</option>
-                  </select>
-                </label>
-                <label class="fld" style="flex:0 0 182px">
+                  <span class="axpill ax-kr" data-role="gap-axis" style="margin-top:6px"><i class="fl"></i>KR</span>
+                </div>
+                <label class="fld" style="flex:0 0 168px">
                   <span class="fl">소스</span>
-                  <select id="f-source" name="f-source">
+                  <select name="f-source-spot-anomaly" data-role="f-source">
                     <option value="all" selected>전체 소스</option>
                     <option value="kr-wire">kr-wire</option>
                     <option value="kr-daily">kr-daily</option>
@@ -615,149 +619,170 @@ details.meta table.tbl{margin-top:10px}
                     <option value="gl-agg">gl-agg</option>
                   </select>
                 </label>
-                <label class="fld" style="flex:0 0 168px">
+                <label class="fld" style="flex:0 0 182px">
                   <span class="fl">시간대</span>
-                  <select id="f-hour" name="f-hour">
+                  <select name="f-band-spot-anomaly" data-role="f-band">
                     <option value="all" selected>전체 시간대</option>
-                    <option value="dawn">00&ndash;06시</option>
-                    <option value="am">06&ndash;12시</option>
-                    <option value="pm">12&ndash;18시</option>
-                    <option value="night">18&ndash;24시</option>
+                      <option value="b0">10/16 15–18시</option>
+                      <option value="b1">10/16 18–21시</option>
+                      <option value="b2">10/16 21–24시</option>
+                      <option value="b3">10/17 00–03시</option>
+                      <option value="b4">10/17 03–06시</option>
+                      <option value="b5">10/17 06–09시</option>
+                      <option value="b6">10/17 09–12시</option>
+                      <option value="b7">10/17 12–15시</option>
                   </select>
                 </label>
               </div>
-
+              <div class="banner warn" data-role="unresolved" hidden style="margin:0 0 12px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div><b>지난 점검에서 미해결로 남긴 구간 <span data-role="unres-count">3</span>개</b>가 있습니다 &mdash; 맨 위에 둡니다. 보정하거나 영구 누락으로 확정하기 전까지 계속 뜹니다.</div>
+              </div>
               <table class="tbl">
-                <thead><tr><th>구간</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
-                <tbody id="gap-rows"></tbody>
+                <thead><tr><th></th><th>시각</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody data-role="gap-rows"></tbody>
               </table>
-
-              <div class="emptybox" id="s-filter-empty" data-state="filter-empty" hidden>
+              <div class="emptybox" data-role="filter-empty" hidden>
                 이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
               </div>
-
-              <div class="note" style="margin-top:16px">
-                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-                <div>좁힌 결과가 <b id="gap-scope">전체</b>입니다. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              <p class="placeholder-note" data-role="no-gap" hidden>
+                진단하고 보정할 구간을 표에서 고르세요 &mdash; 고른 구간에만 손댑니다.
+              </p>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>좁힌 범위: <b data-role="gap-scope">한국 &middot; 전체 소스 &middot; 전체 시간대</b> &middot; 고른 구간 <b data-role="gap-picked">0</b>개. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-diagnose-source" id="cta-2">
-            원인 진단으로 <span class="ar">&rarr;</span>
-          </button>
-        </div>
-      </section>
 
-      <!-- ============ 화면 3 — 원인 진단 ============ -->
-      <section class="jstep" id="STP-diagnose-source" data-step="STP-diagnose-source" hidden>
-        <div class="grid g-12">
+          <div class="card col-4">
+            <div class="card-h"><h3>이벤트 로그</h3><span class="sub" data-role="log-sub">한국 축 &middot; 최근 24시간</span></div>
+            <div class="card-b scrolly" style="max-height:380px">
+              <table class="tbl">
+                <tbody data-role="log-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="card col-7">
-            <div class="card-h"><h3>원인 가르기</h3><span class="sub">무엇이 이 구간을 비웠는지 고릅니다</span></div>
+            <div class="card-h"><h3>수집 메타데이터</h3><span class="sub" data-role="meta-sub">고른 구간의 실행 &middot; 레코드 기록</span></div>
             <div class="card-b">
-              <div class="fld">
-                <span class="fl">판정</span>
-                <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
-                  <label><input type="radio" name="cause" value="schedule" /> 스케줄이 돌지 않았다 &mdash; 시도 자체가 0</label>
-                  <label><input type="radio" name="cause" value="api" /> 소스 API가 오류를 돌려줬다 &mdash; 시도는 있고 성공이 없다</label>
-                  <label><input type="radio" name="cause" value="origin" /> 원본이 이미 내려갔다 &mdash; 다시 긁어도 받을 것이 없다</label>
-                  <label><input type="radio" name="cause" value="dup" /> 같은 기사가 다시 쌓였다 &mdash; 링크 단위 &middot; 본문 단위 중복</label>
+              <div data-role="meta-badges"></div>
+              <div data-role="meta-kv" style="margin-top:10px"></div>
+              <div class="seclabel" style="margin:16px 0 6px">수집 레코드</div>
+              <table class="tbl">
+                <thead><tr><th class="num">순위</th><th>원문 링크</th><th class="num">조회수</th><th>수집 시각</th><th>본문</th><th>상태</th></tr></thead>
+                <tbody data-role="rec-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>원인 진단</h3><span class="sub">무엇이 이 구간을 비웠는지 가릅니다</span></div>
+            <div class="card-b">
+              <form data-role="cause-form">
+                <div class="fld">
+                  <span class="fl">원인</span>
+                  <div class="radios col" data-role="cause">
+                    <label><input type="radio" name="cause-spot-anomaly" value="schedule" /> 스케줄 미실행 &mdash; 시도 자체가 0</label>
+                    <label><input type="radio" name="cause-spot-anomaly" value="api" /> 소스 API 오류 &mdash; 시도는 있고 성공이 없다</label>
+                    <label><input type="radio" name="cause-spot-anomaly" value="origin" /> 원본 소실 &mdash; 다시 긁어도 받을 것이 없다</label>
+                    <label><input type="radio" name="cause-spot-anomaly" value="dup-link" /> 링크 단위 중복 &mdash; 같은 원문 링크가 다시 쌓였다</label>
+                    <label><input type="radio" name="cause-spot-anomaly" value="dup-body" /> 본문 단위 중복 &mdash; 같은 본문이 버전으로 또 쌓였다</label>
+                  </div>
                 </div>
-              </div>
+              </form>
+              <p class="muted" data-role="cause-hint" style="margin-top:12px;font-size:12px;line-height:1.6">기록된 실패 사유를 보고 고르세요.</p>
 
-              <div class="hr"></div>
-              <div class="seclabel" style="margin-bottom:8px">수집 메타데이터</div>
-              <div id="cause-meta"></div>
-
-              <div class="banner warn" id="s-source-outage" data-state="source-outage" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <div class="banner warn" data-role="source-outage" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
                 <div>
                   <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
-                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채울 수 있습니다.
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채웁니다.
                   <div class="actions">
-                    <a class="btn sm pri" id="br-1" href="#STP-backfill"
-                       data-goto="JRN-ingestion-recovery#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                    <a class="btn sm pri" data-role="outage-go" href="#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
                   </div>
                 </div>
               </div>
 
-              <div class="banner err" id="s-origin-gone" data-state="origin-gone" hidden>
+              <div class="banner err" data-role="origin-gone" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
                 <div>
                   <b>재수집으로는 메울 수 없습니다.</b>
                   원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
                   <div class="actions">
-                    <a class="btn sm ghost" id="br-2" href="#STP-verify-integrity"
-                       data-goto="JRN-ingestion-recovery#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                    <a class="btn sm" data-role="origin-go" href="#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="card col-5">
-            <div class="card-h"><h3>고른 구간</h3><span class="sub">진단 대상</span></div>
-            <div class="card-b">
-              <div id="diag-kv"></div>
-              <p class="muted" style="margin-top:14px;font-size:12px;line-height:1.65">
-                실패 사유가 수집 메타에 남아 있으면 외부 로그를 뒤지지 않아도 여기서 갈립니다.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-backfill" id="cta-3" disabled>
-            보정 실행으로 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-3-hint">원인을 먼저 가르세요 &mdash; 원인에 따라 실행할 작업이 달라집니다.</span>
-        </div>
-      </section>
-
-      <!-- ============ 화면 4 — 재수집·중복 정리 실행 ============ -->
-      <section class="jstep" id="STP-backfill" data-step="STP-backfill" hidden>
-        <div class="grid g-12">
           <div class="card col-7">
-            <div class="card-h"><h3>보정 실행</h3><span class="sub" id="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" data-role="run-sub">고른 구간에만 적용됩니다</span></div>
             <div class="card-b">
-              <div class="formrow" style="margin-bottom:14px">
+              <div class="formrow" style="margin-bottom:12px">
                 <label class="fld" style="flex:0 0 196px">
                   <span class="fl">작업</span>
-                  <select id="op" name="op">
+                  <select name="op-spot-anomaly" data-role="op">
                     <option value="refetch" selected>재수집</option>
                     <option value="dedup">중복 정리</option>
-                    <option value="both">재수집 + 중복 정리</option>
                   </select>
                 </label>
-                <label class="fld" style="flex:0 0 168px">
-                  <span class="fl">배치 크기 (건)</span>
-                  <input type="number" id="batch" name="batch" min="10" max="500" step="10" value="100" />
-                </label>
+              </div>
+              <div data-role="target-kv"></div>
+              <div class="note info" style="margin-top:12px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div data-role="keep-note">기존 본문 버전은 지우거나 덮어쓰지 않습니다 &mdash; 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.</div>
               </div>
 
-              <label class="chk" style="margin-bottom:6px">
-                <input type="checkbox" id="preserve" name="preserve" checked />
-                기존 Bronze를 덮어쓰지 않고 새 버전으로 보존한다 (content-addressed)
-              </label>
-              <p class="muted" style="font-size:11.5px;line-height:1.6;margin-bottom:16px" id="preserve-note"></p>
+              <div class="banner warn" data-role="retry-pending" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div>
+                  <b>복구 대기 &mdash; 재시도를 예약했습니다.</b>
+                  다음 재시도 <span class="mono" data-role="pending-at">15:00 KST</span>. 소스가 응답하면 이 구간만 다시 채우고, 그 전까지 구간 목록에 &ldquo;복구 대기&rdquo;로 남습니다.
+                </div>
+              </div>
+              <div class="banner err" data-role="no-target" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div><b>보정할 구간을 고르지 않았습니다.</b> 위 「구간 &middot; 소스 좁히기」 표에서 구간을 고르면 실행할 수 있습니다 &mdash; 범위 없이 전 구간을 다시 긁지 않습니다.</div>
+              </div>
 
-              <button type="button" class="btn pri" id="run">보정 실행</button>
+              <div class="stepact" style="margin-top:14px">
+                <button type="button" class="btn pri" data-role="run">보정 실행</button>
+              </div>
 
-              <div class="loadbox" id="s-running" data-state="running" hidden>
-                고른 구간을 다시 긁는 중&hellip;
+              <div class="dlg" role="alertdialog" aria-label="중복 정리 확인" data-role="dedup-confirm" hidden>
+                <h4>중복 정리를 실행할까요?</h4>
+                같은 원문 링크로 다시 쌓인 관측 <b data-role="dlg-count">21</b>건을 정리합니다. 정리한 관측은 집계에서 빠집니다.
+                본문 버전은 건드리지 않습니다.
+                <div class="actions">
+                  <button type="button" class="btn sm" data-role="dlg-cancel">취소</button>
+                  <button type="button" class="btn sm pri" data-role="dlg-ok">중복 정리 실행</button>
+                </div>
+              </div>
+              <div class="loadbox" data-role="running" hidden>
+                보정 실행을 제출하는 중&hellip;
                 <div class="bar"><i></i></div>
               </div>
-
-              <div id="run-result" style="margin-top:16px"></div>
-
-              <div class="banner warn" id="s-dup-again" data-state="dup-again" hidden>
+              <div class="banner err" data-role="run-failed" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>보정 실행을 제출하지 못했습니다.</b> 서빙이 응답하지 않았습니다 &mdash; 고른 구간과 작업은 그대로 두었습니다.
+                  <div class="actions"><button type="button" class="btn sm" data-role="run-retry">다시 제출</button></div>
+                </div>
+              </div>
+              <div data-role="run-done" hidden style="margin-top:14px">
+                <div class="seclabel" style="margin-bottom:6px">실행 결과</div>
+                <div data-role="run-kv"></div>
+              </div>
+              <div class="banner warn" data-role="dup-again" hidden>
                 <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
                 <div>
-                  <b>재수집이 중복을 다시 만들었습니다 (<span id="dup-count">0</span>건).</b>
-                  덮어쓰기로 긁으면 같은 기사가 링크 단위로 한 번, 본문 단위로 또 한 번 쌓입니다 &mdash; 중복 규칙부터 다시 보세요.
+                  <b>재수집이 중복을 다시 만들었습니다 (<span data-role="dup-count">21</span>건).</b>
+                  같은 기사가 링크 단위로 다시 쌓였습니다 &mdash; 링크 단위 &middot; 본문 단위 중복 규칙부터 다시 보세요.
                   <div class="actions">
-                    <a class="btn sm ghost" id="br-3" href="#STP-diagnose-source"
-                       data-goto="JRN-ingestion-recovery#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                    <a class="btn sm" data-role="dup-go" href="#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
                   </div>
                 </div>
               </div>
@@ -765,92 +790,1368 @@ details.meta table.tbl{margin-top:10px}
           </div>
 
           <div class="card col-5">
-            <div class="card-h"><h3>수집은 정상인데</h3><span class="sub">결과가 이상하다면</span></div>
+            <div class="card-h"><h3>보정하지 않고 닫는다면</h3><span class="sub">원인이 수집 밖이거나 지금은 손댈 수 없을 때</span></div>
             <div class="card-b">
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
-                시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다. 재처리 흐름으로 넘기세요.
+              <p class="exit">시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다.</p>
+              <a class="btn ghost" data-role="analysis-go" href="JRN-logic-backfill.html#STP-scope-range">분석 결과 재처리로 넘기기 &rarr;</a>
+              <div class="hr"></div>
+              <p class="exit">진단만 하고 닫으면 고른 구간은 미해결로 남고, 다음에 들어올 때 구간 목록 맨 위에 다시 뜹니다.</p>
+              <a class="btn ghost" data-role="leave-go" href="#STP-locate-gap">미해결로 남기고 닫기</a>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>복구 확인</h3>
+              <span class="sub" data-role="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span>
+              <div class="r"><span class="tag">정상 범위 = 시도 대비 성공률 99% 이상 &middot; 중복 0</span></div>
+            </div>
+            <div class="card-b">
+              <p class="placeholder-note" data-role="no-run" hidden style="margin:0 0 12px">
+                고른 구간에 아직 보정 실행이 없습니다 &mdash; 아래 &ldquo;보정 후&rdquo; 칸은 실행 뒤에 채워집니다.
               </p>
-              <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
-                <a class="btn ghost" id="br-4" href="JRN-logic-backfill.html#STP-scope-range"
-                   data-goto="JRN-logic-backfill#STP-scope-range">분석 결과가 이상하다 &mdash; 재처리 흐름으로 &rarr;</a>
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody data-role="vf-rows"></tbody>
+              </table>
+              <div class="banner good" data-role="recovered" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div><b>정상 범위로 복구됐습니다.</b> <span data-role="rec-what">한국 &middot; kr-wire &middot; 09–11시</span> &mdash; 보정 실행은 이벤트 로그에 실행 기록으로 남았습니다.</div>
+              </div>
+              <div class="banner err" data-role="perm-missing" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>영구 누락으로 확정했습니다 &mdash; 복구되지 않았습니다.</b>
+                  <span data-role="perm-what">한국 &middot; kr-daily &middot; 10/16 19시</span> 구간은 집계에서 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions"><a class="btn sm" data-role="dash-off" href="JRN-daily-scan.html#STP-open-brief" data-offpath="추세 대시보드 — 이 구간이 「데이터 없음」으로 보이는지 확인">추세 대시보드에서 보기 &rarr;</a></div>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
+      </div>
+
+      <div class="screen" data-screen="integrity" data-state="loading" data-label="첫 진입 로딩" hidden>
+        <div class="placeholder-note">불러오는 중&hellip;</div>
+      </div>
+
+      <div class="screen" data-screen="integrity" data-state="api-error" data-label="불러오기 실패" hidden>
+        <div class="note">
+          <div><b>API 오류:</b> 수집 기록을 불러오지 못했습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+      </div>
+
+      <div class="screen" data-screen="integrity" data-state="index-not-ready" data-label="인덱스 준비 중" hidden>
+        <div class="note">
+          <div>
+            <b>인덱스 준비 중:</b> 원문·분석 기록 인덱스가 아직 만들어지지 않았습니다 &mdash; 배치 파이프라인이
+            다음 실행을 마치면 열립니다.
+          </div>
+        </div>
+      </div>
         <div class="stepact">
-          <button type="button" class="cta" data-advance="STP-verify-integrity" id="cta-4" disabled>
-            복구 확인으로 <span class="ar">&rarr;</span>
-          </button>
-          <span class="hint" id="cta-4-hint">보정을 먼저 실행하세요.</span>
+          <button type="button" class="cta" data-advance="STP-locate-gap" disabled>시간 &middot; 소스로 좁혀 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint" data-role="cta-hint">이상해 보이는 구간을 먼저 고르세요.</span>
         </div>
       </section>
 
-      <!-- ============ 화면 5 — 복구 확인 ============ -->
-      <section class="jstep" id="STP-verify-integrity" data-step="STP-verify-integrity" hidden>
+      <!-- ============ 단계 2 · 누락·중복 구간 특정 — 화면 integrity ============ -->
+      <section class="jstep" id="STP-locate-gap" data-step="STP-locate-gap" data-title="누락·중복 구간 특정" hidden>
+
+      <div class="screen" data-screen="integrity" data-title="수집 무결성 콘솔">
         <div class="grid g-12">
-          <div class="card col-7">
-            <div class="card-h"><h3>복구 확인</h3><span class="sub" id="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span></div>
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 성공</div>
+              <div class="mv" data-role="m-ok">4,112</div>
+              <div class="md"><span class="delta fl" data-role="m-rate">85.7%</span> 시도 대비 성공률</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">재시도</div>
+              <div class="mv" data-role="m-retry">17</div>
+              <div class="md"><span data-role="m-retry-sub">회복 5건 &middot; 재시도 후 실패 52건</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">중복</div>
+              <div class="mv" data-role="m-dup">24</div>
+              <div class="md"><span data-role="m-dup-sub">링크 단위 21 &middot; 본문 단위 3</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">누락</div>
+              <div class="mv" data-role="m-miss">652</div>
+              <div class="md"><span data-role="m-miss-sub">시도 0 구간 1개 &middot; 실패 52건</span></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>시간대별 수집 현황</h3>
+              <span class="sub" data-role="bk-sub">이상 구간 4개 / 8구간 &middot; 최근 24시간</span>
+              <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
+            </div>
             <div class="card-b">
               <div class="formrow" style="margin-bottom:14px">
-                <label class="fld" style="flex:0 0 196px">
-                  <span class="fl">재확인 범위</span>
-                  <select id="v-window" name="v-window">
-                    <option value="scope" selected>보정한 구간만</option>
-                    <option value="day">그날 전체</option>
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select name="axis-locate-gap" data-role="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="only-bad-locate-gap" data-role="only-bad" />
+                  이상 구간만 보기
+                </label>
+              </div>
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">재시도</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody data-role="bk-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="no-anomaly" hidden>
+                이 축의 최근 24시간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 실패 0건 &middot; 중복 0건
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" data-role="sum-sub">구간 미선택</span></div>
+            <div class="card-b">
+              <p class="muted" data-role="no-bucket" hidden style="font-size:12.5px;line-height:1.65">
+                왼쪽 표에서 구간을 고르면 시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 보여 줍니다.
+              </p>
+              <div data-role="sum-kv"></div>
+              <div class="banner err" data-role="attempt-zero" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>수집 시도 자체가 없습니다.</b>
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때의 모양입니다.
+                  <div class="kv"><span class="k">자동 재시도</span><span class="v" data-role="az-retry">3회 &middot; 모두 기동 실패</span></div>
+                  <div class="kv"><span class="k">다음 주기 보정</span><span class="v" data-role="az-catchup">06:00 실행 &middot; 보정 실패</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>구간 &middot; 소스 좁히기</h3>
+              <span class="sub" data-role="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <div class="fld" style="flex:0 0 auto">
+                  <span class="fl">축</span>
+                  <span class="axpill ax-kr" data-role="gap-axis" style="margin-top:6px"><i class="fl"></i>KR</span>
+                </div>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">소스</span>
+                  <select name="f-source-locate-gap" data-role="f-source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">시간대</span>
+                  <select name="f-band-locate-gap" data-role="f-band">
+                    <option value="all" selected>전체 시간대</option>
+                      <option value="b0">10/16 15–18시</option>
+                      <option value="b1">10/16 18–21시</option>
+                      <option value="b2">10/16 21–24시</option>
+                      <option value="b3">10/17 00–03시</option>
+                      <option value="b4">10/17 03–06시</option>
+                      <option value="b5">10/17 06–09시</option>
+                      <option value="b6">10/17 09–12시</option>
+                      <option value="b7">10/17 12–15시</option>
                   </select>
                 </label>
               </div>
-
+              <div class="banner warn" data-role="unresolved" data-state="unresolved" data-label="미해결 구간이 다시 뜸" hidden style="margin:0 0 12px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div><b>지난 점검에서 미해결로 남긴 구간 <span data-role="unres-count">3</span>개</b>가 있습니다 &mdash; 맨 위에 둡니다. 보정하거나 영구 누락으로 확정하기 전까지 계속 뜹니다.</div>
+              </div>
               <table class="tbl">
-                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
-                <tbody id="vf-rows"></tbody>
+                <thead><tr><th></th><th>시각</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody data-role="gap-rows"></tbody>
               </table>
+              <div class="emptybox" data-role="filter-empty" data-state="filter-empty" data-label="3중 필터 결과 0건" hidden>
+                이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
+              </div>
+              <p class="placeholder-note" data-role="no-gap" data-state="no-gap" data-label="고른 구간 없음" hidden>
+                진단하고 보정할 구간을 표에서 고르세요 &mdash; 고른 구간에만 손댑니다.
+              </p>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>좁힌 범위: <b data-role="gap-scope">한국 &middot; 전체 소스 &middot; 전체 시간대</b> &middot; 고른 구간 <b data-role="gap-picked">0</b>개. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              </div>
+            </div>
+          </div>
 
-              <form id="close-form" style="margin-top:18px">
+          <div class="card col-4">
+            <div class="card-h"><h3>이벤트 로그</h3><span class="sub" data-role="log-sub">한국 축 &middot; 최근 24시간</span></div>
+            <div class="card-b scrolly" style="max-height:380px">
+              <table class="tbl">
+                <tbody data-role="log-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>수집 메타데이터</h3><span class="sub" data-role="meta-sub">고른 구간의 실행 &middot; 레코드 기록</span></div>
+            <div class="card-b">
+              <div data-role="meta-badges"></div>
+              <div data-role="meta-kv" style="margin-top:10px"></div>
+              <div class="seclabel" style="margin:16px 0 6px">수집 레코드</div>
+              <table class="tbl">
+                <thead><tr><th class="num">순위</th><th>원문 링크</th><th class="num">조회수</th><th>수집 시각</th><th>본문</th><th>상태</th></tr></thead>
+                <tbody data-role="rec-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>원인 진단</h3><span class="sub">무엇이 이 구간을 비웠는지 가릅니다</span></div>
+            <div class="card-b">
+              <form data-role="cause-form">
                 <div class="fld">
-                  <span class="fl">결론</span>
-                  <div class="radios" style="flex-direction:column;align-items:flex-start;gap:10px">
-                    <label><input type="radio" name="verdict" value="recovered" /> 정상 범위로 복구됐다</label>
-                    <label><input type="radio" name="verdict" value="permanent" /> 영구 누락으로 확정한다 &mdash; 집계에서 &ldquo;데이터 없음&rdquo;으로 다룬다</label>
+                  <span class="fl">원인</span>
+                  <div class="radios col" data-role="cause">
+                    <label><input type="radio" name="cause-locate-gap" value="schedule" /> 스케줄 미실행 &mdash; 시도 자체가 0</label>
+                    <label><input type="radio" name="cause-locate-gap" value="api" /> 소스 API 오류 &mdash; 시도는 있고 성공이 없다</label>
+                    <label><input type="radio" name="cause-locate-gap" value="origin" /> 원본 소실 &mdash; 다시 긁어도 받을 것이 없다</label>
+                    <label><input type="radio" name="cause-locate-gap" value="dup-link" /> 링크 단위 중복 &mdash; 같은 원문 링크가 다시 쌓였다</label>
+                    <label><input type="radio" name="cause-locate-gap" value="dup-body" /> 본문 단위 중복 &mdash; 같은 본문이 버전으로 또 쌓였다</label>
                   </div>
                 </div>
-                <label class="fld" style="margin-top:18px">
-                  <span class="fl">보정 이력 메모</span>
-                  <textarea id="verify-memo" name="verify-memo" placeholder="어느 구간을 왜 어떻게 보정했는지 적어 두세요 — 나중에 그 구간 수치가 왜 다른지 설명할 근거가 됩니다."></textarea>
-                </label>
-                <div class="stepact" style="margin-top:16px">
-                  <button type="submit" class="btn pri" id="verify-submit">복구 확인 기록</button>
-                </div>
               </form>
+              <p class="muted" data-role="cause-hint" style="margin-top:12px;font-size:12px;line-height:1.6">기록된 실패 사유를 보고 고르세요.</p>
 
-              <div class="banner err" id="s-invalid" data-state="invalid" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-                <div id="invalid-msg">결론과 보정 이력 메모를 모두 채워야 기록됩니다.</div>
+              <div class="banner warn" data-role="source-outage" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채웁니다.
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="outage-go" href="#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                  </div>
+                </div>
               </div>
 
-              <div class="banner good" id="s-recorded" data-state="recorded" hidden>
-                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+              <div class="banner err" data-role="origin-gone" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
                 <div>
-                  <b>복구 확인을 기록했습니다.</b>
-                  <span id="recorded-what"></span>
-                  이 구간의 보정 이력은 이 세션 안에서만 유지됩니다.
+                  <b>재수집으로는 메울 수 없습니다.</b>
+                  원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="origin-go" href="#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" data-role="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:12px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">작업</span>
+                  <select name="op-locate-gap" data-role="op">
+                    <option value="refetch" selected>재수집</option>
+                    <option value="dedup">중복 정리</option>
+                  </select>
+                </label>
+              </div>
+              <div data-role="target-kv"></div>
+              <div class="note info" style="margin-top:12px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div data-role="keep-note">기존 본문 버전은 지우거나 덮어쓰지 않습니다 &mdash; 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.</div>
+              </div>
+
+              <div class="banner warn" data-role="retry-pending" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div>
+                  <b>복구 대기 &mdash; 재시도를 예약했습니다.</b>
+                  다음 재시도 <span class="mono" data-role="pending-at">15:00 KST</span>. 소스가 응답하면 이 구간만 다시 채우고, 그 전까지 구간 목록에 &ldquo;복구 대기&rdquo;로 남습니다.
+                </div>
+              </div>
+              <div class="banner err" data-role="no-target" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div><b>보정할 구간을 고르지 않았습니다.</b> 위 「구간 &middot; 소스 좁히기」 표에서 구간을 고르면 실행할 수 있습니다 &mdash; 범위 없이 전 구간을 다시 긁지 않습니다.</div>
+              </div>
+
+              <div class="stepact" style="margin-top:14px">
+                <button type="button" class="btn pri" data-role="run">보정 실행</button>
+              </div>
+
+              <div class="dlg" role="alertdialog" aria-label="중복 정리 확인" data-role="dedup-confirm" hidden>
+                <h4>중복 정리를 실행할까요?</h4>
+                같은 원문 링크로 다시 쌓인 관측 <b data-role="dlg-count">21</b>건을 정리합니다. 정리한 관측은 집계에서 빠집니다.
+                본문 버전은 건드리지 않습니다.
+                <div class="actions">
+                  <button type="button" class="btn sm" data-role="dlg-cancel">취소</button>
+                  <button type="button" class="btn sm pri" data-role="dlg-ok">중복 정리 실행</button>
+                </div>
+              </div>
+              <div class="loadbox" data-role="running" hidden>
+                보정 실행을 제출하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="banner err" data-role="run-failed" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>보정 실행을 제출하지 못했습니다.</b> 서빙이 응답하지 않았습니다 &mdash; 고른 구간과 작업은 그대로 두었습니다.
+                  <div class="actions"><button type="button" class="btn sm" data-role="run-retry">다시 제출</button></div>
+                </div>
+              </div>
+              <div data-role="run-done" hidden style="margin-top:14px">
+                <div class="seclabel" style="margin-bottom:6px">실행 결과</div>
+                <div data-role="run-kv"></div>
+              </div>
+              <div class="banner warn" data-role="dup-again" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
+                <div>
+                  <b>재수집이 중복을 다시 만들었습니다 (<span data-role="dup-count">21</span>건).</b>
+                  같은 기사가 링크 단위로 다시 쌓였습니다 &mdash; 링크 단위 &middot; 본문 단위 중복 규칙부터 다시 보세요.
+                  <div class="actions">
+                    <a class="btn sm" data-role="dup-go" href="#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="card col-5">
-            <div class="card-h"><h3>아직 못 닫겠다면</h3><span class="sub">미해결로 남깁니다</span></div>
+            <div class="card-h"><h3>보정하지 않고 닫는다면</h3><span class="sub">원인이 수집 밖이거나 지금은 손댈 수 없을 때</span></div>
             <div class="card-b">
-              <p class="muted" style="font-size:12.5px;line-height:1.65;margin-bottom:14px">
-                진단만 하고 닫으면 이 구간은 미해결로 남고, 다음에 들어올 때 다시 맨 위에 뜹니다.
+              <p class="exit">시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다.</p>
+              <a class="btn ghost" data-role="analysis-go" href="JRN-logic-backfill.html#STP-scope-range">분석 결과 재처리로 넘기기 &rarr;</a>
+              <div class="hr"></div>
+              <p class="exit">진단만 하고 닫으면 고른 구간은 미해결로 남고, 다음에 들어올 때 구간 목록 맨 위에 다시 뜹니다.</p>
+              <a class="btn ghost" data-role="leave-go" href="#STP-locate-gap">미해결로 남기고 닫기</a>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>복구 확인</h3>
+              <span class="sub" data-role="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span>
+              <div class="r"><span class="tag">정상 범위 = 시도 대비 성공률 99% 이상 &middot; 중복 0</span></div>
+            </div>
+            <div class="card-b">
+              <p class="placeholder-note" data-role="no-run" hidden style="margin:0 0 12px">
+                고른 구간에 아직 보정 실행이 없습니다 &mdash; 아래 &ldquo;보정 후&rdquo; 칸은 실행 뒤에 채워집니다.
               </p>
-              <div class="stepact" style="margin-top:0;flex-direction:column;align-items:stretch;gap:9px">
-                <a class="btn ghost" id="br-5" href="#STP-locate-gap"
-                   data-goto="JRN-ingestion-recovery#STP-locate-gap">미해결로 남기고 구간 목록으로 &rarr;</a>
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody data-role="vf-rows"></tbody>
+              </table>
+              <div class="banner good" data-role="recovered" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div><b>정상 범위로 복구됐습니다.</b> <span data-role="rec-what">한국 &middot; kr-wire &middot; 09–11시</span> &mdash; 보정 실행은 이벤트 로그에 실행 기록으로 남았습니다.</div>
+              </div>
+              <div class="banner err" data-role="perm-missing" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>영구 누락으로 확정했습니다 &mdash; 복구되지 않았습니다.</b>
+                  <span data-role="perm-what">한국 &middot; kr-daily &middot; 10/16 19시</span> 구간은 집계에서 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions"><a class="btn sm" data-role="dash-off" href="JRN-daily-scan.html#STP-open-brief" data-offpath="추세 대시보드 — 이 구간이 「데이터 없음」으로 보이는지 확인">추세 대시보드에서 보기 &rarr;</a></div>
+                </div>
               </div>
             </div>
           </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-diagnose-source" disabled>원인 진단으로 <span class="ar">&rarr;</span></button>
+          <span class="hint" data-role="cta-hint">진단할 구간을 표에서 고르세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 3 · 원인 진단 — 화면 integrity ============ -->
+      <section class="jstep" id="STP-diagnose-source" data-step="STP-diagnose-source" data-title="원인 진단" hidden>
+
+      <div class="screen" data-screen="integrity" data-title="수집 무결성 콘솔">
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 성공</div>
+              <div class="mv" data-role="m-ok">4,112</div>
+              <div class="md"><span class="delta fl" data-role="m-rate">85.7%</span> 시도 대비 성공률</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">재시도</div>
+              <div class="mv" data-role="m-retry">17</div>
+              <div class="md"><span data-role="m-retry-sub">회복 5건 &middot; 재시도 후 실패 52건</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">중복</div>
+              <div class="mv" data-role="m-dup">24</div>
+              <div class="md"><span data-role="m-dup-sub">링크 단위 21 &middot; 본문 단위 3</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">누락</div>
+              <div class="mv" data-role="m-miss">652</div>
+              <div class="md"><span data-role="m-miss-sub">시도 0 구간 1개 &middot; 실패 52건</span></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>시간대별 수집 현황</h3>
+              <span class="sub" data-role="bk-sub">이상 구간 4개 / 8구간 &middot; 최근 24시간</span>
+              <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select name="axis-diagnose-source" data-role="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="only-bad-diagnose-source" data-role="only-bad" />
+                  이상 구간만 보기
+                </label>
+              </div>
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">재시도</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody data-role="bk-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="no-anomaly" hidden>
+                이 축의 최근 24시간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 실패 0건 &middot; 중복 0건
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" data-role="sum-sub">구간 미선택</span></div>
+            <div class="card-b">
+              <p class="muted" data-role="no-bucket" hidden style="font-size:12.5px;line-height:1.65">
+                왼쪽 표에서 구간을 고르면 시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 보여 줍니다.
+              </p>
+              <div data-role="sum-kv"></div>
+              <div class="banner err" data-role="attempt-zero" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>수집 시도 자체가 없습니다.</b>
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때의 모양입니다.
+                  <div class="kv"><span class="k">자동 재시도</span><span class="v" data-role="az-retry">3회 &middot; 모두 기동 실패</span></div>
+                  <div class="kv"><span class="k">다음 주기 보정</span><span class="v" data-role="az-catchup">06:00 실행 &middot; 보정 실패</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>구간 &middot; 소스 좁히기</h3>
+              <span class="sub" data-role="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <div class="fld" style="flex:0 0 auto">
+                  <span class="fl">축</span>
+                  <span class="axpill ax-kr" data-role="gap-axis" style="margin-top:6px"><i class="fl"></i>KR</span>
+                </div>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">소스</span>
+                  <select name="f-source-diagnose-source" data-role="f-source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">시간대</span>
+                  <select name="f-band-diagnose-source" data-role="f-band">
+                    <option value="all" selected>전체 시간대</option>
+                      <option value="b0">10/16 15–18시</option>
+                      <option value="b1">10/16 18–21시</option>
+                      <option value="b2">10/16 21–24시</option>
+                      <option value="b3">10/17 00–03시</option>
+                      <option value="b4">10/17 03–06시</option>
+                      <option value="b5">10/17 06–09시</option>
+                      <option value="b6">10/17 09–12시</option>
+                      <option value="b7">10/17 12–15시</option>
+                  </select>
+                </label>
+              </div>
+              <div class="banner warn" data-role="unresolved" hidden style="margin:0 0 12px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div><b>지난 점검에서 미해결로 남긴 구간 <span data-role="unres-count">3</span>개</b>가 있습니다 &mdash; 맨 위에 둡니다. 보정하거나 영구 누락으로 확정하기 전까지 계속 뜹니다.</div>
+              </div>
+              <table class="tbl">
+                <thead><tr><th></th><th>시각</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody data-role="gap-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="filter-empty" hidden>
+                이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
+              </div>
+              <p class="placeholder-note" data-role="no-gap" hidden>
+                진단하고 보정할 구간을 표에서 고르세요 &mdash; 고른 구간에만 손댑니다.
+              </p>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>좁힌 범위: <b data-role="gap-scope">한국 &middot; 전체 소스 &middot; 전체 시간대</b> &middot; 고른 구간 <b data-role="gap-picked">0</b>개. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>이벤트 로그</h3><span class="sub" data-role="log-sub">한국 축 &middot; 최근 24시간</span></div>
+            <div class="card-b scrolly" style="max-height:380px">
+              <table class="tbl">
+                <tbody data-role="log-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>수집 메타데이터</h3><span class="sub" data-role="meta-sub">고른 구간의 실행 &middot; 레코드 기록</span></div>
+            <div class="card-b">
+              <div data-role="meta-badges"></div>
+              <div data-role="meta-kv" style="margin-top:10px"></div>
+              <div class="seclabel" style="margin:16px 0 6px">수집 레코드</div>
+              <table class="tbl">
+                <thead><tr><th class="num">순위</th><th>원문 링크</th><th class="num">조회수</th><th>수집 시각</th><th>본문</th><th>상태</th></tr></thead>
+                <tbody data-role="rec-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>원인 진단</h3><span class="sub">무엇이 이 구간을 비웠는지 가릅니다</span></div>
+            <div class="card-b">
+              <form data-role="cause-form">
+                <div class="fld">
+                  <span class="fl">원인</span>
+                  <div class="radios col" data-role="cause">
+                    <label><input type="radio" name="cause-diagnose-source" value="schedule" /> 스케줄 미실행 &mdash; 시도 자체가 0</label>
+                    <label><input type="radio" name="cause-diagnose-source" value="api" /> 소스 API 오류 &mdash; 시도는 있고 성공이 없다</label>
+                    <label><input type="radio" name="cause-diagnose-source" value="origin" /> 원본 소실 &mdash; 다시 긁어도 받을 것이 없다</label>
+                    <label><input type="radio" name="cause-diagnose-source" value="dup-link" /> 링크 단위 중복 &mdash; 같은 원문 링크가 다시 쌓였다</label>
+                    <label><input type="radio" name="cause-diagnose-source" value="dup-body" /> 본문 단위 중복 &mdash; 같은 본문이 버전으로 또 쌓였다</label>
+                  </div>
+                </div>
+              </form>
+              <p class="muted" data-role="cause-hint" style="margin-top:12px;font-size:12px;line-height:1.6">기록된 실패 사유를 보고 고르세요.</p>
+
+              <div class="banner warn" data-role="source-outage" data-state="source-outage" data-label="소스 API 장애 — 복구 대기로" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채웁니다.
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="outage-go" href="#STP-backfill" data-goto="JRN-ingestion-recovery#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="banner err" data-role="origin-gone" data-state="origin-gone" data-label="원본 소실 — 영구 누락으로" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>재수집으로는 메울 수 없습니다.</b>
+                  원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="origin-go" href="#STP-verify-integrity" data-goto="JRN-ingestion-recovery#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" data-role="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:12px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">작업</span>
+                  <select name="op-diagnose-source" data-role="op">
+                    <option value="refetch" selected>재수집</option>
+                    <option value="dedup">중복 정리</option>
+                  </select>
+                </label>
+              </div>
+              <div data-role="target-kv"></div>
+              <div class="note info" style="margin-top:12px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div data-role="keep-note">기존 본문 버전은 지우거나 덮어쓰지 않습니다 &mdash; 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.</div>
+              </div>
+
+              <div class="banner warn" data-role="retry-pending" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div>
+                  <b>복구 대기 &mdash; 재시도를 예약했습니다.</b>
+                  다음 재시도 <span class="mono" data-role="pending-at">15:00 KST</span>. 소스가 응답하면 이 구간만 다시 채우고, 그 전까지 구간 목록에 &ldquo;복구 대기&rdquo;로 남습니다.
+                </div>
+              </div>
+              <div class="banner err" data-role="no-target" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div><b>보정할 구간을 고르지 않았습니다.</b> 위 「구간 &middot; 소스 좁히기」 표에서 구간을 고르면 실행할 수 있습니다 &mdash; 범위 없이 전 구간을 다시 긁지 않습니다.</div>
+              </div>
+
+              <div class="stepact" style="margin-top:14px">
+                <button type="button" class="btn pri" data-role="run">보정 실행</button>
+              </div>
+
+              <div class="dlg" role="alertdialog" aria-label="중복 정리 확인" data-role="dedup-confirm" hidden>
+                <h4>중복 정리를 실행할까요?</h4>
+                같은 원문 링크로 다시 쌓인 관측 <b data-role="dlg-count">21</b>건을 정리합니다. 정리한 관측은 집계에서 빠집니다.
+                본문 버전은 건드리지 않습니다.
+                <div class="actions">
+                  <button type="button" class="btn sm" data-role="dlg-cancel">취소</button>
+                  <button type="button" class="btn sm pri" data-role="dlg-ok">중복 정리 실행</button>
+                </div>
+              </div>
+              <div class="loadbox" data-role="running" hidden>
+                보정 실행을 제출하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="banner err" data-role="run-failed" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>보정 실행을 제출하지 못했습니다.</b> 서빙이 응답하지 않았습니다 &mdash; 고른 구간과 작업은 그대로 두었습니다.
+                  <div class="actions"><button type="button" class="btn sm" data-role="run-retry">다시 제출</button></div>
+                </div>
+              </div>
+              <div data-role="run-done" hidden style="margin-top:14px">
+                <div class="seclabel" style="margin-bottom:6px">실행 결과</div>
+                <div data-role="run-kv"></div>
+              </div>
+              <div class="banner warn" data-role="dup-again" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
+                <div>
+                  <b>재수집이 중복을 다시 만들었습니다 (<span data-role="dup-count">21</span>건).</b>
+                  같은 기사가 링크 단위로 다시 쌓였습니다 &mdash; 링크 단위 &middot; 본문 단위 중복 규칙부터 다시 보세요.
+                  <div class="actions">
+                    <a class="btn sm" data-role="dup-go" href="#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>보정하지 않고 닫는다면</h3><span class="sub">원인이 수집 밖이거나 지금은 손댈 수 없을 때</span></div>
+            <div class="card-b">
+              <p class="exit">시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다.</p>
+              <a class="btn ghost" data-role="analysis-go" href="JRN-logic-backfill.html#STP-scope-range">분석 결과 재처리로 넘기기 &rarr;</a>
+              <div class="hr"></div>
+              <p class="exit">진단만 하고 닫으면 고른 구간은 미해결로 남고, 다음에 들어올 때 구간 목록 맨 위에 다시 뜹니다.</p>
+              <a class="btn ghost" data-role="leave-go" href="#STP-locate-gap">미해결로 남기고 닫기</a>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>복구 확인</h3>
+              <span class="sub" data-role="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span>
+              <div class="r"><span class="tag">정상 범위 = 시도 대비 성공률 99% 이상 &middot; 중복 0</span></div>
+            </div>
+            <div class="card-b">
+              <p class="placeholder-note" data-role="no-run" hidden style="margin:0 0 12px">
+                고른 구간에 아직 보정 실행이 없습니다 &mdash; 아래 &ldquo;보정 후&rdquo; 칸은 실행 뒤에 채워집니다.
+              </p>
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody data-role="vf-rows"></tbody>
+              </table>
+              <div class="banner good" data-role="recovered" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div><b>정상 범위로 복구됐습니다.</b> <span data-role="rec-what">한국 &middot; kr-wire &middot; 09–11시</span> &mdash; 보정 실행은 이벤트 로그에 실행 기록으로 남았습니다.</div>
+              </div>
+              <div class="banner err" data-role="perm-missing" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>영구 누락으로 확정했습니다 &mdash; 복구되지 않았습니다.</b>
+                  <span data-role="perm-what">한국 &middot; kr-daily &middot; 10/16 19시</span> 구간은 집계에서 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions"><a class="btn sm" data-role="dash-off" href="JRN-daily-scan.html#STP-open-brief" data-offpath="추세 대시보드 — 이 구간이 「데이터 없음」으로 보이는지 확인">추세 대시보드에서 보기 &rarr;</a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-backfill" disabled>보정 실행으로 <span class="ar">&rarr;</span></button>
+          <span class="hint" data-role="cta-hint">원인을 먼저 가르세요 &mdash; 원인에 따라 실행할 작업이 달라집니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 4 · 재수집·중복 정리 실행 — 화면 integrity ============ -->
+      <section class="jstep" id="STP-backfill" data-step="STP-backfill" data-title="재수집·중복 정리 실행" hidden>
+
+      <div class="screen" data-screen="integrity" data-title="수집 무결성 콘솔">
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 성공</div>
+              <div class="mv" data-role="m-ok">4,112</div>
+              <div class="md"><span class="delta fl" data-role="m-rate">85.7%</span> 시도 대비 성공률</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">재시도</div>
+              <div class="mv" data-role="m-retry">17</div>
+              <div class="md"><span data-role="m-retry-sub">회복 5건 &middot; 재시도 후 실패 52건</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">중복</div>
+              <div class="mv" data-role="m-dup">24</div>
+              <div class="md"><span data-role="m-dup-sub">링크 단위 21 &middot; 본문 단위 3</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">누락</div>
+              <div class="mv" data-role="m-miss">652</div>
+              <div class="md"><span data-role="m-miss-sub">시도 0 구간 1개 &middot; 실패 52건</span></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>시간대별 수집 현황</h3>
+              <span class="sub" data-role="bk-sub">이상 구간 4개 / 8구간 &middot; 최근 24시간</span>
+              <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select name="axis-backfill" data-role="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="only-bad-backfill" data-role="only-bad" />
+                  이상 구간만 보기
+                </label>
+              </div>
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">재시도</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody data-role="bk-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="no-anomaly" hidden>
+                이 축의 최근 24시간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 실패 0건 &middot; 중복 0건
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" data-role="sum-sub">구간 미선택</span></div>
+            <div class="card-b">
+              <p class="muted" data-role="no-bucket" hidden style="font-size:12.5px;line-height:1.65">
+                왼쪽 표에서 구간을 고르면 시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 보여 줍니다.
+              </p>
+              <div data-role="sum-kv"></div>
+              <div class="banner err" data-role="attempt-zero" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>수집 시도 자체가 없습니다.</b>
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때의 모양입니다.
+                  <div class="kv"><span class="k">자동 재시도</span><span class="v" data-role="az-retry">3회 &middot; 모두 기동 실패</span></div>
+                  <div class="kv"><span class="k">다음 주기 보정</span><span class="v" data-role="az-catchup">06:00 실행 &middot; 보정 실패</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>구간 &middot; 소스 좁히기</h3>
+              <span class="sub" data-role="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <div class="fld" style="flex:0 0 auto">
+                  <span class="fl">축</span>
+                  <span class="axpill ax-kr" data-role="gap-axis" style="margin-top:6px"><i class="fl"></i>KR</span>
+                </div>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">소스</span>
+                  <select name="f-source-backfill" data-role="f-source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">시간대</span>
+                  <select name="f-band-backfill" data-role="f-band">
+                    <option value="all" selected>전체 시간대</option>
+                      <option value="b0">10/16 15–18시</option>
+                      <option value="b1">10/16 18–21시</option>
+                      <option value="b2">10/16 21–24시</option>
+                      <option value="b3">10/17 00–03시</option>
+                      <option value="b4">10/17 03–06시</option>
+                      <option value="b5">10/17 06–09시</option>
+                      <option value="b6">10/17 09–12시</option>
+                      <option value="b7">10/17 12–15시</option>
+                  </select>
+                </label>
+              </div>
+              <div class="banner warn" data-role="unresolved" hidden style="margin:0 0 12px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div><b>지난 점검에서 미해결로 남긴 구간 <span data-role="unres-count">3</span>개</b>가 있습니다 &mdash; 맨 위에 둡니다. 보정하거나 영구 누락으로 확정하기 전까지 계속 뜹니다.</div>
+              </div>
+              <table class="tbl">
+                <thead><tr><th></th><th>시각</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody data-role="gap-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="filter-empty" hidden>
+                이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
+              </div>
+              <p class="placeholder-note" data-role="no-gap" hidden>
+                진단하고 보정할 구간을 표에서 고르세요 &mdash; 고른 구간에만 손댑니다.
+              </p>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>좁힌 범위: <b data-role="gap-scope">한국 &middot; 전체 소스 &middot; 전체 시간대</b> &middot; 고른 구간 <b data-role="gap-picked">0</b>개. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>이벤트 로그</h3><span class="sub" data-role="log-sub">한국 축 &middot; 최근 24시간</span></div>
+            <div class="card-b scrolly" style="max-height:380px">
+              <table class="tbl">
+                <tbody data-role="log-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>수집 메타데이터</h3><span class="sub" data-role="meta-sub">고른 구간의 실행 &middot; 레코드 기록</span></div>
+            <div class="card-b">
+              <div data-role="meta-badges"></div>
+              <div data-role="meta-kv" style="margin-top:10px"></div>
+              <div class="seclabel" style="margin:16px 0 6px">수집 레코드</div>
+              <table class="tbl">
+                <thead><tr><th class="num">순위</th><th>원문 링크</th><th class="num">조회수</th><th>수집 시각</th><th>본문</th><th>상태</th></tr></thead>
+                <tbody data-role="rec-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>원인 진단</h3><span class="sub">무엇이 이 구간을 비웠는지 가릅니다</span></div>
+            <div class="card-b">
+              <form data-role="cause-form">
+                <div class="fld">
+                  <span class="fl">원인</span>
+                  <div class="radios col" data-role="cause">
+                    <label><input type="radio" name="cause-backfill" value="schedule" /> 스케줄 미실행 &mdash; 시도 자체가 0</label>
+                    <label><input type="radio" name="cause-backfill" value="api" /> 소스 API 오류 &mdash; 시도는 있고 성공이 없다</label>
+                    <label><input type="radio" name="cause-backfill" value="origin" /> 원본 소실 &mdash; 다시 긁어도 받을 것이 없다</label>
+                    <label><input type="radio" name="cause-backfill" value="dup-link" /> 링크 단위 중복 &mdash; 같은 원문 링크가 다시 쌓였다</label>
+                    <label><input type="radio" name="cause-backfill" value="dup-body" /> 본문 단위 중복 &mdash; 같은 본문이 버전으로 또 쌓였다</label>
+                  </div>
+                </div>
+              </form>
+              <p class="muted" data-role="cause-hint" style="margin-top:12px;font-size:12px;line-height:1.6">기록된 실패 사유를 보고 고르세요.</p>
+
+              <div class="banner warn" data-role="source-outage" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채웁니다.
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="outage-go" href="#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="banner err" data-role="origin-gone" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>재수집으로는 메울 수 없습니다.</b>
+                  원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="origin-go" href="#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" data-role="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:12px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">작업</span>
+                  <select name="op-backfill" data-role="op">
+                    <option value="refetch" selected>재수집</option>
+                    <option value="dedup">중복 정리</option>
+                  </select>
+                </label>
+              </div>
+              <div data-role="target-kv"></div>
+              <div class="note info" style="margin-top:12px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div data-role="keep-note">기존 본문 버전은 지우거나 덮어쓰지 않습니다 &mdash; 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.</div>
+              </div>
+
+              <div class="banner warn" data-role="retry-pending" data-state="retry-pending" data-label="복구 대기 — 재시도 예약됨" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div>
+                  <b>복구 대기 &mdash; 재시도를 예약했습니다.</b>
+                  다음 재시도 <span class="mono" data-role="pending-at">15:00 KST</span>. 소스가 응답하면 이 구간만 다시 채우고, 그 전까지 구간 목록에 &ldquo;복구 대기&rdquo;로 남습니다.
+                </div>
+              </div>
+              <div class="banner err" data-role="no-target" data-state="no-target" data-label="보정 대상 미선택 — 실행 차단" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div><b>보정할 구간을 고르지 않았습니다.</b> 위 「구간 &middot; 소스 좁히기」 표에서 구간을 고르면 실행할 수 있습니다 &mdash; 범위 없이 전 구간을 다시 긁지 않습니다.</div>
+              </div>
+
+              <div class="stepact" style="margin-top:14px">
+                <button type="button" class="btn pri" data-role="run">보정 실행</button>
+              </div>
+
+              <div class="dlg" role="alertdialog" aria-label="중복 정리 확인" data-role="dedup-confirm" data-state="dedup-confirm" data-label="중복 정리 확인" hidden>
+                <h4>중복 정리를 실행할까요?</h4>
+                같은 원문 링크로 다시 쌓인 관측 <b data-role="dlg-count">21</b>건을 정리합니다. 정리한 관측은 집계에서 빠집니다.
+                본문 버전은 건드리지 않습니다.
+                <div class="actions">
+                  <button type="button" class="btn sm" data-role="dlg-cancel">취소</button>
+                  <button type="button" class="btn sm pri" data-role="dlg-ok">중복 정리 실행</button>
+                </div>
+              </div>
+              <div class="loadbox" data-role="running" data-state="running" data-label="제출 중" hidden>
+                보정 실행을 제출하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="banner err" data-role="run-failed" data-state="run-failed" data-label="제출 실패" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>보정 실행을 제출하지 못했습니다.</b> 서빙이 응답하지 않았습니다 &mdash; 고른 구간과 작업은 그대로 두었습니다.
+                  <div class="actions"><button type="button" class="btn sm" data-role="run-retry">다시 제출</button></div>
+                </div>
+              </div>
+              <div data-role="run-done" data-state="run-done" data-label="실행 결과" hidden style="margin-top:14px">
+                <div class="seclabel" style="margin-bottom:6px">실행 결과</div>
+                <div data-role="run-kv"></div>
+              </div>
+              <div class="banner warn" data-role="dup-again" data-state="dup-again" data-label="재수집이 중복을 다시 만듦" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
+                <div>
+                  <b>재수집이 중복을 다시 만들었습니다 (<span data-role="dup-count">21</span>건).</b>
+                  같은 기사가 링크 단위로 다시 쌓였습니다 &mdash; 링크 단위 &middot; 본문 단위 중복 규칙부터 다시 보세요.
+                  <div class="actions">
+                    <a class="btn sm" data-role="dup-go" href="#STP-diagnose-source" data-goto="JRN-ingestion-recovery#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>보정하지 않고 닫는다면</h3><span class="sub">원인이 수집 밖이거나 지금은 손댈 수 없을 때</span></div>
+            <div class="card-b">
+              <p class="exit">시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다.</p>
+              <a class="btn ghost" data-role="analysis-go" href="JRN-logic-backfill.html#STP-scope-range" data-goto="JRN-logic-backfill#STP-scope-range" data-end="분석 재처리 여정으로 인계">분석 결과 재처리로 넘기기 &rarr;</a>
+              <div class="hr"></div>
+              <p class="exit">진단만 하고 닫으면 고른 구간은 미해결로 남고, 다음에 들어올 때 구간 목록 맨 위에 다시 뜹니다.</p>
+              <a class="btn ghost" data-role="leave-go" href="#STP-locate-gap" data-goto="JRN-ingestion-recovery#STP-locate-gap" data-end="중도 이탈 · 다음 진입에 미해결 구간으로 다시 뜸">미해결로 남기고 닫기</a>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>복구 확인</h3>
+              <span class="sub" data-role="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span>
+              <div class="r"><span class="tag">정상 범위 = 시도 대비 성공률 99% 이상 &middot; 중복 0</span></div>
+            </div>
+            <div class="card-b">
+              <p class="placeholder-note" data-role="no-run" hidden style="margin:0 0 12px">
+                고른 구간에 아직 보정 실행이 없습니다 &mdash; 아래 &ldquo;보정 후&rdquo; 칸은 실행 뒤에 채워집니다.
+              </p>
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody data-role="vf-rows"></tbody>
+              </table>
+              <div class="banner good" data-role="recovered" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div><b>정상 범위로 복구됐습니다.</b> <span data-role="rec-what">한국 &middot; kr-wire &middot; 09–11시</span> &mdash; 보정 실행은 이벤트 로그에 실행 기록으로 남았습니다.</div>
+              </div>
+              <div class="banner err" data-role="perm-missing" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>영구 누락으로 확정했습니다 &mdash; 복구되지 않았습니다.</b>
+                  <span data-role="perm-what">한국 &middot; kr-daily &middot; 10/16 19시</span> 구간은 집계에서 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions"><a class="btn sm" data-role="dash-off" href="JRN-daily-scan.html#STP-open-brief" data-offpath="추세 대시보드 — 이 구간이 「데이터 없음」으로 보이는지 확인">추세 대시보드에서 보기 &rarr;</a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-verify-integrity" disabled>복구 확인으로 <span class="ar">&rarr;</span></button>
+          <span class="hint" data-role="cta-hint">보정을 먼저 실행하세요.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 5 · 복구 확인 — 화면 integrity ============ -->
+      <section class="jstep" id="STP-verify-integrity" data-step="STP-verify-integrity" data-title="복구 확인" hidden>
+
+      <div class="screen" data-screen="integrity" data-title="수집 무결성 콘솔">
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 성공</div>
+              <div class="mv" data-role="m-ok">4,112</div>
+              <div class="md"><span class="delta fl" data-role="m-rate">85.7%</span> 시도 대비 성공률</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">재시도</div>
+              <div class="mv" data-role="m-retry">17</div>
+              <div class="md"><span data-role="m-retry-sub">회복 5건 &middot; 재시도 후 실패 52건</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">중복</div>
+              <div class="mv" data-role="m-dup">24</div>
+              <div class="md"><span data-role="m-dup-sub">링크 단위 21 &middot; 본문 단위 3</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">누락</div>
+              <div class="mv" data-role="m-miss">652</div>
+              <div class="md"><span data-role="m-miss-sub">시도 0 구간 1개 &middot; 실패 52건</span></div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>시간대별 수집 현황</h3>
+              <span class="sub" data-role="bk-sub">이상 구간 4개 / 8구간 &middot; 최근 24시간</span>
+              <div class="r"><span class="tag">시도 0 = 스케줄 미실행</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <label class="fld" style="flex:0 0 142px">
+                  <span class="fl">축</span>
+                  <select name="axis-verify-integrity" data-role="axis">
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="chk" style="padding-bottom:8px">
+                  <input type="checkbox" name="only-bad-verify-integrity" data-role="only-bad" />
+                  이상 구간만 보기
+                </label>
+              </div>
+              <table class="tbl">
+                <thead><tr><th>구간</th><th class="num">시도</th><th class="num">성공</th><th class="num">실패</th><th class="num">재시도</th><th class="num">중복</th><th>상태</th></tr></thead>
+                <tbody data-role="bk-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="no-anomaly" hidden>
+                이 축의 최근 24시간에는 이상이 없습니다.<br/>시도 대비 성공률 100% &middot; 실패 0건 &middot; 중복 0건
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>구간 요약</h3><span class="sub" data-role="sum-sub">구간 미선택</span></div>
+            <div class="card-b">
+              <p class="muted" data-role="no-bucket" hidden style="font-size:12.5px;line-height:1.65">
+                왼쪽 표에서 구간을 고르면 시도 &middot; 성공 &middot; 실패 &middot; 중복을 나눠 보여 줍니다.
+              </p>
+              <div data-role="sum-kv"></div>
+              <div class="banner err" data-role="attempt-zero" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>수집 시도 자체가 없습니다.</b>
+                  「성공 0건」이 아니라 <b>시도 0건</b>입니다 &mdash; 소스가 죽은 것이 아니라 스케줄이 돌지 않았을 때의 모양입니다.
+                  <div class="kv"><span class="k">자동 재시도</span><span class="v" data-role="az-retry">3회 &middot; 모두 기동 실패</span></div>
+                  <div class="kv"><span class="k">다음 주기 보정</span><span class="v" data-role="az-catchup">06:00 실행 &middot; 보정 실패</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>구간 &middot; 소스 좁히기</h3>
+              <span class="sub" data-role="gap-sub">축 &middot; 소스 &middot; 시간 세 축으로 거릅니다</span>
+              <div class="r"><span class="tag">전 구간 재수집은 과잉 대응</span></div>
+            </div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:14px">
+                <div class="fld" style="flex:0 0 auto">
+                  <span class="fl">축</span>
+                  <span class="axpill ax-kr" data-role="gap-axis" style="margin-top:6px"><i class="fl"></i>KR</span>
+                </div>
+                <label class="fld" style="flex:0 0 168px">
+                  <span class="fl">소스</span>
+                  <select name="f-source-verify-integrity" data-role="f-source">
+                    <option value="all" selected>전체 소스</option>
+                    <option value="kr-wire">kr-wire</option>
+                    <option value="kr-daily">kr-daily</option>
+                    <option value="us-desk">us-desk</option>
+                    <option value="gl-agg">gl-agg</option>
+                  </select>
+                </label>
+                <label class="fld" style="flex:0 0 182px">
+                  <span class="fl">시간대</span>
+                  <select name="f-band-verify-integrity" data-role="f-band">
+                    <option value="all" selected>전체 시간대</option>
+                      <option value="b0">10/16 15–18시</option>
+                      <option value="b1">10/16 18–21시</option>
+                      <option value="b2">10/16 21–24시</option>
+                      <option value="b3">10/17 00–03시</option>
+                      <option value="b4">10/17 03–06시</option>
+                      <option value="b5">10/17 06–09시</option>
+                      <option value="b6">10/17 09–12시</option>
+                      <option value="b7">10/17 12–15시</option>
+                  </select>
+                </label>
+              </div>
+              <div class="banner warn" data-role="unresolved" hidden style="margin:0 0 12px">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div><b>지난 점검에서 미해결로 남긴 구간 <span data-role="unres-count">3</span>개</b>가 있습니다 &mdash; 맨 위에 둡니다. 보정하거나 영구 누락으로 확정하기 전까지 계속 뜹니다.</div>
+              </div>
+              <table class="tbl">
+                <thead><tr><th></th><th>시각</th><th>소스</th><th class="num">시도</th><th class="num">누락</th><th class="num">중복</th><th>판정</th></tr></thead>
+                <tbody data-role="gap-rows"></tbody>
+              </table>
+              <div class="emptybox" data-role="filter-empty" hidden>
+                이 조합에 해당하는 구간이 없습니다.<br/>소스나 시간대를 넓혀 보세요.
+              </div>
+              <p class="placeholder-note" data-role="no-gap" hidden>
+                진단하고 보정할 구간을 표에서 고르세요 &mdash; 고른 구간에만 손댑니다.
+              </p>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>좁힌 범위: <b data-role="gap-scope">한국 &middot; 전체 소스 &middot; 전체 시간대</b> &middot; 고른 구간 <b data-role="gap-picked">0</b>개. 이 범위만 보정하면 되고, 전 구간을 다시 긁을 필요는 없습니다.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>이벤트 로그</h3><span class="sub" data-role="log-sub">한국 축 &middot; 최근 24시간</span></div>
+            <div class="card-b scrolly" style="max-height:380px">
+              <table class="tbl">
+                <tbody data-role="log-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>수집 메타데이터</h3><span class="sub" data-role="meta-sub">고른 구간의 실행 &middot; 레코드 기록</span></div>
+            <div class="card-b">
+              <div data-role="meta-badges"></div>
+              <div data-role="meta-kv" style="margin-top:10px"></div>
+              <div class="seclabel" style="margin:16px 0 6px">수집 레코드</div>
+              <table class="tbl">
+                <thead><tr><th class="num">순위</th><th>원문 링크</th><th class="num">조회수</th><th>수집 시각</th><th>본문</th><th>상태</th></tr></thead>
+                <tbody data-role="rec-rows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>원인 진단</h3><span class="sub">무엇이 이 구간을 비웠는지 가릅니다</span></div>
+            <div class="card-b">
+              <form data-role="cause-form">
+                <div class="fld">
+                  <span class="fl">원인</span>
+                  <div class="radios col" data-role="cause">
+                    <label><input type="radio" name="cause-verify-integrity" value="schedule" /> 스케줄 미실행 &mdash; 시도 자체가 0</label>
+                    <label><input type="radio" name="cause-verify-integrity" value="api" /> 소스 API 오류 &mdash; 시도는 있고 성공이 없다</label>
+                    <label><input type="radio" name="cause-verify-integrity" value="origin" /> 원본 소실 &mdash; 다시 긁어도 받을 것이 없다</label>
+                    <label><input type="radio" name="cause-verify-integrity" value="dup-link" /> 링크 단위 중복 &mdash; 같은 원문 링크가 다시 쌓였다</label>
+                    <label><input type="radio" name="cause-verify-integrity" value="dup-body" /> 본문 단위 중복 &mdash; 같은 본문이 버전으로 또 쌓였다</label>
+                  </div>
+                </div>
+              </form>
+              <p class="muted" data-role="cause-hint" style="margin-top:12px;font-size:12px;line-height:1.6">기록된 실패 사유를 보고 고르세요.</p>
+
+              <div class="banner warn" data-role="source-outage" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>소스 쪽 장애입니다 &mdash; 지금 다시 긁어도 같은 오류를 받습니다.</b>
+                  재시도를 예약하고 이 구간을 &ldquo;복구 대기&rdquo;로 표시해 두면, 소스가 살아난 뒤 그 구간만 다시 채웁니다.
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="outage-go" href="#STP-backfill">재시도 예약하고 복구 대기로 표시 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="banner err" data-role="origin-gone" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>재수집으로는 메울 수 없습니다.</b>
+                  원본이 사라진 구간은 채우는 대신 <b>영구 누락</b>으로 확정해 두어야, 집계가 그 구간을 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="origin-go" href="#STP-verify-integrity">영구 누락으로 확정하고 확인으로 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h"><h3>보정 실행</h3><span class="sub" data-role="run-sub">고른 구간에만 적용됩니다</span></div>
+            <div class="card-b">
+              <div class="formrow" style="margin-bottom:12px">
+                <label class="fld" style="flex:0 0 196px">
+                  <span class="fl">작업</span>
+                  <select name="op-verify-integrity" data-role="op">
+                    <option value="refetch" selected>재수집</option>
+                    <option value="dedup">중복 정리</option>
+                  </select>
+                </label>
+              </div>
+              <div data-role="target-kv"></div>
+              <div class="note info" style="margin-top:12px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div data-role="keep-note">기존 본문 버전은 지우거나 덮어쓰지 않습니다 &mdash; 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.</div>
+              </div>
+
+              <div class="banner warn" data-role="retry-pending" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <div>
+                  <b>복구 대기 &mdash; 재시도를 예약했습니다.</b>
+                  다음 재시도 <span class="mono" data-role="pending-at">15:00 KST</span>. 소스가 응답하면 이 구간만 다시 채우고, 그 전까지 구간 목록에 &ldquo;복구 대기&rdquo;로 남습니다.
+                </div>
+              </div>
+              <div class="banner err" data-role="no-target" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div><b>보정할 구간을 고르지 않았습니다.</b> 위 「구간 &middot; 소스 좁히기」 표에서 구간을 고르면 실행할 수 있습니다 &mdash; 범위 없이 전 구간을 다시 긁지 않습니다.</div>
+              </div>
+
+              <div class="stepact" style="margin-top:14px">
+                <button type="button" class="btn pri" data-role="run">보정 실행</button>
+              </div>
+
+              <div class="dlg" role="alertdialog" aria-label="중복 정리 확인" data-role="dedup-confirm" hidden>
+                <h4>중복 정리를 실행할까요?</h4>
+                같은 원문 링크로 다시 쌓인 관측 <b data-role="dlg-count">21</b>건을 정리합니다. 정리한 관측은 집계에서 빠집니다.
+                본문 버전은 건드리지 않습니다.
+                <div class="actions">
+                  <button type="button" class="btn sm" data-role="dlg-cancel">취소</button>
+                  <button type="button" class="btn sm pri" data-role="dlg-ok">중복 정리 실행</button>
+                </div>
+              </div>
+              <div class="loadbox" data-role="running" hidden>
+                보정 실행을 제출하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="banner err" data-role="run-failed" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div>
+                  <b>보정 실행을 제출하지 못했습니다.</b> 서빙이 응답하지 않았습니다 &mdash; 고른 구간과 작업은 그대로 두었습니다.
+                  <div class="actions"><button type="button" class="btn sm" data-role="run-retry">다시 제출</button></div>
+                </div>
+              </div>
+              <div data-role="run-done" hidden style="margin-top:14px">
+                <div class="seclabel" style="margin-bottom:6px">실행 결과</div>
+                <div data-role="run-kv"></div>
+              </div>
+              <div class="banner warn" data-role="dup-again" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M8 8h12v12H8z"/><path d="M4 16V4h12"/></svg>
+                <div>
+                  <b>재수집이 중복을 다시 만들었습니다 (<span data-role="dup-count">21</span>건).</b>
+                  같은 기사가 링크 단위로 다시 쌓였습니다 &mdash; 링크 단위 &middot; 본문 단위 중복 규칙부터 다시 보세요.
+                  <div class="actions">
+                    <a class="btn sm" data-role="dup-go" href="#STP-diagnose-source">중복 규칙 다시 보기 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>보정하지 않고 닫는다면</h3><span class="sub">원인이 수집 밖이거나 지금은 손댈 수 없을 때</span></div>
+            <div class="card-b">
+              <p class="exit">시도 &middot; 성공 &middot; 중복이 모두 정상인데 집계가 이상하면 수집이 아니라 분석 쪽입니다.</p>
+              <a class="btn ghost" data-role="analysis-go" href="JRN-logic-backfill.html#STP-scope-range">분석 결과 재처리로 넘기기 &rarr;</a>
+              <div class="hr"></div>
+              <p class="exit">진단만 하고 닫으면 고른 구간은 미해결로 남고, 다음에 들어올 때 구간 목록 맨 위에 다시 뜹니다.</p>
+              <a class="btn ghost" data-role="leave-go" href="#STP-locate-gap">미해결로 남기고 닫기</a>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>복구 확인</h3>
+              <span class="sub" data-role="vf-sub">보정 전후를 같은 기준으로 놓고 봅니다</span>
+              <div class="r"><span class="tag">정상 범위 = 시도 대비 성공률 99% 이상 &middot; 중복 0</span></div>
+            </div>
+            <div class="card-b">
+              <p class="placeholder-note" data-role="no-run" data-state="no-run" data-label="보정 실행 전" hidden style="margin:0 0 12px">
+                고른 구간에 아직 보정 실행이 없습니다 &mdash; 아래 &ldquo;보정 후&rdquo; 칸은 실행 뒤에 채워집니다.
+              </p>
+              <table class="tbl">
+                <thead><tr><th>지표</th><th class="num">보정 전</th><th class="num">보정 후</th><th>판정</th></tr></thead>
+                <tbody data-role="vf-rows"></tbody>
+              </table>
+              <div class="banner good" data-role="recovered" data-state="recovered" data-label="정상 범위로 복구됨" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"/></svg>
+                <div><b>정상 범위로 복구됐습니다.</b> <span data-role="rec-what">한국 &middot; kr-wire &middot; 09–11시</span> &mdash; 보정 실행은 이벤트 로그에 실행 기록으로 남았습니다.</div>
+              </div>
+              <div class="banner err" data-role="perm-missing" data-state="perm-missing" data-label="영구 누락 — 데이터 없음" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4l16 16M20 4L4 20"/></svg>
+                <div>
+                  <b>영구 누락으로 확정했습니다 &mdash; 복구되지 않았습니다.</b>
+                  <span data-role="perm-what">한국 &middot; kr-daily &middot; 10/16 19시</span> 구간은 집계에서 0이 아니라 &ldquo;데이터 없음&rdquo;으로 다룹니다.
+                  <div class="actions"><a class="btn sm" data-role="dash-off" href="JRN-daily-scan.html#STP-open-brief" data-offpath="추세 대시보드 — 이 구간이 「데이터 없음」으로 보이는지 확인">추세 대시보드에서 보기 &rarr;</a></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <span class="hint" data-end="여정 완료">보정 실행과 그 결과는 이벤트 로그에 남습니다.</span>
         </div>
       </section>
 
@@ -876,22 +2177,22 @@ details.meta table.tbl{margin-top:10px}
           <table class="tbl">
             <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
             <tbody>
-              <tr><td class="mono">STP-spot-anomaly</td><td>시간대별 수집 건수·실패 건수를 훑어 비정상 구간을 찾는다</td><td>무결성 패널(PAT-integrity-panel)</td><td class="mono">AC1.6</td></tr>
+              <tr><td class="mono">STP-spot-anomaly</td><td>시간대별 수집 건수·실패 건수를 훑어 비정상 구간을 찾는다</td><td>화면 integrity · 무결성 패널(PAT-integrity-panel)</td><td class="mono">AC1.6</td></tr>
               <tr><td class="mono">STP-locate-gap</td><td>이상 구간을 시간 단위·소스 단위로 좁힌다</td><td>무결성 테이블(CMP-table)</td><td class="mono">AC1.5 · AC1.6</td></tr>
               <tr><td class="mono">STP-diagnose-source</td><td>스케줄 미실행·소스 API 오류·링크 중복·본문 중복 중 무엇인지 가른다</td><td>상태 배지(CMP-badge), 수집 메타데이터(CMP-kv)</td><td class="mono">AC1.5 · AC1.6 · AC1.7</td></tr>
               <tr><td class="mono">STP-backfill</td><td>특정 구간을 재수집하거나 중복 레코드를 정리한다</td><td>실행 컨트롤</td><td class="mono">AC1.6 · AC1.7</td></tr>
-              <tr><td class="mono">STP-verify-integrity</td><td>보정 후 해당 구간의 수집량·중복률이 정상 범위인지 재확인한다</td><td>무결성 패널</td><td class="mono">&mdash;</td></tr>
+              <tr><td class="mono">STP-verify-integrity</td><td>보정 후 해당 구간의 수집량·중복률이 정상 범위인지 재확인한다</td><td>무결성 패널 · 전후 비교(PAT-before-after)</td><td class="mono">AC1.6 · AC4.1</td></tr>
             </tbody>
           </table>
 
           <table class="tbl">
             <thead><tr><th>분기·예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
             <tbody>
-              <tr><td>소스 API 자체가 장애 (외부 지연)</td><td>화면 3 · 소스 장애 배너</td><td class="mono">STP-backfill</td></tr>
-              <tr><td>원본이 이미 내려가 재수집 불가</td><td>화면 3 · 영구 누락 배너</td><td class="mono">STP-verify-integrity</td></tr>
-              <tr><td>재수집이 중복을 다시 만듦</td><td>화면 4 · 중복 재생성 배너</td><td class="mono">STP-diagnose-source</td></tr>
-              <tr><td>수집은 정상인데 분석 결과가 이상</td><td>화면 4 · 재처리 인계</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
-              <tr><td>중도 이탈 (진단만 하고 종료)</td><td>화면 5 · 미해결로 남기기</td><td class="mono">STP-locate-gap</td></tr>
+              <tr><td>소스 API 자체가 장애 (외부 지연)</td><td>단계 3 · 원인 진단 카드의 소스 장애 배너 → 도착 단계 4 에 「복구 대기」 배너 · 구간 목록 「복구 대기」 배지</td><td class="mono">STP-backfill</td></tr>
+              <tr><td>원본이 이미 내려가 재수집 불가</td><td>단계 3 · 원인 진단 카드의 영구 누락 배너 → 도착 단계 5 의 보정 후 칸이 「데이터 없음」</td><td class="mono">STP-verify-integrity</td></tr>
+              <tr><td>재수집이 중복을 다시 만듦</td><td>단계 4 · 보정 실행 카드의 중복 재생성 배너</td><td class="mono">STP-diagnose-source</td></tr>
+              <tr><td>수집은 정상인데 분석 결과가 이상</td><td>단계 4 · 「보정하지 않고 닫는다면」 카드 (여정 끝 · 인계)</td><td class="mono">JRN-logic-backfill · STP-scope-range</td></tr>
+              <tr><td>중도 이탈 (진단만 하고 종료)</td><td>단계 4 · 「보정하지 않고 닫는다면」 카드의 미해결로 남기고 닫기 → 도착 단계 2 에 「미해결」 배너 · 배지</td><td class="mono">STP-locate-gap</td></tr>
             </tbody>
           </table>
 
@@ -905,7 +2206,8 @@ details.meta table.tbl{margin-top:10px}
             <span class="chip"><b>STP-verify-integrity</b></span>
             <span class="chip v"><b>V5</b> 원문 추적성·재처리</span>
             <span class="chip v"><b>V1</b> 전제(지속적 수집) 보호</span>
-            <span class="chip">AC1.1 · AC1.3 · AC1.5 · AC1.6 · AC1.7</span>
+            <span class="chip">AC1.1 · AC1.3 · AC1.5 · AC1.6 · AC1.7 · AC4.1</span>
+            <span class="chip">화면 integrity (라우트 없음)</span>
           </div>
         </div>
       </details>
@@ -914,366 +2216,712 @@ details.meta table.tbl{margin-top:10px}
   </div><!-- /main -->
 </div><!-- /app -->
 
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+
 <script>
 /* ============================================================
-   프로토타입 데이터 — 축 × 점검 구간별 수집 버킷.
-   tried/ok/fail/dup 을 따로 들고 있어야 "시도 0" 과 "성공 0" 이 구분된다
-   (여정 문서 STP-spot-anomaly 의 페인포인트).
+   JRN-ingestion-recovery · 수집 이상 감지·복구 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   다섯 단계는 같은 화면 `integrity`(수집 무결성 콘솔)를 같은 구조로 다시 그린다.
+   요소는 id 가 아니라 단계 섹션 안의 [data-role] 로 찾는다 — 같은 화면이 여러 단계에 있으므로.
    ============================================================ */
-var SOURCES = { KR:['kr-wire','kr-daily'], US:['us-desk'], WW:['gl-agg'] };
-
-var DATA = {
-  KR: {
-    '24h': [
-      {id:'k0', label:'00시', band:'dawn',  tried:96,  ok:96,  fail:0,  dup:0},
-      {id:'k1', label:'03시', band:'dawn',  tried:0,   ok:0,   fail:0,  dup:0},
-      {id:'k2', label:'06시', band:'am',    tried:104, ok:104, fail:0,  dup:0},
-      {id:'k3', label:'09시', band:'am',    tried:118, ok:106, fail:12, dup:0},
-      {id:'k4', label:'12시', band:'pm',    tried:121, ok:121, fail:0,  dup:7},
-      {id:'k5', label:'18시', band:'night', tried:110, ok:110, fail:0,  dup:0}
-    ],
-    '7d': [
-      {id:'k7', label:'D-3', band:'am',    tried:742, ok:730, fail:12, dup:0},
-      {id:'k8', label:'D-2', band:'pm',    tried:768, ok:768, fail:0,  dup:7},
-      {id:'k9', label:'D-1', band:'dawn',  tried:0,   ok:0,   fail:0,  dup:0},
-      {id:'ka', label:'오늘', band:'night', tried:549, ok:549, fail:0,  dup:0}
-    ]
-  },
-  US: {
-    '24h': [
-      {id:'u0', label:'01시', band:'dawn', tried:88, ok:88, fail:0, dup:0},
-      {id:'u1', label:'13시', band:'pm',   tried:92, ok:88, fail:4, dup:0}
-    ],
-    '7d': [
-      {id:'u2', label:'D-1', band:'pm',   tried:604, ok:600, fail:4, dup:0},
-      {id:'u3', label:'오늘', band:'am',   tried:288, ok:288, fail:0, dup:0}
-    ]
-  },
-  WW: {
-    '24h': [
-      {id:'w0', label:'02시', band:'dawn', tried:64, ok:64, fail:0, dup:0},
-      {id:'w1', label:'14시', band:'pm',   tried:71, ok:71, fail:0, dup:0}
-    ],
-    '7d': [
-      {id:'w2', label:'D-1', band:'pm',  tried:468, ok:468, fail:0, dup:0},
-      {id:'w3', label:'오늘', band:'am',  tried:204, ok:204, fail:0, dup:0}
-    ]
-  }
-};
-
-var CAUSE = {
-  schedule: {
-    label:'스케줄 미실행',
-    meta:[['워크플로 실행 기록','없음 (CronWorkflow 미기동)'],['마지막 성공 실행','3시간 전'],['실패 사유 코드','—']],
-    hint:'시도 자체가 남지 않았습니다. 소스는 멀쩡할 수 있습니다.'
-  },
-  api: {
-    label:'소스 API 오류',
-    meta:[['워크플로 실행 기록','있음 (시도 118건)'],['소스 응답','HTTP 503 · 12건 연속'],['실패 사유 코드','upstream_unavailable']],
-    hint:'시도는 남아 있고 성공만 없습니다 — 외부 장애입니다.'
-  },
-  origin: {
-    label:'원본 소실',
-    meta:[['워크플로 실행 기록','있음'],['소스 응답','HTTP 404 · 원문 삭제'],['실패 사유 코드','origin_gone']],
-    hint:'다시 긁어도 받을 것이 없습니다.'
-  },
-  dup: {
-    label:'중복 적재',
-    meta:[['링크 단위 중복','7건'],['본문 단위 중복','3건'],['실패 사유 코드','—']],
-    hint:'수집은 됐지만 같은 기사가 두 번 쌓였습니다.'
-  }
-};
-
-var state = { axis:'KR', win:'24h', onlyBad:false, bucket:null,
-              fAxis:'KR', fSource:'all', fHour:'all', gap:null,
-              cause:null, ran:false, dup:0 };
-
-function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function baseOf(s){ return s ? s.querySelector('.screen[data-screen]:not([data-state])') : null; }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
 function show(el, on){ if(el) el.hidden = !on; }
-function bad(b){ return b.tried === 0 || b.fail > 0 || b.dup > 0; }
-function buckets(){ return (DATA[state.axis] || {})[state.win] || []; }
-function verdictOf(b){
-  if(b.tried === 0) return ['b-neg','시도 0'];
-  if(b.fail > 0)    return ['b-neg','실패 ' + b.fail];
-  if(b.dup > 0)     return ['b-mix','중복 ' + b.dup];
-  return ['b-pos','정상'];
-}
-
-/* ---------------- 화면 1 : 시간대별 수집 현황 ---------------- */
-function renderBuckets(){
-  var list = buckets().filter(function(b){ return state.onlyBad ? bad(b) : true; });
-  $('bk-rows').innerHTML = list.map(function(b){
-    var v = verdictOf(b);
-    var on = (state.bucket && state.bucket.id === b.id) ? ' style="background:var(--primary-soft)"' : '';
-    return '<tr class="click" data-bucket="' + b.id + '"' + on + '>'
-      + '<td><b>' + b.label + '</b></td>'
-      + '<td class="num">' + b.tried + '</td><td class="num">' + b.ok + '</td>'
-      + '<td class="num">' + b.fail + '</td><td class="num">' + b.dup + '</td>'
-      + '<td><span class="badge ' + v[0] + '"><span class="d"></span>' + v[1] + '</span></td></tr>';
-  }).join('');
-  var anomalies = buckets().filter(bad).length;
-  show($('s-no-anomaly'), anomalies === 0);
-  $('bk-sub').textContent = '이상 구간 ' + anomalies + '건 / 전체 ' + buckets().length + '구간';
-  $('bk-rows').querySelectorAll('tr[data-bucket]').forEach(function(tr){
-    tr.addEventListener('click', function(){ pickBucket(tr.getAttribute('data-bucket')); });
-  });
-}
-
-function pickBucket(id){
-  var b = null;
-  buckets().forEach(function(x){ if(x.id === id) b = x; });
-  if(!b) return;
-  state.bucket = b;
-  renderBuckets();
-  $('tb-scope').textContent = axisName(state.axis) + ' · ' + b.label;
-  $('sum-sub').textContent = axisName(state.axis) + ' · ' + b.label;
-  $('sum-kv').innerHTML =
-      kv('시도', b.tried + '건') + kv('성공', b.ok + '건')
-    + kv('실패', b.fail + '건') + kv('중복', b.dup + '건')
-    + kv('성공률', b.tried ? Math.round(b.ok / b.tried * 100) + '%' : '—');
-  show($('s-attempt-zero'), b.tried === 0);
-  $('cta-1').disabled = false;
-  $('cta-1-hint').textContent = '';
-  renderGaps();
-  renderDiag();
-  renderVerify();
-}
-
+function fmt(n){ return Number(n).toLocaleString('ko-KR'); }
 function kv(k, v){ return '<div class="kv"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
-function axisName(a){ return a === 'KR' ? '한국' : a === 'US' ? '미국' : '전세계'; }
+function badge(cls, t){ return '<span class="badge ' + cls + '"><span class="d"></span>' + t + '</span>'; }
 
-/* ---------------- 화면 2 : 소스 단위로 좁히기 ---------------- */
-function gapRows(){
+var ORDER = ['STP-spot-anomaly','STP-locate-gap','STP-diagnose-source','STP-backfill','STP-verify-integrity'];
+
+var AXES = {
+  KR: { label: '한국',   cls: 'ax-kr', code: 'KR', sources: ['kr-wire', 'kr-daily'] },
+  US: { label: '미국',   cls: 'ax-us', code: 'US', sources: ['us-desk'] },
+  GL: { label: '전세계', cls: 'ax-gl', code: 'GL', sources: ['gl-agg'] }
+};
+var TOPN = 100;   /* 소스당 실행마다 조회수 상위 100건 */
+
+/* 최근 24시간 = 10/16 15:00 ~ 10/17 14:00 의 매시 정기 실행 24회. 구간은 3시간 묶음 8개. */
+var HOURS = [];
+for (var hi = 0; hi < 24; hi++) {
+  var hh = (15 + hi) % 24;
+  HOURS.push({ i: hi, day: hi < 9 ? '10/16' : '10/17', hh: hh, band: 'b' + Math.floor(hi / 3) });
+}
+var BANDS = [
+  { id: 'b0', label: '10/16 15–18시' }, { id: 'b1', label: '10/16 18–21시' }, { id: 'b2', label: '10/16 21–24시' },
+  { id: 'b3', label: '10/17 00–03시' }, { id: 'b4', label: '10/17 03–06시' }, { id: 'b5', label: '10/17 06–09시' },
+  { id: 'b6', label: '10/17 09–12시' }, { id: 'b7', label: '10/17 12–15시' }
+];
+function hh2(h){ return (h < 10 ? '0' : '') + h; }
+function hourLabel(h){ return HOURS[h].day + ' ' + hh2(HOURS[h].hh) + '시'; }
+function runId(h){ return 'run-2026' + HOURS[h].day.replace('/', '') + '-' + hh2(HOURS[h].hh) + '00'; }
+
+var REASON = {
+  schedule:  { code: '—',                    text: '수집 단계 기록 없음 (스케줄 미실행)' },
+  api:       { code: 'upstream_unavailable', text: 'HTTP 503 · 소스 응답 없음' },
+  timeout:   { code: 'timeout',              text: '응답 시간 초과 (30초)' },
+  origin:    { code: 'origin_gone',          text: 'HTTP 404 · 원문 삭제' },
+  'dup-link':{ code: '—',                    text: '같은 원문 링크 재적재' },
+  'dup-body':{ code: '—',                    text: '같은 본문 해시 재저장' }
+};
+
+/* 이상 실행 — 축|소스|시각 index → 덮어쓸 값. 나머지는 정상(시도 100 · 성공 100). */
+var ANOM = {
+  'KR|kr-wire|12':  { tried: 0, ok: 0, reason: 'schedule' }, 'KR|kr-daily|12': { tried: 0, ok: 0, reason: 'schedule' },
+  'KR|kr-wire|13':  { tried: 0, ok: 0, reason: 'schedule' }, 'KR|kr-daily|13': { tried: 0, ok: 0, reason: 'schedule' },
+  'KR|kr-wire|14':  { tried: 0, ok: 0, reason: 'schedule' }, 'KR|kr-daily|14': { tried: 0, ok: 0, reason: 'schedule' },
+  'KR|kr-wire|18':  { ok: 88, fail: 12, retry: 4, rec: 1, reason: 'api' },
+  'KR|kr-wire|19':  { ok: 84, fail: 16, retry: 4, rec: 2, reason: 'api' },
+  'KR|kr-wire|20':  { ok: 88, fail: 12, retry: 4, rec: 2, reason: 'api' },
+  'KR|kr-daily|4':  { ok: 88, fail: 12, retry: 2, rec: 0, reason: 'origin' },
+  'KR|kr-daily|21': { dupBody: 3, reason: 'dup-body' },
+  'KR|kr-daily|22': { dupLink: 7, reason: 'dup-link' },
+  'KR|kr-daily|23': { dupLink: 14, reason: 'dup-link' },
+  'US|us-desk|16':  { ok: 92, fail: 8, retry: 3, rec: 0, reason: 'timeout' }
+};
+var AZ = { /* 시도 0 구간의 자동 재시도·다음 주기 보정 기록 */
+  b4: { retry: '3회 · 모두 기동 실패 (03:10 · 04:10 · 05:10)', catchup: '06:00 실행 · 03–05시 누락분 보정 실패' }
+};
+
+function keyOf(axis, src, h){ return axis + '|' + src + '|' + h; }
+function base(axis, src, h){
+  var a = ANOM[keyOf(axis, src, h)] || {};
+  return {
+    key: keyOf(axis, src, h), axis: axis, src: src, h: h,
+    tried: a.tried === undefined ? TOPN : a.tried, ok: a.ok === undefined ? TOPN : a.ok,
+    fail: a.fail || 0, retry: a.retry || 0, rec: a.rec || 0,
+    dupLink: a.dupLink || 0, dupBody: a.dupBody || 0, reason: a.reason || null
+  };
+}
+function bad(r){ return r.tried === 0 || r.fail > 0 || r.dupLink > 0 || r.dupBody > 0; }
+
+var state = {
+  axis: 'KR', onlyBad: false, bucket: null,
+  fSource: 'all', fBand: 'all',
+  picked: {}, cause: null, op: 'refetch',
+  confirm: false, running: false, failed: false, submitted: false,
+  run: null,             /* 마지막 실행: { op, keys:[], result } */
+  fixed: {},             /* key → 보정 뒤 값 */
+  pending: {}, perm: {}, unres: {},
+  log: []                /* 이 세션의 실행 기록 */
+};
+var cur = null;
+
+function row(k){
+  var p = k.split('|');
+  var r = base(p[0], p[1], Number(p[2]));
+  if (state.fixed[k]) { var f = state.fixed[k]; for (var x in f) r[x] = f[x]; }
+  return r;
+}
+function rows(axis){
   var out = [];
-  var list = (DATA[state.fAxis] || {})[state.win] || [];
-  list.filter(bad).forEach(function(b){
-    if(state.fHour !== 'all' && b.band !== state.fHour) return;
-    (SOURCES[state.fAxis] || []).forEach(function(src, i){
-      if(state.fSource !== 'all' && state.fSource !== src) return;
-      var miss = b.tried === 0 ? 0 : Math.round(b.fail / (i + 1));
-      var dup  = i === 0 ? b.dup : 0;
-      if(b.tried === 0 && i > 0) return;
-      out.push({ bucket:b, source:src, tried: b.tried === 0 ? 0 : Math.round(b.tried / (SOURCES[state.fAxis].length)),
-                 miss: b.tried === 0 ? '전량' : miss, dup: dup });
-    });
-  });
+  AXES[axis].sources.forEach(function(src){ HOURS.forEach(function(h){ out.push(row(keyOf(axis, src, h.i))); }); });
   return out;
 }
+function pickedKeys(){ return Object.keys(state.picked).filter(function(k){ return state.picked[k] && k.indexOf(state.axis + '|') === 0; }); }
+function sum(list, f){ return list.reduce(function(a, r){ return a + (typeof f === 'function' ? f(r) : r[f]); }, 0); }
+function rate(ok, tried){ return tried ? (ok / tried * 100) : 0; }
+function scopeText(keys){
+  if (!keys.length) return '—';
+  var bySrc = {};
+  keys.forEach(function(k){ var p = k.split('|'); (bySrc[p[1]] = bySrc[p[1]] || []).push(Number(p[2])); });
+  return AXES[keys[0].split('|')[0]].label + ' · ' + Object.keys(bySrc).map(function(s){
+    var hs = bySrc[s].sort(function(a, b){ return a - b; });
+    return s + ' ' + HOURS[hs[0]].day + ' ' + hs.map(function(h){ return hh2(HOURS[h].hh); }).join('·') + '시';
+  }).join(' / ');
+}
+function status(r){
+  if (state.perm[r.key]) return ['b-na', '영구 누락'];
+  if (state.pending[r.key]) return ['b-mix', '복구 대기'];
+  if (state.fixed[r.key] && !bad(r)) return ['b-pos', '보정됨'];
+  if (state.unres[r.key]) return ['b-neg', '미해결'];
+  if (r.tried === 0) return ['b-neg', '시도 없음'];
+  if (r.fail > 0) return ['b-neg', '누락 ' + r.fail];
+  if (r.dupLink + r.dupBody > 0) return ['b-mix', '중복 ' + (r.dupLink + r.dupBody)];
+  return ['b-pos', '정상'];
+}
 
-function renderGaps(){
-  var rows = gapRows();
-  $('gap-rows').innerHTML = rows.map(function(r, i){
-    var tag = r.bucket.tried === 0 ? ['b-neg','시도 없음']
-            : r.dup > 0 ? ['b-mix','중복'] : ['b-neg','누락'];
-    return '<tr class="click" data-gap="' + i + '">'
-      + '<td><b>' + r.bucket.label + '</b></td><td class="mono">' + r.source + '</td>'
-      + '<td class="num">' + r.tried + '</td><td class="num">' + r.miss + '</td>'
-      + '<td class="num">' + r.dup + '</td>'
-      + '<td><span class="badge ' + tag[0] + '"><span class="d"></span>' + tag[1] + '</span></td></tr>';
-  }).join('');
-  show($('s-filter-empty'), rows.length === 0);
-  $('gap-sub').textContent = '해당 구간 ' + rows.length + '건';
-  $('gap-scope').textContent = axisName(state.fAxis)
-    + ' · ' + (state.fSource === 'all' ? '전체 소스' : state.fSource)
-    + ' · ' + (state.fHour === 'all' ? '전체 시간대' : $('f-hour').options[$('f-hour').selectedIndex].textContent);
-  $('gap-rows').querySelectorAll('tr[data-gap]').forEach(function(tr){
-    tr.addEventListener('click', function(){
-      state.gap = rows[parseInt(tr.getAttribute('data-gap'), 10)];
-      $('tb-scope').textContent = axisName(state.fAxis) + ' · ' + state.gap.bucket.label + ' · ' + state.gap.source;
-      renderDiag();
-    });
+/* ---------------- 보정 결과 계산 ---------------- */
+function preview(keys, op){
+  var list = keys.map(row);
+  if (op === 'dedup') {
+    var cleaned = sum(list, function(r){ return r.dupLink + r.dupBody; });
+    return { op: op, keys: keys, got: 0, sameHash: 0, newVer: 0, cleaned: cleaned, newDup: 0, still: 0 };
+  }
+  var got = 0, still = 0, newDup = 0;
+  list.forEach(function(r){
+    if (state.perm[r.key] || r.reason === 'origin') { still += r.fail; return; }
+    if (r.tried === 0) got += TOPN; else if (r.fail) got += r.fail; else got += r.tried;  /* 실패가 없는 실행은 통째로 다시 받는다 */
+    if (r.dupLink > 0) newDup += r.dupLink;
+  });
+  var newVer = Math.min(2, got);
+  return { op: op, keys: keys, got: got, sameHash: got - newVer, newVer: newVer, cleaned: 0, newDup: newDup, still: still };
+}
+function apply(res){
+  res.keys.forEach(function(k){
+    var r = row(k), f = {};
+    if (res.op === 'dedup') { f.dupLink = 0; f.dupBody = 0; }
+    else if (r.reason === 'origin' || state.perm[k]) { return; }
+    else { f.tried = TOPN; f.ok = TOPN; f.fail = 0; }
+    state.fixed[k] = Object.assign({}, state.fixed[k] || {}, f);
+    delete state.pending[k]; delete state.unres[k];
   });
 }
+function runLabel(){ return 'run-20261017-1512'; }
 
-/* ---------------- 화면 3 : 원인 진단 ---------------- */
-function renderDiag(){
-  var b = state.gap ? state.gap.bucket : state.bucket;
-  $('diag-kv').innerHTML = b
-    ? kv('구간', axisName(state.fAxis) + ' · ' + b.label)
-      + kv('소스', state.gap ? state.gap.source : '전체')
-      + kv('시도', b.tried + '건') + kv('성공', b.ok + '건')
-      + kv('실패', b.fail + '건') + kv('중복', b.dup + '건')
-    : '<p class="muted" style="font-size:12.5px">구간을 고르면 열립니다.</p>';
-  var c = state.cause ? CAUSE[state.cause] : null;
-  $('cause-meta').innerHTML = c
-    ? c.meta.map(function(m){ return kv(m[0], m[1]); }).join('')
-      + '<p class="muted" style="margin-top:10px;font-size:12px">' + c.hint + '</p>'
-    : '<p class="muted" style="font-size:12.5px">원인을 고르면 그 판정에 필요한 메타데이터만 남깁니다.</p>';
-  show($('s-source-outage'), state.cause === 'api');
-  show($('s-origin-gone'), state.cause === 'origin');
-}
+/* ---------------- 화면 integrity 렌더 ---------------- */
+function render(step){
+  var s = sec(step); if (!s) return;
+  var b = baseOf(s); if (!b) return;
+  var ax = AXES[state.axis];
+  var all = rows(state.axis);
+  var pill = document.querySelector('[data-role="tb-pill"]');
+  if (pill) pill.textContent = ax.label + ' · 최근 24시간';
 
-/* ---------------- 화면 4 : 보정 실행 ---------------- */
-function renderPreserveNote(){
-  $('preserve-note').textContent = $('preserve').checked
-    ? '수정 버전을 새 레코드로 쌓고 원본은 그대로 둡니다 — 원문 추적성이 유지됩니다.'
-    : '덮어쓰면 원문 추적성이 깨지고, 링크·본문 중복이 다시 쌓일 수 있습니다.';
-}
+  /* 컨트롤 동기화 — 같은 화면이 다섯 단계에 있으므로 값은 state 에서 다시 꽂는다 */
+  R(b, 'axis').value = state.axis;
+  R(b, 'only-bad').checked = state.onlyBad;
+  R(b, 'f-source').value = state.fSource;
+  R(b, 'f-band').value = state.fBand;
+  Array.prototype.forEach.call(R(b, 'cause').querySelectorAll('input'), function(i){ i.checked = (i.value === state.cause); });
+  R(b, 'op').value = state.op;
 
-function runBackfill(){
-  var b = state.gap ? state.gap.bucket : state.bucket;
-  var op = $('op').value, preserve = $('preserve').checked;
-  state.ran = true;
-  $('cta-4').disabled = false;
-  $('cta-4-hint').textContent = '';
-  show($('s-running'), true);
-  show($('s-dup-again'), false);
-  $('run-result').innerHTML = '';
-  window.setTimeout(function(){
-    show($('s-running'), false);
-    var got = b ? (b.tried === 0 ? 96 : b.fail) : 0;
-    var dup = (!preserve && op !== 'dedup') ? ((b && b.dup) ? b.dup : 4) : 0;
-    state.dup = dup;
-    $('run-result').innerHTML =
-        kv('적용 범위', b ? (axisName(state.fAxis) + ' · ' + b.label) : '—')
-      + kv('작업', $('op').options[$('op').selectedIndex].textContent)
-      + kv('다시 받은 건수', got + '건')
-      + kv('보존 방식', preserve ? '새 버전 보존 (덮어쓰기 없음)' : '덮어쓰기')
-      + kv('새로 생긴 중복', dup + '건');
-    $('dup-count').textContent = dup;
-    show($('s-dup-again'), dup > 0);
-    renderVerify();
-  }, 180);
-}
+  /* 무결성 패널 — 성공 · 재시도 · 중복 · 누락 */
+  var tried = sum(all, 'tried'), ok = sum(all, 'ok'), fail = sum(all, 'fail');
+  var zeroBands = BANDS.filter(function(bd){ return sum(all.filter(function(r){ return HOURS[r.h].band === bd.id; }), 'tried') === 0; }).length;
+  var zeroMiss = all.filter(function(r){ return r.tried === 0; }).length * TOPN;
+  R(b, 'm-ok').textContent = fmt(ok);
+  var rt = rate(ok, tried + zeroMiss);
+  var mr = R(b, 'm-rate'); mr.textContent = rt.toFixed(1) + '%'; mr.className = 'delta ' + (rt >= 99 ? 'up' : 'dn');
+  R(b, 'm-retry').textContent = fmt(sum(all, 'retry'));
+  R(b, 'm-retry-sub').textContent = '회복 ' + sum(all, 'rec') + '건 · 재시도 후 실패 ' + fail + '건';
+  R(b, 'm-dup').textContent = fmt(sum(all, function(r){ return r.dupLink + r.dupBody; }));
+  R(b, 'm-dup-sub').textContent = '링크 단위 ' + sum(all, 'dupLink') + ' · 본문 단위 ' + sum(all, 'dupBody');
+  R(b, 'm-miss').textContent = fmt(fail + zeroMiss);
+  R(b, 'm-miss-sub').textContent = '시도 0 구간 ' + zeroBands + '개 · 실패 ' + fail + '건';
 
-/* ---------------- 화면 5 : 복구 확인 ---------------- */
-function renderVerify(){
-  var b = state.gap ? state.gap.bucket : state.bucket;
-  var scoped = $('v-window').value === 'scope';
-  var beforeOk = b ? b.ok : 0, tried = b ? b.tried : 0;
-  var afterOk  = b ? (b.tried === 0 ? 96 : b.ok + b.fail) : 0;
-  var mul = scoped ? 1 : 6;
-  var dupAfter = state.ran ? state.dup : (b ? b.dup : 0);
-  $('vf-rows').innerHTML =
-      row('수집 건수', (beforeOk * mul) + '건', (afterOk * mul) + '건', afterOk >= beforeOk)
-    + row('시도 대비 성공률', (tried ? Math.round(beforeOk / tried * 100) : 0) + '%',
-          (tried || afterOk ? '100%' : '—'), true)
-    + row('중복 건수', (b ? b.dup : 0) + '건', dupAfter + '건', dupAfter === 0);
-  $('vf-sub').textContent = scoped ? '보정한 구간만' : '그날 전체';
-}
-function row(k, a, b2, good){
-  return '<tr><td>' + k + '</td><td class="num">' + a + '</td><td class="num"><b>' + b2 + '</b></td>'
-    + '<td><span class="badge ' + (good ? 'b-pos' : 'b-mix') + '"><span class="d"></span>'
-    + (good ? '정상 범위' : '확인 필요') + '</span></td></tr>';
-}
+  /* 시간대별 수집 현황 (3시간 묶음) */
+  var anomalies = 0;
+  var bkHtml = BANDS.map(function(bd){
+    var rs = all.filter(function(r){ return HOURS[r.h].band === bd.id; });
+    var t = sum(rs, 'tried'), o = sum(rs, 'ok'), f = sum(rs, 'fail'), re = sum(rs, 'retry'), d = sum(rs, function(r){ return r.dupLink + r.dupBody; });
+    var isBad = rs.some(bad) || rs.some(function(r){ return state.perm[r.key] || state.pending[r.key]; });
+    if (isBad) anomalies++;
+    if (state.onlyBad && !isBad) return '';
+    var st = rs.some(function(r){ return state.perm[r.key]; }) ? ['b-na', '영구 누락']
+      : rs.some(function(r){ return state.pending[r.key]; }) ? ['b-mix', '복구 대기']
+      : t === 0 ? ['b-neg', '시도 0'] : f > 0 ? ['b-neg', '실패 ' + f] : d > 0 ? ['b-mix', '중복 ' + d]
+      : rs.some(function(r){ return state.fixed[r.key]; }) ? ['b-pos', '보정됨'] : ['b-pos', '정상'];
+    var on = state.bucket === bd.id;
+    return '<tr class="click" data-bucket="' + bd.id + '" aria-selected="' + on + '"><td><b>' + bd.label + '</b></td>'
+      + '<td class="num">' + fmt(t) + '</td><td class="num">' + fmt(o) + '</td><td class="num">' + f + '</td>'
+      + '<td class="num">' + re + '</td><td class="num">' + d + '</td><td>' + badge(st[0], st[1]) + '</td></tr>';
+  }).join('');
+  R(b, 'bk-rows').innerHTML = bkHtml;
+  R(b, 'bk-sub').textContent = '이상 구간 ' + anomalies + '개 / ' + BANDS.length + '구간 · 최근 24시간';
+  show(R(b, 'no-anomaly'), anomalies === 0);
 
-function submitVerify(e){
-  if(e) e.preventDefault();
-  var picked = document.querySelector('input[name="verdict"]:checked');
-  var memo = $('verify-memo').value.trim();
-  if(!picked || !memo){
-    $('invalid-msg').textContent = !picked
-      ? '결론을 하나 고르세요.'
-      : '보정 이력 메모를 적어야 기록됩니다 — 이력이 없으면 나중에 그 구간 수치가 왜 다른지 설명할 수 없습니다.';
-    show($('s-invalid'), true);
-    show($('s-recorded'), false);
-    return;
+  /* 구간 요약 */
+  var bd = BANDS.filter(function(x){ return x.id === state.bucket; })[0];
+  show(R(b, 'no-bucket'), !bd);
+  R(b, 'sum-sub').textContent = bd ? ax.label + ' · ' + bd.label : '구간 미선택';
+  if (bd) {
+    var rs = all.filter(function(r){ return HOURS[r.h].band === bd.id; });
+    var t = sum(rs, 'tried'), o = sum(rs, 'ok');
+    R(b, 'sum-kv').innerHTML = kv('시도', fmt(t) + '건') + kv('성공', fmt(o) + '건') + kv('실패', sum(rs, 'fail') + '건')
+      + kv('재시도', sum(rs, 'retry') + '회 · 회복 ' + sum(rs, 'rec') + '건')
+      + kv('중복', '링크 ' + sum(rs, 'dupLink') + ' · 본문 ' + sum(rs, 'dupBody'))
+      + kv('시도 대비 성공률', t ? rate(o, t).toFixed(1) + '%' : '—');
+  } else {
+    R(b, 'sum-kv').innerHTML = '';
   }
-  show($('s-invalid'), false);
-  $('recorded-what').textContent = (picked.value === 'recovered' ? '정상 범위로 복구됨' : '영구 누락으로 확정')
-    + '으로 기록했습니다.';
-  show($('s-recorded'), true);
+  var az = bd && sum(all.filter(function(r){ return HOURS[r.h].band === bd.id; }), 'tried') === 0;
+  show(R(b, 'attempt-zero'), !!az);
+  var azr = AZ[bd ? bd.id : 'b4'] || AZ.b4;
+  R(b, 'az-retry').textContent = azr.retry;
+  R(b, 'az-catchup').textContent = azr.catchup;
+
+  /* 구간 · 소스 좁히기 — 시간 × 소스 단위, 이상 행만 */
+  R(b, 'gap-axis').className = 'axpill ' + ax.cls;
+  R(b, 'gap-axis').innerHTML = '<i class="fl"></i>' + ax.code;
+  var gaps = all.filter(function(r){
+    if (!(bad(r) || state.perm[r.key] || state.pending[r.key] || state.unres[r.key] || state.fixed[r.key])) return false;
+    if (state.fSource !== 'all' && r.src !== state.fSource) return false;
+    if (state.fBand !== 'all' && HOURS[r.h].band !== state.fBand) return false;
+    return true;
+  }).sort(function(a, b2){
+    var ua = state.unres[a.key] ? 0 : 1, ub = state.unres[b2.key] ? 0 : 1;
+    return ua - ub || a.h - b2.h || (a.src < b2.src ? -1 : 1);
+  });
+  R(b, 'gap-rows').innerHTML = gaps.map(function(r){
+    var on = !!state.picked[r.key], st = status(r);
+    var miss = r.tried === 0 ? '전량' : String(r.fail);
+    return '<tr class="click" data-gap="' + esc(r.key) + '" aria-selected="' + on + '">'
+      + '<td class="pick"><input type="checkbox" aria-label="이 구간 고르기"' + (on ? ' checked' : '') + ' /></td>'
+      + '<td><b>' + hourLabel(r.h) + '</b></td><td class="mono">' + r.src + '</td>'
+      + '<td class="num">' + r.tried + '</td><td class="num">' + miss + '</td>'
+      + '<td class="num">' + (r.dupLink + r.dupBody) + '</td><td>' + badge(st[0], st[1]) + '</td></tr>';
+  }).join('');
+  show(R(b, 'filter-empty'), gaps.length === 0);
+  var pk = pickedKeys();
+  show(R(b, 'no-gap'), pk.length === 0 && gaps.length > 0);
+  var unresN = Object.keys(state.unres).filter(function(k){ return state.unres[k] && k.indexOf(state.axis + '|') === 0; }).length;
+  show(R(b, 'unresolved'), unresN > 0);
+  R(b, 'unres-count').textContent = unresN;
+  R(b, 'gap-sub').textContent = '해당 구간 ' + gaps.length + '개 · 축 · 소스 · 시간 세 축으로 거릅니다';
+  var bandLabel = state.fBand === 'all' ? '전체 시간대' : BANDS.filter(function(x){ return x.id === state.fBand; })[0].label;
+  R(b, 'gap-scope').textContent = ax.label + ' · ' + (state.fSource === 'all' ? '전체 소스' : state.fSource) + ' · ' + bandLabel;
+  R(b, 'gap-picked').textContent = pk.length;
+
+  /* 이벤트 로그 */
+  R(b, 'log-sub').textContent = ax.label + ' 축 · 최근 24시간';
+  var ev = [];
+  state.log.forEach(function(l){ if (l.axis === state.axis) ev.push(l); });
+  var zeroH = all.filter(function(r){ return r.tried === 0; }).map(function(r){ return r.h; });
+  if (zeroH.length) {
+    ev.push({ t: '10/17 06:00', cls: 'b-neg', tag: '보정 실패', msg: '다음 주기 보정 — 03–05시 누락분이 남았습니다' });
+    ev.push({ t: '10/17 03:00', cls: 'b-neg', tag: '미실행', msg: '정기 실행 누락 — 자동 재시도 3회 기동 실패' });
+  }
+  all.filter(function(r){ return r.tried > 0 && (r.fail || r.dupLink || r.dupBody); }).sort(function(a, b2){ return b2.h - a.h; }).forEach(function(r){
+    var t = HOURS[r.h].day + ' ' + hh2(HOURS[r.h].hh) + ':00';
+    if (r.fail) ev.push({ t: t, cls: 'b-neg', tag: '실패', msg: r.src + ' · ' + r.fail + '건 · ' + REASON[r.reason].code + ' · 재시도 ' + r.retry + '회' });
+    if (r.dupLink) ev.push({ t: t, cls: 'b-mix', tag: '중복', msg: r.src + ' · 같은 링크 ' + r.dupLink + '건 재적재' });
+    if (r.dupBody) ev.push({ t: t, cls: 'b-mix', tag: '중복', msg: r.src + ' · 같은 본문 해시 ' + r.dupBody + '건 재저장' });
+  });
+  ev.sort(function(a, b2){ return a.t < b2.t ? 1 : -1; });
+  R(b, 'log-rows').innerHTML = ev.length ? ev.map(function(e){
+    return '<tr><td class="mono" style="white-space:nowrap;font-size:11px">' + e.t + '</td><td>' + badge(e.cls, e.tag) + ' ' + esc(e.msg) + '</td></tr>';
+  }).join('') : '<tr><td class="muted">최근 24시간 이벤트 없음 &mdash; 모든 실행이 정상입니다.</td></tr>';
+
+  /* 수집 메타데이터 + 원인 진단 */
+  var pl = pk.map(row);
+  R(b, 'meta-sub').textContent = pl.length ? '고른 구간 ' + pl.length + '개 · ' + scopeText(pk) : '고른 구간 없음 — 구간 목록에서 고르세요';
+  var reasons = {};
+  pl.forEach(function(r){ if (r.reason) reasons[r.reason] = (reasons[r.reason] || 0) + 1; });
+  R(b, 'meta-badges').innerHTML = Object.keys(reasons).map(function(k){
+    var cls = (k === 'dup-link' || k === 'dup-body') ? 'b-mix' : (k === 'origin' ? 'b-na' : 'b-neg');
+    return badge(cls, REASON[k].text + (REASON[k].code !== '—' ? ' · ' + REASON[k].code : '')) + ' ';
+  }).join('') || (pl.length ? badge('b-pos', '기록된 실패 사유 없음') : '');
+  if (pl.length) {
+    var first = pl[0];
+    R(b, 'meta-kv').innerHTML = kv('축 · 소스', AXES[first.axis].label + ' · <span class="mono">' + Object.keys(pl.reduce(function(a, r){ a[r.src] = 1; return a; }, {})).join(', ') + '</span>')
+      + kv('수집 주기', '매시 정각 · 소스당 조회수 상위 ' + TOPN + '건')
+      + kv('실행 ID', '<span class="mono">' + pl.map(function(r){ return runId(r.h); }).filter(function(v, i, a){ return a.indexOf(v) === i; }).join(' · ') + '</span> · 정기')
+      + kv('시도 · 성공 · 실패', sum(pl, 'tried') + ' · ' + sum(pl, 'ok') + ' · ' + sum(pl, 'fail'))
+      + kv('재시도', sum(pl, 'retry') + '회 · 회복 ' + sum(pl, 'rec') + '건')
+      + kv('중복', '링크 단위 ' + sum(pl, 'dupLink') + ' · 본문 단위 ' + sum(pl, 'dupBody'));
+    R(b, 'rec-rows').innerHTML = records(first);
+  } else {
+    R(b, 'meta-kv').innerHTML = '<p class="muted" style="font-size:12.5px">구간을 고르면 그 실행의 기록과 수집 레코드를 보여 줍니다.</p>';
+    R(b, 'rec-rows').innerHTML = '';
+  }
+  var hint = { schedule: '시도 기록이 없으면 스케줄 쪽입니다 — 소스는 멀쩡할 수 있습니다.',
+    api: '시도는 남았고 성공만 없습니다 — 외부 장애입니다.', origin: '원문이 404 로 사라졌습니다 — 다시 긁어도 받을 것이 없습니다.',
+    'dup-link': '같은 링크가 두 번 적재됐습니다 — 링크 단위 중복 처리를 봅니다.', 'dup-body': '같은 본문 해시가 다시 저장됐습니다 — 본문 단위 중복 처리를 봅니다.' };
+  R(b, 'cause-hint').textContent = state.cause ? hint[state.cause] : '기록된 실패 사유를 보고 고르세요.';
+  show(R(b, 'source-outage'), state.cause === 'api');
+  show(R(b, 'origin-gone'), state.cause === 'origin');
+
+  /* 보정 실행 */
+  var opText = state.op === 'dedup' ? '중복 정리' : '재수집';
+  R(b, 'run-sub').textContent = opText + ' · 고른 구간에만 적용됩니다';
+  var pv = preview(pk, state.op);
+  R(b, 'target-kv').innerHTML = kv('대상', pk.length ? scopeText(pk) + ' (' + pk.length + '구간)' : '—')
+    + kv(state.op === 'dedup' ? '정리할 중복' : '다시 받을 관측', pk.length ? (state.op === 'dedup' ? pv.cleaned : pv.got) + '건' : '—');
+  R(b, 'keep-note').textContent = state.op === 'dedup'
+    ? '중복으로 판정된 관측만 집계에서 뺍니다 — 본문 버전은 지우거나 덮어쓰지 않습니다.'
+    : '기존 본문 버전은 지우거나 덮어쓰지 않습니다 — 같은 본문(같은 해시)은 다시 저장하지 않고, 수정된 본문만 새 버전으로 추가합니다.';
+  var pend = pk.some(function(k){ return state.pending[k]; });
+  show(R(b, 'retry-pending'), pend);
+  show(R(b, 'no-target'), pk.length === 0);
+  R(b, 'run').disabled = pk.length === 0 || state.running;
+  R(b, 'dlg-count').textContent = pv.cleaned;
+  show(R(b, 'dedup-confirm'), state.confirm);
+  show(R(b, 'running'), state.running);
+  show(R(b, 'run-failed'), state.failed && !state.running);
+  var res = state.run ? state.run.result : preview(pk.length ? pk : ['KR|kr-wire|18', 'KR|kr-wire|19', 'KR|kr-wire|20'], state.op);
+  R(b, 'run-kv').innerHTML = kv('실행', '<span class="mono">' + runLabel() + '</span> · 트리거 재처리')
+    + kv('작업 · 범위', (res.op === 'dedup' ? '중복 정리' : '재수집') + ' · ' + scopeText(res.keys))
+    + (res.op === 'dedup'
+      ? kv('정리한 중복 관측', res.cleaned + '건') + kv('본문 버전', '변화 없음 · 삭제 · 덮어쓰기 0건')
+      : kv('다시 받은 관측', res.got + '건' + (res.still ? ' · 받지 못함 ' + res.still + '건' : ''))
+        + kv('본문 버전', '같은 해시 ' + res.sameHash + '건은 다시 저장하지 않음 · 수정 본문 ' + res.newVer + '건 새 버전 추가 · 기존 버전 삭제 · 덮어쓰기 0건')
+        + kv('새로 생긴 중복', res.newDup + '건'));
+  show(R(b, 'run-done'), !!state.run && !state.running && !state.failed);
+  R(b, 'dup-count').textContent = res.newDup || 0;
+  show(R(b, 'dup-again'), !!state.run && !state.running && state.run.result.newDup > 0);
+
+  /* 복구 확인 — 전후 비교 */
+  var vk = state.run ? state.run.keys : (Object.keys(state.perm).filter(function(k){ return state.perm[k]; }).length && !pk.length
+    ? Object.keys(state.perm) : pk);
+  var before = vk.map(function(k){ var p = k.split('|'); return base(p[0], p[1], Number(p[2])); });
+  var after = vk.map(row);
+  var isPerm = vk.some(function(k){ return state.perm[k]; });
+  var ran = !!state.run;
+  var bt = sum(before, 'tried') + before.filter(function(r){ return r.tried === 0; }).length * TOPN;
+  var bo = sum(before, 'ok'), bdup = sum(before, function(r){ return r.dupLink + r.dupBody; });
+  var at = sum(after, 'tried') + after.filter(function(r){ return r.tried === 0; }).length * TOPN;
+  var ao = sum(after, 'ok'), adup = sum(after, function(r){ return r.dupLink + r.dupBody; });
+  if (ran && state.run.result.newDup) adup += state.run.result.newDup;
+  function vrow(k, a, z, good){
+    var v = isPerm ? badge('b-na', '데이터 없음') : !ran ? badge('b-neu', '보정 전') : good ? badge('b-pos', '정상 범위') : badge('b-mix', '확인 필요');
+    return '<tr><td>' + k + '</td><td class="num">' + a + '</td><td class="num"><b>' + z + '</b></td><td>' + v + '</td></tr>';
+  }
+  var ar = rate(ao, at);
+  var none = !vk.length;
+  if (none) { bo = 0; bt = 0; }
+  R(b, 'vf-rows').innerHTML =
+      vrow('수집 건수 (성공)', none ? '—' : fmt(bo) + '건', isPerm ? '데이터 없음' : ran ? fmt(ao) + '건' : '—', ar >= 99)
+    + vrow('시도 대비 성공률', none ? '—' : rate(bo, bt).toFixed(1) + '%', isPerm ? '데이터 없음' : ran ? ar.toFixed(1) + '%' : '—', ar >= 99)
+    + vrow('중복 건수', none ? '—' : bdup + '건', isPerm ? '데이터 없음' : ran ? adup + '건' : '—', adup === 0);
+  R(b, 'vf-sub').textContent = (vk.length ? scopeText(vk) : '고른 구간 없음') + ' · 보정 전후를 같은 기준으로 놓고 봅니다';
+  show(R(b, 'no-run'), !ran && !isPerm);
+  show(R(b, 'recovered'), ran && !isPerm && ar >= 99 && adup === 0);
+  R(b, 'rec-what').textContent = scopeText(vk);
+  show(R(b, 'perm-missing'), isPerm);
+  R(b, 'perm-what').textContent = scopeText(vk.filter(function(k){ return state.perm[k]; }).length ? vk.filter(function(k){ return state.perm[k]; }) : ['KR|kr-daily|4']);
+
+  /* 단계 전진 CTA (화면 밖) */
+  var cta = s.querySelector('.stepact [data-advance]');
+  var ch = s.querySelector('.stepact [data-role="cta-hint"]');
+  if (cta) {
+    var i = ORDER.indexOf(step), open = true, msg = '';
+    if (i === 0) { open = !!state.bucket; msg = open ? '‘' + bd.label + '’ 구간을 시간 · 소스 단위로 좁힙니다.' : '이상해 보이는 구간을 먼저 고르세요.'; }
+    if (i === 1) { open = pk.length > 0; msg = open ? '고른 ' + pk.length + '구간의 원인을 가릅니다.' : '진단할 구간을 표에서 고르세요.'; }
+    if (i === 2) { open = !!state.cause; msg = open ? '' : '원인을 먼저 가르세요 — 원인에 따라 실행할 작업이 달라집니다.'; }
+    if (i === 3) { open = state.submitted; msg = open ? '' : '보정을 먼저 실행하세요.'; }
+    cta.disabled = !open;
+    if (ch) ch.textContent = msg;
+  }
+}
+
+/* 수집 레코드 — 순위 · 조회수 · 수집 시각 · 본문 버전 · 상태 */
+function records(r){
+  if (r.tried === 0) return '<tr><td colspan="6" class="muted">이 실행에는 수집 레코드가 없습니다 &mdash; 시도 자체가 없었습니다.</td></tr>';
+  var t = HOURS[r.h].day + ' ' + hh2(HOURS[r.h].hh) + ':0';
+  var out = [];
+  for (var k = 1; k <= 5; k++) {
+    var seed = (r.h * 7 + k * 13) % 97;
+    var views = 48200 - k * 6100 + seed * 37;
+    var hash = ((r.h + 3) * 2654435761 * k >>> 0).toString(16).slice(0, 8);
+    var st = badge('b-pos', '성공'), body = '<span class="mono">' + hash + '</span> · v1';
+    if (r.fail && k >= 4) { st = badge(r.reason === 'origin' ? 'b-na' : 'b-neg', REASON[r.reason].code); body = '<span class="muted">미확보</span>'; }
+    if (r.dupLink && k === 2) st = badge('b-mix', '중복 링크');
+    if (r.dupBody && k === 3) { st = badge('b-mix', '같은 본문 재저장'); }
+    if (k === 1 && !r.fail) body = '<span class="mono">' + hash + '</span> · v2 (수정)';
+    out.push('<tr><td class="num">' + k + '</td><td class="mono" style="font-size:11px">' + r.src + '/news/' + hash.slice(0, 6) + '</td>'
+      + '<td class="num">' + fmt(views) + '</td><td class="mono" style="font-size:11px">' + t + (k + 1) + '</td><td>' + body + '</td><td>' + st + '</td></tr>');
+  }
+  return out.join('');
+}
+
+/* ---------------- 보정 실행 ---------------- */
+var runTimer = null;
+function startRun(){
+  var pk = pickedKeys(); if (!pk.length) return;
+  state.confirm = false; state.running = true; state.failed = false; state.submitted = true;
+  render(cur);
+  clearTimeout(runTimer);
+  runTimer = setTimeout(function(){
+    var res = preview(pk, state.op);
+    apply(res);
+    state.running = false;
+    state.run = { op: state.op, keys: pk, result: res };
+    state.log.unshift({ axis: state.axis, t: '10/17 15:12', cls: res.newDup ? 'b-mix' : 'b-pos', tag: '재처리',
+      msg: runLabel() + ' · ' + (res.op === 'dedup' ? '중복 정리 ' + res.cleaned + '건' : '재수집 ' + res.got + '건 · 새 본문 버전 ' + res.newVer + ' · 기존 버전 보존')
+        + ' · ' + scopeText(pk) });
+    render(cur);
+  }, 300);
+}
+
+/* ---------------- 딥링크로 상태를 열 때의 맥락 — 데이터를 조작하지 않고도 화면이 앞뒤가 맞게 ---------------- */
+var API_ROWS = ['KR|kr-wire|18', 'KR|kr-wire|19', 'KR|kr-wire|20'];
+var DUP_ROWS = ['KR|kr-daily|22', 'KR|kr-daily|23'];
+var ORIGIN_ROWS = ['KR|kr-daily|4'];
+function pickOnly(keys){ state.picked = {}; keys.forEach(function(k){ state.picked[k] = true; }); }
+function seed(st){
+  var S = {
+    'no-anomaly': function(){ state.axis = 'GL'; },
+    'attempt-zero': function(){ state.bucket = 'b4'; state.fBand = 'b4'; },
+    'no-bucket': function(){ state.bucket = null; },
+    'no-gap': function(){ state.picked = {}; },
+    'filter-empty': function(){ state.fSource = 'us-desk'; },
+    'unresolved': function(){ API_ROWS.forEach(function(k){ state.unres[k] = true; }); },
+    'source-outage': function(){ pickOnly(API_ROWS); state.cause = 'api'; },
+    'origin-gone': function(){ pickOnly(ORIGIN_ROWS); state.cause = 'origin'; },
+    'no-target': function(){ state.picked = {}; },
+    'retry-pending': function(){ pickOnly(API_ROWS); state.cause = 'api'; API_ROWS.forEach(function(k){ state.pending[k] = true; }); },
+    'dedup-confirm': function(){ pickOnly(DUP_ROWS); state.cause = 'dup-link'; state.op = 'dedup'; state.confirm = true; },
+    'running': function(){ pickOnly(API_ROWS); state.cause = 'api'; state.running = true; state.submitted = true; },
+    'run-failed': function(){ pickOnly(API_ROWS); state.cause = 'api'; state.failed = true; },
+    'run-done': function(){ pickOnly(API_ROWS); state.cause = 'api'; var r = preview(API_ROWS, 'refetch'); apply(r); state.run = { op: 'refetch', keys: API_ROWS, result: r }; state.submitted = true; },
+    'dup-again': function(){ pickOnly(DUP_ROWS); state.cause = 'dup-link'; state.op = 'refetch'; var r = preview(DUP_ROWS, 'refetch'); apply(r); state.run = { op: 'refetch', keys: DUP_ROWS, result: r }; state.submitted = true; },
+    'no-run': function(){ pickOnly(API_ROWS); },
+    'recovered': function(){ S['run-done'](); },
+    'perm-missing': function(){ pickOnly(ORIGIN_ROWS); state.cause = 'origin'; ORIGIN_ROWS.forEach(function(k){ state.perm[k] = true; }); }
+  };
+  if (S[st]) S[st]();
 }
 
 /* ---------------- 여정 워커 ---------------- */
 (function(){
-  var order = ['STP-spot-anomaly','STP-locate-gap','STP-diagnose-source','STP-backfill','STP-verify-integrity'];
-  var secs = {}, rails = {};
-  order.forEach(function(id){
-    secs[id] = document.getElementById(id);
-    rails[id] = document.querySelector('.jr-item[data-rail="' + id + '"]');
-  });
-  var prevBtn = $('jprev'), nextBtn = $('jnext'), cur = null;
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
 
   function go(id, push){
-    if(order.indexOf(id) < 0) return;
+    if (ORDER.indexOf(id) < 0) return;
     cur = id;
-    var i = order.indexOf(id);
-    order.forEach(function(o, k){
-      secs[o].hidden = (o !== id);
-      if(rails[o]){
-        rails[o].classList.toggle('on', o === id);
-        rails[o].classList.toggle('done', k < i);
-      }
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if (rails[o]) { rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
     });
-    if(prevBtn) prevBtn.disabled = (i === 0);
-    if(nextBtn) nextBtn.disabled = (i === order.length - 1);
-    if(id === 'STP-verify-integrity') renderVerify();
-    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+    if (prevBtn) prevBtn.disabled = (i === 0);
+    if (nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    JM.enter(id);
+    render(id);
+    if (push && location.hash !== '#' + id) location.hash = '#' + id;
   }
   window.__journeyGo = go;
 
-  document.querySelectorAll('[data-advance]').forEach(function(b){
-    b.addEventListener('click', function(){
-      if(b.disabled) return;
-      go(b.getAttribute('data-advance'), true);
-    });
-  });
-  document.querySelectorAll('[data-goto-step]').forEach(function(b){
-    b.addEventListener('click', function(){ go(b.getAttribute('data-goto-step'), true); });
-  });
-  document.querySelectorAll('[data-goto]').forEach(function(a){
-    var parts = (a.getAttribute('data-goto') || '').split('#');
-    if(parts[0] === 'JRN-ingestion-recovery'){
-      a.addEventListener('click', function(e){ e.preventDefault(); go(parts[1], true); });
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-role],tr[data-bucket],tr[data-gap]') : null;
+    if (!el) return;
+    if (el.hasAttribute('data-advance')) { if (!el.disabled) go(el.getAttribute('data-advance'), true); return; }
+    if (el.hasAttribute('data-goto-step')) { go(el.getAttribute('data-goto-step'), true); return; }
+    if (el.matches('tr[data-bucket]')) {
+      state.bucket = el.getAttribute('data-bucket');
+      state.fBand = state.bucket;
+      render(cur); return;
     }
+    if (el.matches('tr[data-gap]')) {
+      var k = el.getAttribute('data-gap');
+      state.picked[k] = !state.picked[k];
+      render(cur); return;
+    }
+    var role = el.getAttribute('data-role');
+    if (role === 'outage-go') {   /* §4 1행 — 재시도 예약 후 복구 대기 */
+      e.preventDefault();
+      pickedKeys().forEach(function(k){ state.pending[k] = true; delete state.unres[k]; });
+      go('STP-backfill', true); return;
+    }
+    if (role === 'origin-go') {   /* §4 2행 — 영구 누락 확정 */
+      e.preventDefault();
+      state.run = null;
+      pickedKeys().forEach(function(k){ state.perm[k] = true; delete state.pending[k]; delete state.unres[k]; });
+      go('STP-verify-integrity', true); return;
+    }
+    if (role === 'dup-go') { e.preventDefault(); state.cause = null; go('STP-diagnose-source', true); return; }
+    if (role === 'leave-go') {    /* §4 5행 — 미해결로 남기고 닫는다. 다음 진입은 구간 목록부터 */
+      e.preventDefault();
+      pickedKeys().forEach(function(k){ if (!state.perm[k]) state.unres[k] = true; });
+      state.picked = {}; state.cause = null; state.run = null; state.submitted = false; state.bucket = null; state.fBand = 'all';
+      go('STP-locate-gap', true); return;
+    }
+    if (role === 'run' || role === 'run-retry') {
+      if (el.disabled) return;
+      if (state.op === 'dedup' && role === 'run') { state.confirm = true; render(cur); return; }
+      startRun(); return;
+    }
+    if (role === 'dlg-ok') { startRun(); return; }
+    if (role === 'dlg-cancel') { state.confirm = false; render(cur); return; }
   });
-  if(prevBtn) prevBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i > 0) go(order[i - 1], true); });
-  if(nextBtn) nextBtn.addEventListener('click', function(){
-    var i = order.indexOf(cur); if(i < order.length - 1) go(order[i + 1], true); });
+
+  document.addEventListener('submit', function(e){ e.preventDefault(); });
+  document.addEventListener('change', function(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    if (el.closest('[data-role="cause"]')) {
+      state.cause = el.value;
+      state.op = (el.value === 'dup-link' || el.value === 'dup-body') ? 'dedup' : 'refetch';
+      render(cur); return;
+    }
+    if (role === 'axis') {
+      state.axis = el.value; state.bucket = null; state.fSource = 'all'; state.fBand = 'all';
+      state.cause = null; state.run = null; state.submitted = false;
+      render(cur); return;
+    }
+    if (role === 'only-bad') { state.onlyBad = el.checked; render(cur); return; }
+    if (role === 'f-source') { state.fSource = el.value; render(cur); return; }
+    if (role === 'f-band') { state.fBand = el.value; render(cur); return; }
+    if (role === 'op') { state.op = el.value; state.confirm = false; render(cur); return; }
+  });
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if (i > 0) go(ORDER[i - 1], true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if (i < ORDER.length - 1) go(ORDER[i + 1], true); });
 
   function fromHash(){
-    var h = (location.hash || '').replace(/^#/, '');
-    go(order.indexOf(h) >= 0 ? h : order[0], false);
+    var p = JM.parseHash();
+    var step = ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0];
+    if (p.state) seed(p.state);
+    go(step, false);
+    if (p.state) JM.showState(cur, p.state);
   }
   window.addEventListener('hashchange', fromHash);
-
-  /* 제품 컨트롤 배선 */
-  $('axis').addEventListener('change', function(){
-    state.axis = this.value; state.fAxis = this.value; state.bucket = null; state.gap = null;
-    var fa = $('f-axis');
-    for(var i = 0; i < fa.options.length; i++){ fa.options[i].selected = (fa.options[i].value === this.value); }
-    $('tb-scope').textContent = '구간 미선택';
-    $('sum-sub').textContent = '구간을 고르면 열립니다';
-    $('sum-kv').innerHTML = '';
-    show($('s-attempt-zero'), false);
-    $('cta-1').disabled = true;
-    $('cta-1-hint').textContent = '이상해 보이는 구간을 먼저 고르세요.';
-    renderBuckets(); renderGaps(); renderDiag(); renderVerify();
-  });
-  $('win').addEventListener('change', function(){
-    state.win = this.value; state.bucket = null; state.gap = null;
-    $('cta-1').disabled = true;
-    renderBuckets(); renderGaps();
-  });
-  $('only-bad').addEventListener('change', function(){
-    state.onlyBad = this.checked; renderBuckets();
-  });
-  $('f-axis').addEventListener('change', function(){ state.fAxis = this.value; state.gap = null; renderGaps(); renderDiag(); });
-  $('f-source').addEventListener('change', function(){ state.fSource = this.value; state.gap = null; renderGaps(); });
-  $('f-hour').addEventListener('change', function(){ state.fHour = this.value; state.gap = null; renderGaps(); });
-  document.querySelectorAll('input[name="cause"]').forEach(function(r){
-    r.addEventListener('change', function(){
-      state.cause = r.value;
-      $('cta-3').disabled = false;
-      $('cta-3-hint').textContent = '';
-      renderDiag();
-    });
-  });
-  $('preserve').addEventListener('change', renderPreserveNote);
-  $('op').addEventListener('change', function(){
-    $('run-sub').textContent = $('op').options[$('op').selectedIndex].textContent + ' · 고른 구간에만 적용됩니다';
-  });
-  $('run').addEventListener('click', runBackfill);
-  $('v-window').addEventListener('change', renderVerify);
-  $('close-form').addEventListener('submit', submitVerify);
-
-  renderBuckets();
-  renderGaps();
-  renderDiag();
-  renderPreserveNote();
-  renderVerify();
   fromHash();
 })();
 </script>
