@@ -283,6 +283,11 @@ async function runJourney({ jid, file }, idxMd) {
         const href = a.getAttribute('href');
         const target = path.join(path.dirname(PAGE), href.split('#')[0]);
         is(fs.existsSync(target), true, `(g) 타 여정 분기 → 착지 파일 ${href} 실재`);
+        is(href.split('#')[1], b.step, `(g) 타 여정 분기 → href 앵커가 착지 단계 #${b.step}`);
+        if (fs.existsSync(target)) {
+          is(fs.readFileSync(target, 'utf8').includes(`data-step="${b.step}"`), true,
+            `(g) 타 여정 분기 → 착지 페이지에 단계 ${b.step} 가 실재`);
+        }
       }
     });
   }
