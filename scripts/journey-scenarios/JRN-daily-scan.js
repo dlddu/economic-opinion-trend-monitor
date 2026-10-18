@@ -1,207 +1,223 @@
-const pickFirstTarget = (t, w, d) => {
-  const row = d.querySelector('#deltalist .trow');
-  if (!row) { t.bad('(c) 화면 2의 변화 목록에 고를 수 있는 행이 없다'); return null; }
-  t.click(w, row);
-  return row;
+/* JRN-daily-scan — 페이지 고유 조작.
+ * 단계 1·2·3 은 같은 화면 `dash` 를 같은 구조로 다시 그리므로 요소를 id 가 아니라
+ * 「단계 섹션 안의 [data-role]」 로 찾는다. */
+const S1 = 'STP-open-brief', S2 = 'STP-scan-delta', S3 = 'STP-adjust-window', S4 = 'STP-drill-trend';
+const sec = (d, step) => d.querySelector(`section.jstep[data-step="${step}"]`);
+const base = (d, step) => sec(d, step).querySelector('.screen[data-screen]:not([data-state])');
+const R = (d, step, role) => base(d, step).querySelector(`[data-role="${role}"]`);
+const go = (t, w, step) => {
+  w.location.hash = '#' + step;
+  w.dispatchEvent(new w.HashChangeEvent('hashchange'));
 };
 
-/* <select> 의 <option> 을 사용자가 하는 방식으로 고른다 — 진짜 <select> 에만 있는 경로다. */
 const pickOption = (t, w, sel, v) => {
   const opt = [...(sel.options || [])].find(o => o.value === v);
-  if (!opt) { t.bad(`(d) <select id=${sel.id}> 에 <option value=${v}> 가 없다`); return false; }
+  if (!opt) { t.bad(`(d) <select data-role=${sel.dataset.role}> 에 <option value=${v}> 가 없다`); return false; }
   opt.selected = true;
   t.fire(w, sel, 'change');
   return true;
 };
-
-const toDelta = (t, w, d) => t.click(w, d.getElementById('cta-1'));
-
-const toWindow = (t, w, d) => {
-  pickFirstTarget(t, w, d);
-  t.click(w, d.getElementById('cta-2'));
+const radio = (t, w, d, step, role, v) => {
+  const el = R(d, step, role).querySelector(`input[type=radio][value="${v}"]`);
+  if (!el) { t.bad(`(d) ${step} ${role} 에 value=${v} 라디오가 없다`); return; }
+  el.checked = true;
+  t.fire(w, el, 'change');
+};
+const pickFirstTarget = (t, w, d) => {
+  const row = R(d, S2, 'deltalist').querySelector('.trow');
+  if (!row) { t.bad('(c) 단계 2 의 변화 목록에 고를 수 있는 행이 없다'); return null; }
+  t.click(w, row);
+  return row;
 };
 
 module.exports = {
   unlock: {
-    'STP-scan-delta': (t, w, d) => pickFirstTarget(t, w, d),
+    [S2]: (t, w, d) => pickFirstTarget(t, w, d),
   },
 
   async inputs(t) {
     const { w, d } = t.boot();
 
-    /* 정체 확인 — jsdom 은 <span> 에도 .value 를 붙일 수 있어서 '값을 바꿨더니 렌더가 변했다'
-       만으로는 모양만 입력인 요소를 걸러 내지 못한다. 태그·타입을 먼저 못 박는다. */
-    const shape = (id, tag, type) => {
-      const el = d.getElementById(id);
-      if (!el) return t.bad(`(d) #${id} 컨트롤이 없다`);
-      t.is(el.tagName, tag, `(d) #${id} 는 실제 <${tag.toLowerCase()}> 다`);
-      if (type) t.is(el.type, type, `(d) #${id} 의 type 은 ${type}`);
+    const shape = (step, role, tag, type) => {
+      const el = R(d, step, role);
+      if (!el) return t.bad(`(d) ${step} [data-role=${role}] 컨트롤이 없다`);
+      t.is(el.tagName, tag, `(d) ${step} ${role} 는 실제 <${tag.toLowerCase()}> 다`);
+      if (type) t.is(el.type, type, `(d) ${step} ${role} 의 type 은 ${type}`);
     };
-    shape('axis', 'SELECT');
-    shape('brief-range', 'SELECT');
-    shape('restore', 'INPUT', 'checkbox');
-    shape('delta-basis', 'SELECT');
-    shape('delta-thresh', 'INPUT', 'number');
-    shape('only-new', 'INPUT', 'checkbox');
-    shape('range', 'SELECT');
-    shape('tr-compare', 'INPUT', 'checkbox');
-    shape('tr-marks', 'SELECT');
-    t.is([...d.querySelectorAll('input[name="unit"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
-      true, '(d) 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
-    t.is([...d.querySelectorAll('input[name="brief-unit"]')].every(e => e.tagName === 'INPUT' && e.type === 'radio'),
-      true, '(d) 조회 조건 카드의 집계 단위 컨트롤이 전부 실제 <input type=radio> 다');
-    t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
-
-    t.is(d.querySelectorAll('#brief-form button, #win-form button').length, 0,
-      '(d) 조회 조건 카드에 적용 버튼이 없다 — 축·기간·단위는 고르는 즉시 반영된다');
-    t.is(d.querySelectorAll('input[type="search"]').length, 0, '(d) 조회 조건 카드에 대상 찾기 입력이 없다');
-
-    {
-      const subBefore = d.getElementById('brief-sub').textContent;
-      pickOption(t, w, d.getElementById('brief-range'), '30');
-      t.is(d.getElementById('brief-sub').textContent !== subBefore, true,
-        '(d) 조회 조건 카드의 기간 <select> 선택이 제출 없이 기준 표기를 바로 바꾼다');
-      t.is(d.getElementById('delta-title').textContent, '최근 30일 변화',
-        '(d) 변화 카드 제목이 고른 기간을 따라간다');
-      t.click(w, d.querySelector('input[name="brief-unit"][value="week"]'));
-      await t.sleep(400);
-      t.is([d.getElementById('range').value, d.querySelector('input[name="unit"]:checked')?.value], ['30', 'week'],
-        '(d) 조회 조건 카드에서 고른 기간·단위가 화면 3 컨트롤에도 맞춰진다');
-      pickOption(t, w, d.getElementById('brief-range'), '7');
-      t.click(w, d.querySelector('input[name="brief-unit"][value="day"]'));
-      await t.sleep(400);
-      t.is(d.getElementById('brief-sub').textContent, subBefore, '(d) 기간·단위를 되돌리면 기준 표기가 복원된다');
+    for (const step of [S1, S2, S3]) {
+      shape(step, 'axis', 'SELECT');
+      shape(step, 'range', 'SELECT');
+      shape(step, 'restore', 'INPUT', 'checkbox');
+      shape(step, 'thresh', 'INPUT', 'number');
+      shape(step, 'only-new', 'INPUT', 'checkbox');
+      shape(step, 'spike-baseline', 'SELECT');
+      t.is([...R(d, step, 'unit').querySelectorAll('input')].every(e => e.type === 'radio'), true,
+        `(d) ${step} 집계 단위 컨트롤이 전부 실제 <input type=radio> 다`);
     }
+    shape(S4, 'tr-compare', 'INPUT', 'checkbox');
+    t.is([...R(d, S4, 'tr-axis').querySelectorAll('input')].every(e => e.type === 'radio'), true,
+      '(d) 추세 상세의 축 전환이 실제 <input type=radio> 다');
+    t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
+    t.is(R(d, S1, 'brief-form').querySelectorAll('button').length, 0,
+      '(d) 조회 조건 카드에 적용 버튼이 없다 — 축·기간·단위는 고르는 즉시 반영된다');
 
+    /* 단계 1 — 기간·단위·축 */
     {
-      const offered = () => [...d.querySelectorAll('input[name="brief-unit"]')]
+      const subBefore = R(d, S1, 'brief-sub').textContent;
+      pickOption(t, w, R(d, S1, 'range'), '30');
+      t.is(R(d, S1, 'brief-sub').textContent !== subBefore, true, '(d) 기간 <select> 가 제출 없이 기준 표기를 바꾼다');
+      t.is(R(d, S1, 'delta-title').textContent, '최근 30일 변화', '(d) 같은 화면의 변화 카드 제목이 고른 기간을 따라간다');
+      t.is(d.querySelector('[data-role="tb-pill"]').textContent.includes('최근 30일'), true, '(d) 토프바 pill 이 고른 기간을 따라간다');
+      radio(t, w, d, S1, 'unit', 'week');
+      await t.sleep(400);
+      go(t, w, S3);
+      t.is([R(d, S3, 'range').value, R(d, S3, 'unit').querySelector('input:checked')?.value], ['30', 'week'],
+        '(d) 단계 1 에서 고른 기간·단위가 같은 화면의 단계 3 에도 그대로다');
+      go(t, w, S1);
+      pickOption(t, w, R(d, S1, 'range'), '7');
+      radio(t, w, d, S1, 'unit', 'day');
+      await t.sleep(400);
+      t.is(R(d, S1, 'brief-sub').textContent, subBefore, '(d) 기간·단위를 되돌리면 기준 표기가 복원된다');
+    }
+    {
+      const offered = () => [...R(d, S1, 'unit').querySelectorAll('input')]
         .filter(i => !i.parentElement.hidden).map(i => i.value);
       t.is(offered(), ['hour', 'day'], '(d) 최근 7일에는 기간보다 짧은 시간·일 단위만 고를 수 있다');
-      pickOption(t, w, d.getElementById('brief-range'), '1');
+      pickOption(t, w, R(d, S1, 'range'), '1');
       t.is(offered(), ['hour'], '(d) 기간을 24시간으로 줄이면 일·주 단위가 선택지에서 빠진다');
-      t.is(d.querySelector('input[name="brief-unit"]:checked')?.value, 'hour',
-        '(d) 기간보다 길어진 단위는 고를 수 있는 단위로 옮겨 간다');
+      t.is(R(d, S1, 'unit').querySelector('input:checked')?.value, 'hour', '(d) 기간보다 길어진 단위는 고를 수 있는 단위로 옮겨 간다');
       await t.sleep(400);
-      pickOption(t, w, d.getElementById('brief-range'), '7');
-      t.click(w, d.querySelector('input[name="brief-unit"][value="day"]'));
+      pickOption(t, w, R(d, S1, 'range'), '7');
+      radio(t, w, d, S1, 'unit', 'day');
+      await t.sleep(400);
+    }
+    {
+      const rows = () => [...R(d, S1, 'ranklist').querySelectorAll('.rankrow')].map(e => e.textContent.trim());
+      const kr = rows();
+      pickOption(t, w, R(d, S1, 'axis'), 'US');
+      t.is(JSON.stringify(kr) !== JSON.stringify(rows()) && rows().length > 0, true, '(d) 축 <select> 가 목록을 실제로 바꾼다');
+      pickOption(t, w, R(d, S1, 'axis'), 'ALL');
+      t.is(R(d, S1, 'brief-sub').textContent.startsWith('전체 축'), true, '(d) 축 「전체」 가 세 축을 접은 순위로 바꾼다');
+      pickOption(t, w, R(d, S1, 'axis'), 'KR');
+    }
+
+    /* 단계 2 — 변화 목록 좁히기 */
+    t.click(w, sec(d, S1).querySelector('[data-advance]'));
+    {
+      const n = () => R(d, S2, 'deltalist').querySelectorAll('.trow').length;
+      const all = n();
+      const th = R(d, S2, 'thresh');
+      th.value = '5'; t.fire(w, th, 'input');
+      t.is(n() > 0 && n() < all, true, '(d) <input type=number> 임계가 변화 목록을 실제로 좁힌다');
+      th.value = '0'; t.fire(w, th, 'input');
+      t.is(n(), all, '(d) 임계를 0으로 되돌리면 목록이 복원된다');
+      const on = R(d, S2, 'only-new');
+      on.checked = true; t.fire(w, on, 'change');
+      const left = [...R(d, S2, 'deltalist').querySelectorAll('.trow')];
+      t.is(left.length > 0 && left.length < all && left.every(b => b.textContent.includes('신규')), true,
+        '(d) <input type=checkbox> 가 신규 진입 대상만 남긴다');
+      on.checked = false; t.fire(w, on, 'change');
+      const before = R(d, S2, 'spike-mult').textContent;
+      pickOption(t, w, R(d, S2, 'spike-baseline'), '30d');
+      t.is(R(d, S2, 'spike-mult').textContent !== before, true, '(d) 튀는 값의 비교 구간 <select> 가 배수를 실제로 바꾼다');
+      pickOption(t, w, R(d, S2, 'spike-baseline'), '7d');
+    }
+
+    /* 단계 3 — 기간 순위 */
+    pickFirstTarget(t, w, d);
+    t.click(w, sec(d, S2).querySelector('[data-advance]'));
+    {
+      const before = R(d, S3, 'winlist').innerHTML;
+      pickOption(t, w, R(d, S3, 'range'), '30');
+      await t.sleep(400);
+      t.is(R(d, S3, 'winlist').innerHTML !== before, true, '(d) 기간 <select> 가 제출 없이 기간 순위를 다시 그린다');
+      t.is(R(d, S3, 'winlist').querySelectorAll('tr.on').length, 1, '(d) 고른 대상이 다시 매긴 순위에서도 강조된다');
+      pickOption(t, w, R(d, S3, 'range'), '7');
       await t.sleep(400);
     }
 
-    const kr = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());
-    if (pickOption(t, w, d.getElementById('axis'), 'US')) {
-      const us = [...d.querySelectorAll('#ranklist .rankrow')].map(e => e.textContent.trim());
-      t.is(JSON.stringify(kr) !== JSON.stringify(us) && us.length > 0, true,
-        '(d) 축 <select> 의 <option> 선택이 목록을 실제로 바꾼다');
-      pickOption(t, w, d.getElementById('axis'), 'KR');
+    /* 단계 4 — 추세 상세 (trend) */
+    const picked = d.querySelector(`section[data-step="${S2}"] [data-role="deltalist"] .trow[aria-pressed="true"]`)?.dataset.subject;
+    t.click(w, sec(d, S3).querySelector('[data-advance]'));
+    t.is(R(d, S4, 'tr-table').querySelector('tr.on')?.dataset.subject, picked,
+      '(d) 고른 대상을 그대로 승계해 추세 상세가 열린다');
+    {
+      const chart = R(d, S4, 'tr-chart').innerHTML;
+      const cmp = R(d, S4, 'tr-compare');
+      cmp.checked = true; t.fire(w, cmp, 'change');
+      t.is(R(d, S4, 'tr-chart').innerHTML !== chart, true, '(d) 겹쳐 보기 체크박스가 차트를 실제로 바꾼다');
+      t.is(R(d, S4, 'tr-legend').querySelectorAll('span').length > 1, true, '(d) 범례가 그려진 선만큼 늘어난다');
+      const row = [...R(d, S4, 'tr-table').querySelectorAll('tr.click')].find(r => !r.classList.contains('on'));
+      t.click(w, row);
+      t.is(R(d, S4, 'tr-table').querySelector('tr.on')?.dataset.subject, row.dataset.subject,
+        '(d) 비교 표 행을 누르면 그 대상이 선택된다');
+      const tbl = R(d, S4, 'tr-table').innerHTML;
+      radio(t, w, d, S4, 'tr-axis', 'US');
+      t.is(R(d, S4, 'tr-table').innerHTML !== tbl, true, '(d) 화면 안 축 전환 라디오가 비교 표를 실제로 바꾼다');
     }
-    if (pickOption(t, w, d.getElementById('axis'), 'ALL')) {
-      t.is(d.getElementById('brief-sub').textContent.startsWith('전체 축'), true,
-        '(d) 축 <select> 의 「전체」 가 세 축을 접은 순위로 바꾼다');
-      t.is(d.querySelectorAll('#ranklist .rankrow').length > 0, true, '(d) 「전체」 축에도 순위가 그려진다');
-      pickOption(t, w, d.getElementById('axis'), 'KR');
-    }
-
-    toDelta(t, w, d);
-    const all = d.querySelectorAll('#deltalist .trow').length;
-    const th = d.getElementById('delta-thresh');
-    th.value = '5'; t.fire(w, th, 'input');
-    const few = d.querySelectorAll('#deltalist .trow').length;
-    t.is(few > 0 && few < all, true, '(d) <input type=number> 임계가 변화 목록을 실제로 좁힌다');
-    th.value = '0'; t.fire(w, th, 'input');
-    t.is(d.querySelectorAll('#deltalist .trow').length, all, '(d) 임계를 0으로 되돌리면 목록이 복원된다');
-
-    const onlyNew = d.getElementById('only-new');
-    onlyNew.checked = true; t.fire(w, onlyNew, 'change');
-    const newOnly = [...d.querySelectorAll('#deltalist .trow')];
-    t.is(newOnly.length > 0 && newOnly.length < all, true,
-      '(d) <input type=checkbox> 가 신규 진입 대상만 남긴다');
-    t.is(newOnly.every(b => b.textContent.includes('신규')), true,
-      '(d) 남은 행이 실제로 신규 진입 대상이다');
-    onlyNew.checked = false; t.fire(w, onlyNew, 'change');
-
-    toWindow(t, w, d);
-    const winBefore = d.getElementById('winlist').innerHTML;
-    pickOption(t, w, d.getElementById('range'), '30');
-    t.click(w, d.querySelector('input[name="unit"][value="week"]'));
-    await t.sleep(400);
-    t.is(d.getElementById('winlist').innerHTML !== winBefore, true,
-      '(d) 기간 <select> · 단위 <input type=radio> 선택이 제출 없이 순위표를 다시 그린다');
-
-    t.click(w, d.getElementById('cta-3'));
-    const chartBefore = d.getElementById('trendchart').innerHTML;
-    const cmp = d.getElementById('tr-compare');
-    cmp.checked = true; t.fire(w, cmp, 'change');
-    t.is(d.getElementById('trendchart').innerHTML !== chartBefore, true,
-      '(d) <input type=checkbox> 로 비교 대상을 겹치면 차트가 실제로 바뀐다');
-    t.is(d.querySelectorAll('#trendtable tbody tr').length > 1, true,
-      '(d) 비교 표에도 겹친 대상이 실제로 늘어난다');
-    const marked = d.getElementById('trendchart').innerHTML;
-    pickOption(t, w, d.getElementById('tr-marks'), 'all');
-    t.is(d.getElementById('trendchart').innerHTML !== marked, true,
-      '(d) 기여 뉴스 표기 <select> 가 차트를 실제로 바꾼다');
-
   },
 
   async states(t) {
     {
       const { w, d } = t.boot();
       t.is(t.shown(d, 'empty-window'), false, '(e) empty-window — 수집이 있는 축에서는 빈 상태가 아니다');
-      pickOption(t, w, d.getElementById('axis'), 'GL');
-      t.is(t.shown(d, 'empty-window'), true, '(e) empty-window — 수집이 빈 축에서 「데이터 없음」 상태에 도달');
-      t.is(d.querySelectorAll('#ranklist .rankrow').length, 0,
-        '(e) empty-window — 0% 행으로 채우지 않고 목록을 비운다');
-      pickOption(t, w, d.getElementById('axis'), 'KR');
+      pickOption(t, w, R(d, S1, 'axis'), 'GL');
+      t.is(t.shown(d, 'empty-window'), true, '(e) empty-window — 수집이 빈 축에서 「데이터 없음」 에 도달');
+      t.is(R(d, S1, 'ranklist').querySelectorAll('.rankrow').length, 0, '(e) empty-window — 0% 행으로 채우지 않는다');
+      pickOption(t, w, R(d, S1, 'axis'), 'KR');
       t.is(t.shown(d, 'empty-window'), false, '(e) empty-window — 축을 되돌리면 해소된다');
     }
     {
       const { w, d } = t.boot();
-      toDelta(t, w, d);
-      t.is(t.shown(d, 'no-baseline'), false, '(e) no-baseline — 직전 동일 구간에는 기준이 있다');
-      pickOption(t, w, d.getElementById('delta-basis'), 'prev-week');
-      t.is(t.shown(d, 'no-baseline'), true, '(e) no-baseline — 기준 없는 구간에서 계산 불가 상태에 도달');
-      t.is([...d.querySelectorAll('#deltalist .dlt')].every(e => e.textContent.trim() === '—'), true,
-        '(e) no-baseline — 증감 칸을 0 이 아니라 「—」 로 둔다');
-      pickOption(t, w, d.getElementById('delta-basis'), 'prev');
-      t.is(t.shown(d, 'no-baseline'), false, '(e) no-baseline — 기준이 있는 구간으로 되돌리면 해소된다');
-    }
-    {
-      const { w, d } = t.boot();
-      toDelta(t, w, d);
-      t.is(t.shown(d, 'no-selection'), true, '(e) no-selection — 화면 2 진입 직후 대상 미선택 상태');
+      go(t, w, S2);
+      t.is(t.shown(d, 'no-selection'), true, '(e) no-selection — 단계 2 진입 직후 대상 미선택');
       pickFirstTarget(t, w, d);
       t.is(t.shown(d, 'no-selection'), false, '(e) no-selection — 대상을 고르면 해소된다');
+      const th = R(d, S2, 'thresh');
+      th.value = '10'; t.fire(w, th, 'input');
+      t.is(t.shown(d, 'no-change'), true, '(e) no-change — 임계를 올리면 걸리는 변화 0건에 도달');
+      th.value = '0'; t.fire(w, th, 'input');
+      t.is(t.shown(d, 'no-change'), false, '(e) no-change — 임계를 내리면 해소된다');
+      pickOption(t, w, R(d, S2, 'axis'), 'ALL');
+      t.is(t.shown(d, 'pick-axis'), true, '(e) pick-axis — 「전체」 축에서 축을 고르라는 안내에 도달');
+      pickOption(t, w, R(d, S2, 'axis'), 'KR');
+      t.is(t.shown(d, 'pick-axis'), false, '(e) pick-axis — 축을 고르면 해소된다');
     }
     {
       const { w, d } = t.boot();
-      toDelta(t, w, d);
-      toWindow(t, w, d);
-      pickOption(t, w, d.getElementById('range'), '30');
-      t.is(t.shown(d, 'loading'), true, '(e) loading — 기간을 바꾼 직후 재집계 상태에 도달');
+      go(t, w, S3);
+      pickOption(t, w, R(d, S3, 'range'), '30');
+      t.is(t.shown(d, 'reloading'), true, '(e) reloading — 기간을 바꾼 직후 재집계 상태에 도달');
       await t.sleep(400);
-      t.is(t.shown(d, 'loading'), false, '(e) loading — 재집계가 실제로 해소된다');
+      t.is(t.shown(d, 'reloading'), false, '(e) reloading — 재집계가 실제로 해소된다');
+      pickOption(t, w, R(d, S3, 'axis'), 'GL');
+      t.is(t.shown(d, 'no-rank'), true, '(e) no-rank — 수집이 빈 축에서 순위 0건에 도달');
     }
     {
       const { w, d } = t.boot();
-      toDelta(t, w, d);
-      toWindow(t, w, d);
-      t.is(t.shown(d, 'low-sample'), false, '(e) low-sample — 일 단위에서는 표본 부족이 없다');
-      t.click(w, d.querySelector('input[name="unit"][value="hour"]'));
-      await t.sleep(400);
-      t.is(t.shown(d, 'low-sample'), true, '(e) low-sample — 시간 단위에서 표본 부족 상태에 도달');
-      t.is(d.querySelectorAll('#winlist .thin').length > 0, true,
-        '(e) low-sample — 해당 구간 수치가 실제로 흐리게 그려진다');
+      go(t, w, S4);
+      radio(t, w, d, S4, 'tr-axis', 'GL');
+      t.is(t.shown(d, 'trend-empty'), true, '(e) trend-empty — 집계가 없는 축으로 바꾸면 빈 화면으로 교체');
+      t.is(base(d, S4).hidden, true, '(e) trend-empty — 기본 화면은 가려진다(화면 교체)');
+      radio(t, w, d.querySelector('[data-state="trend-empty"]') ? d : d, S4, 'tr-axis', 'KR');
+    }
+    /* 데이터로 도달할 수 없는 상태(로딩·오류·Gold 없음·기준 없음)는 딥링크로 연다 — 하네스 (i) 가 전부 확인한다. */
+    for (const [step, st] of [[S1, 'loading'], [S1, 'api-error'], [S1, 'no-gold'], [S2, 'no-baseline'],
+                              [S4, 'trend-loading'], [S4, 'trend-error']]) {
+      const { w, d } = t.boot();
+      w.location.hash = `#${step}/${st}`;
+      w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+      t.is(t.shown(d, st), true, `(e) ${st} — 딥링크 #${step}/${st} 로 도달`);
     }
   },
 
   async renders(t) {
-    const { d } = t.boot();
-    t.is(d.querySelectorAll('#ranklist .rankrow').length > 0, true,
-      '(h) 인라인 스크립트만으로 상위 대상 목록이 렌더된다');
-    t.is(d.querySelectorAll('#ranklist .spark').length > 0, true,
-      '(h) 스파크라인이 인라인 스크립트로 렌더된다');
-    t.is(d.getElementById('trendchart').innerHTML.includes('<path'), true,
-      '(h) 추세 차트가 인라인 스크립트로 렌더된다');
-    t.is(d.querySelectorAll('#trendtable tbody tr').length > 0, true,
-      '(h) 비교 표가 인라인 스크립트로 렌더된다');
+    const { w, d } = t.boot();
+    t.is(R(d, S1, 'ranklist').querySelectorAll('.rankrow').length > 0, true, '(h) 상위 대상 목록이 렌더된다');
+    t.is(R(d, S1, 'ranklist').querySelectorAll('.spark').length > 0, true, '(h) 스파크라인이 렌더된다');
+    t.is(R(d, S1, 'spike-list').querySelectorAll('.spk-row').length > 0, true, '(h) 튀는 값 목록이 렌더된다');
+    go(t, w, S4);
+    t.is(R(d, S4, 'tr-chart').innerHTML.includes('<polyline'), true, '(h) 추세 차트가 렌더된다');
+    t.is(R(d, S4, 'tr-table').querySelectorAll('tbody tr').length > 0, true, '(h) 비교 표가 렌더된다');
   },
 };
