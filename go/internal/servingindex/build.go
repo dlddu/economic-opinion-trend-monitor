@@ -68,6 +68,7 @@ type Stats struct {
 	NewsItems    int
 	Records      int
 	ArticlePicks int
+
 	SubjectTrends, SourceContributions, AxisSentiments, SubjectWindows, AxisWindows int
 	// PicksWritten is false when the lake has no article_pick dataset yet.
 	PicksWritten   bool
