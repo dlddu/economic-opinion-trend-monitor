@@ -110,8 +110,6 @@ func (h *Handlers) dashboard(w http.ResponseWriter, r *http.Request, gold goldSo
 	))
 }
 
-// buildDashboard ranks the range's window as Gold aggregated it and draws each row's sparkline from
-// the unit's buckets inside the range.
 func buildDashboard(
 	buckets []string, inWindow func(window []string) []gen.SubjectTrend, sentiments []gen.AxisSentiment,
 	subjects []gen.SubjectWindow, counts []gen.AxisWindow, everyAxisLatest, axis, rangeKey string,

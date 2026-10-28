@@ -17,13 +17,6 @@ import (
 // day early, an hour rollup that must not leak into a day read, and the windows
 // Gold aggregated over the same lake.
 //
-//	buckets  06-21  기준금리 .40  삼성 .60
-//	         06-22  기준금리 .50  삼성 .50            (반도체 absent: axis collected, subject not)
-//	         06-23  기준금리 .45  삼성 .20  반도체 .35
-//	7d       current   기준금리 .40  반도체 .35  삼성 .25 (raw 9 · 3 · 20)
-//	         previous  기준금리 .50  삼성 .50
-//	24h      current   기준금리 .60  삼성 .40            (no previous 24h)
-//
 // The ranking reads the windows, so 기준금리 shows .40, not its 06-23 bucket's .45.
 // 삼성 has the most raw mentions in the window but ranks third on share — the case
 // the rank-shift note is for.
