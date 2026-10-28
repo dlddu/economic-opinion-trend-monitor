@@ -286,8 +286,7 @@ export function Trend() {
               <div className="note">
                 <div>
                   이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
-                  서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.{" "}
-                  <span className="mono trend-ac">AC3.3</span>
+                  서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.
                 </div>
               </div>
             </div>
