@@ -334,8 +334,8 @@ def window_articles(hours: Iterable[tuple[str, str, str, Pick]]) -> Windows:
 
     The current window is the ``range`` hours ending at the latest collected hour, on every
     axis alike, so an axis that stopped collecting shows an emptier window rather than an older
-    one. The previous window is the same length just before it. An article observed in several
-    hours of a window is read through its latest observation there, as in a bucket.
+    one. An article observed in several hours of a window is read through its latest observation
+    there, as in a bucket.
     """
     hours = list(hours)
     if not hours:
