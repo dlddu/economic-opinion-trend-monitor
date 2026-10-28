@@ -20,6 +20,54 @@ function pct(x: number): string {
   return `${(x * 100).toFixed(1)}%`;
 }
 
+const AXIS_PILL: Record<AxisColumn["axis"], string> = { KR: "ax-kr", US: "ax-us", GLOBAL: "ax-gl" };
+
+const GAP_ROWS = 6;
+
+interface Presence {
+  name: string;
+  per: Partial<Record<AxisColumn["axis"], number>>;
+}
+
+function presenceOf(live: AxisColumn[]): Presence[] {
+  const byName = new Map<string, Presence>();
+  for (const column of live) {
+    for (const row of column.top_subjects) {
+      const entry = byName.get(row.subject) ?? { name: row.subject, per: {} };
+      entry.per[column.axis] = row.normalized_share;
+      byName.set(row.subject, entry);
+    }
+  }
+  return [...byName.values()];
+}
+
+interface GapCandidate extends Presence {
+  count: number;
+  all: boolean;
+  gap: number;
+  score: number;
+  axis: AxisColumn["axis"];
+}
+
+function gapCandidates(presence: Presence[], liveCount: number): GapCandidate[] {
+  return presence
+    .map((p) => {
+      const axes = Object.keys(p.per) as AxisColumn["axis"][];
+      const hi = Math.max(...axes.map((a) => p.per[a] as number));
+      const lo = Math.min(...axes.map((a) => p.per[a] as number));
+      const all = axes.length === liveCount;
+      return {
+        ...p,
+        count: axes.length,
+        all,
+        gap: hi - lo,
+        score: all ? hi - lo : hi,
+        axis: axes.find((a) => p.per[a] === hi) as AxisColumn["axis"],
+      };
+    })
+    .sort((x, y) => y.score - x.score);
+}
+
 export function Compare() {
   const navigate = useNavigate();
   const [data, setData] = useState<CompareResponse | null>(null);
@@ -43,6 +91,13 @@ export function Compare() {
     ...(data?.axes ?? []).flatMap((c) => c.top_subjects.map((r) => r.normalized_share)),
     0.0001,
   );
+
+  const live = (data?.axes ?? []).filter((c) => c.top_subjects.length > 0);
+  const presence = presenceOf(live);
+  const candidates = gapCandidates(presence, live.length);
+  const presenceOfSubject = new Map(presence.map((p) => [p.name, p]));
+  const openTrend = (axis: string, subject: string) =>
+    navigate(`/trend?axis=${axis}&subject=${encodeURIComponent(subject)}`);
 
   return (
     <>
@@ -93,14 +148,69 @@ export function Compare() {
                     column={columns.get(a.id)}
                     maxShare={maxShare}
                     axisName={a.name}
-                    onOpen={(subject) =>
-                      navigate(`/trend?axis=${a.id}&subject=${encodeURIComponent(subject)}`)
-                    }
+                    liveCount={live.length}
+                    presenceOfSubject={presenceOfSubject}
+                    onOpen={(subject) => openTrend(a.id, subject)}
                   />
                 </div>
               </section>
             ))}
           </div>
+
+          {live.length >= 2 && (
+            <div className="grid g-12 cmp-gap">
+              <div className="card col-12">
+                <div className="card-h">
+                  <h3>축 간 격차</h3>
+                  <span className="sub">
+                    비교한 축 {live.length}개 · 축 사이에서 가장 크게 벌어진 순
+                  </span>
+                </div>
+                <div className="card-b">
+                  {candidates.slice(0, GAP_ROWS).map((g) => (
+                    <button
+                      key={g.name}
+                      type="button"
+                      className="cmp-gap-row"
+                      data-subject={g.name}
+                      data-axis={g.axis}
+                      onClick={() => openTrend(g.axis, g.name)}
+                    >
+                      <span className="top">
+                        <span className="nm">{g.name}</span>
+                        <span className="gap">
+                          {g.all
+                            ? `격차 ${(g.gap * 100).toFixed(1)}%p`
+                            : g.count === 1
+                              ? `${g.axis} 상위에만`
+                              : `${live.length - g.count}개 축 상위 밖`}
+                        </span>
+                      </span>
+                      <span className="pills">
+                        {live.map((c) => {
+                          const share = g.per[c.axis];
+                          return (
+                            <span key={c.axis} className={`axpill ${AXIS_PILL[c.axis]}`}>
+                              <span className="fl" />
+                              {c.axis} {share === undefined ? "상위 밖" : pct(share)}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    </button>
+                  ))}
+                  {candidates.every((g) => g.all) && (
+                    <div className="note cmp-no-outlier">
+                      <div>
+                        <b>한 축에만 있는 대상이 없습니다.</b> 비교한 축의 상위 대상이 모두 겹칩니다 — 남은
+                        차이는 위의 점유율 격차뿐이고, 그것이 작다면 <b>“차이 없음”</b>도 결론입니다.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid g-12 cmp-exits">
             <div className="card col-6 cmp-exit">
@@ -150,11 +260,15 @@ function AxisRows({
   column,
   maxShare,
   axisName,
+  liveCount,
+  presenceOfSubject,
   onOpen,
 }: {
   column?: AxisColumn;
   maxShare: number;
   axisName: string;
+  liveCount: number;
+  presenceOfSubject: Map<string, Presence>;
   onOpen: (subject: string) => void;
 }) {
   // An axis with nothing collected is not an axis with zero interest. Drawing it
@@ -181,6 +295,11 @@ function AxisRows({
             <span className="nm">
               {row.rank}. {row.subject}
               <span className="meta">원시 {row.raw_count}건</span>
+              <PresenceBadge
+                axis={column.axis}
+                presence={presenceOfSubject.get(row.subject)}
+                liveCount={liveCount}
+              />
             </span>
             <span className="pct">{pct(row.normalized_share)}</span>
           </div>
@@ -192,6 +311,21 @@ function AxisRows({
       <MiniSent dist={column.sentiment} />
     </>
   );
+}
+
+function PresenceBadge({
+  axis,
+  presence,
+  liveCount,
+}: {
+  axis: AxisColumn["axis"];
+  presence?: Presence;
+  liveCount: number;
+}) {
+  if (liveCount < 2 || !presence) return null;
+  const count = Object.keys(presence.per).length;
+  if (count === 1) return <span className={`axpill cmp-only ${AXIS_PILL[axis]}`}>{axis}만</span>;
+  return <span className="cmp-common">공통 {count}축</span>;
 }
 
 function MiniSent({ dist }: { dist: SentimentDistribution }) {

@@ -998,6 +998,75 @@ a {
   margin-top: 12px;
 }
 
+.cmp-common {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+}
+
+.axpill.cmp-only {
+  margin-left: 6px;
+  font-size: 10px;
+  padding: 1px 7px;
+}
+
+.cmp-gap {
+  margin-top: 16px;
+}
+
+.cmp-gap-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 11px 4px;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 6px;
+}
+
+.cmp-gap-row:hover {
+  background: var(--panel-2);
+}
+
+.cmp-gap-row:last-of-type {
+  border-bottom: 0;
+}
+
+.cmp-gap-row .top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.cmp-gap-row .nm {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.cmp-gap-row .gap {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.cmp-gap-row .pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmp-no-outlier {
+  margin-top: 12px;
+}
+
 /* ---- 여정 이탈 카드 (compare) ----
    목업은 이 산문을 `.muted` 에 인라인 style 로 얹는다. 구현 쪽 레이아웃 결정이라
    목업에 없는 이름으로 선언한다(규칙 5 대조 규약). */

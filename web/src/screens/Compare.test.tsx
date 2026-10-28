@@ -124,3 +124,89 @@ it("sends the axis of the column the row sits in, not the first one", async () =
     ),
   );
 });
+
+function overlapping(): CompareResponse {
+  return {
+    basis: { time_bucket: "2026-06-23T14", bucket_unit: "hour", normalized: true },
+    axes: [
+      column("KR", "금리", 0.5),
+      column("US", "금리", 0.2),
+      column("GLOBAL", "유가", 0.2),
+    ],
+  };
+}
+
+function gapRows(container: HTMLElement): HTMLElement[] {
+  return [...container.querySelectorAll(".cmp-gap-row")] as HTMLElement[];
+}
+
+it("marks a subject shared by columns as common and a lone one with its axis", async () => {
+  stubCompare(overlapping());
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(container.querySelectorAll(".cmprow").length).toBe(3));
+
+  expect(columnRows(container, "KR")[0].querySelector(".cmp-common")?.textContent).toBe("공통 2축");
+  expect(columnRows(container, "US")[0].querySelector(".cmp-common")?.textContent).toBe("공통 2축");
+  expect(columnRows(container, "GLOBAL")[0].querySelector(".cmp-only")?.textContent).toBe("GLOBAL만");
+});
+
+it("ranks the gap card with a widest-gap subject first and names an axis a subject falls out of", async () => {
+  stubCompare(overlapping());
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(gapRows(container).length).toBe(2));
+
+  const [first, second] = gapRows(container);
+  expect(first.querySelector(".nm")?.textContent).toBe("금리");
+  expect(first.querySelector(".gap")?.textContent).toBe("1개 축 상위 밖");
+  expect(first.textContent).toContain("GLOBAL 상위 밖");
+  expect(second.querySelector(".gap")?.textContent).toBe("GLOBAL 상위에만");
+  expect(container.querySelector(".cmp-no-outlier")).toBeNull();
+});
+
+it("hands the gap row's subject and its widest axis to the trend detail", async () => {
+  stubCompare(overlapping());
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(gapRows(container).length).toBe(2));
+  fireEvent.click(gapRows(container)[0]);
+
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="landed"]')?.textContent).toBe(
+      `/trend?axis=KR&subject=${encodeURIComponent("금리")}`,
+    ),
+  );
+});
+
+it("says there is no outlier when every compared axis lists the same subjects", async () => {
+  stubCompare({
+    basis: { time_bucket: "2026-06-23T14", bucket_unit: "hour", normalized: true },
+    axes: [column("KR", "금리", 0.5), column("US", "금리", 0.2), column("GLOBAL", "금리", 0.1)],
+  });
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(gapRows(container).length).toBe(1));
+
+  expect(gapRows(container)[0].querySelector(".gap")?.textContent).toBe("격차 40.0%p");
+  expect(container.querySelector(".cmp-no-outlier")?.textContent).toContain(
+    "한 축에만 있는 대상이 없습니다.",
+  );
+});
+
+it("draws no gap card and no badges when only one axis has data", async () => {
+  stubCompare({
+    basis: { time_bucket: "2026-06-23T14", bucket_unit: "hour", normalized: true },
+    axes: [
+      column("KR", "금리", 0.5),
+      { axis: "US", top_subjects: [], sentiment: DIST },
+      { axis: "GLOBAL", top_subjects: [], sentiment: DIST },
+    ],
+  });
+  const { container } = renderScreen();
+
+  await waitFor(() => expect(container.querySelectorAll(".cmprow").length).toBe(1));
+
+  expect(container.querySelector(".cmp-gap")).toBeNull();
+  expect(container.querySelector(".cmp-common, .cmp-only")).toBeNull();
+});
