@@ -1246,6 +1246,39 @@ a {
   gap: 6px;
 }
 
+.sent-bk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.sent-bk b {
+  color: var(--ink);
+}
+
+.sent-chart g[data-bucket] {
+  cursor: pointer;
+}
+
+.sent-vol {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.sent-vol svg {
+  display: block;
+  margin-top: 6px;
+}
+
+.thin {
+  opacity: 0.35;
+}
+
 .sent-axisrow {
   display: flex;
   align-items: center;
