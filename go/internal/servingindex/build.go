@@ -68,8 +68,7 @@ type Stats struct {
 	NewsItems    int
 	Records      int
 	ArticlePicks int
-	// Gold rows copied: subject_trend, subject_source_contribution, axis_sentiment, subject_window,
-	// axis_window.
+
 	SubjectTrends, SourceContributions, AxisSentiments, SubjectWindows, AxisWindows int
 	// PicksWritten is false when the lake has no article_pick dataset yet.
 	PicksWritten   bool

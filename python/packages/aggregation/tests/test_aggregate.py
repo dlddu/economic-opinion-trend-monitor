@@ -29,7 +29,6 @@ def _silver(rid: str, subjects: list[str], sentiment: str | None, status: str) -
 
 
 def _axes(rows: list[dict]) -> list[dict]:
-    """The rows of the source axes, without the ALL rows folded over them."""
     return [row for row in rows if row["axis"] != ALL_AXIS]
 
 
