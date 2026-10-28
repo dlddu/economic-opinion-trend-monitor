@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { INDEX_NOT_READY, errorText } from "../api/indexState";
 import { IndexNotReady } from "./IndexNotReady";
@@ -159,40 +160,42 @@ export function Reprocess() {
                   </div>
                 ) : (
                   /* CMP-table */
-                  <table className="tbl rp-scope">
-                    <thead>
-                      <tr>
-                        <th>구간</th>
-                        <th className="num">원문</th>
-                        <th className="num">이미 새 로직</th>
-                        <th className="num">재분석 대상</th>
-                        <th>상태</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scope.buckets.map((b) => {
-                        const cls = b.todo === 0 ? "b-pos" : b.done > 0 ? "b-mix" : "b-neg";
-                        const label = b.todo === 0 ? "완료" : b.done > 0 ? "일부 완료" : "재분석 필요";
-                        return (
-                          <tr key={b.cycle}>
-                            <td>
-                              <b className="mono">{b.cycle}</b>
-                            </td>
-                            <td className="num">{b.kept}</td>
-                            <td className="num">{b.done}</td>
-                            <td className="num">{b.todo}</td>
-                            <td>
-                              {/* CMP-badge */}
-                              <span className={`badge ${cls}`}>
-                                <span className="d" />
-                                {label}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <div className="rp-scrolly">
+                    <table className="tbl rp-scope">
+                      <thead>
+                        <tr>
+                          <th>구간</th>
+                          <th className="num">원문</th>
+                          <th className="num">이미 새 로직</th>
+                          <th className="num">재분석 대상</th>
+                          <th>상태</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scope.buckets.map((b) => {
+                          const cls = b.todo === 0 ? "b-pos" : b.done > 0 ? "b-mix" : "b-neg";
+                          const label = b.todo === 0 ? "완료" : b.done > 0 ? "일부 완료" : "재분석 필요";
+                          return (
+                            <tr key={b.cycle}>
+                              <td>
+                                <b className="mono">{b.cycle}</b>
+                              </td>
+                              <td className="num">{b.kept}</td>
+                              <td className="num">{b.done}</td>
+                              <td className="num">{b.todo}</td>
+                              <td>
+                                {/* CMP-badge */}
+                                <span className={`badge ${cls}`}>
+                                  <span className="d" />
+                                  {label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -341,6 +344,11 @@ export function Reprocess() {
                         <div>
                           <b>임계를 넘는 항목이 {over.length}건 있습니다.</b> 설명되지 않는 변화를
                           그대로 내보내면 어제 본 숫자가 왜 바뀌었는지 아무도 답할 수 없습니다.
+                          <div className="rp-actions">
+                            <Link className="btn sm" to="/trace">
+                              반영을 보류하고 원인 대상을 원문까지 확인 →
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     )}

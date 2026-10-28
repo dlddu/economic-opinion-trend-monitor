@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type {
   ReprocessDecision,
@@ -59,6 +59,7 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
   const [busy, setBusy] = useState<"sample" | "run" | "publish" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recorded, setRecorded] = useState<string | null>(null);
+  const versionRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setRuns(data.trigger.runs), [data]);
   useEffect(() => {
@@ -175,7 +176,7 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
             <div className="rp-form">
               <label className="rp-field">
                 <span>목표 로직 버전</span>
-                <input className="mono" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="예: llm-v2" />
+                <input ref={versionRef} className="mono" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="예: llm-v2" />
               </label>
               <label className="rp-field">
                 <span>표본 크기 (건)</span>
@@ -242,6 +243,20 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
             <p className="rp-muted">
               표본을 건너뛰고 전량을 돌리면, 기준이 어긋났다는 사실을 과거 데이터가 이미 바뀐 뒤에 알게 됩니다.
             </p>
+            {sampleDone && (
+              <div className="rp-actions">
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    versionRef.current?.focus();
+                    versionRef.current?.select();
+                  }}
+                >
+                  로직을 고치고 표본부터 다시
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -284,6 +299,16 @@ export function ReprocessTrigger({ data, scope, overThreshold, onChanged }: Prop
                 <div>
                   <b>도중에 끊겼습니다.</b> 처음부터 다시 돌리지 않습니다 — 체크포인트까지는 그대로 두고 그 지점부터 이어서 재개하세요.
                   {lastFull.message && <> ({lastFull.message})</>}
+                  <div className="rp-actions">
+                    <button
+                      type="button"
+                      className="btn sm pri"
+                      disabled={busy !== null || anyActive || !sampleDone || !version.trim()}
+                      onClick={() => submit("run")}
+                    >
+                      체크포인트부터 이어서 재개 →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

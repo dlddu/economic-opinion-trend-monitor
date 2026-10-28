@@ -2200,6 +2200,18 @@ details.meta .metabody {
   margin-top: 14px;
 }
 
+.rp-scrolly {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.rp-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .rp-cmp-controls {
   margin-bottom: 12px;
 }
