@@ -32,12 +32,6 @@ func writeTrendRows(t *testing.T, dir string, rows []string) {
 
 // writeSpikeGold: KR days 06-16..06-22 are the 7-day baseline of 06-23, and 06-01 joins it only
 // at 30 days.
-//
-//	환율    10/.10 every baseline day  -> 30/.30   raw ×3, share ×3          spike
-//	금리    20/.20 every baseline day  -> 40/.20   raw ×2, share ×1          spike, normalized away
-//	주택    14/.14 on 06-16..06-19 only -> 8/.08   absent days count as 0: ×1
-//	반도체  none                        -> 5/.05   new, no multiple
-//	환율    80/.80 on 06-01
 func writeSpikeGold(t *testing.T, dir string) {
 	t.Helper()
 	rows := []string{trendRow("환율", "KR", "day", "2026-06-01", 80, 0.8)}

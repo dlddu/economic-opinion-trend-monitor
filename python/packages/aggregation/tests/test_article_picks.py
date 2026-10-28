@@ -12,7 +12,6 @@ from econ_aggregation.aggregate import (
 
 
 def _axes(rows: list[dict]) -> list[dict]:
-    """ALL folds the axes' sources together and is decomposed only through them."""
     return [row for row in rows if row["axis"] != ALL_AXIS]
 
 
