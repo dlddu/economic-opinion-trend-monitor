@@ -180,7 +180,6 @@ export function Dashboard() {
     };
   }, [axis, range, unit]);
 
-  // 축·기간·단위 모두 고르는 즉시 다시 조회한다. 「다시 집계하는 중」은 기간·단위가 바뀐 왕복에만 쓴다.
   function applyWindow(nextRange: DashRange, nextUnit: BucketUnit) {
     setReapplying(true);
     setRange(nextRange);

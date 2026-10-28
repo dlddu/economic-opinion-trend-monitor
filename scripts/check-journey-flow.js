@@ -9,11 +9,6 @@
  *   상태 집합  ← docs/mockups/econ-opinion-monitor-mockup-index.md 「화면·상태 인벤토리 등재」
  * 페이지 자신에게서 기대값을 읽으면 자기참조라 어떤 뮤테이션도 통과한다.
  *
- * 이 파일은 **여정 무관 범용 러너**다. `docs/mockups/*.html` 에서 `data-journey` 를
- * 선언한 페이지를 전부 찾아 각각에 대해 (a)(b)(c)(f)(g)(h) 와 (d) 의 '단계마다 활성
- * 폼 요소가 있는가' 를 구동한다 — 이 항목들은 전부 SSOT 만으로 판정되므로 페이지 고유
- * 지식이 필요 없다.
- *
  * 페이지 고유 지식(어떤 컨트롤을 어떻게 조작하면 어떤 상태에 도달하는가, 1단계 전진을
  * 여는 선행 행동은 무엇인가)은 `scripts/journey-scenarios/<여정 식별자>.js` 로 분리한다.
  * 시나리오는 **페이지 밖**에 있으므로 자기참조 금지 원칙은 그대로 지켜진다.
@@ -90,7 +85,6 @@ function readStates(idxMd, jid) {
   return out;
 }
 
-/* 화면 단위 파일은 data-journey 를 선언하지 않으므로 자연히 제외된다(미이관분). */
 function discover() {
   const found = [];
   for (const fn of fs.readdirSync(MDIR).sort()) {

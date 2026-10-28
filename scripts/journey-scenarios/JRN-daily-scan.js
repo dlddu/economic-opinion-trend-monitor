@@ -60,8 +60,6 @@ module.exports = {
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
     t.is(R(d, S1, 'brief-form').querySelectorAll('button').length, 0,
       '(d) 조회 조건 카드에 적용 버튼이 없다 — 축·기간·단위는 고르는 즉시 반영된다');
-
-    /* 단계 1 — 기간·단위·축 */
     {
       const subBefore = R(d, S1, 'brief-sub').textContent;
       pickOption(t, w, R(d, S1, 'range'), '30');
@@ -100,8 +98,6 @@ module.exports = {
       t.is(R(d, S1, 'brief-sub').textContent.startsWith('전체 축'), true, '(d) 축 「전체」 가 세 축을 접은 순위로 바꾼다');
       pickOption(t, w, R(d, S1, 'axis'), 'KR');
     }
-
-    /* 단계 2 — 변화 목록 좁히기 */
     t.click(w, sec(d, S1).querySelector('[data-advance]'));
     {
       const n = () => R(d, S2, 'deltalist').querySelectorAll('.trow').length;
@@ -122,8 +118,6 @@ module.exports = {
       t.is(R(d, S2, 'spike-mult').textContent !== before, true, '(d) 튀는 값의 비교 구간 <select> 가 배수를 실제로 바꾼다');
       pickOption(t, w, R(d, S2, 'spike-baseline'), '7d');
     }
-
-    /* 단계 3 — 기간 순위 */
     pickFirstTarget(t, w, d);
     t.click(w, sec(d, S2).querySelector('[data-advance]'));
     {
@@ -135,8 +129,6 @@ module.exports = {
       pickOption(t, w, R(d, S3, 'range'), '7');
       await t.sleep(400);
     }
-
-    /* 단계 4 — 추세 상세 (trend) */
     const picked = d.querySelector(`section[data-step="${S2}"] [data-role="deltalist"] .trow[aria-pressed="true"]`)?.dataset.subject;
     t.click(w, sec(d, S3).querySelector('[data-advance]'));
     t.is(R(d, S4, 'tr-table').querySelector('tr.on')?.dataset.subject, picked,
