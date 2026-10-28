@@ -300,6 +300,49 @@ it("reports the retry count and last error of a failed call", async () => {
   expect(container.textContent).toContain(String(failed.call_attempt_count));
 });
 
+it("names why an unreadable reply left the result unfilled", async () => {
+  const unreadable = {
+    ...CALL,
+    call_outcome: "parse_failed",
+    call_failure_reason: "model reply carried no JSON object",
+  };
+  stub(withExchange({ call: unreadable }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("응답을 읽지 못해"));
+  expect(container.textContent).toContain(unreadable.call_failure_reason);
+});
+
+it("lists every analysis version with its run and call once a record has more than one", async () => {
+  const older = {
+    ...VERSION,
+    analyzer_version: "llm-v0",
+    run_id: "run-old",
+    selected: false,
+    exchange: { ...VERSION.exchange, call_id: "call-old" },
+  };
+  stub(response({ versions: [VERSION, older] }));
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("분석 버전이"));
+  const rows = container.querySelectorAll(".note table tbody tr");
+  expect(rows).toHaveLength(2);
+  expect(rows[1].textContent).toContain("llm-v0");
+  expect(rows[1].textContent).toContain("run-old");
+  expect(rows[1].textContent).toContain("call-old");
+});
+
+it("renders the verdict submit as the primary button", async () => {
+  stub(response());
+  const { container } = renderDebug();
+
+  await waitFor(() => expect(container.textContent).toContain("원인 판정"));
+  const submit = Array.from(container.querySelectorAll("button")).find(
+    (b) => b.textContent === "판정 기록",
+  ) as HTMLButtonElement;
+  expect(submit.className).toContain("pri");
+});
+
 it("says the run record is missing rather than drawing an empty run", async () => {
   stub(response({ run: null }));
   const { container } = renderDebug();

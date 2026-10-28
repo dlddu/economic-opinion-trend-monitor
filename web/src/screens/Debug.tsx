@@ -482,6 +482,24 @@ export function Debug() {
                     <div>
                       이 레코드에는 분석 버전이 <b>{data.versions.length}</b>개 있습니다 — 위는
                       가장 최근 것이고, 나머지는 소급 적용 이전의 판단입니다.
+                      <table className="tbl" style={{ marginTop: 8 }}>
+                        <thead>
+                          <tr>
+                            <th>분석 로직</th>
+                            <th>실행</th>
+                            <th>호출</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.versions.map((v) => (
+                            <tr key={`${v.analyzer_version}|${v.run_id}|${v.analyzed_at}`}>
+                              <td className="mono">{v.analyzer_version}</td>
+                              <td className="mono">{v.run_id || "—"}</td>
+                              <td className="mono">{v.exchange.call_id ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
@@ -684,6 +702,15 @@ export function Debug() {
                       <b>모델 호출이 실패해 결과를 채우지 않았습니다.</b> 재시도{" "}
                       {call.call_attempt_count}회 뒤에도 응답을 받지 못해 미분석으로 두었습니다.
                       마지막 오류: <span className="mono">{call.call_failure_reason ?? "—"}</span>
+                    </div>
+                  </div>
+                )}
+                {exchange.state === "call" && call?.call_outcome === "parse_failed" && (
+                  <div className="dbg-banner err">
+                    <div>
+                      <b>응답을 읽지 못해 결과를 채우지 않았습니다.</b> 받은 원문이 약속한 JSON
+                      형식이 아니어서 미분석으로 두었습니다. 읽지 못한 사유:{" "}
+                      <span className="mono">{call.call_failure_reason ?? "—"}</span>
                     </div>
                   </div>
                 )}
@@ -1165,7 +1192,7 @@ export function Debug() {
                     />
                   </label>
                   <div className="dbg-actions dbg-actions-mid">
-                    <button type="submit">판정 기록</button>
+                    <button type="submit" className="btn pri">판정 기록</button>
                     <span className="dbg-hint">조치가 필요하면 아래 길로 넘깁니다.</span>
                   </div>
                 </form>
