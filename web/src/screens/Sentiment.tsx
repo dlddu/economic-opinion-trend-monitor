@@ -120,11 +120,18 @@ export function Sentiment() {
     <>
       <div className="dash-controls">
         {/* CMP-seg — the axis switch is live (the API re-reads Gold per axis). */}
-        <div className="seg">
+        <div className="dash-radios">
           {AXES.map((a) => (
-            <button key={a.id} className={axis === a.id ? "on" : ""} onClick={() => setAxis(a.id)}>
+            <label key={a.id}>
+              <input
+                type="radio"
+                name="sent-axis"
+                value={a.id}
+                checked={axis === a.id}
+                onChange={() => setAxis(a.id)}
+              />{" "}
               {a.label}
-            </button>
+            </label>
           ))}
         </div>
         {/* CMP-axpill */}
@@ -176,6 +183,12 @@ export function Sentiment() {
                     </div>
                   </div>
                 )}
+                <div className="sent-def">
+                  <span className="seclabel">분류 기준</span>
+                  <b>혼합</b> 상반된 톤이 함께 있는 기사 · <b>중립</b> 톤이 드러나지 않는 기사 ·{" "}
+                  <b>긍정 · 부정</b> 한쪽 톤이 드러난 기사 · <b>미분석</b> 본문이 부족하거나 판단을
+                  확신하지 못해 분류를 채우지 않은 기사
+                </div>
               </div>
             </div>
 
@@ -241,9 +254,17 @@ export function Sentiment() {
                   분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로
                   넘기세요.
                 </p>
-                <Link className="btn ghost" to={fairnessPath(axis)}>
-                  정규화 비율로 다시 확인 →
-                </Link>
+                <div className="sent-exit-links">
+                  <Link className="btn ghost" to={fairnessPath(axis)}>
+                    정규화 비율로 다시 확인 →
+                  </Link>
+                  <Link className="btn ghost" to="/trace">
+                    분류가 잘못된 것 같다 — 원문 확인 →
+                  </Link>
+                  <Link className="btn ghost" to="/reprocess">
+                    분류 기준을 바꿔야 한다 — 재처리 요청 →
+                  </Link>
+                </div>
               </div>
             </div>
 

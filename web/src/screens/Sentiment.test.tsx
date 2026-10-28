@@ -139,9 +139,10 @@ describe("Sentiment", () => {
 
     // The switch is queried through the control, not by its text: "미국" is also
     // the label of the US row in the axis comparison below it.
-    const buttons = container.querySelectorAll(".seg button");
-    expect(buttons).toHaveLength(3);
-    fireEvent.click(buttons[1]);
+    const radios = container.querySelectorAll<HTMLInputElement>('input[type="radio"][name="sent-axis"]');
+    expect(radios).toHaveLength(3);
+    expect(radios[0].checked).toBe(true);
+    fireEvent.click(radios[1]);
 
     await waitFor(() => expect(urls.length).toBeGreaterThan(1));
     expect(urls[urls.length - 1]).toContain("axis=US");
@@ -203,7 +204,7 @@ describe("분리 전후 비율 전환", () => {
     );
   });
 
-  it("offers the one exit whose destination is a real screen", async () => {
+  it("offers the three exits whose destinations are real screens", async () => {
     stubSentiment([response()]);
     const { container } = renderScreen();
 
@@ -217,8 +218,27 @@ describe("분리 전후 비율 전환", () => {
     );
 
     const links = [...card.querySelectorAll("a")];
-    expect(links.length).toBe(1);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "/fairness?axis=KR",
+      "/trace",
+      "/reprocess",
+    ]);
     expect(links[0].textContent).toContain("정규화 비율로 다시 확인");
-    expect(links[0].getAttribute("href")).toBe("/fairness?axis=KR");
+    expect(links[1].textContent).toContain("원문 확인");
+    expect(links[2].textContent).toContain("재처리 요청");
+  });
+
+  it("states what each class means beside the donut, 미분석 included", async () => {
+    stubSentiment([response()]);
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(container.querySelector(".sent-def")).not.toBeNull());
+
+    const def = container.querySelector(".sent-def") as HTMLElement;
+    expect(def.textContent).toContain("분류 기준");
+    expect(def.textContent).toContain("혼합 상반된 톤이 함께 있는 기사");
+    expect(def.textContent).toContain(
+      "미분석 본문이 부족하거나 판단을 확신하지 못해 분류를 채우지 않은 기사",
+    );
   });
 });
