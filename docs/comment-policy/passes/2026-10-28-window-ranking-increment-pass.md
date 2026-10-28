@@ -5,7 +5,7 @@
 규칙 「증분만 판정했으면 그 결과를 적는다」에 따라 **그 PR 들이 들인 증분만** 판정한다. 기존 행의 옛 판정 줄은 그대로다.
 
 이 패스가 가져간 덩어리는 Go 서빙(`go/internal/handlers/**` · `servingindex/**` · `store/store.go`) · Python 집계
-(`python/packages/aggregation/**`) · `tests/e2e/lib/gold.ts` 의 13개 L 행과 D 행 4개다(주석 약 380줄 규모의 행). 가져가지 않은 것:
+(`python/packages/aggregation/**`) · `tests/e2e/lib/gold.ts` 의 11개 L 행과 D 행 4개(그중 하나는 주석이 0줄이 되어 행 삭제)다(주석 약 380줄 규모의 행). 가져가지 않은 것:
 `web/src/tokens/tokens.css` 행(열린 PR #269 가 같은 파일을 고친다) · `scripts/**` · `web/src/api/types.ts` · `Dashboard.tsx` · E 행 둘 —
 다음 슬라이스의 몫이다.
 
