@@ -86,22 +86,28 @@ function segments(dist: SentimentDistribution): { cls: string; label: string; co
 }
 
 /** 비율에서 되짚은 건수라 반올림 오차가 1건 범위에서 남을 수 있다. */
-function unanalyzedCount(row: SentimentAxisRow): number | null {
+function unanalyzedCount(row: { distribution: SentimentDistribution; analyzed_total: number }): number | null {
   const analyzedShare = 1 - row.distribution.unanalyzed;
   if (analyzedShare <= 0) return null;
   return Math.max(0, Math.round(row.analyzed_total / analyzedShare) - row.analyzed_total);
 }
+
+// 분석 완료 건수가 이 값 미만인 구간은 비율이 불안정하다(여정 문서 §4 2행).
+// 막대를 흐리게 두고 비율 대신 「표본 부족」을 얹어 그 구간의 변화를 읽지 않게 한다.
+const MIN_SAMPLE = 20;
 
 export function Sentiment() {
   const [axis, setAxis] = useState<Axis>("KR");
   const [data, setData] = useState<SentimentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [splitUnanalyzed, setSplitUnanalyzed] = useState(true);
+  const [bucket, setBucket] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setData(null);
     setError(null);
+    setBucket(null);
     api
       .sentiment(axis)
       .then((d) => active && setData(d))
@@ -115,6 +121,7 @@ export function Sentiment() {
   const selected = data ? (data.by_axis.find((r) => r.axis === data.axis) ?? null) : null;
   const unitLabel = data ? (UNIT_LABEL[data.basis.bucket_unit] ?? data.basis.bucket_unit) : "";
   const aggregated = Boolean(data && data.basis.bucket_unit !== "");
+  const lowSample = data ? data.series.filter((p) => p.analyzed_total < MIN_SAMPLE).length : 0;
 
   return (
     <>
@@ -280,7 +287,25 @@ export function Sentiment() {
               </div>
               <div className="card-b">
                 {data.series.length > 0 ? (
-                  <SentimentTimeline series={data.series} unit={data.basis.bucket_unit} />
+                  <>
+                    <SentimentTimeline
+                      series={data.series}
+                      unit={data.basis.bucket_unit}
+                      picked={bucket}
+                      onPick={(b) => setBucket((cur) => (cur === b ? null : b))}
+                    />
+                    {lowSample > 0 && (
+                      <div className="note" style={{ margin: "8px 0" }}>
+                        <div>
+                          <b>표본이 부족한 구간이 {lowSample}개 있습니다.</b> 분석 완료 {MIN_SAMPLE}건
+                          미만 구간은 흐리게 두고 비율 대신 「표본 부족」으로 표기합니다 — 그 구간의
+                          비율 변화는 읽지 마세요.
+                        </div>
+                      </div>
+                    )}
+                    <BucketPick series={data.series} picked={bucket} />
+                    <SentimentVolume series={data.series} unit={data.basis.bucket_unit} />
+                  </>
                 ) : (
                   <div className="note sent-absent">
                     <div>
@@ -479,7 +504,17 @@ function AxisRow({ row }: { row: SentimentAxisRow }) {
 // 미분석 is the top segment rather than a share folded into the classes, so the
 // eye can see a bucket's classified portion shrink even while its 부정 ratio
 // holds steady — which is exactly the 착시 the journey's step 2 is about.
-function SentimentTimeline({ series, unit }: { series: SentimentPoint[]; unit: string }) {
+function SentimentTimeline({
+  series,
+  unit,
+  picked,
+  onPick,
+}: {
+  series: SentimentPoint[];
+  unit: string;
+  picked: string | null;
+  onPick: (bucket: string) => void;
+}) {
   const VIEW_W = 740;
   const VIEW_H = 200;
   const PLOT_L = 40;
@@ -498,14 +533,33 @@ function SentimentTimeline({ series, unit }: { series: SentimentPoint[]; unit: s
       {series.map((point, i) => {
         const cx = PLOT_L + span * (i + 0.5);
         let y = TOP;
+        const thin = point.analyzed_total < MIN_SAMPLE;
         return (
-          <g key={point.time_bucket} data-bucket={point.time_bucket}>
+          <g
+            key={point.time_bucket}
+            data-bucket={point.time_bucket}
+            data-picked={picked === point.time_bucket}
+            onClick={() => onPick(point.time_bucket)}
+          >
+            {picked === point.time_bucket && (
+              <rect
+                x={(cx - barW / 2 - 4).toFixed(2)}
+                y={TOP - 4}
+                width={(barW + 8).toFixed(2)}
+                height={height + 8}
+                fill="none"
+                stroke="var(--primary)"
+                strokeWidth="2"
+                rx="3"
+              />
+            )}
             {segments(point.distribution).map((s) => {
               const h = s.share * height;
               const rect = (
                 <rect
                   key={s.cls}
                   data-cls={s.cls}
+                  className={thin ? "thin" : undefined}
                   x={(cx - barW / 2).toFixed(2)}
                   y={y.toFixed(2)}
                   width={barW.toFixed(2)}
@@ -516,6 +570,12 @@ function SentimentTimeline({ series, unit }: { series: SentimentPoint[]; unit: s
               y += h;
               return rect;
             })}
+            {thin && (
+              <text className="axlab" x={cx} y={TOP + height / 2} textAnchor="middle"
+                    style={{ fill: "var(--ink)" }}>
+                표본 부족
+              </text>
+            )}
             <text className="axlab" x={cx} y={BASELINE + 18} textAnchor="middle">
               {bucketTick(point.time_bucket, unit)}
             </text>
@@ -526,5 +586,106 @@ function SentimentTimeline({ series, unit }: { series: SentimentPoint[]; unit: s
         );
       })}
     </svg>
+  );
+}
+
+/** 막대로 고른 구간 한 줄 — 고르기 전에는 안내만 보인다. */
+function BucketPick({ series, picked }: { series: SentimentPoint[]; picked: string | null }) {
+  const i = picked === null ? -1 : series.findIndex((p) => p.time_bucket === picked);
+  if (i < 0) {
+    return (
+      <div className="sent-bk">
+        <span>막대를 누르면 그 구간의 구성을 볼 수 있습니다.</span>
+      </div>
+    );
+  }
+  const p = series[i];
+  const prev = series[i - 1];
+  const thin = p.analyzed_total < MIN_SAMPLE;
+  const delta =
+    !thin && prev && prev.analyzed_total >= MIN_SAMPLE
+      ? (p.distribution.negative - prev.distribution.negative) * 100
+      : null;
+  return (
+    <div className="sent-bk">
+      <span>
+        <b>{p.time_bucket}</b> · 분석 완료 {p.analyzed_total}건 · 미분석 {pct(p.distribution.unanalyzed)} ·{" "}
+        {thin ? (
+          <b>표본 부족 — 비율을 읽지 않습니다</b>
+        ) : (
+          <>
+            부정 {pct(p.distribution.negative)}
+            {delta !== null && (
+              <>
+                {" "}
+                (직전 구간 대비 {delta > 0.05 ? "▲ " : delta < -0.05 ? "▼ " : ""}
+                {Math.abs(delta).toFixed(1)}%p)
+              </>
+            )}
+          </>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// 구간별 건수(절대량). 위 누적 막대는 모든 막대가 같은 높이(구성)라 표본 크기를 못 보여 주므로,
+// 분석 완료 + 미분석을 절대 건수로 따로 쌓는다. 미분석 건수는 비율에서 되짚은 값이다.
+function SentimentVolume({ series, unit }: { series: SentimentPoint[]; unit: string }) {
+  const PLOT_L = 40;
+  const PLOT_R = 724;
+  const VB = 74;
+  const VT = 14;
+  const vh = VB - VT;
+  const span = (PLOT_R - PLOT_L) / series.length;
+  const barW = Math.min(46, span * 0.62);
+  const counts = series.map((p) => ({
+    analyzed: p.analyzed_total,
+    na: unanalyzedCount(p) ?? 0,
+  }));
+  const peak = Math.max(1, ...counts.map((c) => c.analyzed + c.na));
+
+  return (
+    <div className="sent-vol">
+      <span className="seclabel">구간별 건수 — 절대량</span>
+      <svg viewBox="0 0 740 96" width="100%" role="img" aria-label="구간별 건수">
+        <line className="gridline zero" x1={PLOT_L} y1={VB} x2={PLOT_R} y2={VB} />
+        <text className="axlab" x={PLOT_L - 6} y={VT + 3} textAnchor="end">
+          {peak}
+        </text>
+        <text className="axlab" x={PLOT_L - 6} y={VB + 3} textAnchor="end">
+          0
+        </text>
+        {counts.map((c, i) => {
+          const cx = PLOT_L + span * (i + 0.5);
+          const ha = (c.analyzed / peak) * vh;
+          const hn = (c.na / peak) * vh;
+          return (
+            <g key={series[i].time_bucket} data-vol-bucket={series[i].time_bucket}>
+              <rect data-vol="analyzed" x={(cx - barW / 2).toFixed(2)} y={(VB - ha).toFixed(2)}
+                    width={barW.toFixed(2)} height={ha.toFixed(2)} fill="var(--ax-us)" />
+              <rect data-vol="na" x={(cx - barW / 2).toFixed(2)} y={(VB - ha - hn).toFixed(2)}
+                    width={barW.toFixed(2)} height={hn.toFixed(2)} fill="var(--na)" />
+              <text className="axlab" x={cx} y={(VB - ha - hn - 4).toFixed(2)} textAnchor="middle">
+                {c.analyzed + c.na}
+              </text>
+              <text className="axlab" x={cx} y={VB + 16} textAnchor="middle">
+                {bucketTick(series[i].time_bucket, unit)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="legend">
+        <span>
+          <span className="d" style={{ background: "var(--ax-us)" }} />
+          분석 완료
+        </span>
+        <span>
+          <span className="d" style={{ background: "var(--na)" }} />
+          미분석
+        </span>
+      </div>
+    </div>
   );
 }

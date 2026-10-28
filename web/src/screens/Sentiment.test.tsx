@@ -242,3 +242,64 @@ describe("분리 전후 비율 전환", () => {
     );
   });
 });
+
+describe("구간별 건수와 구간 고르기", () => {
+  it("dims a bucket under the sample floor and says so instead of printing its ratios", async () => {
+    stubSentiment([response()]);
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
+
+    const thin = response().series.filter((p) => p.analyzed_total < 20);
+    expect(thin.length).toBeGreaterThan(0);
+    const group = container.querySelector(`g[data-bucket="${thin[0].time_bucket}"]`) as Element;
+    expect(group.querySelectorAll("rect.thin").length).toBeGreaterThan(0);
+    expect(group.textContent).toContain("표본 부족");
+    expect(container.querySelector(".card.col-12")?.textContent).toContain(
+      `표본이 부족한 구간이 ${thin.length}개 있습니다.`,
+    );
+  });
+
+  it("stacks each bucket's absolute count from the analyzed total and the 미분석 share", async () => {
+    const body = response();
+    stubSentiment([body]);
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-vol-bucket]")).toHaveLength(2));
+
+    body.series.forEach((p) => {
+      const total = Math.round(p.analyzed_total / (1 - p.distribution.unanalyzed));
+      const g = container.querySelector(`g[data-vol-bucket="${p.time_bucket}"]`) as Element;
+      expect(g.textContent).toContain(String(total));
+      const a = Number.parseFloat(g.querySelector('rect[data-vol="analyzed"]')!.getAttribute("height")!);
+      const n = Number.parseFloat(g.querySelector('rect[data-vol="na"]')!.getAttribute("height")!);
+      expect(n / a).toBeCloseTo((total - p.analyzed_total) / p.analyzed_total, 1);
+    });
+  });
+
+  it("picks a bucket on click, summarises it, and clears on a second click and on axis change", async () => {
+    stubSentiment([response("KR"), response("US")]);
+    const { container } = renderScreen();
+
+    await waitFor(() => expect(container.querySelectorAll("g[data-bucket]")).toHaveLength(2));
+    expect(container.querySelector(".sent-bk")?.textContent).toContain("막대를 누르면");
+
+    const late = response().series[1];
+    const group = () => container.querySelector(`g[data-bucket="${late.time_bucket}"]`) as Element;
+    fireEvent.click(group());
+    const bk = () => container.querySelector(".sent-bk")?.textContent ?? "";
+    expect(bk()).toContain(late.time_bucket);
+    expect(bk()).toContain(`분석 완료 ${late.analyzed_total}건`);
+    expect(bk()).toContain("표본 부족");
+    expect(group().getAttribute("data-picked")).toBe("true");
+
+    fireEvent.click(group());
+    expect(bk()).toContain("막대를 누르면");
+
+    fireEvent.click(group());
+    fireEvent.click(
+      container.querySelectorAll<HTMLInputElement>('input[type="radio"][name="sent-axis"]')[1],
+    );
+    await waitFor(() => expect(container.querySelector(".sent-bk")?.textContent).toContain("막대를 누르면"));
+  });
+});
