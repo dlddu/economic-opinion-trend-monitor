@@ -47,13 +47,9 @@ module.exports = {
     t.is(R(d, S5, 'tr-compare').type, 'checkbox', '(d) 추세 상세의 겹쳐 보기는 실제 <input type=checkbox> 다');
     t.is([...R(d, S5, 'tr-axis').querySelectorAll('input')].every(e => e.type === 'radio'), true,
       '(d) 추세 상세의 축 전환이 실제 <input type=radio> 다');
-
-    /* 단계 1 — 같은 기준의 세 열 */
     t.is(CMP.length && ['KR', 'US', 'GLOBAL'].every(a => colRows(d, S1, a).length === 5), true,
       '(d) 세 출처 축 열이 각각 상위 5개 대상을 그린다');
     t.is(colRows(d, S1, 'KR')[0].textContent.includes('원시'), true, '(d) 순위 행이 정규화 점유율 곁에 원시 건수를 함께 적는다');
-
-    /* 단계 2 — 공통/고유 */
     t.click(w, sec(d, S1).querySelector('[data-advance]'));
     {
       const tags = () => [...base(d, S2).querySelectorAll('.cmprow .nm')].map(n => n.textContent);
@@ -69,8 +65,6 @@ module.exports = {
       t.is(R(d, S3, 'topic').value, 'KR', '(d) 단계 2 에서 고른 대상 국가가 같은 화면의 단계 3 에도 그대로다');
       pickOption(t, w, R(d, S3, 'topic'), 'ALL');
     }
-
-    /* 단계 4 — 격차 후보 행 → 추세 상세 승계 */
     go(t, w, S4);
     {
       const rows = [...R(d, S4, 'gaplist').querySelectorAll('.trow')];
@@ -91,8 +85,6 @@ module.exports = {
       t.is([R(d, S5, 'tr-table').querySelector('tr.on')?.dataset.subject, R(d, S5, 'tr-axis').querySelector('input:checked')?.value],
         [row.dataset.subject, 'GL'], '(d) 순위 행이 놓인 열의 축과 대상을 승계한다');
     }
-
-    /* 단계 5 — trend */
     {
       const chart = R(d, S5, 'tr-chart').innerHTML;
       const cmp = R(d, S5, 'tr-compare');

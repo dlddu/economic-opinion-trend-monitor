@@ -18,7 +18,6 @@ const pickOption = (t, w, sel, v) => {
   t.fire(w, sel, 'change');
   return true;
 };
-/* 시간대별 수집 현황에서 구간 행을 고른다 — label 이 없으면 첫 이상 구간. */
 const pickBucket = (t, w, d, step, label) => {
   const rows = [...R(d, step, 'bk-rows').querySelectorAll('tr[data-bucket]')];
   const row = label ? rows.find(r => r.textContent.includes(label))
@@ -27,7 +26,6 @@ const pickBucket = (t, w, d, step, label) => {
   t.click(w, row);
   return row;
 };
-/* 구간 · 소스 좁히기에서 행을 고른다 — match(행 텍스트)에 맞는 행 전부, 없으면 첫 행. */
 const pickGaps = (t, w, d, step, match) => {
   const rows = () => [...R(d, step, 'gap-rows').querySelectorAll('tr[data-gap]')];
   const want = match ? rows().filter(r => match(r.textContent)).map(r => r.dataset.gap) : rows().slice(0, 1).map(r => r.dataset.gap);
@@ -93,8 +91,6 @@ module.exports = {
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
     t.is(d.querySelectorAll('[name^="preserve"], [name^="batch"], [name^="v-window"], textarea').length, 0,
       '(d) 걷어낸 목업 전용 컨트롤(보존 체크박스 · 배치 크기 · 재확인 범위 · 이력 메모)이 없다');
-
-    /* 단계 1 — 축 · 이상 구간만 */
     {
       const labels = () => [...R(d, S1, 'bk-rows').querySelectorAll('tr[data-bucket]')].map(r => r.textContent.trim());
       const all = labels();
@@ -111,8 +107,6 @@ module.exports = {
       pickOption(t, w, R(d, S1, 'axis'), 'KR');
       t.is(R(d, S1, 'log-rows').querySelectorAll('tr').length > 1, true, '(d) 이벤트 로그가 축의 실패 · 중복 · 미실행을 적는다');
     }
-
-    /* 단계 1 → 2 — 구간을 고르면 그 시간대로 좁혀진다 */
     pickBucket(t, w, d, S1, '09–12시');
     t.is(R(d, S1, 'sum-kv').textContent.includes('재시도'), true, '(d) 구간 행을 고르면 구간 요약이 시도 · 성공 · 실패 · 재시도 · 중복으로 열린다');
     t.click(w, cta(d, S1));
@@ -132,8 +126,6 @@ module.exports = {
     pickGaps(t, w, d, S2, s => s.includes('kr-wire'));
     t.is(R(d, S2, 'gap-rows').querySelectorAll('tr[aria-selected="true"]').length, 3, '(d) 행을 누르면 그 구간이 선택 상태가 된다');
     t.is(R(d, S2, 'gap-rows').querySelectorAll('input[type=checkbox]:checked').length, 3, '(d) 고른 행의 체크박스가 실제로 체크된다');
-
-    /* 단계 3 — 원인 */
     t.click(w, cta(d, S2));
     t.is(R(d, S3, 'meta-kv').textContent.includes('run-20261017-0900'), true, '(d) 수집 메타데이터가 고른 구간의 실행 ID 를 보인다');
     t.is(R(d, S3, 'rec-rows').querySelectorAll('tr').length, 5, '(d) 수집 레코드가 순위 · 조회수 · 수집 시각과 함께 렌더된다');
@@ -147,8 +139,6 @@ module.exports = {
       pickCause(t, w, d, S3, 'api');
       t.is(R(d, S3, 'op').value, 'refetch', '(d) 소스 오류 원인이면 작업이 「재수집」 이다');
     }
-
-    /* 단계 4 — 작업 */
     t.click(w, cta(d, S3));
     {
       const before = R(d, S4, 'target-kv').textContent;
@@ -161,8 +151,6 @@ module.exports = {
     await t.sleep(400);
     t.is(R(d, S4, 'run-kv').textContent.includes('새 버전 추가'), true, '(d) 실행 결과가 본문 버전 보존 결과를 적는다');
     t.is(R(d, S4, 'log-rows').textContent.includes('재처리'), true, '(d) 보정 실행이 이벤트 로그에 실행 기록으로 남는다');
-
-    /* 단계 5 — 전후 비교 */
     t.click(w, cta(d, S4));
     t.is(R(d, S5, 'vf-rows').textContent.includes('100.0%'), true, '(d) 전후 비교 표가 보정 후 성공률을 그린다');
     t.is([...R(d, S5, 'gap-rows').querySelectorAll('tr')].filter(r => r.textContent.includes('보정됨')).length, 3,
@@ -170,7 +158,6 @@ module.exports = {
   },
 
   async states(t) {
-    /* 단계 1 */
     {
       const { w, d } = t.boot();
       t.is(t.shown(d, 'no-bucket'), true, '(e) no-bucket — 단계 1 진입 직후 구간 미선택');
@@ -186,7 +173,6 @@ module.exports = {
       t.is(t.shown(d, 'attempt-zero'), true, '(e) attempt-zero — 시도 0 구간에서 「스케줄 미실행」 에 도달');
       t.is(R(d, S1, 'az-catchup').textContent.includes('보정'), true, '(e) attempt-zero — 다음 주기 보정 결과가 함께 적힌다');
     }
-    /* 단계 2 */
     {
       const { w, d } = t.boot();
       go(t, w, S2);
@@ -198,7 +184,6 @@ module.exports = {
       pickOption(t, w, R(d, S2, 'f-source'), 'all');
       t.is(t.shown(d, 'filter-empty'), false, '(e) filter-empty — 필터를 넓히면 해소된다');
     }
-    /* 단계 3 · 4 — 분기 1 (소스 장애 → 복구 대기) */
     {
       const { w, d } = t.boot();
       walkApiToBackfill(t, w, d);
@@ -211,7 +196,6 @@ module.exports = {
       t.is([...R(d, S4, 'gap-rows').querySelectorAll('tr')].filter(r => r.textContent.includes('복구 대기')).length, 3,
         '(e) retry-pending — 구간 목록의 고른 행이 「복구 대기」 배지로 바뀐다');
     }
-    /* 단계 3 · 5 — 분기 2 (원본 소실 → 영구 누락 → 데이터 없음) */
     {
       const { w, d } = t.boot();
       pickBucket(t, w, d, S1, '18–21시');
@@ -227,7 +211,6 @@ module.exports = {
       t.is(t.shown(d, 'recovered'), false, '(e) perm-missing — 「복구됨」 이 아니다');
       t.is(R(d, S5, 'vf-rows').textContent.includes('데이터 없음'), true, '(e) perm-missing — 보정 후 칸이 「데이터 없음」');
     }
-    /* 단계 4 — 대상 미선택 · 제출 중 · 실행 결과 · 복구 */
     {
       const { w, d } = t.boot();
       go(t, w, S4);
@@ -253,7 +236,6 @@ module.exports = {
       t.is(t.shown(d, 'recovered'), true, '(e) recovered — 정상 범위로 복구됨에 도달');
       t.is(t.shown(d, 'no-run'), false, '(e) recovered — 실행 전 상태가 아니다');
     }
-    /* 단계 4 — 분기 3 (재수집이 중복을 다시 만듦) · 중복 정리 확인 */
     {
       const { w, d } = t.boot();
       walkDupToBackfill(t, w, d);
@@ -270,7 +252,6 @@ module.exports = {
       t.click(w, R(d, S4, 'dup-go'));
       t.is(t.visible(d), [S3], '(e) dup-again — 중복 규칙 재확인으로 원인 진단에 돌아간다');
     }
-    /* 단계 4 → 2 — 분기 5 (미해결로 남기고 닫기) */
     {
       const { w, d } = t.boot();
       walkApiToBackfill(t, w, d);
@@ -279,7 +260,6 @@ module.exports = {
       t.is(t.shown(d, 'unresolved'), true, '(e) unresolved — 미해결 구간이 다시 뜬다');
       t.is(R(d, S2, 'gap-rows').querySelector('tr').textContent.includes('미해결'), true, '(e) unresolved — 미해결 행이 맨 위다');
     }
-    /* 단계 5 — 실행 전 */
     {
       const { w, d } = t.boot();
       go(t, w, S5);

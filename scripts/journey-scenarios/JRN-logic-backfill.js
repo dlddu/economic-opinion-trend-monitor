@@ -63,8 +63,6 @@ module.exports = {
         `(d) ${step} 목표 로직 버전·적용할 분석 로직이 자유 입력 <input type=text> 둘이다`);
     }
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
-
-    /* 단계 1 — 기간·축·소스 */
     {
       const rows = () => R(d, S1, 'scope-rows').querySelectorAll('tr').length;
       const week = rows();
@@ -90,8 +88,6 @@ module.exports = {
       radio(t, w, d, S1, 'axis', 'KR');
       t.is(R(d, S1, 'source').value, '', '(d) 축을 바꾸면 다른 축의 소스를 들고 가지 않는다');
     }
-
-    /* 단계 2 — 표본 */
     go(t, w, S2);
     typeIn(t, w, R(d, S2, 'sample-size'), 120);
     t.is(R(d, S2, 'sum-size').textContent, '120건', '(d) 표본 크기 <input type=number> 가 표본 요약을 바꾼다');
@@ -99,8 +95,6 @@ module.exports = {
     t.is(R(d, S2, 'sum-mode').textContent, '최근 수집 순', '(d) 표본 추출 <select> 가 표본 요약을 바꾼다');
     typeIn(t, w, R(d, S2, 'sample-size'), 50);
     pickOption(t, w, R(d, S2, 'sample-mode'), 'random');
-
-    /* 단계 3 — 버전·배치 */
     go(t, w, S3);
     {
       const [va, vb] = RA(d, S3, 'version');
@@ -114,8 +108,6 @@ module.exports = {
       t.is(R(d, S3, 'x-batch').textContent, '250건', '(d) 배치 크기 <input type=number> 가 실행 범위 KV 를 바꾼다');
       typeIn(t, w, R(d, S3, 'batch-size'), 100);
     }
-
-    /* 단계 4 — 정렬 · 주목 임계 · 전후 추이 */
     go(t, w, S4);
     {
       const order = () => rowsText(R(d, S4, 'cmp-rows'));
@@ -132,8 +124,6 @@ module.exports = {
       pickOption(t, w, R(d, S4, 'ts-subject'), '__ua');
       t.is(R(d, S4, 'ts-chart').innerHTML !== chart, true, '(d) 전후 추이의 대상 <select> 가 차트를 바꾼다');
     }
-
-    /* 단계 5 — 결정 폼 */
     go(t, w, S5);
     {
       check(t, w, R(d, S5, 'notify'), false);

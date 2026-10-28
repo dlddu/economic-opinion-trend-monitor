@@ -11,12 +11,6 @@ import type {
 } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// The screen answers two questions that need different shapes: "what is the
-// mood right now, and is it the same on every axis" (one bucket, three axes)
-// and "is it moving" (one axis, every bucket). So the composition and the
-// comparison are read at the API's single basis bucket, and the trend is the
-// selected axis stacked over time.
-//
 // 미분석 is never folded into the four classes anywhere on this screen. The
 // ratios are over the analyzed items — that is what the aggregation computed —
 // so a bar that mixed them would quietly restate 40% of the analyzed half as
@@ -93,7 +87,6 @@ function unanalyzedCount(row: { distribution: SentimentDistribution; analyzed_to
 }
 
 // 분석 완료 건수가 이 값 미만인 구간은 비율이 불안정하다(여정 문서 §4 2행).
-// 막대를 흐리게 두고 비율 대신 「표본 부족」을 얹어 그 구간의 변화를 읽지 않게 한다.
 const MIN_SAMPLE = 20;
 
 export function Sentiment() {
@@ -126,7 +119,7 @@ export function Sentiment() {
   return (
     <>
       <div className="dash-controls">
-        {/* CMP-seg — the axis switch is live (the API re-reads Gold per axis). */}
+        {/* CMP-seg */}
         <div className="dash-radios">
           {AXES.map((a) => (
             <label key={a.id}>
@@ -338,11 +331,8 @@ export function Sentiment() {
   );
 }
 
-// PAT-donut — 분위기 도넛. The ring is the four classes over the *analyzed*
-// items, so it closes at 100% of what was actually classified; 미분석 is not a
-// fifth slice but the figure printed beside it. The centre carries the count
-// those ratios were taken over, which is the difference between a 60% that
-// stands on 500 items and one that stands on 3.
+// PAT-donut — 분위기 도넛. The centre carries the count those ratios were taken over,
+// which is the difference between a 60% that stands on 500 items and one that stands on 3.
 function Donut({ row }: { row: SentimentAxisRow }) {
   const R = 42;
   const C = 2 * Math.PI * R;
@@ -471,7 +461,6 @@ function SplitRatios({ row, split }: { row: SentimentAxisRow; split: boolean }) 
   );
 }
 
-/** One axis of the comparison — CMP-sentbar, or a marked gap when Gold has no row. */
 function AxisRow({ row }: { row: SentimentAxisRow }) {
   const label = AXES.find((a) => a.id === row.axis)?.label ?? row.axis;
   if (!row.present) {
@@ -589,7 +578,6 @@ function SentimentTimeline({
   );
 }
 
-/** 막대로 고른 구간 한 줄 — 고르기 전에는 안내만 보인다. */
 function BucketPick({ series, picked }: { series: SentimentPoint[]; picked: string | null }) {
   const i = picked === null ? -1 : series.findIndex((p) => p.time_bucket === picked);
   if (i < 0) {
@@ -630,7 +618,7 @@ function BucketPick({ series, picked }: { series: SentimentPoint[]; picked: stri
 }
 
 // 구간별 건수(절대량). 위 누적 막대는 모든 막대가 같은 높이(구성)라 표본 크기를 못 보여 주므로,
-// 분석 완료 + 미분석을 절대 건수로 따로 쌓는다. 미분석 건수는 비율에서 되짚은 값이다.
+// 분석 완료 + 미분석을 절대 건수로 따로 쌓는다.
 function SentimentVolume({ series, unit }: { series: SentimentPoint[]; unit: string }) {
   const PLOT_L = 40;
   const PLOT_R = 724;

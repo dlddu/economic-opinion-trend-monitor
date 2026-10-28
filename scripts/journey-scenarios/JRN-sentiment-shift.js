@@ -36,8 +36,6 @@ module.exports = {
     }
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다 — 구현의 축 세그먼트는 라디오로 그린다');
     t.is(d.querySelectorAll('.topbar .pill-ctl').length, 0, '(d) 토프바에 pill 이 없다 — 구현 화면 sentiment 는 pill 을 걸지 않는다');
-
-    /* 단계 1 — 축 전환 */
     {
       const sub = () => R(d, S1, 'dn-sub').textContent;
       const kv = () => R(d, S1, 'donut-kv').textContent;
@@ -56,8 +54,6 @@ module.exports = {
         '(d) 기준 버킷에 없는 축은 0% 막대가 아니라 「집계 없음」 이다');
       t.is(R(d, S1, 'class-def').textContent.includes('상반된 톤'), true, '(d) 분류 기준(「혼합」 정의)이 화면에 보인다');
     }
-
-    /* 단계 2 — 분모 전환 */
     t.click(w, sec(d, S1).querySelector('[data-advance]'));
     {
       const chk = R(d, S2, 'na-split');
@@ -70,8 +66,6 @@ module.exports = {
       chk.checked = true; t.fire(w, chk, 'change');
       t.is(R(d, S2, 'split-kv').textContent, kvBefore, '(d) 다시 켜면 분석 완료분 기준으로 돌아온다');
     }
-
-    /* 단계 3 — 시계열 · 절대량 · 구간 고르기 */
     t.click(w, sec(d, S2).querySelector('[data-advance]'));
     {
       t.is(R(d, S3, 'tl-chart').querySelectorAll('g[data-bucket]').length, 7, '(d) 분위기 추세가 버킷마다 막대 하나다');
@@ -81,8 +75,6 @@ module.exports = {
       t.is(R(d, S3, 'bk-text').textContent.includes('2026-10-14'), true, '(d) 막대를 누르면 그 구간이 골라진다');
       t.is(R(d, S3, 'bk-go').hidden, false, '(d) 구간을 고르면 그 구간의 기여 뉴스로 내려가는 링크가 열린다');
     }
-
-    /* 단계 4 — 같은 화면, 고른 구간 유지 */
     t.click(w, sec(d, S3).querySelector('[data-advance]'));
     t.is(R(d, S4, 'bk-text').textContent.includes('2026-10-14'), true, '(d) 단계 3 에서 고른 구간이 단계 4 에도 그대로다');
     const chk4 = R(d, S4, 'na-split');

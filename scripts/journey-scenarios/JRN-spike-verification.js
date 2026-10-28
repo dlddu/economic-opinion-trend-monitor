@@ -58,8 +58,6 @@ module.exports = {
     for (const step of [S5, S6]) shape(step, 'tr-record', 'INPUT', 'text');
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
     t.is(d.querySelectorAll('.branches').length, 0, '(d) 페이지 수준 분기 목록이 없다 — 분기는 화면 안 그 상황의 자리에 있다');
-
-    /* 단계 1 — 튀는 값: 비교 구간·행 선택이 「이 급등은 진짜인가」 를 바꾼다 */
     {
       const mult = () => R(d, S1, 'spike-mult').textContent;
       const before = mult();
@@ -77,8 +75,6 @@ module.exports = {
       t.is(R(d, S2, 'fa-rows').querySelector('tr.on .sv-pick')?.dataset.subject, picked,
         '(d) 대시보드에서 고른 대상을 그대로 들고 공정성 화면이 열린다');
     }
-
-    /* 단계 2 — 정규화 토글은 제출 없이 순위·막대·플래그를 바꾼다 */
     {
       const order = () => [...R(d, S2, 'fa-rows').querySelectorAll('.sv-pick')].map(b => b.dataset.subject).join();
       const before = order();
@@ -95,8 +91,6 @@ module.exports = {
       t.is(R(d, S2, 'fa-verdict').textContent !== verdict, true, '(d) 축을 바꾸면 두 방식의 1위 판정이 다시 계산된다');
       radio(t, w, d, S2, 'fa-axis', 'KR');
     }
-
-    /* 단계 3 — 대비 표의 행을 고르면 소스별 기여가 그 대상으로 다시 그려진다 */
     t.click(w, sec(d, S2).querySelector('[data-advance]'));
     {
       const list = () => R(d, S3, 'src-list').innerHTML;
@@ -108,8 +102,6 @@ module.exports = {
       t.is(vis(R(d, S3, 'src-match')), true, '(d) 부분 합이 맞으면 「부분이 전체와 맞습니다.」');
       pickSubject(t, w, d, S3, '반도체 보조금');
     }
-
-    /* 단계 4 — 기여 뉴스: 수집원 좁히기 · 본문 중복 필터 · 행 액션 */
     t.click(w, sec(d, S3).querySelector('[data-advance]'));
     {
       const n = () => R(d, S4, 'art-list').querySelectorAll('.sv-art-row').length;
@@ -133,8 +125,6 @@ module.exports = {
       t.is(t.visible(d), [S5], '(d) 행의 「원문 역추적 →」 이 원문 역추적으로 내려간다');
       t.is(R(d, S5, 'tr-record').value, id, '(d) 고른 기사의 record_id 를 들고 원문 추적 화면이 열린다');
     }
-
-    /* 단계 5 — record_id 조회 폼 */
     {
       lookup(t, w, d, S5, 'kr-wire-20261016-0112');
       t.is(R(d, S5, 'tr-title').textContent, '정부, 반도체 보조금 3조 원 추가 투입 검토', '(d) record_id 조회 제출이 그 기사로 화면을 다시 그린다');
@@ -148,7 +138,6 @@ module.exports = {
   },
 
   async states(t) {
-    /* 데이터로 도달하는 상태 */
     {
       const { w, d } = t.boot();
       t.is(t.shown(d, 'spike-empty'), false, '(e) spike-empty — 집계가 있는 축에서는 빈 상태가 아니다');

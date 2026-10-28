@@ -19,7 +19,6 @@ const pickOption = (t, w, sel, v) => {
   t.fire(w, sel, 'change');
   return true;
 };
-/* 목록 표에서 레코드를 고른다 — 실제 <input type=radio> 의 change. */
 const pickRecord = async (t, w, d, step, id) => {
   const el = R(d, step, 'rec-rows').querySelector(`input[type=radio][value="${id}"]`);
   if (!el) { t.bad(`(d) ${step} 목록에 레코드 ${id} 라디오가 없다`); return; }
@@ -60,8 +59,6 @@ module.exports = {
     t.is(d.querySelectorAll('.seg').length, 0, '(d) 제품 평면에 class="seg" 의사 컨트롤이 없다');
     t.is([...R(d, S1, 'symptom').querySelectorAll('optgroup')].map(g => g.label), ['분석 상태', '호출 결과', '미호출 사유'],
       '(d) 증상 필터는 서빙이 거를 수 있는 세 묶음이다');
-
-    /* 단계 1 — 검색은 「찾기」 제출로 조회한다 */
     {
       const all = rowIds(d, S1).length;
       const inp = R(d, S1, 'q');
@@ -82,7 +79,6 @@ module.exports = {
       t.is(rowIds(d, S1).length, all, '(d) 증상을 「전체」로 되돌리면 목록이 복원된다');
       t.is(R(d, S1, 'rec-rows').textContent.includes('제목 기록 없음'), true, '(d) 수집 기록이 없는 행은 「제목 기록 없음」');
     }
-    /* 단계 1 — 레코드를 고르면 같은 화면 전체가 그 레코드로 다시 그려진다 */
     {
       t.is(R(d, S1, 'pick-badge').textContent, 'a3f9c21e07b4', '(d) 제보 링크의 레코드가 먼저 골라져 있다');
       await pickRecord(t, w, d, S1, 'd6c4a90e3b72');
@@ -92,8 +88,6 @@ module.exports = {
       await pickRecord(t, w, d, S1, 'a3f9c21e07b4');
       t.is(R(d, S1, 'open-src-1').hidden, false, '(d) 원문 주소가 있으면 「원문 열기」 가 보인다');
     }
-
-    /* 단계 2 — 요청·응답 */
     t.click(w, sec(d, S1).querySelector('[data-advance]'));
     {
       t.is(R(d, S2, 'pick-badge').textContent, 'a3f9c21e07b4', '(d) 고른 레코드가 다음 단계의 같은 화면에도 그대로다');
@@ -112,8 +106,6 @@ module.exports = {
       t.is(R(d, S2, 'hash').textContent.startsWith('sha256 ') && !R(d, S2, 'hash').textContent.includes('✓'), true,
         '(d) 전송본 해시는 값만 — 하지 않은 대조를 ✓ 로 주장하지 않는다');
     }
-
-    /* 단계 3 — 원문 버전 */
     await pickRecord(t, w, d, S2, 'e48c0b93a7d2');
     t.click(w, sec(d, S2).querySelector('[data-advance]'));
     {
@@ -125,8 +117,6 @@ module.exports = {
         '(d) 원문 버전 <select> 로 분석에 쓴 버전을 고르면 대조 요약이 「같습니다」 로 바뀐다');
       t.is(R(d, S3, 'arch-pre').textContent.includes('(속보)'), true, '(d) 고른 버전의 본문이 보인다');
     }
-
-    /* 단계 4 — 실행 → 레코드 목록 드릴다운 (AC4.3) */
     t.click(w, sec(d, S3).querySelector('[data-advance]'));
     {
       t.is(R(d, S4, 'run-id').textContent, 'run-20260923T160002Z-3e7b14', '(d) 고른 결과가 속한 실행을 연다');
@@ -144,8 +134,6 @@ module.exports = {
       pickOption(t, w, R(d, S4, 'symptom'), '');
       await t.sleep(WAIT);
     }
-
-    /* 단계 5 — 원인 판정 */
     t.click(w, sec(d, S4).querySelector('[data-advance]'));
     {
       const ev = R(d, S5, 'evidence-rows').textContent;
@@ -160,7 +148,6 @@ module.exports = {
   },
 
   async states(t) {
-    /* 데이터(레코드 선택)로 도달하는 상태 */
     const viaRecord = [
       [S1, 'b05f7a2c6e19', ['multi-version']],
       [S2, '7c3d05e8b2f9', ['parse-failed']],
