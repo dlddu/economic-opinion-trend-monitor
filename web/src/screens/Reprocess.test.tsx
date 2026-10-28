@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { Reprocess } from "./Reprocess";
 import { AppShell } from "../shell/AppShell";
@@ -127,7 +127,7 @@ function rowFor(container: HTMLElement, text: string): HTMLElement {
 
 it("sizes the range per cycle against the target version", async () => {
   stub(single());
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelectorAll(".rp-scope tbody tr").length).toBe(2));
 
   const done = rowFor(container, BUCKET_DONE.cycle);
@@ -144,7 +144,7 @@ it("sizes the range per cycle against the target version", async () => {
 
 it("round-trips range, axis and source through the query", async () => {
   const fetchMock = stub(single());
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   const seg = (label: string, text: string) =>
     [...container.querySelectorAll(`.seg[aria-label="${label}"] button`)].find(
       (b) => b.textContent === text,
@@ -171,7 +171,7 @@ it("round-trips range, axis and source through the query", async () => {
 
 it("refuses to draw a comparison out of a single version, but lists what exists", async () => {
   stub(single());
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-single")).not.toBeNull());
 
   expect(container.querySelector(".rp-cmp")).toBeNull();
@@ -181,7 +181,7 @@ it("refuses to draw a comparison out of a single version, but lists what exists"
 
 it("compares two versions side by side, flags the threshold and re-sorts", async () => {
   stub(dual());
-  const { container, getByText } = render(<Reprocess />);
+  const { container, getByText } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-cmp")).not.toBeNull());
 
   const moved = rowFor(container, MOVED.subject);
@@ -204,7 +204,7 @@ it("compares two versions side by side, flags the threshold and re-sorts", async
 
 it("shows the empty scope state and no estimate when there is nothing to size", async () => {
   stub(empty());
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-empty")).not.toBeNull());
 
   expect(container.querySelector("table.tbl")).toBeNull();
@@ -214,7 +214,7 @@ it("shows the empty scope state and no estimate when there is nothing to size", 
 
 it("draws no run controls while the trigger is unavailable", async () => {
   stub(single());
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-trigger")).not.toBeNull());
   expect(container.querySelector(".rp-trigger")?.textContent).toContain("클러스터 밖");
   expect(container.querySelector(".rp-run-controls")).toBeNull();
@@ -231,7 +231,7 @@ it("submits a sample for the selected scope and keeps the full run locked", asyn
     posted.push({ url, body });
     return { status: 202, json: { run: run("sample", "Pending") } };
   });
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
 
   expect((container.querySelector(".rp-full") as HTMLButtonElement).disabled).toBe(true);
@@ -257,7 +257,7 @@ it("opens the full run after a sample and offers to resume a failed one", async 
     posted.push({ url, body });
     return { status: 202, json: { run: run("run", "Pending") } };
   });
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
 
   expect(container.querySelector(".rp-gate")?.textContent).toBe("열림");
@@ -289,7 +289,7 @@ it("records a decision with its reason, or says what is missing", async () => {
     if (body.memo === "거부") return { status: 403, json: { error: "workflows.argoproj.io is forbidden" } };
     return { status: 202, json: { run: run("publish", "Pending") } };
   });
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
   await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
 
   expect(container.querySelector(".rp-serving")?.textContent).toBe("v2");
@@ -320,6 +320,46 @@ it("records a decision with its reason, or says what is missing", async () => {
   fireEvent.click(decide);
   await waitFor(() => expect(container.querySelector(".rp-recorded")).not.toBeNull());
   expect(container.querySelector(".rp-recorded")?.textContent).toContain("이전 버전(v2)으로 롤백");
+});
+
+it("scrolls the range table and links an over-threshold note to the origin lookup", async () => {
+  stub(dual());
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
+  await waitFor(() => expect(container.querySelector(".rp-scope")).not.toBeNull());
+
+  expect(container.querySelector(".rp-scrolly > table.rp-scope")).not.toBeNull();
+  const go = container.querySelector(".rp-over .rp-actions a") as HTMLAnchorElement;
+  expect(go.textContent).toBe("반영을 보류하고 원인 대상을 원문까지 확인 →");
+  expect(go.getAttribute("href")).toBe("/trace");
+});
+
+it("offers to redo the sample only after one finished, and focuses the version field", async () => {
+  stubWrites(wired([run("sample", "Running")]), () => ({ status: 202, json: { run: run("sample", "Pending") } }));
+  const first = render(<MemoryRouter><Reprocess /></MemoryRouter>);
+  await waitFor(() => expect(first.container.querySelector(".rp-run-controls")).not.toBeNull());
+  expect(within(first.container).queryByText("로직을 고치고 표본부터 다시")).toBeNull();
+  first.unmount();
+
+  stubWrites(wired([run("sample", "Succeeded")]), () => ({ status: 202, json: { run: run("sample", "Pending") } }));
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
+  await waitFor(() => expect(container.querySelector(".rp-run-controls")).not.toBeNull());
+  fireEvent.click(within(container).getByText("로직을 고치고 표본부터 다시"));
+  const version = container.querySelector('.rp-form input[placeholder="예: llm-v2"]') as HTMLInputElement;
+  expect(document.activeElement).toBe(version);
+});
+
+it("resumes a failed full run from the interruption note", async () => {
+  const posted: { url: string; body: Record<string, unknown> }[] = [];
+  stubWrites(wired([run("run", "Failed", "v3", { message: "deadline" }), run("sample", "Succeeded")]), (url, body) => {
+    posted.push({ url, body });
+    return { status: 202, json: { run: run("run", "Pending") } };
+  });
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
+  await waitFor(() => expect(container.querySelector(".rp-interrupted")).not.toBeNull());
+
+  fireEvent.click(within(container).getByText("체크포인트부터 이어서 재개 →"));
+  await waitFor(() => expect(posted.length).toBe(1));
+  expect(posted[0].url).toBe("/api/reprocess/run");
 });
 
 describe("Reprocess — 셸 토프바", () => {
@@ -368,7 +408,7 @@ it("says the index is being prepared instead of reporting an API failure", async
       json: async () => ({ error: "index_not_ready" }),
     })),
   );
-  const { container } = render(<Reprocess />);
+  const { container } = render(<MemoryRouter><Reprocess /></MemoryRouter>);
 
   await waitFor(() => expect(container.textContent).toContain("인덱스 준비 중"));
   expect(container.textContent).not.toContain("API 오류");
