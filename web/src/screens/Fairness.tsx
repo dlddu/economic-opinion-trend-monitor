@@ -588,6 +588,23 @@ export function Fairness() {
                   </div>
                 ))}
               </div>
+
+              <div className="art-hints" data-testid="art-hints">
+                <div>
+                  <b>「원문 열기」가 열리지 않으면</b> — 링크가 만료·404여도 수집 시점에 보존한 원문 전체는 남아
+                  있습니다.
+                  <Link className="btn sm" to="/trace">
+                    보존 원문으로 이어서 보기 →
+                  </Link>
+                </div>
+                <div>
+                  <b>기사가 이 대상이 아니라면</b> — 분류 규칙 자체의 문제입니다. 범위를 정해 다시 분석하는 운영
+                  흐름으로 넘깁니다.
+                  <Link className="btn sm" to="/reprocess">
+                    재처리 범위 정하기 →
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
 

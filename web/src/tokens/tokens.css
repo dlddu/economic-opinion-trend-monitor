@@ -1601,6 +1601,21 @@ tr.fair-picked td {
   flex-wrap: wrap;
 }
 
+.art-hints {
+  margin-top: 14px;
+  border-top: 1px dashed var(--line-2);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.art-hints a {
+  margin-left: 6px;
+}
+
 .src-card {
   margin-top: 12px;
 }

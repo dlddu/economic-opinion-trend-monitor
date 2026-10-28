@@ -406,6 +406,21 @@ it("lists the contributing articles and prints the count beside the raw count", 
   expect(first.querySelector(`a[href="/debug?record_id=${ARTICLES[0].record_id}"]`)).toBeTruthy();
 });
 
+it("hands the two list-side branches to their destination screens", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  await waitFor(() => expect(container.querySelectorAll(".art-row").length).toBe(ARTICLES.length));
+
+  const hints = container.querySelector(".art-hints") as HTMLElement;
+  expect(hints.textContent).toContain("「원문 열기」가 열리지 않으면");
+  expect(hints.textContent).toContain("기사가 이 대상이 아니라면");
+  expect(hints.querySelector('a[href="/trace"]')?.textContent).toContain("보존 원문으로 이어서 보기 →");
+
+  fireEvent.click(hints.querySelector('a[href="/reprocess"]') as HTMLElement);
+  expect(container.querySelector("output")?.textContent).toBe("/reprocess");
+});
+
 // 목록 건수가 원시 카운트와 갈리면 화면이 그것을 숨기지 않는다 — 이 note 가 없으면
 // 「목록이 그 값을 설명한다」는 주장이 검증 없이 통과한다.
 it("says so when the list does not reconcile with the raw count", async () => {
