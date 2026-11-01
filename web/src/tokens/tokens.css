@@ -1603,6 +1603,14 @@ button.norm-toggle {
   font-weight: 700;
 }
 
+/* 정규화 소멸 배너의 갈래 컨트롤 — 목업 `.banner .actions`(margin-top 8px · flex · gap 8px)와 같은
+   모양. 이름을 `.fair-sp-` 로 붙여 목업 인라인 CSS와 공유하지 않는다(설계 트래커 「규칙 5」). */
+.fair-sp-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
 .art-pick {
   background: none;
   border: 0;

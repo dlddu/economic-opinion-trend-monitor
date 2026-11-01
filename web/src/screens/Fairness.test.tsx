@@ -552,6 +552,15 @@ it("says the spike is gone after normalization, only while the normalized count 
   );
 });
 
+it("hands the normalized-away branch to the judgment screen", async () => {
+  stubFairness();
+  const { container } = renderFairness(`/fairness?subject=${encodeURIComponent(SKEWED.subject)}`);
+
+  const banner = await testid(container, "spike-normalized-away");
+  const link = banner.querySelector('a[href="/trace"]');
+  expect(link?.textContent).toContain("판정으로 →");
+});
+
 it("reads the usual level the dashboard compared against from the link", async () => {
   const fetch = stubFairness();
   const { container } = renderFairness("/fairness?axis=KR&baseline=30d");
