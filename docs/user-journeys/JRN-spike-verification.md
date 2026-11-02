@@ -1,14 +1,16 @@
 # 사용자 여정: 급등 신호의 진위 확인
 
+> **폐기 (2026-11-02).** 관찰자 여정을 계기 중심 4개에서 기능 중심 6개로 재편하며 이 여정은 `JRN-subject-articles`(출처 구성·기여 기사·원문) · 정규화 전/후 전환은 관찰자 여정 전부의 공통 단계로 로 대체됐다. 이 문서와 mockup 페이지는 후속 여정의 mockup 이 착지할 때까지 남겨 두며(좌측 네비·분기가 이 페이지를 가리킨다), 그때 함께 삭제한다. 새 작업은 후속 여정을 기준으로 한다.
+
 ## 0. 문서 정보
 
 | 항목 | 내용 |
 |---|---|
 | 여정 식별자 | `JRN-spike-verification` |
 | 여정명 | 급등 신호의 진위 확인 |
-| 상태 | 초안 (v0.1) |
+| 상태 | 폐기 (v0.2) — 후속: `JRN-subject-articles`(출처 구성·기여 기사·원문) · 정규화 전/후 전환은 관찰자 여정 전부의 공통 단계로 |
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
-| 최종 수정일 | 2026-09-18 |
+| 최종 수정일 | 2026-11-02 |
 | 달성 가치 | `V4` 수집원 편차를 보정한 공정한 비교 · `V5` 원문 추적성과 재처리 가능성 |
 | 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.1·AC3.2·AC3.8) · `econ-opinion-monitor-prd-analysis.md` (AC2.6) · `econ-opinion-monitor-prd-ingestion.md` (AC1.4) · mockup 여정 페이지 `docs/mockups/JRN-spike-verification.html` (구 `fairness`·`trace` 화면을 흡수) |
 
@@ -105,3 +107,4 @@
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J4`를 "급등 검증"이라는 단일 계기 중심으로 좁혀 재정의 | Claude |
 | v0.1 | 2026-09-18 | 단계 정의 무변경. 터치포인트를 여정 페이지(`JRN-spike-verification.html`)로 이관하고 `STP-judge`의 화면 부재를 해소(영속화는 백로그 유지). 단계 식별자 변경 없음 | Claude |
 | v0.1 | 2026-09-18 | 단계 정의 무변경. `STP-notice-spike` 터치포인트에 남아 있던 삭제 화면(`dashboard.html`·`trend.html`) 서술을 여정 페이지 기준으로 정정 | Claude |
+| v0.2 | 2026-11-02 | 폐기. 관찰자 여정 기능 중심 재편으로 `JRN-subject-articles`(출처 구성·기여 기사·원문) · 정규화 전/후 전환은 관찰자 여정 전부의 공통 단계로 로 대체(단계 정의 무변경, mockup 착지 전까지 보존) | Claude |

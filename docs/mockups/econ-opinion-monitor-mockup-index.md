@@ -4,7 +4,7 @@
 > 검증기(`design-doc-structure-validator`)가 시각화 커버리지와 디자인 시스템 사용처를 이 표에서 읽는다.
 > 가치 정의: `docs/econ-opinion-monitor-values.md` · 여정: `docs/user-journeys/` (여정당 문서 하나) · 디자인 시스템 항목: `docs/design-system/econ-opinion-monitor-design-system.md`
 >
-> 마지막 갱신: 2026-09-24
+> 마지막 갱신: 2026-11-02
 
 ## Mockup 파일
 프로토타입은 **페이지별 자립형(self-contained) HTML 파일**로 분리되어 있다. 각 페이지는 디자인 시스템 CSS와 공통 스크립트를 자체 `<style>`·`<script>`로 **인라인 포함**하므로 다른 파일·폴더 의존 없이 단독으로 열린다(웹폰트만 Google Fonts CDN에서 로드). 모든 페이지는 `docs/mockups/` 안에 있고, 화면 간 이동은 좌측 네비와 본문 버튼의 실제 링크(`<a href>`)로 동작한다.
@@ -163,7 +163,7 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 선언하지 않으면 그 표면은 **어느 화면의 모집단에도 들어가지 않아** 판정면 밖에 영구히 남는다(설계 트래커의
 `JRN-spike-verification` 등재 인용 블록이 실측한 상태다).
 
-**규칙 1 미충족 여정 상한: 0** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 처음 0 이 됐고, 2026-09-24 `JRN-judgment-debug` 여정 문서가 페이지보다 먼저 들어와 잠시 1 이었다가 같은 날 그 여정 페이지가 착지해 **다시 0 이 됐다**. `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 상한이 0 이므로 **여정 문서가 하나 늘고 대응 페이지가 없으면 그 즉시 PR 이 빨개진다.**
+**규칙 1 미충족 여정 상한: 6** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 처음 0 이 됐고, 2026-09-24 `JRN-judgment-debug` 여정 문서가 페이지보다 먼저 들어와 잠시 1 이었다가 같은 날 그 여정 페이지가 착지해 다시 0 이 됐다. **2026-11-02 관찰자 여정 재편으로 6 이 됐다** — 기능 중심 새 여정 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)가 페이지 없이 들어왔고, 대체된 네 여정은 폐기 상태로 문서·페이지를 남겨 두었다(운영 여정 페이지의 좌측 네비·분기가 아직 그 페이지를 가리킨다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 새 여정 페이지가 하나 착지할 때마다 이 값을 하나 낮춘다.
 
 **규칙 5 미충족 mockup 페이지 상한: 0** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
 않는 mockup 페이지의 수다. 화면 단위 스냅샷은 여정 워크스루가 아니라 (a)(c)(e)를 구조적으로 만족할 수
@@ -790,7 +790,7 @@ DOM 순서가 함께 맞는다. 같은 화면이 다섯 단계에 있으므로 �
 | V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill`, `JRN-judgment-debug` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 완료 (7/7)**: 일곱 여정 전부가 여정 페이지를 갖고(2026-09-24 신설 `JRN-judgment-debug` 는 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
+- **여정↔mockup 1:1 이관 — 옛 일곱 여정은 2026-09-24 완료, 2026-11-02 재편 후 여정 페이지 보유 7/13**: 재편 전 일곱 여정 전부가 여정 페이지를 갖고(2026-09-24 신설 `JRN-judgment-debug` 는 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
 - **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
 - **미시각화 단계 0개**: 2026-09-24 신설 `JRN-judgment-debug` 의 다섯 단계는 같은 날 여정 페이지로 해소됐다. 그 이전의 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다. 둘 다 「제품에 둘 것인지」가 선행 판단이었고 이 슬라이스가 **둔다**로 확정했다 — 표본 실행은 전량 실행의 관문(표본이 의도와 어긋나면 전량이 잠긴다)으로, 반영·롤백은 근거를 함께 적는 결정 기록으로 그렸다. 결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 파킹한 백로그 그대로다. 앞선 해소: `STP-backfill` 은 `JRN-ingestion-recovery` 이관(2026-09-19), `STP-shortlist` 는 `JRN-daily-scan` 이관(2026-09-18). 🟠 부분 시각화였던 `STP-diagnose-source`·`STP-verify-integrity` 도 같은 흐름에서 닫혔다.
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).

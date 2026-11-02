@@ -1,14 +1,16 @@
 # 사용자 여정: 지역 온도차 확인
 
+> **폐기 (2026-11-02).** 관찰자 여정을 계기 중심 4개에서 기능 중심 6개로 재편하며 이 여정은 `JRN-axis-share`(축별 대상 비율·분위기 비교) 로 대체됐다. 이 문서와 mockup 페이지는 후속 여정의 mockup 이 착지할 때까지 남겨 두며(좌측 네비·분기가 이 페이지를 가리킨다), 그때 함께 삭제한다. 새 작업은 후속 여정을 기준으로 한다.
+
 ## 0. 문서 정보
 
 | 항목 | 내용 |
 |---|---|
 | 여정 식별자 | `JRN-axis-contrast` |
 | 여정명 | 지역 온도차 확인 |
-| 상태 | 초안 (v0.1) |
+| 상태 | 폐기 (v0.3) — 후속: `JRN-axis-share`(축별 대상 비율·분위기 비교) |
 | 담당자 | 미지정 (제품 소유자 미지정 상태를 따름) |
-| 최종 수정일 | 2026-10-13 |
+| 최종 수정일 | 2026-11-02 |
 | 달성 가치 | `V2` 지역 축 간 관심사 비교 |
 | 연결 문서 | PRD `econ-opinion-monitor-prd-aggregation-viz.md` (AC3.4·AC3.5·AC3.7) · `econ-opinion-monitor-prd-ingestion.md` (AC1.3) · `econ-opinion-monitor-prd-analysis.md` (AC2.1) · mockup `JRN-axis-contrast.html` (여정 단위 페이지, 구 `compare` 화면을 흡수) |
 
@@ -97,3 +99,4 @@
 | v0.1 | 2026-08-29 | 최초 작성. 기존 `J2`를 트리거(집필 중 확인) 기준으로 재정의 | Claude |
 | v0.1.1 | 2026-08-31 | 터치포인트를 여정 단위 mockup `JRN-axis-contrast.html`로 이관(구 `compare` 화면 흡수·삭제). `STP-pick-outlier`의 행 클릭 어포던스 미배선 단서 해소. 단계 식별자·순서 무변경 | Claude |
 | v0.2 | 2026-10-13 | `STP-verify-in-trend`의 온도차 판별 기록 폼(mockup task 결정, AC 근거 없음)을 제거하고 「범위 밖」으로 명시. 터치포인트에 표시할 축 체크박스 추가. 단계 식별자·순서 무변경 | Claude |
+| v0.3 | 2026-11-02 | 폐기. 관찰자 여정 기능 중심 재편으로 `JRN-axis-share`(축별 대상 비율·분위기 비교) 로 대체(단계 정의 무변경, mockup 착지 전까지 보존) | Claude |
