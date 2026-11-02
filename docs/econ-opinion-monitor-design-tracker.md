@@ -8,10 +8,11 @@
 
 ## 현재 상태 요약
 - 정의된 가치: **5개** (V1~V5, 가치 문서에서 참조)
-- 사용자 여정: **7개** (`JRN-*`, 여정당 문서 하나 · 총 34단계 · 가치 연결됨 7개 / 미연결 0개)
+- 사용자 여정: **13개** (`JRN-*`, 여정당 문서 하나 · 현행 9개 39단계 + 폐기 4개 19단계 · 가치 연결됨 13개 / 미연결 0개)
 - Mockup: **여정 페이지 7개 + 진입 리다이렉트 1개** (페이지별 자립형 HTML, CSS·JS 인라인)
 - 디자인 시스템: **정의됨** (토큰 9 · 컴포넌트 19 · 패턴 9)
-- **건강 상태**: 🟢 **양호** — 가치↔여정 연결은 끊김이 없다. 여정 단위 재편이 **7/7** 끝났고(`JRN-sentiment-shift` 2026-08-30 · `JRN-axis-contrast` 2026-08-31 · `JRN-spike-verification` 2026-09-18 · `JRN-daily-scan` 2026-09-18 · `JRN-ingestion-recovery` 2026-09-19 · `JRN-logic-backfill` 2026-09-19 · `JRN-judgment-debug` 2026-09-24 — 여정 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 남아 있지 않다. **미시각화 0단계 · 부분 시각화 0단계**이며, 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 모두 0 이라 여정이 하나 늘고 페이지가 따라오지 않으면 그 즉시 PR 이 빨개진다. `JRN-judgment-debug` 페이지는 화면 id `debug` 로 좌측 네비에 들어갔고(2026-09-24), 구현 `Debug.tsx` 도 2026-09-28 에 서서 `BUILT` 에 들어갔다 — 그 페이지의 다섯 단계 중 두 단계의 목업↔구현 편차는 아래 허용목록이 받고 나머지는 후속이다.
+- **건강 상태**: 🟡 **주의** — 2026-11-02 관찰자 여정을 기능 중심 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)로 재편했고, 새 여정은 아직 페이지가 없다 — 여정 페이지 보유 7/13 이며 「규칙 1 미충족 여정 상한」을 6 으로 올렸다. 대체된 네 여정(`JRN-daily-scan`·`JRN-spike-verification`·`JRN-axis-contrast`·`JRN-sentiment-shift`)은 폐기 상태로 문서·페이지를 남겨 두었고, 새 여정 페이지가 착지하는 PR 에서 걷어 낸다. 가치↔여정 연결은 끊김이 없다.
+- **재편 이전 상태(이력)**: 가치↔여정 연결은 끊김이 없다. 옛 일곱 여정의 여정 단위 이관은 2026-09-24 에 끝났고(`JRN-sentiment-shift` 2026-08-30 · `JRN-axis-contrast` 2026-08-31 · `JRN-spike-verification` 2026-09-18 · `JRN-daily-scan` 2026-09-18 · `JRN-ingestion-recovery` 2026-09-19 · `JRN-logic-backfill` 2026-09-19 · `JRN-judgment-debug` 2026-09-24 — 여정 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 남아 있지 않다. **미시각화 0단계 · 부분 시각화 0단계**이며, 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 모두 0 이라 여정이 하나 늘고 페이지가 따라오지 않으면 그 즉시 PR 이 빨개진다. `JRN-judgment-debug` 페이지는 화면 id `debug` 로 좌측 네비에 들어갔고(2026-09-24), 구현 `Debug.tsx` 도 2026-09-28 에 서서 `BUILT` 에 들어갔다 — 그 페이지의 다섯 단계 중 두 단계의 목업↔구현 편차는 아래 허용목록이 받고 나머지는 후속이다.
   가치 측 전제 위험(제품 소유자 미지정)은 product-doc-engineer 영역으로 별도 추적된다.
 
 ## 문서 목록
