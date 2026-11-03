@@ -293,8 +293,15 @@ describe("구간별 건수와 구간 고르기", () => {
     expect(bk()).toContain("표본 부족");
     expect(group().getAttribute("data-picked")).toBe("true");
 
+    const drill = container.querySelector(".sent-bk a") as HTMLAnchorElement;
+    expect(drill.textContent).toContain("이 구간의 기여 뉴스 · 원문 보기");
+    expect(drill.getAttribute("href")).toBe(
+      `/fairness?axis=KR&unit=${response().basis.bucket_unit}&time_bucket=${encodeURIComponent(late.time_bucket)}`,
+    );
+
     fireEvent.click(group());
     expect(bk()).toContain("막대를 누르면");
+    expect(container.querySelector(".sent-bk a")).toBeNull();
 
     fireEvent.click(group());
     fireEvent.click(

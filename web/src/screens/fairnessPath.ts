@@ -1,9 +1,23 @@
 import type { Axis, AxisScope, SpikeBaseline } from "../api/types";
 
-export function fairnessPath(axis: Axis, subject?: string | null, baseline?: SpikeBaseline): string {
+export interface FairnessBucket {
+  unit: string;
+  timeBucket: string;
+}
+
+export function fairnessPath(
+  axis: Axis,
+  subject?: string | null,
+  baseline?: SpikeBaseline,
+  bucket?: FairnessBucket | null,
+): string {
   const params = new URLSearchParams({ axis });
   if (subject) params.set("subject", subject);
   if (baseline && baseline !== "7d") params.set("baseline", baseline);
+  if (bucket?.timeBucket) {
+    if (bucket.unit) params.set("unit", bucket.unit);
+    params.set("time_bucket", bucket.timeBucket);
+  }
   return `/fairness?${params.toString()}`;
 }
 
