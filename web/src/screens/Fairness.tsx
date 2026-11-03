@@ -331,6 +331,11 @@ export function Fairness() {
                         {current.normalized_multiple.toFixed(1)}입니다. 그 축의 수집 자체가 늘어난 것이지 이
                         대상에 관심이 몰린 것이 아닙니다 — 원문까지 내려가지 않고 <b>“편중”</b>으로 닫아도 되는
                         갈래입니다.
+                        <div className="fair-sp-actions">
+                          <Link className="btn sm" to="/trace">
+                            판정으로 →
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   )}

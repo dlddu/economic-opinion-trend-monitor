@@ -1603,6 +1603,12 @@ button.norm-toggle {
   font-weight: 700;
 }
 
+.fair-sp-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
 .art-pick {
   background: none;
   border: 0;
