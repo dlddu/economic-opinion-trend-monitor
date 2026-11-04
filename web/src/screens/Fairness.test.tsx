@@ -606,3 +606,35 @@ it("picks a subject into the link so the check can be shared", async () => {
     ),
   );
 });
+
+it("narrows the article list from the source summary and clears it in one step", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  await waitFor(() => expect(container.querySelectorAll(".art-row").length).toBe(ARTICLES.length));
+  expect(container.querySelector('[data-testid="art-active-filter"]')).toBeNull();
+
+  const pick = (await testid(container, `src-pick-${SPLIT_WIRE.source_id}`)) as HTMLElement;
+  fireEvent.click(pick);
+
+  const wire = ARTICLES.filter((r) => r.source_id === SPLIT_WIRE.source_id);
+  await waitFor(() => expect(container.querySelectorAll(".art-row").length).toBe(wire.length));
+  expect(pick.getAttribute("aria-pressed")).toBe("true");
+  const active = await testid(container, "art-active-filter");
+  expect(active.textContent).toContain(SPLIT_WIRE.source_id);
+  expect(active.textContent).toContain(`${wire.length}건`);
+
+  fireEvent.click(active.querySelector("button") as HTMLElement);
+
+  await waitFor(() => expect(container.querySelectorAll(".art-row").length).toBe(ARTICLES.length));
+  expect(container.querySelector('[data-testid="art-active-filter"]')).toBeNull();
+  expect(pick.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("says the contribution share is a square-root weighting, not a count ratio", async () => {
+  stubFairness();
+  const { container } = renderFairness();
+
+  const weight = await testid(container, "src-weight");
+  expect(weight.textContent).toContain("제곱근");
+});
