@@ -88,9 +88,10 @@ function contributions(source = ""): ContributionsResponse {
       analyzer_version: "",
     },
     sources: [
-      { source_id: "kr_wire", listed: 2 },
-      { source_id: "kr_daily", listed: 1 },
+      { source_id: "kr_wire", listed: 2, raw_share: 0.75, normalized_contribution: 0.1 },
+      { source_id: "kr_daily", listed: 1, raw_share: 0.25, normalized_contribution: 0.05 },
     ],
+    concentration: { top_source_id: "kr_wire", top_share: 0.75, source_count: 2 },
     rows,
   };
 }

@@ -28,9 +28,16 @@ type contributionRow struct {
 	BodyShares    int    `json:"body_shares"`
 }
 
+// RawShare and NormalizedContribution are the AC3.12 source-composition
+// summary: they come from the aggregation's own subject_source_contribution
+// rows, not from Listed, so the contribution column sums to the subject's
+// normalized share by the aggregation's construction. A collector with articles
+// listed but no Gold row reads 0 on both.
 type contributionSource struct {
-	SourceID string `json:"source_id"`
-	Listed   int    `json:"listed"`
+	SourceID               string  `json:"source_id"`
+	Listed                 int     `json:"listed"`
+	RawShare               float64 `json:"raw_share"`
+	NormalizedContribution float64 `json:"normalized_contribution"`
 }
 
 // RawCount must come from Gold, never from this endpoint's own count, and Total
@@ -54,7 +61,10 @@ type contributionsBasis struct {
 type contributionsResponse struct {
 	Basis   contributionsBasis   `json:"basis"`
 	Sources []contributionSource `json:"sources"`
-	Rows    []contributionRow    `json:"rows"`
+	// Concentration names the collector with the largest raw share of the
+	// subject, over the unfiltered list — a source filter must not move it.
+	Concentration sourceConcentration `json:"concentration"`
+	Rows          []contributionRow   `json:"rows"`
 }
 
 func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql.DB) error {
@@ -92,6 +102,11 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 			rows = append(rows, row)
 		}
 	}
+	parts, err := indexGold{db}.sourceContributions(ctx, axis, unit, bucket, subject)
+	if err != nil {
+		return err
+	}
+	sources, concentration := composeSources(sourceTally(all), parts)
 	decisions, _ := h.lake.ReprocessDecisions()
 
 	writeJSON(w, http.StatusOK, contributionsResponse{
@@ -106,8 +121,9 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 			Listed:          len(rows),
 			AnalyzerVersion: servingVersion(decisions),
 		},
-		Sources: sourceTally(all),
-		Rows:    rows,
+		Sources:       sources,
+		Concentration: concentration,
+		Rows:          rows,
 	})
 	return nil
 }
@@ -190,4 +206,32 @@ func groupingKeys(a gen.Analysis) []string {
 		return *a.SubjectCategories
 	}
 	return a.NarrativeSubjects
+}
+
+// composeSources lays the Gold decomposition over the list's own tally. The
+// list stays the authority on which collectors appear; Gold only supplies the
+// weights, so a collector Gold has no row for still shows up, at zero.
+func composeSources(tally []contributionSource, parts []gen.SubjectSourceContribution) ([]contributionSource, sourceConcentration) {
+	byID := make(map[string]gen.SubjectSourceContribution, len(parts))
+	for _, p := range parts {
+		byID[p.SourceID] = p
+	}
+	rows := make([]sourceContributionRow, 0, len(parts))
+	for _, p := range parts {
+		rows = append(rows, sourceContributionRow{
+			SourceID: p.SourceID, RawCount: p.RawCount, RawShare: p.RawShare, NormalizedContribution: p.NormalizedContribution,
+		})
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].RawCount != rows[j].RawCount {
+			return rows[i].RawCount > rows[j].RawCount
+		}
+		return rows[i].SourceID < rows[j].SourceID
+	})
+	for i := range tally {
+		if p, ok := byID[tally[i].SourceID]; ok {
+			tally[i].RawShare, tally[i].NormalizedContribution = p.RawShare, p.NormalizedContribution
+		}
+	}
+	return tally, concentrationOf(rows)
 }
