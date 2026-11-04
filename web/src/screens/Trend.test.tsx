@@ -157,7 +157,7 @@ describe("Trend", () => {
     const { container } = renderTrend();
 
     await waitFor(() => expect(container.querySelectorAll("polyline")).toHaveLength(1));
-    const labels = Array.from(container.querySelectorAll("text.axlab"))
+    const labels = Array.from(container.querySelectorAll("svg.trend-chart text.axlab"))
       .filter((el) => el.getAttribute("text-anchor") === "end" && el.getAttribute("x") === "48")
       .map((el) => el.textContent);
     expect(labels).toEqual(["2.0%", "1.5%", "1.0%", "0.5%", "0"]);
@@ -259,6 +259,35 @@ describe("Trend", () => {
 
     await waitFor(() => expect(container.querySelector(".trend-empty")).not.toBeNull());
     expect(container.querySelectorAll("polyline")).toHaveLength(0);
+  });
+
+  it("draws 기사 건수 bars under the share line, one per bucket, from raw_count", async () => {
+    const res = seriesResponse(BUCKETS, [0.2, 0.3, 0.5]);
+    res.series[0].points = res.series[0].points.map((p, i) => ({ ...p, raw_count: [2, 4, 8][i] }));
+    stubTrend([res]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelector("[data-role='tr-bars']")).not.toBeNull());
+    const bars = Array.from(container.querySelectorAll("[data-role='tr-bars'] rect"));
+    expect(bars).toHaveLength(3);
+    const heights = bars.map((b) => Number.parseFloat(b.getAttribute("height") ?? "0"));
+    expect(heights[0]).toBeCloseTo(heights[2] / 4, 5);
+    expect(heights[1]).toBeCloseTo(heights[2] / 2, 5);
+    expect(container.querySelector("[data-role='tr-bars-sub']")?.textContent).toContain("최대 8건");
+    expect(container.querySelector("[data-role='tr-gap-note']")).toBeNull();
+  });
+
+  it("marks a bucket the subject never appeared in with ○ and 언급 없음, not a zero", async () => {
+    const res = seriesResponse(["2026-06-21", "2026-06-22", "2026-06-23"], [0.2, 0.3, 0.5]);
+    res.basis.bucket_unit = "day";
+    res.series[0].points = res.series[0].points.filter((p) => p.time_bucket !== "2026-06-22");
+    stubTrend([res]);
+    const { container } = renderTrend();
+
+    await waitFor(() => expect(container.querySelector("[data-role='tr-gap']")).not.toBeNull());
+    expect(container.querySelectorAll("[data-role='tr-gap']")).toHaveLength(1);
+    expect(container.querySelector("[data-role='tr-bars']")?.textContent).toContain("언급 없음");
+    expect(container.querySelector("[data-role='tr-gap-note']")).not.toBeNull();
   });
 
   it("does not offer a bucket-unit switch while rollups are unimplemented", async () => {
