@@ -209,8 +209,7 @@ func groupingKeys(a gen.Analysis) []string {
 }
 
 // composeSources lays the Gold decomposition over the list's own tally. The
-// list stays the authority on which collectors appear; Gold only supplies the
-// weights, so a collector Gold has no row for still shows up, at zero.
+// list stays the authority on which collectors appear; Gold only supplies the weights.
 func composeSources(tally []contributionSource, parts []gen.SubjectSourceContribution) ([]contributionSource, sourceConcentration) {
 	byID := make(map[string]gen.SubjectSourceContribution, len(parts))
 	for _, p := range parts {
