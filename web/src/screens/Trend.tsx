@@ -257,6 +257,7 @@ export function Trend() {
                     </span>
                   ))}
                 </div>
+                {selected && <TrendBars data={data} series={selected} />}
               </div>
             </div>
 
@@ -400,6 +401,7 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       width="100%"
       className="trend-chart"
+      data-role="tr-chart"
       role="img"
       aria-label={`${data.subject} 관심 점유율 추세`}
     >
@@ -436,8 +438,21 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
         // 색은 **응답 순서** 기준이다. 겹쳐 보기를 켜도 이미 보던 대상의 색이 바뀌지
         // 않아야 토글이 대상을 바꾼 것처럼 보이지 않는다.
         const stroke = strokeFor(s, compareIndex(data.series, data.series.indexOf(s)));
+        const gapBuckets = s.selected && unit !== "hour" ? buckets.filter((b) => !byBucket.has(b)) : [];
         return (
           <g key={s.subject}>
+            {gapBuckets.map((b) => (
+              <circle
+                key={b}
+                data-role="tr-gap"
+                fill="none"
+                stroke="var(--ink-4)"
+                strokeWidth={1.2}
+                cx={x(buckets.indexOf(b))}
+                cy={BASELINE}
+                r={3}
+              />
+            ))}
             <polyline
               fill="none"
               stroke={stroke}
@@ -457,5 +472,68 @@ function TrendChart({ data, series }: { data: TrendResponse; series: TrendSeries
         );
       })}
     </svg>
+  );
+}
+
+function TrendBars({ data, series }: { data: TrendResponse; series: TrendSeries }) {
+  const buckets = data.basis.buckets;
+  const unit = data.basis.bucket_unit;
+  const counts = new Map(series.points.map((p) => [p.time_bucket, p.raw_count]));
+  const max = Math.max(1, ...series.points.map((p) => p.raw_count));
+  const top = 8;
+  const bottom = 92;
+  const slot = (PLOT_R - PLOT_L) / Math.max(buckets.length, 1);
+  const hasGap = unit !== "hour" && buckets.some((b) => !counts.has(b));
+
+  return (
+    <>
+      <div className="trend-bars-sub" data-role="tr-bars-sub">
+        기사 건수 · {UNIT_LABEL[unit] ?? unit} · 최대 {max}건
+      </div>
+      <svg viewBox={`0 0 ${VIEW_W} 110`} width="100%" className="trend-bars" data-role="tr-bars">
+        <text className="axlab" x={PLOT_L - 8} y={top + 4} textAnchor="end">
+          {max}건
+        </text>
+        <text className="axlab" x={PLOT_L - 8} y={bottom + 4} textAnchor="end">
+          0
+        </text>
+        <line className="gridline zero" x1={PLOT_L} y1={bottom} x2={PLOT_R} y2={bottom} />
+        {buckets.map((b, i) => {
+          const count = counts.get(b);
+          const h = ((count ?? 0) / max) * (bottom - top);
+          return (
+            <g key={b}>
+              <rect
+                x={PLOT_L + i * slot + slot * 0.15}
+                y={bottom - h}
+                width={Math.max(1, slot * 0.7)}
+                height={Math.max(count === undefined ? 0 : 1, h)}
+                fill="var(--line-3)"
+              >
+                <title>
+                  {b} · {count ?? 0}건
+                </title>
+              </rect>
+              {count === undefined && unit !== "hour" && (
+                <text
+                  className="axlab"
+                  x={PLOT_L + (i * (PLOT_R - PLOT_L)) / Math.max(buckets.length - 1, 1)}
+                  y={bottom + 14}
+                  textAnchor="middle"
+                  fill="var(--ink-4)"
+                >
+                  언급 없음
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      {hasGap && (
+        <p className="trend-gap-note" data-role="tr-gap-note">
+          비어 있는 칸(○)은 이 대상이 한 번도 나오지 않은 칸입니다 — 0 으로 이어 그리지 않고 비워 둡니다.
+        </p>
+      )}
+    </>
   );
 }
