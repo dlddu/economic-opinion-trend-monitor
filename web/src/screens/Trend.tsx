@@ -5,14 +5,8 @@ import { api } from "../api/client";
 import type { AxisScope, TrendResponse, TrendSeries } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
-// Two things are deliberately *not* here:
+// One thing is deliberately *not* here:
 //
-//   - A 시간/일/주 switch. Gold carries all three units now (AC3.3), but
-//     /api/trend settles on one itself and takes no ?unit= parameter, so the
-//     control would have nothing to switch with. The design tracker calls a
-//     switch with nothing behind it a 허위 컨트롤 (the normalization toggle is
-//     registered as unimplemented for exactly that reason), so the bucket unit
-//     is rendered as a static reflection of the basis the API answered on.
 //   - A 대상 추가 button. Which subjects are comparable is the API's ranking,
 //     not a free-form pick, and there is no endpoint behind "add an arbitrary
 //     subject" yet. Selecting one of the compared subjects is real, so that is
@@ -149,6 +143,9 @@ export function Trend() {
   const [data, setData] = useState<TrendResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [overlay, setOverlay] = useState(false);
+  // 시간/일/주 (AC3.3) — undefined 면 API 가 고른 단위(가장 잘게 쪼갠 쪽)를 따른다.
+  const [unit, setUnit] = useState<string | undefined>(undefined);
+  const [reloading, setReloading] = useState(false);
 
   useEffect(() => {
     storeView({ axis, subject });
@@ -156,16 +153,18 @@ export function Trend() {
 
   useEffect(() => {
     let active = true;
-    setData(null);
     setError(null);
+    // 단위만 바뀐 재집계는 컨트롤(라디오)이 사라지지 않게 이전 응답을 둔 채 차트만 비운다.
+    setReloading(true);
     api
-      .trend(axis, subject)
+      .trend(axis, subject, unit)
       .then((d) => active && setData(d))
-      .catch((e: unknown) => active && setError(String(e)));
+      .catch((e: unknown) => active && setError(String(e)))
+      .finally(() => active && setReloading(false));
     return () => {
       active = false;
     };
-  }, [axis, subject]);
+  }, [axis, subject, unit]);
 
   const axisDef = AXES.find((a) => a.id === axis) ?? AXES[0];
   const selected = data?.series.find((s) => s.selected) ?? null;
@@ -243,21 +242,46 @@ export function Trend() {
                     </label>
                   </div>
                 </form>
-                <TrendChart data={data} series={drawn} />
-                {/* CMP-legend — 범례는 그려진 선만 말한다. 그리지 않은 대상을 범례가
-                    이름 붙이면 차트와 범례가 서로 다른 집합을 가리킨다. */}
-                <div className="legend trend-legend">
-                  {drawn.map((s) => (
-                    <span key={s.subject}>
-                      <i
-                        className="d"
-                        style={{ background: strokeFor(s, compareIndex(data.series, data.series.indexOf(s))) }}
-                      />
-                      {s.subject}
-                    </span>
+                <div className="radios trend-unit" data-role="tr-unit">
+                  {(["hour", "day", "week"] as const).map((u) => (
+                    <label key={u}>
+                      <input
+                        type="radio"
+                        name="tr-unit"
+                        value={u}
+                        checked={data.basis.bucket_unit === u}
+                        onChange={() => setUnit(u)}
+                      />{" "}
+                      {UNIT_LABEL[u]}
+                    </label>
                   ))}
                 </div>
-                {selected && <TrendBars data={data} series={selected} />}
+                {reloading ? (
+                  <div className="dash-loadbox" data-role="tr-reloading" data-state="tr-reloading">
+                    고른 단위로 재집계 중
+                    <div className="dash-bar">
+                      <i />
+                    </div>
+                  </div>
+                ) : (
+                  <div data-role="tr-plot">
+                  <TrendChart data={data} series={drawn} />
+                  {/* CMP-legend — 범례는 그려진 선만 말한다. 그리지 않은 대상을 범례가
+                      이름 붙이면 차트와 범례가 서로 다른 집합을 가리킨다. */}
+                  <div className="legend trend-legend">
+                    {drawn.map((s) => (
+                      <span key={s.subject}>
+                        <i
+                          className="d"
+                          style={{ background: strokeFor(s, compareIndex(data.series, data.series.indexOf(s))) }}
+                        />
+                        {s.subject}
+                      </span>
+                    ))}
+                  </div>
+                  {selected && <TrendBars data={data} series={selected} />}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -286,8 +310,8 @@ export function Trend() {
 
               <div className="note">
                 <div>
-                  이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 일·주 롤업도 집계되지만
-                  서빙 API 가 단위를 고르는 파라미터를 받지 않아 전환 컨트롤을 두지 않았습니다.
+                  이 차트는 <b>{unitLabel} 단위</b> 버킷으로 그려졌습니다. 굵은 단위는 칸 안에서 다시 정규화한
+                  값이지 작은 칸의 합이 아닙니다.
                 </div>
               </div>
             </div>

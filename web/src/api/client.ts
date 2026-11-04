@@ -79,9 +79,9 @@ export const api = {
   dashboard: (axis: AxisScope = "KR", range: DashRange = "7d", unit: BucketUnit = "day") =>
     getJSON<DashboardResponse>(`/dashboard?axis=${axis}&range=${range}&unit=${unit}`),
   compare: () => getJSON<CompareResponse>("/compare"),
-  trend: (axis: AxisScope = "KR", subject?: string) =>
+  trend: (axis: AxisScope = "KR", subject?: string, unit?: string) =>
     getJSON<TrendResponse>(
-      `/trend?axis=${axis}${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`,
+      `/trend?axis=${axis}${subject ? `&subject=${encodeURIComponent(subject)}` : ""}${unit ? `&unit=${unit}` : ""}`,
     ),
   // The axis is a query parameter, not a client-side filter: the comparison
   // bucket is chosen over all axes, so the server has to see them all.

@@ -261,12 +261,17 @@ func (h *Handlers) trend(w http.ResponseWriter, r *http.Request, gold goldSource
 	axis := axisOrAllParam(r, "KR")
 	requested := r.URL.Query().Get("subject")
 
-	// Only the axis's finest unit is drawn, and of it only the subjects the chart keeps: Gold grows
+	// Only one unit is drawn (the axis's finest unless ?unit= asks for another), and of it only the subjects the chart keeps: Gold grows
 	// every batch run, and an axis's every row is what a chart read before.
 	ctx := r.Context()
 	units, err := gold.trendUnits(ctx, axis)
 	goldFailed(r, err)
 	unit := finestUnit(units)
+	// ?unit= picks a coarser rollup (AC3.3) only when the axis really has rows for it; otherwise the
+	// finest unit answers, as before, and basis.bucket_unit tells the caller which one it got.
+	if asked := unitParam(r, ""); asked != "" && units[asked] {
+		unit = asked
+	}
 	buckets, err := gold.trendBuckets(ctx, axis, unit)
 	goldFailed(r, err)
 	kept := trendSubjectsKept(r, gold, axis, unit, buckets, requested)

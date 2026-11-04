@@ -1123,6 +1123,15 @@ a {
   display: block;
 }
 
+.trend-unit {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+
 .trend-bars {
   display: block;
 }
