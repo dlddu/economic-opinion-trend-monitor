@@ -841,4 +841,61 @@ describe("Dashboard — 「전체」 축의 급등 검증 진입", () => {
       "못 보던 대상이 갑자기 올라왔다면",
     );
   });
+  function rankCard(container: HTMLElement): HTMLElement {
+    return [...container.querySelectorAll<HTMLElement>(".card")].find(
+      (c) => c.querySelector(".card-h h3")?.textContent === "상위 서술 대상",
+    )!;
+  }
+
+  it("flips the ranking between 정규화 and 원시 건수 without asking serving again (AC3.8)", async () => {
+    const fetch = stubDashboard(response());
+    const { container } = renderDashboard();
+
+    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
+    const toggle = container.querySelector('[data-role="norm-toggle"]')!;
+    const radios = [...toggle.querySelectorAll<HTMLInputElement>("input[type=radio]")];
+    expect(radios.map((r) => r.checked)).toEqual([true, false]);
+    expect(toggle.textContent).toContain("출처별 기사 수의 제곱근 비례 가중 · 언급 단위 계수");
+    const flags = () => [...rankCard(container).querySelectorAll(".card-h .r span")].map((f) => f.className);
+    const tile = () => container.querySelector(".metric:nth-child(4) .md span")?.className;
+    expect(flags()).toEqual(["norm-flag"]);
+    expect(tile()).toBe("norm-flag");
+    const calls = fetch.mock.calls.length;
+
+    fireEvent.click(radios[1]);
+
+    const names = [...container.querySelectorAll(".rankrow")].map((r) => [
+      r.querySelector(".rk")?.textContent,
+      r.querySelector(".nm")?.firstChild?.textContent,
+      r.querySelector(".pct")?.textContent,
+    ]);
+    expect(names).toEqual([
+      ["1", "전기요금", "70건"],
+      ["2", "기준금리", "60건"],
+      ["3", "삼성전자", "30건"],
+      ["4", "반도체 보조금", "9건"],
+    ]);
+    expect(toggle.textContent).toContain("기사 수 그대로 센 값입니다");
+    expect(flags()).toEqual(["raw-flag"]);
+    expect(tile()).toBe("raw-flag");
+    expect(container.textContent).toContain("건수");
+    expect(fetch.mock.calls.length).toBe(calls);
+
+    fireEvent.click(radios[0]);
+    expect(container.querySelector(".rankrow .pct")?.textContent).toBe("21.0%");
+  });
+
+  it("says the ALL axis is an equal-weight mean of the three shares", async () => {
+    stubDashboard(response());
+    const { container } = renderDashboard();
+    await waitFor(() => expect(container.querySelectorAll(".rankrow")).toHaveLength(4));
+    expect(rankCard(container).querySelector(".sub")?.textContent).not.toContain("균등 평균");
+
+    fireEvent.change(axisSelect(container), { target: { value: "ALL" } });
+    await waitFor(() =>
+      expect(rankCard(container).querySelector(".sub")?.textContent).toContain(
+        "세 축 점유율의 균등 평균",
+      ),
+    );
+  });
 });
