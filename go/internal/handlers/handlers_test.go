@@ -731,6 +731,20 @@ func TestFairnessSettlesOneUnitAndOneBucket(t *testing.T) {
 	}
 }
 
+func TestFairnessFollowsTheRequestedBucket(t *testing.T) {
+	dir := t.TempDir()
+	writeSkewedGold(t, dir)
+
+	f := getFairness(t, dir, "?axis=KR&unit=hour&time_bucket=2026-06-23T13")
+
+	if f.Basis.BucketUnit != "hour" || f.Basis.TimeBucket != "2026-06-23T13" {
+		t.Fatalf("basis ignored the requested bucket: %+v", f.Basis)
+	}
+	if len(f.Rows) != 1 || f.Rows[0].Subject != "지난 시간 1위" || f.Basis.RawTotal != 500 {
+		t.Errorf("rows are not the requested bucket's: %+v (raw_total %d)", f.Rows, f.Basis.RawTotal)
+	}
+}
+
 func TestFairnessSurvivesEmptyGold(t *testing.T) {
 	f := getFairness(t, t.TempDir(), "?axis=KR")
 

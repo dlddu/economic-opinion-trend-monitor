@@ -296,7 +296,12 @@ export function Sentiment() {
                         </div>
                       </div>
                     )}
-                    <BucketPick series={data.series} picked={bucket} />
+                    <BucketPick
+                      series={data.series}
+                      picked={bucket}
+                      axis={axis}
+                      unit={data.basis.bucket_unit}
+                    />
                     <SentimentVolume series={data.series} unit={data.basis.bucket_unit} />
                   </>
                 ) : (
@@ -578,12 +583,22 @@ function SentimentTimeline({
   );
 }
 
-function BucketPick({ series, picked }: { series: SentimentPoint[]; picked: string | null }) {
+function BucketPick({
+  series,
+  picked,
+  axis,
+  unit,
+}: {
+  series: SentimentPoint[];
+  picked: string | null;
+  axis: Axis;
+  unit: string;
+}) {
   const i = picked === null ? -1 : series.findIndex((p) => p.time_bucket === picked);
   if (i < 0) {
     return (
       <div className="sent-bk">
-        <span>막대를 누르면 그 구간의 구성을 볼 수 있습니다.</span>
+        <span>막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.</span>
       </div>
     );
   }
@@ -613,6 +628,9 @@ function BucketPick({ series, picked }: { series: SentimentPoint[]; picked: stri
           </>
         )}
       </span>
+      <Link className="btn sm" to={fairnessPath(axis, null, undefined, { unit, timeBucket: p.time_bucket })}>
+        이 구간의 기여 뉴스 · 원문 보기 →
+      </Link>
     </div>
   );
 }

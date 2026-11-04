@@ -505,6 +505,28 @@ it("opens on the axis and subject the link carried", async () => {
   expect(container.querySelector(".seg .on")?.textContent).toBe("미국");
 });
 
+it("asks the server for the bucket the link carried and keeps it in the address", async () => {
+  const fetch = stubFairness();
+  const { container } = renderFairness(
+    `/fairness?axis=KR&unit=hour&time_bucket=${encodeURIComponent("2026-06-23T13")}`,
+  );
+
+  await waitFor(() => expect(container.querySelectorAll("tbody tr").length).toBe(2));
+  expect(requested(fetch, "/fairness")).toEqual([
+    "/api/fairness?axis=KR&unit=hour&time_bucket=2026-06-23T13",
+  ]);
+
+  const pick = [...container.querySelectorAll(".art-pick")].find(
+    (b) => b.textContent === SKEWED.subject,
+  ) as HTMLElement;
+  fireEvent.click(pick);
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="location"]')?.textContent).toContain(
+      "time_bucket=2026-06-23T13",
+    ),
+  );
+});
+
 it("drops the subject when the axis is switched", async () => {
   stubFairness();
   const { container } = renderFairness(

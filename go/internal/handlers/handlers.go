@@ -372,7 +372,7 @@ func (h *Handlers) sentiment(w http.ResponseWriter, r *http.Request, gold goldSo
 
 func (h *Handlers) fairness(w http.ResponseWriter, r *http.Request, gold goldSource) {
 	axis := axisParam(r, "KR")
-	unit, bucket, inBucket := latestValues(r, gold, axis, "", "")
+	unit, bucket, inBucket := latestValues(r, gold, axis, unitParam(r, ""), r.URL.Query().Get("time_bucket"))
 
 	var rawTotal int64
 	for _, t := range inBucket {

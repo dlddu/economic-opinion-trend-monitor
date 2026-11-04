@@ -70,6 +70,9 @@ export function Fairness() {
   const axis = axisFrom(params.get("axis"));
   const baseline: SpikeBaseline = params.get("baseline") === "30d" ? "30d" : "7d";
   const picked = params.get("subject") ?? "";
+  // 다른 화면(sentiment)이 고른 구간을 달고 올 수 있다 — 없으면 서빙이 최신 구간을 고른다.
+  const wantedUnit = params.get("unit") ?? "";
+  const wantedBucket = params.get("time_bucket") ?? "";
   const [mode, setMode] = useState<Mode>("normalized");
   const [data, setData] = useState<FairnessResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +89,10 @@ export function Fairness() {
     const subject = next.subject ?? (next.axis ? "" : picked);
     if (subject) out.set("subject", subject);
     if (baseline !== "7d") out.set("baseline", baseline);
+    if (wantedBucket && !next.axis) {
+      if (wantedUnit) out.set("unit", wantedUnit);
+      out.set("time_bucket", wantedBucket);
+    }
     setParams(out, { replace: true });
   }
 
@@ -104,13 +111,13 @@ export function Fairness() {
     setError(null);
     setSource(ALL_SOURCES);
     api
-      .fairness(axis)
+      .fairness(axis, wantedUnit, wantedBucket)
       .then((d) => active && setData(d))
       .catch((e: unknown) => active && setError(String(e)));
     return () => {
       active = false;
     };
-  }, [axis]);
+  }, [axis, wantedUnit, wantedBucket]);
 
   useEffect(() => {
     let active = true;

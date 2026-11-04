@@ -86,7 +86,12 @@ export const api = {
   // The axis is a query parameter, not a client-side filter: the comparison
   // bucket is chosen over all axes, so the server has to see them all.
   sentiment: (axis: Axis = "KR") => getJSON<SentimentResponse>(`/sentiment?axis=${axis}`),
-  fairness: (axis: Axis = "KR") => getJSON<FairnessResponse>(`/fairness?axis=${axis}`),
+  fairness: (axis: Axis = "KR", unit = "", timeBucket = "") =>
+    getJSON<FairnessResponse>(
+      `/fairness?axis=${axis}` +
+        (unit ? `&unit=${encodeURIComponent(unit)}` : "") +
+        (timeBucket ? `&time_bucket=${encodeURIComponent(timeBucket)}` : ""),
+    ),
   spikes: (axis: AxisScope = "KR", baseline: SpikeBaseline = "7d") =>
     getJSON<SpikesResponse>(`/spikes?axis=${axis}&baseline=${baseline}`),
   contributions: (axis: Axis = "KR", subject = "", unit = "", timeBucket = "", source = "") =>
