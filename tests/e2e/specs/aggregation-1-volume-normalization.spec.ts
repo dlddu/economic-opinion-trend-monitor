@@ -41,7 +41,7 @@ test("aggregation: normalization keeps the inflated source below its naive count
     expect(inflated, `${dir ?? "baseline"} 에 ${INFLATED} 행이 없다`).toBeDefined();
 
     // 소스를 무시하고 그냥 센 점유율(naive)보다 정규화된 비율이 작다. 소스별로 먼저 나눈 뒤
-    // 평균하므로, 한 소스에 쏠린 건수가 그대로 점유율이 되지 못한다.
+    // 가중 평균하므로, 한 소스에 쏠린 건수가 그대로 점유율이 되지 못한다.
     expect(inflated!.normalized_share).toBeLessThan(inflated!.raw_count / total);
   }
 });
