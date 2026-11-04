@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>서술 대상 비율 조회 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+
+/* —— Phone (≤720px) ——————————————————————————————
+   1180px 규칙은 사이드바를 64px 아이콘 레일로 접을 뿐이라, 폰 폭에서는
+   본문이 ~300px 로 줄어 12컬럼 그리드·랭킹 행의 고정 트랙이 이름 칸을 한 글자 폭으로 짓눌렀다.
+   폰에서는 사이드바를 상단 가로 아이콘 줄로 바꾸고, 카드는 한 줄에 하나(지표 타일만 2열),
+   랭킹 행은 2줄(순위·이름·변화 / 점유율 막대·스파크라인)로 재배치한다. */
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;flex-direction:row;align-items:center}
+  .brand{display:none}
+  .nav{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px 10px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-group{display:flex;align-items:center;gap:2px;margin:0}
+  .nav-group + .nav-group{padding-left:6px;margin-left:4px;border-left:1px solid rgba(255,255,255,.14)}
+  .nav-group > .gl{display:none}
+  .nav-item{width:42px;height:40px;flex:none;padding:0}
+  .nav-item.active::before{left:9px;right:9px;top:auto;bottom:-6px;width:auto;height:3px;
+    border-radius:3px 3px 0 0}
+
+  .topbar{padding:10px 16px;flex-wrap:wrap;row-gap:8px}
+  .topbar .spacer{display:none}
+  .ctl{flex-wrap:wrap}
+  .canvas{padding:16px 14px 48px}
+  .grid{gap:12px}
+  .col-4,.col-5{grid-column:span 12}
+  .card-h{flex-wrap:wrap}
+  .card-h .r{margin-left:0}
+  .metric .mv{font-size:26px}
+
+  .rankrow:not([style]){grid-template-columns:20px minmax(0,1fr) 88px;
+    grid-template-areas:"rk nm dlt" ". share spark";row-gap:7px;column-gap:10px}
+  .rankrow:not([style]) .rk{grid-area:rk}
+  .rankrow:not([style]) .nm{grid-area:nm}
+  .rankrow:not([style]) .share{grid-area:share}
+  .rankrow:not([style]) .spark{grid-area:spark}
+  .rankrow:not([style]) .dlt{grid-area:dlt}
+  .rankrow:not([style]) > .rk ~ .rk{grid-area:spark;font-size:11px}
+  .rankrow .nm{flex-wrap:wrap;gap:2px 6px;min-width:0}
+
+  .card,.card-b{min-width:0}
+  .card-b:has(> table.tbl),.card-b:has(> div > table.tbl),.scrolly{overflow-x:auto}
+  table.tbl th,table.tbl td{padding:8px 8px}
+  .formrow > *{flex:1 1 100%}
+}
+.trend-ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.spk-row{display:grid;grid-template-columns:22px 1fr auto 64px 40px;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;cursor:pointer;font:inherit}
+.spk-row[aria-pressed=true]{background:var(--primary-soft)}
+.spk-row .meta{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.spk-row .rk{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.tbl tr.on td{background:var(--primary-soft)}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-subject-share) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+</head>
+<body data-journey="JRN-subject-share">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="JRN-daily-scan.html#STP-drill-trend">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="sentiment" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="JRN-spike-verification.html#STP-open-origin">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+        <a class="nav-item op" data-id="debug" href="JRN-judgment-debug.html#STP-pin-record">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6M11 8v6"/></svg>
+          <span>판단 디버깅</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
+      마지막 수집 14:00 KST
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>아침 정기 스캔</h2>
+      </div>
+      <div class="spacer"></div>
+      <div class="ctl">
+        <span class="pill-ctl" data-role="tb-pill">한국 &middot; 최근 7일 &middot; 일 단위</span>
+      </div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 단계 1 · 대시보드 열기 — 화면 dash ============ -->
+      <section class="jstep" id="STP-set-scope" data-step="STP-set-scope" data-title="조회 조건 맞추기" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" data-state="api-error" data-label="API 오류" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-open-brief" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-open-brief" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-open-brief" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" data-state="no-gold" data-label="데이터 없음 (Gold 미생성)" data-replaces="ranklist" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" data-state="empty-window" data-label="밤사이 수집 없음" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-set-scope">조회 조건 다시 맞추기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+              <div class="actions" data-role="pick-entries" style="margin-top:12px" hidden>
+                <a class="btn sm" data-role="pick-go-sentiment" href="../reader.html?doc=user-journeys/JRN-subject-sentiment.md#STP-open-subject-sentiment">분위기 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-articles" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">원문 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-trend" href="../reader.html?doc=user-journeys/JRN-subject-trend.md#STP-open-subject-trend">추세 보기 &rarr;</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" data-state="reloading" data-label="고른 조건으로 재집계 중" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" data-state="no-rank" data-label="이 기간 표시할 대상 0건" data-replaces="winlist" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="source-go" href="../reader.html?doc=user-journeys/JRN-source-share.md#STP-open-source-matrix" hidden>출처별로 비교 &rarr;</a>
+                    <a class="btn sm" data-role="compare-go" href="../reader.html?doc=user-journeys/JRN-axis-share.md#STP-open-axis-compare">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="screen" data-screen="dash" data-state="loading" data-label="첫 진입 로딩" hidden>
+        <div class="grid g-12">
+          <div class="card metric col-3"><div class="card-b"><div class="ml">수집 항목</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&mdash;</span> 직전 7일 대비</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">분석 완료</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&mdash;</span> 분석 커버리지</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">저신뢰 분리</div><div class="mv">&mdash;</div><div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div></div></div>
+          <div class="card metric col-3"><div class="card-b"><div class="ml">세는 방식</div><div class="mv sm">점유율</div><div class="md"><span class="norm-flag">&#9635; share-normalized</span></div></div></div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-loading" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-loading" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-loading" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+          <div class="card col-8">
+            <div class="card-h"><h3>상위 서술 대상</h3><span class="sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span><div class="r"><span class="norm-flag">&#9635; 정규화</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+          <div class="card col-7">
+            <div class="card-h"><h3>최근 7일 변화</h3><span class="sub">직전 동일 구간 대비</span><div class="r"><span class="tag">0개 대상</span></div></div>
+            <div class="card-b">
+              <div class="formrow">
+                <label class="fld" style="max-width:150px"><span class="fl">증감 임계 (%p)</span><input type="number" name="thresh-loading" value="0" min="0" max="10" step="0.5" /></label>
+                <label class="chk" style="padding-bottom:8px"><input type="checkbox" name="only-new-loading" /> 새로 올라온 대상만</label>
+              </div>
+            </div>
+          </div>
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b"><div class="emptybox">왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.</div></div>
+          </div>
+          <div class="card col-8">
+            <div class="card-h"><h3>튀는 값</h3><span class="sub">한국 축 &middot; 평소 대비 배수 순</span><div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b"><div class="kv"><span class="k">선택한 대상</span><span class="v">&mdash;</span></div><div class="kv"><span class="k">평소 대비</span><span class="v mono">&mdash;</span></div></div>
+          </div>
+          <div class="card col-12">
+            <div class="card-h"><h3>기간 순위</h3><span class="sub">최근 7일 누적</span><div class="r"><span class="tag">7d</span></div></div>
+            <div class="card-b"><div class="emptybox">불러오는 중&hellip;</div></div>
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-scan-ranking">이 조건으로 순위 훑기 <span class="ar">&rarr;</span></button>
+          <span class="hint">고르는 즉시 반영됩니다 &mdash; 적용 버튼은 없습니다.</span>
+        </div>
+      </section>
+
+      <section class="jstep" id="STP-scan-ranking" data-step="STP-scan-ranking" data-title="비율 순위와 증감 훑기" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-scan-delta" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-scan-delta" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-scan-delta" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-set-scope">조회 조건 다시 맞추기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" data-state="no-change" data-label="걸리는 변화 0건" data-replaces="deltalist" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" data-state="no-baseline" data-label="비교 기준 없음 (증감 「—」)" data-replaces="deltalist" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" data-state="pick-axis" data-label="전체 축 — 축을 골라야 넘어감" data-replaces="spike-entry" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection" data-state="no-selection" data-label="대상 미선택">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+              <div class="actions" data-role="pick-entries" style="margin-top:12px" hidden>
+                <a class="btn sm" data-role="pick-go-sentiment" href="../reader.html?doc=user-journeys/JRN-subject-sentiment.md#STP-open-subject-sentiment">분위기 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-articles" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">원문 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-trend" href="../reader.html?doc=user-journeys/JRN-subject-trend.md#STP-open-subject-trend">추세 보기 &rarr;</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="source-go" href="../reader.html?doc=user-journeys/JRN-source-share.md#STP-open-source-matrix" hidden>출처별로 비교 &rarr;</a>
+                    <a class="btn sm" data-role="compare-go" href="../reader.html?doc=user-journeys/JRN-axis-share.md#STP-open-axis-compare">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-toggle-raw">정규화 전/후 바꿔 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint">순위&middot;비율&middot;증감은 기간 전체를 한 번에 센 값입니다.</span>
+        </div>
+      </section>
+
+      <section class="jstep" id="STP-toggle-raw" data-step="STP-toggle-raw" data-title="정규화 전/후 전환" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-adjust-window" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-adjust-window" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-adjust-window" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-set-scope">조회 조건 다시 맞추기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+              <div class="actions" data-role="pick-entries" style="margin-top:12px" hidden>
+                <a class="btn sm" data-role="pick-go-sentiment" href="../reader.html?doc=user-journeys/JRN-subject-sentiment.md#STP-open-subject-sentiment">분위기 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-articles" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">원문 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-trend" href="../reader.html?doc=user-journeys/JRN-subject-trend.md#STP-open-subject-trend">추세 보기 &rarr;</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="source-go" href="../reader.html?doc=user-journeys/JRN-source-share.md#STP-open-source-matrix" hidden>출처별로 비교 &rarr;</a>
+                    <a class="btn sm" data-role="compare-go" href="../reader.html?doc=user-journeys/JRN-axis-share.md#STP-open-axis-compare">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-pick-subject">대상 골라 상세로 <span class="ar">&rarr;</span></button>
+          <span class="hint">전환해도 고른 대상과 조회 조건은 유지됩니다.</span>
+        </div>
+      </section>
+
+      <section class="jstep" id="STP-pick-subject" data-step="STP-pick-subject" data-title="대상 골라 상세로" hidden>
+
+      <div class="screen" data-screen="dash" data-title="아침 정기 스캔">
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="grid g-12">
+
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">수집 항목</div>
+              <div class="mv" data-role="m-items">4,812</div>
+              <div class="md"><span class="delta up" data-role="m-change">&#9650; 4.2%</span> <span data-role="m-prev">직전 7일 대비</span></div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">분석 완료</div>
+              <div class="mv" data-role="m-analyzed">4,551</div>
+              <div class="md"><span class="delta fl" data-role="m-cov">94.6%</span> 분석 커버리지</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">저신뢰 분리</div>
+              <div class="mv sm" data-role="m-low">5.4%</div>
+              <div class="md"><span class="delta fl">&ndash;</span> 집계에서 분리 표기</div>
+            </div>
+          </div>
+          <div class="card metric col-3">
+            <div class="card-b">
+              <div class="ml">세는 방식</div>
+              <div class="mv sm">점유율</div>
+              <div class="md"><span class="norm-flag">&#9635; share-normalized</span></div>
+            </div>
+          </div>
+
+          <div class="card col-4">
+            <div class="card-h"><h3>오늘의 조회 조건</h3><span class="sub">어제 닫을 때의 조건으로 열립니다</span></div>
+            <div class="card-b">
+              <form data-role="brief-form">
+                <label class="fld">
+                  <span class="fl">축</span>
+                  <select name="axis" data-role="axis">
+                    <option value="ALL">전체</option>
+                    <option value="KR" selected>한국</option>
+                    <option value="US">미국</option>
+                    <option value="GL">전세계</option>
+                  </select>
+                </label>
+                <label class="fld" style="margin-top:14px">
+                  <span class="fl">기간</span>
+                  <select name="range" data-role="range">
+                    <option value="1">최근 24시간</option>
+                    <option value="7" selected>최근 7일</option>
+                    <option value="30">최근 30일</option>
+                  </select>
+                </label>
+                <div class="fld" style="margin-top:14px">
+                  <span class="fl">집계 단위</span>
+                  <div class="radios" data-role="unit">
+                    <label><input type="radio" name="unit-adjust-window" value="hour" /> 시간</label>
+                    <label><input type="radio" name="unit-adjust-window" value="day" checked /> 일</label>
+                    <label hidden><input type="radio" name="unit-adjust-window" value="week" /> 주</label>
+                  </div>
+                </div>
+                <label class="chk" style="margin-top:16px">
+                  <input type="checkbox" name="restore" data-role="restore" checked />
+                  마지막 조회 조건으로 열기
+                </label>
+              </form>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>상위 서술 대상</h3>
+              <span class="sub" data-role="brief-sub">한국 축 &middot; 최근 7일 누적 &middot; 추이 일 단위</span>
+              <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+            </div>
+            <div class="card-b" style="padding:6px 12px">
+              <div class="ranklist" data-role="ranklist"></div>
+              <div class="emptybox" data-role="no-gold" hidden>
+                데이터 없음 &mdash; 배치 파이프라인을 먼저 실행하세요.
+              </div>
+              <div class="banner warn" data-role="empty-window" hidden>
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b><span data-role="empty-axis">전세계</span> 축은 밤사이 수집이 들어오지 않았습니다.</b>
+                  0으로 그리지 않고 <b>데이터 없음</b>으로 둡니다 &mdash; 수집이 없는 것과 관심이 없는 것은 다릅니다.
+                  마지막 정상 수집: <span class="mono">어제 22:00 KST</span>
+                  <div class="actions">
+                    <a class="btn sm pri" data-role="empty-go" href="#STP-set-scope">조회 조건 다시 맞추기</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-7">
+            <div class="card-h">
+              <h3 data-role="delta-title">최근 7일 변화</h3>
+              <span class="sub">직전 동일 구간 대비</span>
+              <div class="r"><span class="tag" data-role="delta-count">8개 대상</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="delta-form">
+                <div class="formrow">
+                  <label class="fld" style="max-width:150px">
+                    <span class="fl">증감 임계 (%p)</span>
+                    <input type="number" name="thresh" data-role="thresh" value="0" min="0" max="10" step="0.5" />
+                  </label>
+                  <label class="chk" style="padding-bottom:8px">
+                    <input type="checkbox" name="only-new" data-role="only-new" />
+                    새로 올라온 대상만
+                  </label>
+                </div>
+              </form>
+              <div data-role="deltalist" style="margin-top:6px"></div>
+              <div class="emptybox" data-role="no-change" hidden>
+                이 조건에 걸리는 변화가 없습니다.
+              </div>
+              <div data-role="no-baseline" style="margin-top:6px" hidden>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">한국은행 기준금리</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">삼성전자</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+                <button type="button" class="trow" aria-pressed="false"><span class="nm">원/달러 환율</span> <span class="dlt fl" style="float:right">&mdash;</span></button>
+              </div>
+              <div class="banner warn">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+                <div>
+                  <b>못 보던 대상이 갑자기 올라왔다면</b>
+                  수집량 차이일 수 있습니다. 정규화와 원문을 먼저 확인하세요.
+                  <div class="actions" data-role="spike-entry">
+                    <a class="btn sm" data-role="spike-entry-go" href="JRN-spike-verification.html#STP-notice-spike">급등의 진위부터 확인 &rarr;</a>
+                  </div>
+                  <div class="actions" data-role="pick-axis" hidden>
+                    <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-5">
+            <div class="card-h"><h3>고른 대상</h3><span class="sub">오늘 더 볼 후보</span></div>
+            <div class="card-b">
+              <div class="emptybox" data-role="no-selection">
+                왼쪽 목록에서 대상을 하나 고르면<br/>여기에 직전 기간 대비 변화가 펼쳐집니다.
+              </div>
+              <div data-role="pick-detail" hidden></div>
+              <div class="actions" data-role="pick-entries" style="margin-top:12px" hidden>
+                <a class="btn sm" data-role="pick-go-sentiment" href="../reader.html?doc=user-journeys/JRN-subject-sentiment.md#STP-open-subject-sentiment" data-goto="JRN-subject-sentiment#STP-open-subject-sentiment" data-end="분위기 여정으로 인계">분위기 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-articles" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list" data-goto="JRN-subject-articles#STP-open-article-list" data-end="원문 여정으로 인계">원문 보기 &rarr;</a>
+                <a class="btn sm" data-role="pick-go-trend" href="../reader.html?doc=user-journeys/JRN-subject-trend.md#STP-open-subject-trend" data-goto="JRN-subject-trend#STP-open-subject-trend" data-end="추세 여정으로 인계">추세 보기 &rarr;</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-8">
+            <div class="card-h">
+              <h3>튀는 값</h3>
+              <span class="sub" data-role="spike-sub">한국 축 &middot; 평소 대비 배수 순</span>
+              <div class="r"><span class="raw-flag">&#9634; 원시 건수</span></div>
+            </div>
+            <div class="card-b">
+              <form data-role="spike-form">
+                <label class="fld" style="max-width:240px">
+                  <span class="fl">비교 구간</span>
+                  <select name="spike-baseline" data-role="spike-baseline">
+                    <option value="7d" selected>평소 = 최근 7일 평균</option>
+                    <option value="30d">평소 = 최근 30일 평균</option>
+                  </select>
+                </label>
+              </form>
+              <div class="note" data-role="spike-error" hidden><div><b>API 오류:</b> 서빙이 응답하지 않았습니다.</div></div>
+              <div class="emptybox" data-role="spike-loading" hidden>불러오는 중&hellip;</div>
+              <div class="emptybox" data-role="spike-empty" hidden><span data-role="spike-empty-axis">전세계</span> 축에 집계된 버킷이 없습니다 &mdash; 비교할 값이 없는 것을 「급등 없음」으로 그리지 않습니다.</div>
+              <div class="note" data-role="spike-no-baseline" hidden><div><b>평소로 삼을 버킷이 없습니다.</b> 평소를 모르므로 배수를 0이나 1로 지어내지 않고 「—」로 둡니다.</div></div>
+              <div class="ranklist" data-role="spike-list" style="margin-top:8px"></div>
+            </div>
+          </div>
+          <div class="card col-4">
+            <div class="card-h"><h3>이 급등은 진짜인가</h3></div>
+            <div class="card-b">
+              <p class="lede" style="margin:0 0 10px">평소보다 크게 튀었다는 것만으로는 아직 아무것도 말할 수 없습니다. <b>많이 다뤄진 것</b>과 <b>한 곳에서 많이 쏟아진 것</b>을 먼저 갈라야 합니다.</p>
+              <div class="kv"><span class="k">선택한 대상</span><span class="v" data-role="spike-pick">&mdash;</span></div>
+              <div class="kv"><span class="k">평소 대비</span><span class="v mono" data-role="spike-mult">&mdash;</span></div>
+              <div class="actions" style="margin-top:12px">
+                <a class="btn sm" href="#" data-role="spike-go" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면">정규화 전후를 대조하기 &rarr;</a>
+              </div>
+              <div class="actions" data-role="spike-pick-axis" style="margin-top:12px" hidden>
+                <span class="hint">축을 하나 고르면 넘어갈 수 있습니다 &mdash; 공정성 화면은 한 축 안에서 수집원을 가릅니다.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-12">
+            <div class="card-h">
+              <h3>기간 순위</h3>
+              <span class="sub" data-role="win-sub">최근 7일 누적</span>
+              <div class="r"><span class="tag" data-role="win-tag">7d</span></div>
+            </div>
+            <div class="card-b">
+              <div class="loadbox" data-role="reloading" hidden>
+                고른 조건으로 다시 집계하는 중&hellip;
+                <div class="bar"><i></i></div>
+              </div>
+              <div data-role="winlist"></div>
+              <div class="emptybox" data-role="no-rank" hidden>
+                이 축에는 이 기간에 표시할 대상이 없습니다.
+              </div>
+              <div class="note" style="margin-top:14px">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <div>
+                  <b>기간을 바꾸면 순위가 뒤집힐 수 있습니다.</b>
+                  방금 고른 대상은 <span data-role="keep-note">그대로 강조</span>되어, 어느 쪽을 믿을지 같은 줄에서 비교할 수 있습니다.
+                </div>
+              </div>
+              <div class="banner" style="background:var(--panel-2);border:1px solid var(--line)">
+                <svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;margin-top:1px"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+                <div>
+                  <b>축마다 온도가 다른지 궁금하다면</b>
+                  한국 &middot; 미국 &middot; 전세계를 같은 기준으로 나란히 놓고 볼 수 있습니다.
+                  <div class="actions">
+                    <a class="btn sm" data-role="source-go" href="../reader.html?doc=user-journeys/JRN-source-share.md#STP-open-source-matrix" data-goto="JRN-source-share#STP-open-source-matrix" data-end="출처별 비교 여정으로 인계">출처별로 비교 &rarr;</a>
+                    <a class="btn sm" data-role="compare-go" href="../reader.html?doc=user-journeys/JRN-axis-share.md#STP-open-axis-compare" data-goto="JRN-axis-share#STP-open-axis-compare" data-end="축별 비교 여정으로 인계">3축을 나란히 비교 &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+        <div class="stepact">
+          <a class="btn sm" href="#STP-set-scope" data-goto="JRN-subject-share#STP-set-scope">데이터가 비어 보이면 조회 조건 다시 맞추기</a>
+          <a class="btn sm" href="#STP-set-scope" data-goto="JRN-subject-share#STP-set-scope" data-end="중도 이탈 · 다음 진입에 마지막 조회 조건 복원">순위만 보고 닫기</a>
+          <span class="hint" data-end="여정 완료">대상을 고르면 조건을 승계해 분위기&middot;원문&middot;추세 여정으로 이어집니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-subject-share</b> &mdash; 서술 대상 비율 조회 (관찰자 여정의 허브).
+             <a href="../reader.html?doc=user-journeys/JRN-subject-share.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-set-scope"><button type="button" class="jr-btn" data-goto-step="STP-set-scope"><span class="jr-n">1</span><span class="jr-t">조회 조건 맞추기</span><span class="jr-id mono">STP-set-scope</span></button></li>
+            <li class="jr-item" data-rail="STP-scan-ranking"><button type="button" class="jr-btn" data-goto-step="STP-scan-ranking"><span class="jr-n">2</span><span class="jr-t">비율 순위와 증감 훑기</span><span class="jr-id mono">STP-scan-ranking</span></button></li>
+            <li class="jr-item" data-rail="STP-toggle-raw"><button type="button" class="jr-btn" data-goto-step="STP-toggle-raw"><span class="jr-n">3</span><span class="jr-t">정규화 전/후 전환</span><span class="jr-id mono">STP-toggle-raw</span></button></li>
+            <li class="jr-item" data-rail="STP-pick-subject"><button type="button" class="jr-btn" data-goto-step="STP-pick-subject"><span class="jr-n">4</span><span class="jr-t">대상 골라 상세로</span><span class="jr-id mono">STP-pick-subject</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-set-scope</td><td>축(전체&middot;한국&middot;미국&middot;전세계) &middot; 기간 &middot; 집계 단위를 고른다. 고르는 즉시 반영된다</td><td>화면 맨 위 조회 조건 카드</td><td class="mono">AC3.3 &middot; AC3.4</td></tr>
+              <tr><td class="mono">STP-scan-ranking</td><td>기간 전체로 센 대상 비율 순위와 직전 같은 길이 기간 대비 증감을 훑어, 새로 올라오거나 빠진 대상을 찾는다</td><td>상위 지표 카드 &middot; 대상 순위 목록(비율 &middot; 증감 &middot; 스파크라인)</td><td class="mono">AC3.2 &middot; AC3.3</td></tr>
+              <tr><td class="mono">STP-toggle-raw</td><td>지금 보는 비율이 정규화 값임을 확인하고, 원시 건수로 바꿔 순위가 유지되는지 본다</td><td>순위 목록 머리의 정규화 전/후 전환 &middot; 값 옆 정규화 표기</td><td class="mono">AC3.8</td></tr>
+              <tr><td class="mono">STP-pick-subject</td><td>눈에 걸린 대상을 골라 분위기&middot;원문&middot;추세 중 하나로 들어간다</td><td>고른 대상의 세 갈래 진입(분위기 / 원문 / 추세)</td><td class="mono">&mdash;</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기&middot;예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>대상의 분위기를 보고 싶음</td><td>화면 4 &middot; 고른 대상 카드 &middot; 분위기 보기 (여정 끝 표지)</td><td class="mono">JRN-subject-sentiment &middot; STP-open-subject-sentiment</td></tr>
+              <tr><td>대상을 다룬 기사를 보고 싶음</td><td>화면 4 &middot; 고른 대상 카드 &middot; 원문 보기 (여정 끝 표지)</td><td class="mono">JRN-subject-articles &middot; STP-open-article-list</td></tr>
+              <tr><td>대상의 추세를 보고 싶음</td><td>화면 4 &middot; 고른 대상 카드 &middot; 추세 보기 (여정 끝 표지)</td><td class="mono">JRN-subject-trend &middot; STP-open-subject-trend</td></tr>
+              <tr><td>출처마다 관심사가 다른지 궁금함</td><td>화면 4 &middot; 기간 순위 카드 &middot; 출처별로 비교 (여정 끝 표지)</td><td class="mono">JRN-source-share &middot; STP-open-source-matrix</td></tr>
+              <tr><td>축마다 관심사가 다른지 궁금함</td><td>화면 4 &middot; 기간 순위 카드 &middot; 축별로 비교 (여정 끝 표지)</td><td class="mono">JRN-axis-share &middot; STP-open-axis-compare</td></tr>
+              <tr><td>수집이 비어 해당 기간 데이터가 없음</td><td>모든 단계 &middot; 수집 없음 배너(데이터 없음 &middot; 마지막 정상 수집 시각) &middot; 화면 4 &middot; 조회 조건 다시 맞추기</td><td class="mono">STP-set-scope</td></tr>
+              <tr><td>중도 이탈 (순위만 보고 종료)</td><td>화면 4 &middot; 순위만 보고 닫기 (여정 끝 표지)</td><td class="mono">STP-set-scope</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:14px"><b>다른 여정 페이지로의 분기</b> &mdash; 분위기&middot;원문&middot;추세&middot;출처별&middot;축별
+             여정은 아직 여정 페이지가 없다(규칙 1 미충족 상한이 관리한다). 그 분기 링크는 상대 여정의 <b>문서</b>
+             해당 단계로 착지하고, 상대 여정 페이지가 착지하는 PR 이 그 링크를 페이지 앵커로 바꾼다.</p>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-subject-share</b></span>
+            <span class="chip"><b>STP-set-scope</b></span>
+            <span class="chip"><b>STP-scan-ranking</b></span>
+            <span class="chip"><b>STP-toggle-raw</b></span>
+            <span class="chip"><b>STP-pick-subject</b></span>
+            <span class="chip v"><b>V1</b> 시계열 추세 가시화</span>
+            <span class="chip v"><b>V4</b> 편차 보정 비교</span>
+            <span class="chip">AC3.2 &middot; AC3.3 &middot; AC3.4 &middot; AC3.8</span>
+          </div>
+        </div>
+      </details>
+
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jstep{scroll-margin-top:64px}
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+
+<script>
+/* ============================================================
+   JRN-subject-share · 서술 대상 비율 조회 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   화면은 구현 화면 그대로다: 네 단계가 모두 같은 화면 `dash`(Dashboard.tsx)를 같은 구조로
+   다시 그린다. 요소는 id 가 아니라 단계 섹션 안의 [data-role] 로 찾는다 — 같은 화면이
+   여러 단계에 있으므로. 정규화 전/후 전환은 순위 목록 머리에 렌더되는 실제 라디오다.
+   ============================================================ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
+function RA(root, role){ return root ? Array.prototype.slice.call(root.querySelectorAll('[data-role=' + JSON.stringify(role) + ']')) : []; }
+function show(el, on){ if(el) el.hidden = !on; }
+
+var ORDER = ['STP-set-scope','STP-scan-ranking','STP-toggle-raw','STP-pick-subject'];
+
+var AXES = {
+  ALL: { label: '전체', cls: 'ax-all', code: 'ALL' },
+  KR:  { label: '한국', cls: 'ax-kr', code: 'KR' },
+  US:  { label: '미국', cls: 'ax-us', code: 'US' },
+  GL:  { label: '전세계', cls: 'ax-gl', code: 'GLOBAL' }
+};
+
+/* name, share(현재 기간 정규화 점유율 %), s(일 단위 7칸), d(직전 동일 구간 대비 %p), isNew, rawRank */
+var DATA = {
+  KR: [
+    { name: '한국은행 기준금리', share: 21.0, s: [14,13,15,18,22,19,21],   d: 7.0,  isNew: false, rawRank: 1 },
+    { name: '삼성전자',         share: 13.0, s: [11,12,10,13,12,14,13],   d: 0.0,  isNew: false, rawRank: 2 },
+    { name: '원/달러 환율',      share: 10.8, s: [9,10,12,11,13,12,10.8],  d: -1.2, isNew: false, rawRank: 3 },
+    { name: '코스피',           share: 8.4,  s: [7,8,7,8,9,8,8.4],        d: 0.6,  isNew: false, rawRank: 4 },
+    { name: '전기요금',         share: 7.9,  s: [6,7,9,8,8,7,7.9],        d: 0.9,  isNew: false, rawRank: 2 },
+    { name: '가계부채',         share: 7.2,  s: [4,5,5,6,6,7,7.2],        d: 2.1,  isNew: false, rawRank: 6 },
+    { name: '반도체 보조금',     share: 6.6,  s: [0,0,0,0,1,3,6.6],        d: 5.4,  isNew: true,  rawRank: 7 },
+    { name: '부동산 PF',        share: 5.3,  s: [7,6,6,5,5,5,5.3],        d: -1.4, isNew: false, rawRank: 8 }
+  ],
+  US: [
+    { name: 'Fed 금리 결정',    share: 19.4, s: [12,13,14,16,18,19,19.4], d: 3.1,  isNew: false, rawRank: 1 },
+    { name: 'CPI 발표',         share: 14.2, s: [10,11,13,12,14,14,14.2], d: 1.0,  isNew: false, rawRank: 2 },
+    { name: '고용지표',         share: 11.5, s: [9,10,10,11,11,12,11.5],  d: -0.4, isNew: false, rawRank: 3 },
+    { name: 'AI 설비투자',      share: 9.8,  s: [2,3,4,6,8,9,9.8],        d: 4.6,  isNew: true,  rawRank: 4 },
+    { name: '국채 금리',        share: 8.1,  s: [8,8,7,8,8,8,8.1],        d: 0.1,  isNew: false, rawRank: 5 }
+  ],
+  GL: [],
+  /* 전체 — 세 축의 소스를 한 버킷에 접어 소스마다 같은 비중으로 정규화한 순위 */
+  ALL: [
+    { name: 'Fed 금리 결정',    share: 12.1, s: [8,8,9,10,11,12,12.1],    d: 1.9,  isNew: false, rawRank: 1 },
+    { name: '한국은행 기준금리', share: 10.4, s: [7,7,8,9,11,10,10.4],     d: 3.2,  isNew: false, rawRank: 2 },
+    { name: 'CPI 발표',         share: 8.9,  s: [6,7,8,8,9,9,8.9],        d: 0.6,  isNew: false, rawRank: 3 },
+    { name: '원/달러 환율',      share: 7.6,  s: [6,7,8,7,8,8,7.6],        d: -0.8, isNew: false, rawRank: 4 },
+    { name: 'AI 설비투자',      share: 6.2,  s: [1,2,2,4,5,6,6.2],        d: 2.9,  isNew: true,  rawRank: 5 },
+    { name: '삼성전자',         share: 6.0,  s: [5,6,5,6,6,6,6.0],        d: 0.0,  isNew: false, rawRank: 6 },
+    { name: '코스피',           share: 4.9,  s: [4,5,4,5,5,5,4.9],        d: 0.3,  isNew: false, rawRank: 7 },
+    { name: '국채 금리',        share: 4.7,  s: [5,5,4,5,5,5,4.7],        d: -0.2, isNew: false, rawRank: 8 }
+  ]
+};
+
+/* 지표 카드 — collected/prev 는 기간 전체를 센 수집 건수, cov 는 분석 커버리지, low 는 저신뢰 비율 */
+var SUMMARY = {
+  KR:  { collected: 4812,  prev: 4618,  analyzed: 4551,  cov: 94.6, low: 5.4 },
+  US:  { collected: 3907,  prev: 3990,  analyzed: 3720,  cov: 95.2, low: 4.8 },
+  GL:  null,
+  ALL: { collected: 11204, prev: 10871, analyzed: 10583, cov: 94.5, low: 5.5 }
+};
+
+/* 튀는 값 — 원시 건수와 평소(최근 7·30일 평균) 건수. 배수 ≥ 2 를 급등으로 본다. */
+var SPIKES = {
+  KR:  [ { name: '반도체 보조금', raw: 182, b7: 31.4, b30: 22.0, isNew: false },
+         { name: '한국은행 기준금리', raw: 640, b7: 402.0, b30: 380.5, isNew: false },
+         { name: '가계부채', raw: 214, b7: 160.3, b30: 171.2, isNew: false } ],
+  US:  [ { name: 'AI 설비투자', raw: 305, b7: 88.6, b30: 61.0, isNew: false },
+         { name: 'Fed 금리 결정', raw: 597, b7: 455.1, b30: 470.9, isNew: false } ],
+  GL:  [],
+  ALL: [ { name: 'AI 설비투자', raw: 412, b7: 140.2, b30: 101.7, isNew: false },
+         { name: '반도체 보조금', raw: 190, b7: 40.0, b30: 28.3, isNew: false } ]
+};
+
+/* 원시 건수 — [기간 7일 안의 언급 건수, 직전 같은 길이 구간 건수]. 정규화 순위와 일부러 갈리는 대상이 있다. */
+var RAWS = {
+  KR: { '한국은행 기준금리': [640, 598], '삼성전자': [455, 452], '전기요금': [430, 395], '원/달러 환율': [421, 440],
+        '코스피': [330, 322], '가계부채': [214, 168], '반도체 보조금': [182, 0], '부동산 PF': [160, 172] },
+  US: { 'Fed 금리 결정': [597, 580], 'CPI 발표': [450, 441], '고용지표': [380, 392], 'AI 설비투자': [305, 71], '국채 금리': [290, 288] },
+  GL: {},
+  ALL: { 'Fed 금리 결정': [1180, 1120], '한국은행 기준금리': [640, 598], '삼성전자': [455, 452], 'CPI 발표': [450, 441],
+         '원/달러 환율': [421, 440], 'AI 설비투자': [412, 140], '코스피': [330, 322], '국채 금리': [290, 288] }
+};
+
+var DAYS = ['2026-10-10','2026-10-11','2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16'];
+
+var state = {
+  axis: 'KR', range: '7', unit: 'day', restore: true,
+  thresh: 0, onlyNew: false, target: null,
+  spikeBase: '7d', spikePick: null, raw: false
+};
+var cur = null;
+
+function rangeLabel(){ return state.range === '1' ? '최근 24시간' : '최근 ' + state.range + '일'; }
+function rangeKey(){ return state.range === '1' ? '24h' : state.range + 'd'; }
+function unitLabel(){ return { hour: '시간 단위', day: '일 단위', week: '주 단위' }[state.unit]; }
+var UNIT_DAYS = { hour: 1 / 24, day: 1, week: 7 };
+function unitFits(unit, range){ return UNIT_DAYS[unit] < Number(range); }
+function rows(axis){ return DATA[axis || state.axis] || []; }
+function avg(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+function rangeShare(r){ return state.range === '1' ? r.s[r.s.length - 1] : (state.range === '30' ? avg(r.s) : r.share); }
+function rawScale(r){
+  var base = avg(r.s);
+  return state.range === '1' ? r.s[r.s.length - 1] / base / 7 : (state.range === '30' ? (30 / 7) * base / r.share : 1);
+}
+function rawN(r){ var b = (RAWS[state.axis] || {})[r.name] || [0, 0]; return Math.round(b[0] * rawScale(r)); }
+function rawPrev(r){ var b = (RAWS[state.axis] || {})[r.name] || [0, 0]; return Math.round(b[1] * rawScale(r)); }
+function valueOf(r){ return state.raw ? rawN(r) : rangeShare(r); }
+function valueText(r){ return state.raw ? rawN(r).toLocaleString('ko-KR') + '건' : rangeShare(r).toFixed(1) + '%'; }
+/* 정규화 순위(기본)와 원시 건수 순위. 전환해도 같은 대상 이름으로 하이라이트를 유지한다. */
+function normRanked(){
+  return rows().slice().sort(function(a, b){ return rangeShare(b) - rangeShare(a); });
+}
+function rawRanked(){
+  return rows().slice().sort(function(a, b){ return rawN(b) - rawN(a); });
+}
+function ranked(){ return state.raw ? rawRanked() : normRanked(); }
+function rawDeltaText(r){
+  var d = rawN(r) - rawPrev(r);
+  if(rawPrev(r) === 0) return '&#9650; 신규';
+  if(d > 0) return '&#9650; +' + d.toLocaleString('ko-KR') + '건';
+  if(d < 0) return '&#9660; ' + d.toLocaleString('ko-KR') + '건';
+  return '&ndash;';
+}
+function rawDeltaCls(r){ var d = rawN(r) - rawPrev(r); return d > 0 ? 'up' : (d < 0 ? 'dn' : 'fl'); }
+function dcls(d){ return d > 0.05 ? 'up' : (d < -0.05 ? 'dn' : 'fl'); }
+function dtext(d){
+  if(d > 0.05) return '&#9650; ' + d.toFixed(1) + '%p';
+  if(d < -0.05) return '&#9660; ' + Math.abs(d).toFixed(1) + '%p';
+  return '&ndash;';
+}
+function scolor(d){ return d > 0.05 ? 'var(--pos)' : (d < -0.05 ? 'var(--neg)' : 'var(--neu)'); }
+function spark(vals, color){
+  var w = 88, h = 26;
+  var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), rng = (mx - mn) || 1;
+  var pts = vals.map(function(v, i){
+    var x = (i / (vals.length - 1)) * (w - 4) + 2;
+    var y = h - 2 - ((v - mn) / rng) * (h - 6);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  var lastY = (h - 2 - ((vals[vals.length - 1] - mn) / rng) * (h - 6)).toFixed(1);
+  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '"><polyline fill="none" stroke="'
+    + color + '" stroke-width="1.8" points="' + pts + '"/><circle cx="' + (w - 2).toFixed(1)
+    + '" cy="' + lastY + '" r="2" fill="' + color + '"/></svg>';
+}
+
+/* ---------------- 화면 dash (Dashboard.tsx) ---------------- */
+function syncDashControls(s){
+  var f = R(s, 'brief-form'); if(!f) return;
+  R(s, 'axis').value = state.axis;
+  R(s, 'range').value = state.range;
+  Array.prototype.forEach.call(R(s, 'unit').querySelectorAll('input[type=radio]'), function(i){
+    i.checked = (i.value === state.unit);
+    i.parentElement.hidden = !unitFits(i.value, state.range);
+  });
+  R(s, 'restore').checked = state.restore;
+  R(s, 'thresh').value = String(state.thresh);
+  R(s, 'only-new').checked = state.onlyNew;
+  R(s, 'spike-baseline').value = state.spikeBase;
+}
+
+function renderDash(s){
+  var ax = AXES[state.axis];
+  var list = ranked();
+  var sum = SUMMARY[state.axis];
+  syncDashControls(s);
+  var pill = document.querySelector('[data-role="tb-pill"]');
+  if(pill) pill.textContent = ax.label + ' · ' + rangeLabel() + ' · ' + unitLabel();
+
+  /* 지표 */
+  R(s, 'm-items').textContent = sum ? sum.collected.toLocaleString('ko-KR') : '—';
+  var ch = R(s, 'm-change');
+  if(sum && sum.prev > 0){
+    var dd = (sum.collected - sum.prev) / sum.prev * 100;
+    ch.className = 'delta ' + dcls(dd);
+    ch.innerHTML = dd > 0.05 ? '&#9650; ' + dd.toFixed(1) + '%' : (dd < -0.05 ? '&#9660; ' + Math.abs(dd).toFixed(1) + '%' : '&ndash;');
+  } else { ch.className = 'delta fl'; ch.innerHTML = '&mdash;'; }
+  R(s, 'm-prev').textContent = '직전 ' + rangeLabel().replace('최근 ', '') + ' 대비';
+  R(s, 'm-analyzed').textContent = sum ? sum.analyzed.toLocaleString('ko-KR') : '—';
+  R(s, 'm-cov').textContent = sum ? sum.cov.toFixed(1) + '%' : '—';
+  R(s, 'm-low').textContent = sum ? sum.low.toFixed(1) + '%' : '—';
+
+  /* 상위 서술 대상 — 순위 목록 머리에 정규화 전/후 전환과 정규화 방식 한 줄, 행을 누르면 그 대상을 고른다 */
+  var step = s.getAttribute('data-step');
+  R(s, 'brief-sub').textContent = ax.label + ' 축 · ' + rangeLabel() + ' 누적 · 추이 ' + unitLabel()
+    + (state.axis === 'ALL' ? ' · 세 축 점유율의 균등 평균' : '');
+  var empty = rows().length === 0;
+  show(R(s, 'empty-window'), empty);
+  R(s, 'empty-axis').textContent = ax.label;
+  var flag = R(s, 'brief-sub').parentElement.querySelector('.norm-flag,.raw-flag');
+  if(flag){ flag.className = state.raw ? 'raw-flag' : 'norm-flag'; flag.innerHTML = state.raw ? '&#9634; 원시 건수' : '&#9635; 정규화'; }
+  var mcard = Array.prototype.filter.call(s.querySelectorAll('.metric'), function(c){ return c.querySelector('.ml').textContent === '세는 방식'; })[0];
+  if(mcard){
+    mcard.querySelector('.mv').textContent = state.raw ? '건수' : '점유율';
+    var mf = mcard.querySelector('.norm-flag,.raw-flag');
+    if(mf){ mf.className = state.raw ? 'raw-flag' : 'norm-flag'; mf.innerHTML = state.raw ? '&#9634; raw-count' : '&#9635; share-normalized'; }
+  }
+  var normRank = {}, rawRank = {};
+  normRanked().forEach(function(r, i){ normRank[r.name] = i + 1; });
+  rawRanked().forEach(function(r, i){ rawRank[r.name] = i + 1; });
+  var maxV = list.length ? valueOf(list[0]) : 1;
+  var head = '<div class="formrow" data-role="norm-toggle" style="padding:6px 4px 10px">'
+    + '<div class="radios" data-role="norm">'
+    + '<label><input type="radio" name="norm-' + step + '" value="norm"' + (state.raw ? '' : ' checked') + ' /> 정규화</label>'
+    + '<label><input type="radio" name="norm-' + step + '" value="raw"' + (state.raw ? ' checked' : '') + ' /> 원시 건수</label>'
+    + '</div><span class="hint" style="font-size:12px;color:var(--ink-3)">'
+    + (state.raw ? '기사 수 그대로 센 값입니다 &mdash; 많이 쏟아낸 출처가 순위를 끌어올릴 수 있습니다.'
+                 : '출처별 기사 수의 제곱근 비례 가중 &middot; 언급 단위 계수') + '</span></div>';
+  R(s, 'ranklist').innerHTML = head + list.map(function(r, i){
+    var notes = [];
+    if(Math.abs(rawRank[r.name] - normRank[r.name]) >= 2) notes.push('원시 카운트 ' + rawRank[r.name] + '위 → 정규화 ' + normRank[r.name] + '위');
+    if(r.isNew) notes.push(rangeLabel() + ' 새로 진입');
+    var on = state.target === r.name;
+    return '<div class="rankrow" style="cursor:pointer' + (on ? ';background:var(--primary-soft)' : '') + '" data-subject="' + esc(r.name) + '" aria-pressed="' + on + '">'
+      + '<div class="rk">' + (i + 1) + '</div>'
+      + '<div class="nm">' + esc(r.name) + (notes.length ? ' <span class="meta">· ' + esc(notes.join(' · ')) + '</span>' : '') + '</div>'
+      + '<div class="share"><span class="bar"><i style="width:' + (valueOf(r) / maxV * 100).toFixed(0)
+      + '%"></i></span><span class="pct" style="width:' + (state.raw ? 56 : 42) + 'px">' + valueText(r) + '</span></div>'
+      + spark(r.s, scolor(r.d))
+      + (state.raw ? '<div class="dlt ' + rawDeltaCls(r) + '">' + rawDeltaText(r) + '</div>'
+                   : '<div class="dlt ' + dcls(r.d) + '">' + dtext(r.d) + '</div>') + '</div>';
+  }).join('');
+
+  /* 변화 */
+  var drows = list.filter(function(r){
+    if(state.onlyNew && !r.isNew) return false;
+    return Math.abs(r.d) >= state.thresh;
+  });
+  R(s, 'delta-title').textContent = rangeLabel() + ' 변화';
+  R(s, 'delta-count').textContent = drows.length + '개 대상';
+  var nc = R(s, 'no-change');
+  show(nc, drows.length === 0);
+  R(s, 'deltalist').innerHTML = drows.map(function(r){
+    var on = state.target === r.name;
+    return '<button type="button" class="trow" data-subject="' + esc(r.name) + '" aria-pressed="' + on + '">'
+      + '<span class="nm">' + esc(r.name)
+      + (r.isNew ? ' <span class="badge b-pos"><i class="d"></i>신규</span>' : '') + '</span> '
+      + '<span class="dlt ' + dcls(r.d) + '" style="float:right">' + dtext(r.d) + '</span></button>';
+  }).join('');
+  var allAxis = state.axis === 'ALL';
+  show(R(s, 'spike-entry'), !allAxis);
+  show(R(s, 'pick-axis'), allAxis);
+
+  /* 고른 대상 */
+  var t = rows().filter(function(r){ return r.name === state.target; })[0] || null;
+  show(R(s, 'no-selection'), !t);
+  var pd = R(s, 'pick-detail');
+  show(pd, !!t);
+  pd.innerHTML = t ? (
+      '<div class="kv"><span class="k">대상</span><span class="v">' + esc(t.name) + '</span></div>'
+    + '<div class="kv"><span class="k">' + (state.raw ? '언급 건수' : '점유율') + '</span><span class="v">' + valueText(t) + '</span></div>'
+    + '<div class="kv"><span class="k">직전 동일 구간 대비</span><span class="v">' + dtext(t.d) + '</span></div>'
+    + '<div class="kv"><span class="k">진입</span><span class="v">'
+    + (t.isNew ? rangeLabel() + ' 새로 올라옴' : '이전 구간에도 있었음') + '</span></div>'
+    + '<div class="kv"><span class="k">승계할 조건</span><span class="v">' + ax.label + ' 축 · ' + rangeLabel() + ' · ' + unitLabel()
+    + ' · ' + (state.raw ? '원시 건수' : '정규화') + '</span></div>') : '';
+  show(R(s, 'pick-entries'), !!t);
+
+  /* 튀는 값 */
+  var sp = SPIKES[state.axis] || [];
+  var days = state.spikeBase === '30d' ? 'b30' : 'b7';
+  R(s, 'spike-sub').textContent = ax.label + ' 축 · 평소 대비 배수 순';
+  var sorted = sp.slice().sort(function(a, b){ return b.raw / b[days] - a.raw / a[days]; });
+  var pickName = state.spikePick && sorted.some(function(r){ return r.name === state.spikePick; })
+    ? state.spikePick : (sorted[0] ? sorted[0].name : null);
+  R(s, 'spike-list').innerHTML = sorted.map(function(r, i){
+    var m = r.raw / r[days];
+    return '<button type="button" class="spk-row" data-spike="' + esc(r.name) + '" aria-pressed="' + (r.name === pickName) + '">'
+      + '<span class="rk">' + (i + 1) + '</span><span class="nm">' + esc(r.name) + '</span>'
+      + '<span class="meta">' + r.raw + '건 · 평소 ' + r[days].toFixed(1) + '건</span>'
+      + '<span class="dlt ' + (m >= 2 ? 'up' : 'fl') + '">×' + m.toFixed(1) + '</span>'
+      + '<span class="rk">' + (m >= 2 ? '급등' : '') + '</span></button>';
+  }).join('');
+  show(R(s, 'spike-empty'), !sorted.length);
+  R(s, 'spike-empty-axis').textContent = ax.label;
+  var cp = sorted.filter(function(r){ return r.name === pickName; })[0];
+  R(s, 'spike-pick').textContent = cp ? cp.name : '—';
+  R(s, 'spike-mult').textContent = cp ? '×' + (cp.raw / cp[days]).toFixed(1) + ' (평소 ' + cp[days].toFixed(1) + '건)' : '—';
+  show(R(s, 'spike-go').parentElement, !!cp && !allAxis);
+  show(R(s, 'spike-pick-axis'), !!cp && allAxis);
+
+  /* 기간 순위 — 기간이 바뀌면 순위가 실제로 뒤집히고, 고른 대상은 하이라이트로 유지된다 */
+  R(s, 'win-sub').textContent = rangeLabel() + ' 누적';
+  R(s, 'win-tag').textContent = rangeKey();
+  R(s, 'keep-note').textContent = t ? '‘' + t.name + '’ 으로 강조' : '그대로 강조';
+  show(R(s, 'no-rank'), list.length === 0);
+  R(s, 'winlist').innerHTML = list.length ? '<table class="tbl"><thead><tr><th>#</th><th>대상</th>'
+    + '<th class="num">' + rangeLabel() + (state.raw ? ' 건수' : ' 점유율') + '</th><th class="num">변화</th></tr></thead><tbody>'
+    + list.map(function(r, i){
+        var on = state.target === r.name;
+        return '<tr' + (on ? ' class="on"' : '') + '><td class="num">' + (i + 1) + '</td>'
+          + '<td>' + esc(r.name) + (on ? ' <span class="tag">고른 대상</span>' : '') + '</td>'
+          + '<td class="num">' + valueText(r) + '</td>'
+          + '<td class="num"><span class="dlt ' + (state.raw ? rawDeltaCls(r) : dcls(r.d)) + '">' + (state.raw ? rawDeltaText(r) : dtext(r.d)) + '</span></td></tr>';
+      }).join('') + '</tbody></table>' : '';
+}
+
+function render(step){
+  var s = sec(step); if(!s) return;
+  renderDash(s);
+}
+
+/* 기간·단위를 바꾸면 기간 순위가 재집계 상태를 거친다(구현의 「다시 집계하는 중」). */
+var reloadTimer = null;
+function applyWindow(range, unit){
+  if(!unitFits(unit, range)) unit = ['week', 'day', 'hour'].filter(function(u){ return unitFits(u, range); })[0];
+  state.range = range; state.unit = unit;
+  var s = sec(cur);
+  render(cur);
+  var rl = R(s, 'reloading'), wl = R(s, 'winlist');
+  show(rl, true); show(wl, false);
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(function(){ show(rl, false); show(wl, true); render(cur); }, 300);
+}
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
+
+  function go(id, push){
+    if(ORDER.indexOf(id) < 0) return;
+    cur = id;
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if(rails[o]){ rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    JM.enter(id);
+    render(id);
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-goto],.rankrow[data-subject],.trow[data-subject],.spk-row') : null;
+    if(!el) return;
+    if(el.hasAttribute('data-advance')){ if(!el.disabled) go(el.getAttribute('data-advance'), true); return; }
+    if(el.hasAttribute('data-goto-step')){ go(el.getAttribute('data-goto-step'), true); return; }
+    if(el.hasAttribute('data-goto')){
+      var p = el.getAttribute('data-goto').split('#');
+      if(p[0] === 'JRN-subject-share'){ e.preventDefault(); go(p[1], true); }
+      return;
+    }
+    if(el.classList.contains('rankrow') || el.classList.contains('trow')){ state.target = el.getAttribute('data-subject'); render(cur); return; }
+    if(el.classList.contains('spk-row')){ state.spikePick = el.getAttribute('data-spike'); render(cur); return; }
+  });
+
+  document.addEventListener('submit', function(e){ e.preventDefault(); });
+  function onField(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    var host = el.closest('[data-role="unit"],[data-role="norm"]');
+    if(host && host.getAttribute('data-role') === 'unit'){ applyWindow(state.range, el.value); return; }
+    if(host && host.getAttribute('data-role') === 'norm'){ state.raw = (el.value === 'raw'); render(cur); return; }
+    if(role === 'axis'){ state.axis = el.value; state.target = null; state.spikePick = null; render(cur); return; }
+    if(role === 'range'){ applyWindow(el.value, state.unit); return; }
+    if(role === 'restore'){ state.restore = el.checked; return; }
+    if(role === 'thresh'){ state.thresh = Number(el.value) || 0; render(cur); return; }
+    if(role === 'only-new'){ state.onlyNew = el.checked; render(cur); return; }
+    if(role === 'spike-baseline'){ state.spikeBase = el.value; render(cur); return; }
+  }
+  document.addEventListener('change', onField);
+  document.addEventListener('input', function(e){ if(e.target.getAttribute('data-role') === 'thresh') onField(e); });
+
+  if(prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i > 0) go(ORDER[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i < ORDER.length - 1) go(ORDER[i + 1], true); });
+
+  function fromHash(){
+    var p = JM.parseHash();
+    go(ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0], false);
+    if(p.state) JM.showState(cur, p.state);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>
