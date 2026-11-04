@@ -29,6 +29,7 @@
 | MA4 | 배치 생산자 `python/packages/{ingestion,analysis,aggregation}/src/**/*.py` 에서 **추가·삭제된 줄**(주석 줄 제외)이 계약 필드에 값을 채운다 — `field=value`(키워드 인자) 또는 `"field": value`. 필드 이름은 판정 때 `contracts/` 의 Avro `fields` · JSON Schema `properties` 에서 읽는다. 테스트(`**/tests/**` · `**/test_*.py` · `**/*_test.go`)는 보지 않는다 | 스키마가 그대로여도 저장되는 값의 형식이 바뀔 수 있다(예: `bucket_unit=unit` 의 단위 표기). 계약에 일반명 필드(`status`·`count`)를 들이면 이 케이스가 무관한 생산자 수정까지 끌어온다 — 새 필드 이름은 한정형으로 짓는다 |
 | MA6 | Go 가 레이크 볼륨에 쓰는 코드 — `go/internal/servingindex/**` · `go/cmd/econ-index/**` | 배치의 `index` 단계가 공유 볼륨의 `serving/` 아래에 서빙 인덱스를 발행하고 유예가 지난 옛 인덱스를 지운다. 인덱스 자체는 레이크에서 다시 만들 수 있는 파생물이지만, 지우는 범위가 `serving/` 의 자기 이름 밖으로 새면 레이크를 잃고, 발행 순서(새 이름에 쓰고 포인터만 옮기기)가 깨지면 다른 노드의 서빙이 바뀌는 파일을 읽는다 |
 | MA5 | 판정기·워크플로·정책 자신 — `scripts/check-data-format-change.py` · `.github/workflows/review-gate.yml` · `docs/econ-opinion-monitor-review-policy.md` | 워크플로가 `pull_request_target` 이라 PR 은 **base 쪽 판정기**로 판정된다 — PR 이 규칙을 고쳐 자기를 통과시킬 수는 없지만, 그 변경 자체(케이스를 줄이거나 자기 경로를 빼는 편집)는 옛 판정기가 보지 못한 채 다음 PR 부터 효력을 가진다. 그래서 이 세 파일의 변경은 사람 눈에 올린다 |
+| MA7 | 제품 문서 — 가치·PRD·테스트·여정: `docs/econ-opinion-monitor-values.md` · `docs/econ-opinion-monitor-prd-*.md` · `docs/econ-opinion-monitor-test-*.md` · `docs/user-journeys/**` 의 **모든** 변경. 집계(`docs/econ-opinion-monitor-doc-tracker/`)·목업(`docs/mockups/`)은 대상이 아니다 | 제품이 무엇을 왜 하는가의 결정이고, 소유자는 사용자다(`docs/econ-opinion-monitor-values.md` 「제품 소유자」). 정합성 루프(reconciler docs-impl·scenario-e2e 등)가 어긋남을 「문서를 구현에 맞추는」 방향으로 닫으면 제품 결정이 사람 눈 없이 바뀐다 — 문서 변경이라 다른 케이스에 걸리지 않아 판정기가 자동 success 를 붙여 왔다(2026-11-04 점검: pocket-aide #364 PRD-8 AC4 결정 개정에 자동 success). 테스트 문서는 AC 의 검증 기준을 정하므로 함께 건다. 집계 문서(doc-tracker)는 결정을 담지 않아 대상이 아니다 |
 
 ## 위험 표면
 
@@ -60,6 +61,10 @@ python/packages/core/src/econ_core/models/*.py
 python/packages/ingestion/src/**/*.py
 python/packages/analysis/src/**/*.py
 python/packages/aggregation/src/**/*.py
+docs/econ-opinion-monitor-values.md
+docs/econ-opinion-monitor-prd-*.md
+docs/econ-opinion-monitor-test-*.md
+docs/user-journeys/*.md
 scripts/check-data-format-change.py
 .github/workflows/review-gate.yml
 docs/econ-opinion-monitor-review-policy.md
