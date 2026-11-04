@@ -11,6 +11,7 @@ distribution. The wider bucket recomputes the normalization instead.
 
 from __future__ import annotations
 
+import math
 import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -157,15 +158,34 @@ def article_picks(articles: Iterable[tuple[str, str, Pick]], unit: str) -> Itera
         )
 
 
-Counts = dict[str, dict[str, dict[str, dict[str, int]]]]
+class SourceCounts(defaultdict):
+    """One source's mentions per subject in a bucket, plus how many articles it had there.
+
+    The two differ — an article with two subject keys is two mentions — and AC3.1 reads both:
+    the mentions give the source's own shares, the article count gives its weight.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(int)
+        self.articles = 0
+
+    def merge(self, other: SourceCounts) -> None:
+        for subject, n in other.items():
+            self[subject] += n
+        self.articles += other.articles
+
+
+Counts = dict[str, dict[str, dict[str, SourceCounts]]]
 
 
 def count_articles(articles: Iterable[tuple[str, str, Pick]]) -> Counts:
     # counts[axis][bucket][source][subject] -> n
-    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
+    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(SourceCounts)))
     for axis, bucket, pick in articles:
+        source = counts[axis][bucket][pick.source_id]
+        source.articles += 1
         for subject in pick.keys:
-            counts[axis][bucket][pick.source_id][subject] += 1
+            source[subject] += 1
     return counts
 
 
@@ -176,16 +196,19 @@ def count_by_source(
 
 
 def fold_bucket(
-    sources: dict[str, dict[str, int]],
+    sources: dict[str, SourceCounts],
 ) -> tuple[dict[str, tuple[float, int]], dict[str, dict[str, tuple[float, int]]], float]:
     averaged: dict[str, float] = defaultdict(float)
     raw_total: dict[str, int] = defaultdict(int)
     terms: dict[str, dict[str, tuple[float, int]]] = defaultdict(dict)
-    n_sources = len(sources)
+    # AC3.1: each source's own shares, averaged with weights proportional to the square root of
+    # its article count in the bucket (weights sum to 1; a source without articles weighs 0).
+    weights = {source: math.sqrt(counts.articles) for source, counts in sources.items()}
+    weight_sum = sum(weights.values()) or 1.0
     for source, subject_counts in sources.items():
         source_total = sum(subject_counts.values()) or 1
         for subject, n in subject_counts.items():
-            term = (n / source_total) / n_sources
+            term = (n / source_total) * (weights[source] / weight_sum)
             averaged[subject] += term
             raw_total[subject] += n
             terms[subject][source] = (term, n)
@@ -206,17 +229,14 @@ def build_subject_trends(
 def with_all_axis(counts: Counts) -> Counts:
     """``counts`` plus an ``ALL`` axis holding every axis's sources in one bucket.
 
-    Folding that bucket weighs each source equally across all axes, as one axis
-    weighs its own (AC3.1) — an axis with more sources carries more of ALL.
+    Folding that bucket weighs each source by the square root of its article count across
+    all axes, as one axis weighs its own (AC3.1).
     """
-    every: dict[str, dict[str, dict[str, int]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(int))
-    )
+    every: dict[str, dict[str, SourceCounts]] = defaultdict(lambda: defaultdict(SourceCounts))
     for buckets in counts.values():
         for bucket, sources in buckets.items():
             for source, subject_counts in sources.items():
-                for subject, n in subject_counts.items():
-                    every[bucket][source][subject] += n
+                every[bucket][source].merge(subject_counts)
     return {**counts, ALL_AXIS: every} if every else counts
 
 
@@ -369,11 +389,13 @@ def window_articles(hours: Iterable[tuple[str, str, str, Pick]]) -> Windows:
 
 def subject_windows(windows: Windows) -> Iterator[dict]:
     # counts[axis][(range, period)][source][subject] -> n, folded per window as a bucket is.
-    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int))))
+    counts: Counts = defaultdict(lambda: defaultdict(lambda: defaultdict(SourceCounts)))
     for (axis, rng, period), picks in windows.picks.items():
         for pick in picks:
+            source = counts[axis][f"{rng}/{period}"][pick.source_id]
+            source.articles += 1
             for subject in pick.keys:
-                counts[axis][f"{rng}/{period}"][pick.source_id][subject] += 1
+                source[subject] += 1
     for axis, keyed in with_all_axis(counts).items():
         for key, sources in keyed.items():
             rng, period = key.split("/")

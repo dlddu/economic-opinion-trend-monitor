@@ -64,7 +64,7 @@ def test_an_article_counts_once_in_a_window_through_its_latest_observation() -> 
     assert current["A"]["normalized_share"] == 0.5
 
 
-def test_window_shares_weigh_each_source_equally_and_sum_to_one() -> None:
+def test_window_shares_weigh_each_source_by_root_article_count_and_sum_to_one() -> None:
     bronze = [
         _bronze("1", "2026-06-23T10", source="big"),
         _bronze("2", "2026-06-23T11", source="big"),
@@ -78,9 +78,9 @@ def test_window_shares_weigh_each_source_equally_and_sum_to_one() -> None:
     assert {s: r["normalized_share"] for s, r in kr.items()} == {"A": 0.6667, "B": 0.3333}
     every = _rows(rows, ALL_AXIS, "7d", "current")
     assert {s: r["normalized_share"] for s, r in every.items()} == {
-        "A": 0.3333,
-        "B": 0.1667,
-        "C": 0.5,
+        "A": 0.4226,
+        "B": 0.2113,
+        "C": 0.366,
     }
     assert {s: r["raw_count"] for s, r in every.items()} == {"A": 2, "B": 1, "C": 1}
 

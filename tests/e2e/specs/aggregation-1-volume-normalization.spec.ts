@@ -46,14 +46,21 @@ test("aggregation: normalization keeps the inflated source below its naive count
   }
 });
 
-test("aggregation: a subject only the untouched source carries keeps its share", () => {
+test("aggregation: a subject only the untouched source carries is not pushed out in proportion", () => {
   const base = trendOf(subjectTrends(), AXIS, UNTOUCHED);
   const skewed = trendOf(subjectTrends(goldSkewDir()), AXIS, UNTOUCHED);
 
-  // 기대 결과의 뒤 절: "소스 간 격차가 결과를 지배하지 않는다". 한 소스가 축의 건수 대부분을
-  // 차지하게 돼도, 다른 소스만 다루는 대상의 비율은 밀려나지 않는다.
+  // 기대 결과의 뒤 절: "소스 간 격차가 결과를 지배하지 않는다". 소스 가중이 기사 수의 제곱근에
+  // 비례하므로(AC3.1) 부풀린 소스의 무게는 늘지만 건수만큼은 아니다 — 다른 소스만 다루는 대상의
+  // 비율은 줄어들 수는 있어도 건수 점유율이 줄어드는 만큼 밀려나지 않는다.
+  const rowsTotal = (dir?: string) =>
+    trendsOfAxis(subjectTrends(dir), AXIS).reduce((sum, row) => sum + row.raw_count, 0);
+  const naiveRatio = rowsTotal() / rowsTotal(goldSkewDir());
+
   expect(skewed.raw_count).toBe(base.raw_count);
-  expect(skewed.normalized_share).toBeCloseTo(base.normalized_share, 4);
+  const shareRatio = skewed.normalized_share / base.normalized_share;
+  expect(shareRatio).toBeLessThanOrEqual(1);
+  expect(shareRatio).toBeGreaterThan(naiveRatio);
 });
 
 test("aggregation: shares still form a distribution in both states", () => {

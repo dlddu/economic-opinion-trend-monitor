@@ -262,8 +262,8 @@ def test_subject_trend_counts_categories_and_falls_back_to_subjects_without_them
     assert rows == {"반도체": 2, "주식시장": 1, "삼성전자": 1}
 
 
-def test_all_axis_weighs_every_source_equally_across_the_axes() -> None:
-    # kr: A 2/3 · B 1/3, us: C 1 — two sources, each half of ALL.
+def test_all_axis_weighs_every_source_by_root_article_count_across_the_axes() -> None:
+    # kr: A 2/3 · B 1/3 over 3 articles, us: C 1 over 1 — weights √3 : 1.
     bronze = [
         _bronze("1", "KR", "kr"),
         _bronze("2", "KR", "kr"),
@@ -278,9 +278,9 @@ def test_all_axis_weighs_every_source_equally_across_the_axes() -> None:
     ]
     every = {t["subject"]: t for t in build_subject_trends(bronze, silver) if t["axis"] == ALL_AXIS}
     assert {s: t["normalized_share"] for s, t in every.items()} == {
-        "A": 0.3333,
-        "B": 0.1667,
-        "C": 0.5,
+        "A": 0.4226,
+        "B": 0.2113,
+        "C": 0.366,
     }
     assert {s: t["raw_count"] for s, t in every.items()} == {"A": 2, "B": 1, "C": 1}
 
@@ -311,3 +311,38 @@ def test_all_axis_sentiment_tallies_every_axis_together() -> None:
     assert every["distribution"]["positive"] == 0.6667
     assert every["distribution"]["negative"] == 0.3333
     assert every["distribution"]["unanalyzed"] == 0.25
+
+
+def test_share_weights_sources_by_root_article_count_ac31_example() -> None:
+    # AC3.1 example: source A 30 articles (15 semiconductor), source B 2 articles (all rates).
+    # Pooled: 반도체 47% · 금리 6%; equal-source: 25% · 50%; √-weighted: ≈40% · ≈20%.
+    bronze = [_bronze(f"a{i}", "KR", "A") for i in range(30)] + [
+        _bronze(f"b{i}", "KR", "B") for i in range(2)
+    ]
+    silver = [
+        _silver(f"a{i}", ["반도체" if i < 15 else "기타"], "neutral", "analyzed") for i in range(30)
+    ]
+    silver += [_silver(f"b{i}", ["금리"], "neutral", "analyzed") for i in range(2)]
+    rows = {t["subject"]: t for t in build_subject_trends(bronze, silver) if t["axis"] == "KR"}
+    assert rows["반도체"]["normalized_share"] == pytest.approx(0.397, abs=1e-3)
+    assert rows["금리"]["normalized_share"] == pytest.approx(0.205, abs=1e-3)
+    assert rows["반도체"]["raw_count"] == 15
+
+
+def test_a_two_article_source_does_not_swing_the_share() -> None:
+    bronze = [_bronze(f"a{i}", "KR", "A") for i in range(30)]
+    silver = [_silver(f"a{i}", ["반도체"], "neutral", "analyzed") for i in range(30)]
+    base = {
+        t["subject"]: t["normalized_share"]
+        for t in build_subject_trends(bronze, silver)
+        if t["axis"] == "KR"
+    }
+    bronze += [_bronze(f"b{i}", "KR", "B") for i in range(2)]
+    silver += [_silver(f"b{i}", ["금리"], "neutral", "analyzed") for i in range(2)]
+    after = {
+        t["subject"]: t["normalized_share"]
+        for t in build_subject_trends(bronze, silver)
+        if t["axis"] == "KR"
+    }
+    assert base == {"반도체": 1.0}
+    assert after["금리"] < 0.21 and after["반도체"] > 0.79
