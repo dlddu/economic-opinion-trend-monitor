@@ -82,6 +82,10 @@ function axisLabel(axis: AxisScope): string {
   return AXES.find((a) => a.id === axis)?.label ?? axis;
 }
 
+function countText(n: number): string {
+  return `${n.toLocaleString("ko-KR")}건`;
+}
+
 function pct(x: number): string {
   return `${(x * 100).toFixed(1)}%`;
 }
@@ -155,6 +159,8 @@ export function Dashboard() {
   const [reapplying, setReapplying] = useState(false);
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 정규화 전/후 전환(AC3.8) — 보는 방식일 뿐이라 조회 조건에 저장하지 않고 서빙에도 다시 묻지 않는다.
+  const [raw, setRaw] = useState(false);
   const navigate = useNavigate();
 
   useTopbar(
@@ -187,7 +193,9 @@ export function Dashboard() {
   }
 
   const ranked = data?.top_subjects ?? [];
-  const maxShare = Math.max(...ranked.map((r) => r.normalized_share), 0.0001);
+  // 원시 건수로 보면 순위도 건수 순이다 — 서빙의 `rank` 는 정규화 순위다.
+  const listed = raw ? [...ranked].sort((a, b) => b.raw_count - a.raw_count) : ranked;
+  const maxShare = Math.max(...ranked.map((r) => (raw ? r.raw_count : r.normalized_share)), 0.0001);
   const noGold = data !== null && data.basis.bucket === "";
   const emptyWindow = data !== null && !noGold && data.basis.empty_window;
   const hasBaseline = data !== null && data.basis.has_baseline;
@@ -210,7 +218,7 @@ export function Dashboard() {
 
       <div className="grid g-12">
         {/* CMP-metric ×4 */}
-        <Metrics summary={data?.summary ?? null} range={range} />
+        <Metrics summary={data?.summary ?? null} range={range} raw={raw} />
 
         <div className="card col-4">
           <div className="card-h">
@@ -277,19 +285,43 @@ export function Dashboard() {
             <h3>상위 서술 대상</h3>
             <span className="sub">
               {axisLabel(axis)} 축 · {RANGE_LABEL[range]} 누적 · 추이 {UNIT_LABEL[unit]}
+              {axis === "ALL" && " · 세 축 점유율의 균등 평균"}
             </span>
             <div className="r">
-              <span className="norm-flag">▣ 정규화</span>
+              {raw ? (
+                <span className="raw-flag">▢ 원시 건수</span>
+              ) : (
+                <span className="norm-flag">▣ 정규화</span>
+              )}
             </div>
           </div>
           <div className="card-b" style={{ padding: "6px 12px" }}>
             {!data && !error && <div className="dash-brief-empty">불러오는 중…</div>}
             {data && (
               <div className="ranklist">
-                {ranked.map((row) => (
+                <div className="formrow" data-role="norm-toggle" style={{ padding: "6px 4px 10px" }}>
+                  <div className="dash-radios" role="radiogroup" aria-label="세는 방식">
+                    <label>
+                      <input type="radio" name="norm" checked={!raw} onChange={() => setRaw(false)} />{" "}
+                      정규화
+                    </label>
+                    <label>
+                      <input type="radio" name="norm" checked={raw} onChange={() => setRaw(true)} />{" "}
+                      원시 건수
+                    </label>
+                  </div>
+                  <span className="hint" style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                    {raw
+                      ? "기사 수 그대로 센 값입니다 — 많이 쏟아낸 출처가 순위를 끌어올릴 수 있습니다."
+                      : "출처별 기사 수의 제곱근 비례 가중 · 언급 단위 계수"}
+                  </span>
+                </div>
+                {listed.map((row, i) => (
                   <RankRow
                     key={row.subject}
                     row={row}
+                    pos={i + 1}
+                    raw={raw}
                     range={range}
                     maxShare={maxShare}
                     hasBaseline={data.basis.has_baseline}
@@ -426,8 +458,10 @@ export function Dashboard() {
                   <span className="dash-pick-v">{picked.subject}</span>
                 </div>
                 <div className="kv">
-                  <span className="dash-pick-k">점유율</span>
-                  <span className="dash-pick-v">{pct(picked.normalized_share)}</span>
+                  <span className="dash-pick-k">{raw ? "언급 건수" : "점유율"}</span>
+                  <span className="dash-pick-v">
+                    {raw ? countText(picked.raw_count) : pct(picked.normalized_share)}
+                  </span>
                 </div>
                 <div className="kv">
                   <span className="dash-pick-k">직전 동일 구간 대비</span>
@@ -478,16 +512,16 @@ export function Dashboard() {
                   <tr>
                     <th>#</th>
                     <th>대상</th>
-                    <th className="num">{RANGE_LABEL[range]} 점유율</th>
+                    <th className="num">{RANGE_LABEL[range]} {raw ? "원시 건수" : "점유율"}</th>
                     <th className="num">변화</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ranked.map((row) => {
+                  {listed.map((row, i) => {
                     const on = target === row.subject;
                     return (
                       <tr key={row.subject} style={on ? { background: "var(--primary-soft)" } : undefined}>
-                        <td className="num">{row.rank}</td>
+                        <td className="num">{i + 1}</td>
                         <td>
                           {row.subject}
                           {on && (
@@ -497,7 +531,7 @@ export function Dashboard() {
                             </>
                           )}
                         </td>
-                        <td className="num">{pct(row.normalized_share)}</td>
+                        <td className="num">{raw ? countText(row.raw_count) : pct(row.normalized_share)}</td>
                         <td className="num">
                           <span className={`dlt ${hasBaseline ? dcls(row.delta) : "fl"}`}>
                             {dtext(row.delta, hasBaseline)}
@@ -573,7 +607,15 @@ export function Dashboard() {
   );
 }
 
-function Metrics({ summary, range }: { summary: DashSummary | null; range: DashRange }) {
+function Metrics({
+  summary,
+  range,
+  raw,
+}: {
+  summary: DashSummary | null;
+  range: DashRange;
+  raw: boolean;
+}) {
   const collected = summary?.collected ?? null;
   const prev = summary?.collected_prev ?? null;
   let change: { cls: "up" | "dn" | "fl"; text: string } = { cls: "fl", text: "—" };
@@ -617,9 +659,13 @@ function Metrics({ summary, range }: { summary: DashSummary | null; range: DashR
       <div className="card metric col-3">
         <div className="card-b">
           <div className="ml">세는 방식</div>
-          <div className="mv sm">점유율</div>
+          <div className="mv sm">{raw ? "건수" : "점유율"}</div>
           <div className="md">
-            <span className="norm-flag">▣ share-normalized</span>
+            {raw ? (
+              <span className="raw-flag">▢ raw-count</span>
+            ) : (
+              <span className="norm-flag">▣ share-normalized</span>
+            )}
           </div>
         </div>
       </div>
@@ -629,12 +675,16 @@ function Metrics({ summary, range }: { summary: DashSummary | null; range: DashR
 
 function RankRow({
   row,
+  pos,
+  raw,
   range,
   maxShare,
   hasBaseline,
   onOpen,
 }: {
   row: DashRow;
+  pos: number;
+  raw: boolean;
   range: DashRange;
   maxShare: number;
   hasBaseline: boolean;
@@ -648,16 +698,18 @@ function RankRow({
   const cls = hasBaseline ? dcls(row.delta) : "fl";
   return (
     <div className="rankrow" style={{ cursor: "pointer" }} onClick={onOpen}>
-      <div className="rk">{row.rank}</div>
+      <div className="rk">{pos}</div>
       <div className="nm">
         {row.subject}
         {notes.length > 0 && <span className="meta">· {notes.join(" · ")}</span>}
       </div>
       <div className="share">
         <div className="bar">
-          <i style={{ width: pct(row.normalized_share / maxShare) }} />
+          <i style={{ width: pct((raw ? row.raw_count : row.normalized_share) / maxShare) }} />
         </div>
-        <span className="pct">{pct(row.normalized_share)}</span>
+        <span className="pct" style={{ width: raw ? 56 : 42 }}>
+          {raw ? countText(row.raw_count) : pct(row.normalized_share)}
+        </span>
       </div>
       <Spark values={row.spark} color={SPARK_COLOR[cls]} />
       <div className={`dlt ${cls}`}>{dtext(row.delta, hasBaseline)}</div>
