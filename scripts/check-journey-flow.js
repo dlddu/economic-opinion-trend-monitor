@@ -96,6 +96,7 @@ function discover() {
   return found;
 }
 
+let PAGES = [];
 async function runJourney({ jid, file }, idxMd) {
   console.log(`\n${'='.repeat(72)}\n여정 페이지: ${file}  →  ${jid}\n${'='.repeat(72)}`);
 
@@ -276,6 +277,11 @@ async function runJourney({ jid, file }, idxMd) {
       } else {
         const href = a.getAttribute('href');
         const target = path.join(path.dirname(PAGE), href.split('#')[0]);
+        if (!PAGES.some(p => p.jid === b.journey)) {
+          is(href, `../reader.html?doc=user-journeys/${b.journey}.md#${b.step}`,
+            `(g) 타 여정 분기 → 페이지가 없는 ${b.journey} 는 그 문서의 단계 #${b.step} 에 착지`);
+          return;
+        }
         is(fs.existsSync(target), true, `(g) 타 여정 분기 → 착지 파일 ${href} 실재`);
         is(href.split('#')[1], b.step, `(g) 타 여정 분기 → href 앵커가 착지 단계 #${b.step}`);
         if (fs.existsSync(target)) {
@@ -353,6 +359,7 @@ async function runJourney({ jid, file }, idxMd) {
 (async function main() {
   const idxMd = fs.readFileSync(IDX, 'utf8');
   const pages = discover();
+  PAGES = pages;
   if (!pages.length) {
     console.log('FAIL — docs/mockups 에 data-journey 를 선언한 여정 페이지가 하나도 없다');
     process.exit(1);

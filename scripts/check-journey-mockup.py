@@ -282,7 +282,11 @@ for jid, fn in sorted(declared.items()):
             # 상대 여정의 1단계로 떨어지는 링크를 게이트가 통과시킨다.
             path, _, frag = href.partition("#")
             target = os.path.join(MDIR, path)
-            if not os.path.exists(target):
+            if tj not in declared:
+                if href != f"../reader.html?doc=user-journeys/{tj}.md#{ts}":
+                    fail("R4", f"{fn}: 페이지가 없는 여정 `{tj}` 로의 분기는 그 여정 문서의 단계 "
+                               f"`../reader.html?doc=user-journeys/{tj}.md#{ts}` 에 착지해야 한다 — {href}")
+            elif not os.path.exists(target):
                 fail("R4", f"{fn}: 분기 착지 파일 {path} 가 없다")
             elif frag:
                 with open(target, encoding="utf-8") as tf:

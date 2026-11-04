@@ -58,6 +58,7 @@
 | `JRN-axis-contrast` | `docs/mockups/JRN-axis-contrast.html` | `compare` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` |
 | `JRN-spike-verification` | `docs/mockups/JRN-spike-verification.html` | `fairness`, `trace` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` |
 | `JRN-daily-scan` | `docs/mockups/JRN-daily-scan.html` | `dash`, `trend` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` |
+| `JRN-subject-share` | `docs/mockups/JRN-subject-share.html` | (없음 — `dash` 를 `JRN-daily-scan` 과 공유) | `STP-set-scope`, `STP-scan-ranking`, `STP-toggle-raw`, `STP-pick-subject` |
 | `JRN-ingestion-recovery` | `docs/mockups/JRN-ingestion-recovery.html` | (없음 — 단계는 라우트 없는 화면 `integrity`) | `STP-spot-anomaly`, `STP-locate-gap`, `STP-diagnose-source`, `STP-backfill`, `STP-verify-integrity` |
 | `JRN-logic-backfill` | `docs/mockups/JRN-logic-backfill.html` | `reprocess` | `STP-scope-range`, `STP-dry-run`, `STP-run-reprocess`, `STP-compare-before-after`, `STP-publish` |
 | `JRN-judgment-debug` | `docs/mockups/JRN-judgment-debug.html` | (없음) | `STP-pin-record`, `STP-read-exchange`, `STP-check-input`, `STP-scan-run`, `STP-route-cause` |
@@ -99,6 +100,18 @@
 | `STP-scan-delta` | `dash` | 직전 동일 구간 대비 증감(`CMP-delta`) 훑기. 이 단계의 표면은 아직 구현에 없고, 그 구현 편차는 설계 트래커 「목업 ↔ 구현 편차 허용목록」의 `STP-scan-delta` 행들이 대조한다 |
 | `STP-adjust-window` | `dash` | 기간·단위 조정. 화면 단위 목업이 쓰던 `class="seg"` 의사 컨트롤은 여정 페이지에서 실제 `<select>`·`<input type=radio>`로 대체됐다(규칙 5(d)) — 화면 귀속은 그대로 `dash`다. 폼과 폼 밖 표면의 구현 편차는 설계 트래커 허용목록의 `STP-adjust-window` 행들이 대조한다 |
 | `STP-drill-trend` | `trend` | 이 여정 맥락의 추세 상세(라인 차트 + 상위 대상 비교 표). 화면 2에서 넘어갈 때 **고른 대상과 축·기간을 그대로 승계**하는 것은 `dash`가 넘겨줘야 하는 계약이다 |
+
+| 단계 | 화면 id | 비고 |
+|---|---|---|
+| `STP-set-scope` | `dash` | 조회 조건 카드(축·기간·집계 단위) — `JRN-daily-scan` 의 `STP-open-brief`·`STP-adjust-window` 가 그리던 같은 화면. 「전체」 축은 세 축 점유율의 균등 평균임을 카드의 기준 표기 한 줄로 밝힌다 |
+| `STP-scan-ranking` | `dash` | 상위 서술 대상 순위와 직전 동일 구간 대비 증감 — `JRN-daily-scan` 의 `STP-scan-delta` 와 같은 화면. 순위 행을 누르면 그 대상을 고른다 |
+| `STP-toggle-raw` | `dash` | 순위 목록 머리의 정규화 전/후 라디오(AC3.8). 이 표면은 아직 구현에 없다 — 구현은 정규화 값만 그린다. 전환해도 고른 대상 하이라이트와 조회 조건이 유지되고 값 옆 표기(`▣ 정규화` ↔ `▢ 원시 건수`)가 바뀐다. 정규화 방식(출처별 기사 수의 제곱근 비례 가중)은 한 줄로 노출한다 |
+| `STP-pick-subject` | `dash` | 고른 대상 카드의 세 갈래 진입(분위기·원문·추세)과 기간 순위 카드의 비교 진입(출처별·축별). 이 갈래들이 닿을 여정 페이지는 아직 없어 링크가 상대 여정 **문서**의 선언된 단계에 착지한다 |
+
+> **`dash` 는 이제 두 여정 페이지가 같은 구조로 그린다**(`JRN-daily-scan` · `JRN-subject-share`, 그리고 `JRN-spike-verification` 의 첫 단계).
+> `JRN-subject-share` 가 더한 정적 요소(고른 대상 카드의 `pick-entries` 세 링크, 기간 순위 카드의 `source-go`)는 R14 의
+> 「같은 화면은 같은 구조」 때문에 세 페이지의 `dash` 기본 화면에 같은 모양으로 들어 있다 — 폐기 상태인 두 옛 페이지에서는
+> 숨겨져 있고(`hidden`) 어느 단계에서도 열리지 않는다. 옛 페이지가 걷히는 PR 에서 이 숨김 요소도 함께 사라진다.
 
 | 단계 | 화면 id | 비고 |
 |---|---|---|
@@ -163,7 +176,7 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 선언하지 않으면 그 표면은 **어느 화면의 모집단에도 들어가지 않아** 판정면 밖에 영구히 남는다(설계 트래커의
 `JRN-spike-verification` 등재 인용 블록이 실측한 상태다).
 
-**규칙 1 미충족 여정 상한: 6** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 처음 0 이 됐고, 2026-09-24 `JRN-judgment-debug` 여정 문서가 페이지보다 먼저 들어와 잠시 1 이었다가 같은 날 그 여정 페이지가 착지해 다시 0 이 됐다. **2026-11-02 관찰자 여정 재편으로 6 이 됐다** — 기능 중심 새 여정 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)가 페이지 없이 들어왔고, 대체된 네 여정은 폐기 상태로 문서·페이지를 남겨 두었다(운영 여정 페이지의 좌측 네비·분기가 아직 그 페이지를 가리킨다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 새 여정 페이지가 하나 착지할 때마다 이 값을 하나 낮춘다.
+**규칙 1 미충족 여정 상한: 5** — 아직 여정 페이지가 없고 예외 등재도 없는 여정의 수다. 2026-09-19 `JRN-logic-backfill` 이관으로 처음 0 이 됐고, 2026-09-24 `JRN-judgment-debug` 여정 문서가 페이지보다 먼저 들어와 잠시 1 이었다가 같은 날 그 여정 페이지가 착지해 다시 0 이 됐다. **2026-11-02 관찰자 여정 재편으로 6 이 됐다** — 기능 중심 새 여정 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)가 페이지 없이 들어왔고, 대체된 네 여정은 폐기 상태로 문서·페이지를 남겨 두었다(운영 여정 페이지의 좌측 네비·분기가 아직 그 페이지를 가리킨다). `scripts/check-journey-mockup.py` 가 이 값을 상한으로 읽는다 — 실측이 넘으면 실패하고, 밑돌면 이 값을 낮추라고 실패한다(래칫). 새 여정 페이지가 하나 착지할 때마다 이 값을 하나 낮춘다. **2026-11-04 `JRN-subject-share` 페이지 착지로 6 → 5.**
 
 **규칙 5 미충족 mockup 페이지 상한: 0** — 개정된 규칙 5(프로토타입 충실도 (a)~(h))를 아직 충족하지
 않는 mockup 페이지의 수다. 화면 단위 스냅샷은 여정 워크스루가 아니라 (a)(c)(e)를 구조적으로 만족할 수
@@ -253,6 +266,47 @@ rct_20260928-0003이 정정했다. 설계 트래커 「등재된 편차」의 �
 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 단계 2·3 에 있고, 「여정 끝」 표지를 단다. §4 4행(중도 이탈 —
 목록만 보고 종료)은 그 상황이 생기는 단계 3 의 「목록만 보고 닫기」 컨트롤이다(전에는 단계 4 에 있어 정상 종료와
 섞였다). 정상 종료는 단계 4 의 「여정 끝 · 여정 완료」 표지다.
+
+#### `JRN-subject-share`
+
+| 단계 | 화면 id | 근거 |
+|---|---|---|
+| `STP-set-scope` | `dash` | AC3.3 · AC3.4 · `Dashboard.tsx` (조회 조건 카드 — 축 · 기간 · 집계 단위 · 마지막 조회 조건 복원) |
+| `STP-scan-ranking` | `dash` | AC3.2 · AC3.3 · `Dashboard.tsx` (지표 카드 · 상위 서술 대상 순위 · 직전 동일 구간 대비 증감 · 스파크라인) |
+| `STP-toggle-raw` | `dash` | AC3.8 · 같은 화면 — 순위 목록 머리의 정규화 전/후 전환과 값 옆 표기 (구현에는 아직 없다: 「가정」 이 아니라 PRD 가 요구하는 표면) |
+| `STP-pick-subject` | `dash` | 여정 문서 §3 `STP-pick-subject` 의 세 갈래 진입 · §4 분기 · AC3.8 (조건 승계) · `Dashboard.tsx` (고른 대상 · 기간 순위) |
+
+| 상태 id | 단계 | 화면 id | 방식 | 상태 | 근거 | 도달 경로 |
+|---|---|---|---|---|---|---|
+| `loading` | `STP-set-scope` | `dash` | 화면 교체 | 첫 진입 — 카드 골격은 그대로, 값은 「—」, 목록은 「불러오는 중…」 | `Dashboard.tsx` (`!data && !error`) | 딥링크 `#STP-set-scope/loading` |
+| `api-error` | `STP-set-scope` | `dash` | 얹힘 | 서빙 응답 실패 — 화면 위에 「API 오류」 안내 | `Dashboard.tsx` (`error`) | 딥링크 `#STP-set-scope/api-error` |
+| `no-gold` | `STP-set-scope` | `dash` | 얹힘 | Gold 가 아직 없음 — 「데이터 없음 — 배치 파이프라인을 먼저 실행하세요.」 | `Dashboard.tsx` (`noGold`) | 딥링크 `#STP-set-scope/no-gold` |
+| `empty-window` | `STP-set-scope` | `dash` | 얹힘 | 수집이 비어 있는 축 — 0 이 아니라 「데이터 없음」, 마지막 정상 수집 시각, 조회 조건으로 돌아가기 | 여정 문서 §4 6행 · `Dashboard.tsx` (`emptyWindow`) | 조회 조건 카드의 축을 「전세계」로 |
+| `reloading` | `STP-set-scope` | `dash` | 얹힘 | 기간·단위를 바꾼 직후 재집계 — 「고른 조건으로 다시 집계하는 중…」 | AC3.3 (고르는 즉시 반영) · `Dashboard.tsx` (`reapplying`) | 기간이나 단위를 바꾼다 |
+| `no-rank` | `STP-set-scope` | `dash` | 얹힘 | 이 기간 순위 0건 — 「이 축에는 이 기간에 표시할 대상이 없습니다.」 | `Dashboard.tsx` (`top_subjects.length === 0`) | 축을 「전세계」로 |
+| `no-selection` | `STP-scan-ranking` | `dash` | 얹힘 | 대상 미선택 — 고른 대상 카드가 비어 있음 | `Dashboard.tsx` (`data-state="no-selection"`) | 단계 2 진입 직후 |
+| `no-change` | `STP-scan-ranking` | `dash` | 얹힘 | 변화 0건 — 「이 조건에 걸리는 변화가 없습니다.」 | `Dashboard.tsx` (`deltaRows.length === 0`) | 증감 임계를 10 으로 |
+| `no-baseline` | `STP-scan-ranking` | `dash` | 얹힘 | 직전 동일 구간이 없음 — 증감 칸을 0 이 아니라 「—」 | AC3.3 · `Dashboard.tsx` (`has_baseline` 거짓 → `dtext` 「—」) | 딥링크 `#STP-scan-ranking/no-baseline` |
+| `pick-axis` | `STP-scan-ranking` | `dash` | 얹힘 | 「전체」 축 — 급등 확인으로 넘어가려면 축을 하나 골라야 한다는 안내 | `Dashboard.tsx` (`PICK_ONE_AXIS`) | 조회 조건 카드의 축을 「전체」로 |
+
+**의도적 제외**
+- `dash` 「튀는 값」 카드의 자기 상태(빈 축 · 평소 기준 없음 · 로딩 · 오류)는 이 여정에서 그리지 않는다 — 그 카드는
+  `JRN-spike-verification` 의 첫 단계(`STP-notice-spike`)이고 상태는 그 여정 페이지가 등재한다. 이 페이지의 `dash`
+  에서도 카드 자체(구조)는 그린다.
+- 정규화 전/후 전환의 「원시 건수」 보기는 상태가 아니라 **같은 화면의 표시 모드**라 `data-state` 로 등재하지 않는다 —
+  `STP-toggle-raw` 의 라디오로 도달하고 하네스 시나리오가 값(`%` ↔ `건`)·표기(`norm-flag` ↔ `raw-flag`)·고른 대상 하이라이트
+  유지를 단언한다.
+- 변화 카드(`%p` 증감)와 「튀는 값」 카드는 원시 건수 보기에서도 바뀌지 않는다 — AC3.8 이 전환을 요구하는 것은
+  「대상 비율」 순위와 값이고, 변화 카드의 임계는 점유율 변화량(%p)에 대한 입력이다.
+- `dash` 의 `<details>` 문서 메타와 mapstrip — 문서 메타라 제품 평면이 아니라 이 페이지의 메타 레이어에 둔다.
+- 「마지막 조회 조건으로 열기」 의 복원 동작(다음 진입에서 조건이 돌아옴)은 세션을 넘는 동작이라 프로토타입 안에서
+  재현하지 않는다 — 체크박스는 그린다.
+
+여정 문서 §4 1~5행(분위기·원문·추세·출처별·축별)은 이 여정을 벗어나는 인계라 상태가 아니라 **이탈 컨트롤**로 단계 4 에
+있고 「여정 끝」 표지를 단다. 그 다섯 여정은 아직 페이지가 없어 링크가 상대 여정 **문서**의 선언된 단계에 착지한다
+(`scripts/check-journey-mockup.py` R4 · 하네스 (g) 가 그 규칙을 집행한다 — 상대 페이지가 착지하면 페이지 앵커로 바꿔야 통과한다).
+§4 6행(수집이 비어 있음)의 「데이터 없음」 표시는 `empty-window` 상태이고, 조회 조건으로 돌아가는 이동은 단계 4 의
+행동 줄 컨트롤이 `STP-set-scope` 로 보낸다. §4 7행(중도 이탈 — 순위만 보고 종료)은 같은 줄의 「순위만 보고 닫기」다.
 
 #### `JRN-sentiment-shift`
 
@@ -771,6 +825,7 @@ DOM 순서가 함께 맞는다. 같은 화면이 다섯 단계에 있으므로 �
 | 여정 | 단계 | 화면 | 상태 |
 |------|------|------|------|
 | `JRN-daily-scan` | `STP-open-brief`, `STP-scan-delta`, `STP-adjust-window`, `STP-drill-trend` | `JRN-daily-scan.html` (여정 페이지) | 🟢 |
+| `JRN-subject-share` | `STP-set-scope`, `STP-scan-ranking`, `STP-toggle-raw`, `STP-pick-subject` | `JRN-subject-share.html` (여정 페이지) | 🟢 |
 | `JRN-spike-verification` | `STP-notice-spike`, `STP-check-normalized`, `STP-inspect-sources`, `STP-drilldown-articles`, `STP-open-origin`, `STP-judge` | `JRN-spike-verification.html` (여정 페이지) | 🟢 |
 | `JRN-axis-contrast` | `STP-open-compare`, `STP-scan-axis-tops`, `STP-disambiguate-axis`, `STP-pick-outlier`, `STP-verify-in-trend` | `JRN-axis-contrast.html` (여정 페이지) | 🟢 |
 | `JRN-sentiment-shift` | `STP-open-sentiment`, `STP-check-unanalyzed`, `STP-overlay-time`, `STP-confirm-cause` | `JRN-sentiment-shift.html` (여정 페이지) | 🟢 |
@@ -790,7 +845,7 @@ DOM 순서가 함께 맞는다. 같은 화면이 다섯 단계에 있으므로 �
 | V5 원문 추적·재처리 | `JRN-spike-verification`, `JRN-ingestion-recovery`, `JRN-logic-backfill`, `JRN-judgment-debug` |
 
 ## 알려진 정제 항목 (mockup 한정)
-- **여정↔mockup 1:1 이관 — 옛 일곱 여정은 2026-09-24 완료, 2026-11-02 재편 후 여정 페이지 보유 7/13**: 재편 전 일곱 여정 전부가 여정 페이지를 갖고(2026-09-24 신설 `JRN-judgment-debug` 는 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
+- **여정↔mockup 1:1 이관 — 옛 일곱 여정은 2026-09-24 완료, 2026-11-02 재편 후 여정 페이지 보유 8/13**: 재편 전 일곱 여정 전부가 여정 페이지를 갖고(2026-09-24 신설 `JRN-judgment-debug` 는 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 0개다(진입 리다이렉트 `index.html` 만 남는다). 이관 순서는 **화면 소유가 배타적인 여정부터**였다 — `sentiment`·`compare` 는 각각 그 여정 전용, `trace` 는 `JRN-spike-verification` 단독 소유, `fairness` 는 그 여정이 3단계의 주 터치포인트로 쓰고 나머지 1건은 `JRN-sentiment-shift` 의 보조 참조뿐, `dash`·`trend` 는 `JRN-daily-scan` 단독 소유였고, **두 운영 여정이 공유한 `reprocess` 가 마지막**이었다. 공유 화면이라 규약대로 **그 화면을 쓰는 여정이 전부 이관될 때** 흡수·삭제했다 — 2026-09-19 `JRN-logic-backfill` 이관이 그 시점이고, 같은 슬라이스가 마지막 🔴 미시각화 2건(`STP-dry-run`·`STP-publish`)의 제품 범위를 확정해 화면으로 그렸다. 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 함께 0 으로 내려갔다.
 - **`STP-pick-outlier` 클릭 동선**: 해소됨(2026-08-31). 여정 페이지의 격차 후보 행을 클릭하면 선택 대상을 유지한 채 `STP-verify-in-trend` 상세로 전진한다.
 - **미시각화 단계 0개**: 2026-09-24 신설 `JRN-judgment-debug` 의 다섯 단계는 같은 날 여정 페이지로 해소됐다. 그 이전의 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다. 둘 다 「제품에 둘 것인지」가 선행 판단이었고 이 슬라이스가 **둔다**로 확정했다 — 표본 실행은 전량 실행의 관문(표본이 의도와 어긋나면 전량이 잠긴다)으로, 반영·롤백은 근거를 함께 적는 결정 기록으로 그렸다. 결정의 영속화(재처리 이력·소비자 화면 주석)는 여정 문서가 파킹한 백로그 그대로다. 앞선 해소: `STP-backfill` 은 `JRN-ingestion-recovery` 이관(2026-09-19), `STP-shortlist` 는 `JRN-daily-scan` 이관(2026-09-18). 🟠 부분 시각화였던 `STP-diagnose-source`·`STP-verify-integrity` 도 같은 흐름에서 닫혔다.
 - **`STP-judge` 판정 화면**: 해소됨(2026-09-18). 여정 페이지가 앞 단계에서 모은 근거를 요약하고 「유효한 신호」/「수집 편중」 두 갈래로 세션을 닫는 화면을 갖는다. 여정 문서가 이 단계의 페인포인트로 적은 **「검증 이력·플래그 남기기」는 문서 자신이 「현재 범위 밖, 백로그 후보」로 파킹**한 항목이라 이 슬라이스에서 만들지 않았다 — 판정은 세션 안에서만 유지된다(「상태 변형 등재」의 `recorded` 행 참조).
