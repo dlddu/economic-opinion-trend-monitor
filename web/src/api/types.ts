@@ -195,6 +195,8 @@ export interface ContributionRow {
 export interface ContributionSource {
   source_id: string;
   listed: number;
+  raw_share: number;
+  normalized_contribution: number;
 }
 
 export interface ContributionsResponse {
@@ -210,6 +212,7 @@ export interface ContributionsResponse {
     analyzer_version: string;
   };
   sources: ContributionSource[];
+  concentration: { top_source_id: string; top_share: number; source_count: number };
   rows: ContributionRow[];
 }
 

@@ -93,7 +93,7 @@ func writeContributionLake(t *testing.T, dir string) {
 	if err := os.MkdirAll(gold, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for name, content := range map[string]string{"subject_trend": contribGold, "article_pick": contribPicks} {
+	for name, content := range map[string]string{"subject_trend": contribGold, "article_pick": contribPicks, "subject_source_contribution": contribSourceGold} {
 		if err := os.WriteFile(filepath.Join(gold, name+".jsonl"), []byte(content+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -430,5 +430,44 @@ func TestContributionsWaitForAnIndexBuiltWithThePicks(t *testing.T) {
 
 	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "index_not_ready") {
 		t.Fatalf("a lake never aggregated with picks must read as not ready, got %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestContributionsSourceCompositionSummaryComesFromGold(t *testing.T) {
+	dir := t.TempDir()
+	writeContributionLake(t, dir)
+
+	got := getContributions(t, dir, "?axis=KR&subject="+url.QueryEscape(contribSubject)+"&unit=hour&time_bucket="+contribBucket)
+	want := map[string]contributionSource{
+		"kr_wire":  {SourceID: "kr_wire", Listed: 3, RawShare: 0.75, NormalizedContribution: 0.5},
+		"kr_daily": {SourceID: "kr_daily", Listed: 1, RawShare: 0.25, NormalizedContribution: 0.1667},
+	}
+	if len(got.Sources) != len(want) {
+		t.Fatalf("sources = %+v", got.Sources)
+	}
+	var contribution float64
+	for _, src := range got.Sources {
+		if src != want[src.SourceID] {
+			t.Errorf("%s = %+v, want %+v", src.SourceID, src, want[src.SourceID])
+		}
+		contribution += src.NormalizedContribution
+	}
+	if roundTo4(contribution) != 0.6667 {
+		t.Errorf("contribution sum = %v, want the subject's normalized share 0.6667", contribution)
+	}
+	if got.Concentration.TopSourceID != "kr_wire" || got.Concentration.TopShare != 0.75 || got.Concentration.SourceCount != 2 {
+		t.Errorf("concentration = %+v", got.Concentration)
+	}
+}
+
+func TestContributionsConcentrationIgnoresTheSourceFilter(t *testing.T) {
+	dir := t.TempDir()
+	writeContributionLake(t, dir)
+
+	q := "?axis=KR&subject=" + url.QueryEscape(contribSubject) + "&unit=hour&time_bucket=" + contribBucket
+	whole := getContributions(t, dir, q)
+	narrowed := getContributions(t, dir, q+"&source=kr_daily")
+	if whole.Concentration != narrowed.Concentration {
+		t.Errorf("filter moved the summary: %+v != %+v", narrowed.Concentration, whole.Concentration)
 	}
 }
