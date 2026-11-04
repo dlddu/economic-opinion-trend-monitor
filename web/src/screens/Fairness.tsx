@@ -427,6 +427,10 @@ export function Fairness() {
 
                   {split && split.rows.length > 0 && (
                     <>
+                      <p className="src-lede" data-testid="src-weight">
+                        기여 비중은 구간마다 그 소스의 기사 수의 제곱근으로 가중해 평균한 결과라 건수 비율과 다릅니다.
+                        수집원을 누르면 아래 기여 뉴스가 그 수집원 기사만 남습니다.
+                      </p>
                       <div className="src-list">
                         <div className="src-row src-hd">
                           <span>수집원</span>
@@ -440,7 +444,17 @@ export function Fairness() {
                             key={row.source_id}
                             data-testid={`src-row-${row.source_id}`}
                           >
-                            <span className="mono">{row.source_id}</span>
+                            <span className="mono">
+                              <button
+                                type="button"
+                                className={`art-pick${source === row.source_id ? " on" : ""}`}
+                                aria-pressed={source === row.source_id}
+                                data-testid={`src-pick-${row.source_id}`}
+                                onClick={() => setSource(source === row.source_id ? ALL_SOURCES : row.source_id)}
+                              >
+                                {row.source_id}
+                              </button>
+                            </span>
                             <span className="mono">{row.raw_count}건</span>
                             <span className="mono src-raw">{pct(row.raw_share)}</span>
                             <span className="mono src-norm">{pct(row.normalized_contribution)}</span>
@@ -512,6 +526,16 @@ export function Fairness() {
               </div>
             </div>
             <div className="card-b">
+              {source !== ALL_SOURCES && (
+                <div className="note art-active" data-testid="art-active-filter">
+                  <div>
+                    <b>적용 중 필터:</b> 수집원 <span className="mono">{source}</span> · {articles.length}건만 보입니다.{" "}
+                    <button type="button" className="btn sm" onClick={() => setSource(ALL_SOURCES)}>
+                      필터 해제
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="formrow art-filters">
                 <label className="fld art-src">
                   <span className="fl">수집원으로 좁히기</span>
