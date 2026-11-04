@@ -226,27 +226,42 @@ def build_subject_trends(
     return list(subject_trends(count_by_source(bronze, silver, unit), unit))
 
 
-def with_all_axis(counts: Counts) -> Counts:
-    """``counts`` plus an ``ALL`` axis holding every axis's sources in one bucket.
+Folded = dict[str, tuple[float, int]]
 
-    Folding that bucket weighs each source by the square root of its article count across
-    all axes, as one axis weighs its own (AC3.1).
+
+def with_all_axis(folded: dict[str, dict[str, Folded]]) -> dict[str, dict[str, Folded]]:
+    """``folded[axis][bucket]`` plus an ``ALL`` axis: the axes' folded shares, equally weighted.
+
+    An axis with no subjects in a bucket drops out of that bucket's mean, so the rest split
+    the weight evenly; a subject an included axis lacks counts 0 there (AC3.4).
     """
-    every: dict[str, dict[str, SourceCounts]] = defaultdict(lambda: defaultdict(SourceCounts))
-    for buckets in counts.values():
-        for bucket, sources in buckets.items():
-            for source, subject_counts in sources.items():
-                every[bucket][source].merge(subject_counts)
-    return {**counts, ALL_AXIS: every} if every else counts
+    every: dict[str, Folded] = defaultdict(dict)
+    buckets = {bucket for by_bucket in folded.values() for bucket in by_bucket}
+    for bucket in buckets:
+        axes = [by_bucket[bucket] for by_bucket in folded.values() if by_bucket.get(bucket)]
+        if not axes:
+            continue
+        subjects = {subject for rows in axes for subject in rows}
+        every[bucket] = {
+            subject: (
+                round(sum(rows.get(subject, (0.0, 0))[0] for rows in axes) / len(axes), 4),
+                sum(rows.get(subject, (0.0, 0))[1] for rows in axes),
+            )
+            for subject in subjects
+        }
+    return {**folded, ALL_AXIS: every} if every else folded
 
 
 def subject_trends(counts: Counts, unit: str) -> Iterator[dict]:
     # shares[axis][bucket][subject] -> (normalized_share, raw_count). Built in
     # full before any row is emitted: delta/spark need the neighbouring buckets.
     shares: dict[str, dict[str, dict[str, tuple[float, int]]]] = defaultdict(dict)
-    for axis, buckets in with_all_axis(counts).items():
-        for bucket, sources in buckets.items():
-            shares[axis][bucket] = fold_bucket(sources)[0]
+    folded = {
+        axis: {bucket: fold_bucket(sources)[0] for bucket, sources in buckets.items()}
+        for axis, buckets in counts.items()
+    }
+    for axis, buckets in with_all_axis(folded).items():
+        shares[axis] = buckets
 
     for axis, buckets in shares.items():
         ordered = sorted(buckets)
@@ -396,11 +411,14 @@ def subject_windows(windows: Windows) -> Iterator[dict]:
             source.articles += 1
             for subject in pick.keys:
                 source[subject] += 1
-    for axis, keyed in with_all_axis(counts).items():
-        for key, sources in keyed.items():
+    folded_axes = {
+        axis: {key: fold_bucket(sources)[0] for key, sources in keyed.items()}
+        for axis, keyed in counts.items()
+    }
+    for axis, keyed in with_all_axis(folded_axes).items():
+        for key, folded in keyed.items():
             rng, period = key.split("/")
             start, end = windows.bounds[(rng, period)]
-            folded = fold_bucket(sources)[0]
             for subject, (normalized, raw) in sorted(
                 folded.items(), key=lambda kv: kv[1][0], reverse=True
             ):

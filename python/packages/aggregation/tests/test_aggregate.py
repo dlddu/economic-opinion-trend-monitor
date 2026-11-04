@@ -262,8 +262,9 @@ def test_subject_trend_counts_categories_and_falls_back_to_subjects_without_them
     assert rows == {"반도체": 2, "주식시장": 1, "삼성전자": 1}
 
 
-def test_all_axis_weighs_every_source_by_root_article_count_across_the_axes() -> None:
-    # kr: A 2/3 · B 1/3 over 3 articles, us: C 1 over 1 — weights √3 : 1.
+def test_all_axis_is_the_equal_mean_of_the_axis_shares() -> None:
+    # kr: A 2/3 · B 1/3 over 3 articles, us: C 1 over 1 — each axis weighs 1/2, however many
+    # articles it holds.
     bronze = [
         _bronze("1", "KR", "kr"),
         _bronze("2", "KR", "kr"),
@@ -278,11 +279,33 @@ def test_all_axis_weighs_every_source_by_root_article_count_across_the_axes() ->
     ]
     every = {t["subject"]: t for t in build_subject_trends(bronze, silver) if t["axis"] == ALL_AXIS}
     assert {s: t["normalized_share"] for s, t in every.items()} == {
-        "A": 0.4226,
-        "B": 0.2113,
-        "C": 0.366,
+        "A": pytest.approx(0.3333, abs=2e-4),
+        "B": pytest.approx(0.1667, abs=2e-4),
+        "C": 0.5,
     }
     assert {s: t["raw_count"] for s, t in every.items()} == {"A": 2, "B": 1, "C": 1}
+
+
+def test_all_axis_leaves_out_an_axis_with_no_data_in_the_bucket() -> None:
+    # US reports only in the second hour: the first hour's ALL is KR alone, the second splits
+    # 1/2 · 1/2 between KR and US.
+    bronze = [
+        _bronze("1", "KR", "kr", hour=10),
+        _bronze("2", "KR", "kr", hour=11),
+        _bronze("3", "US", "us", hour=11),
+    ]
+    silver = [
+        _silver("1", ["A"], "neutral", "analyzed"),
+        _silver("2", ["A"], "neutral", "analyzed"),
+        _silver("3", ["B"], "neutral", "analyzed"),
+    ]
+    rows = [t for t in build_subject_trends(bronze, silver) if t["axis"] == ALL_AXIS]
+    by_bucket = {(t["time_bucket"], t["subject"]): t["normalized_share"] for t in rows}
+    assert by_bucket == {
+        ("2026-06-23T10", "A"): 1.0,
+        ("2026-06-23T11", "A"): 0.5,
+        ("2026-06-23T11", "B"): 0.5,
+    }
 
 
 def test_all_axis_rows_follow_the_source_axes() -> None:
