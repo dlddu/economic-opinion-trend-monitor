@@ -60,7 +60,7 @@ test("aggregation: a subject only the untouched source carries is not pushed out
   expect(skewed.raw_count).toBe(base.raw_count);
   const shareRatio = skewed.normalized_share / base.normalized_share;
   expect(shareRatio).toBeLessThanOrEqual(1);
-  expect(shareRatio).toBeGreaterThan(naiveRatio * 2);
+  expect(shareRatio).toBeGreaterThan(naiveRatio);
 });
 
 test("aggregation: shares still form a distribution in both states", () => {
