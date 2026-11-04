@@ -402,3 +402,21 @@ it("offers no spike check from the all-axes view", async () => {
   await waitFor(() => expect(container.querySelector(".trend-side .metric")).not.toBeNull());
   expect(container.querySelector(".trend-spike-exit")).toBeNull();
 });
+
+it("re-asks the API with the unit the reader picks and keeps the radios while it reloads", async () => {
+  const urls = stubTrend([response()]);
+  const { container } = renderTrend();
+
+  await waitFor(() => expect(container.querySelector('[data-role="tr-unit"]')).not.toBeNull());
+  expect(urls[0]).not.toContain("unit=");
+  const radios = () => Array.from(container.querySelectorAll<HTMLInputElement>('input[name="tr-unit"]'));
+  expect(radios().map((r) => r.value)).toEqual(["hour", "day", "week"]);
+  expect(radios().find((r) => r.checked)?.value).toBe("hour");
+
+  fireEvent.click(radios().find((r) => r.value === "week")!);
+
+  await waitFor(() => expect(urls).toHaveLength(2));
+  expect(urls[1]).toContain("unit=week");
+  await waitFor(() => expect(container.querySelector('[data-role="tr-reloading"]')).toBeNull());
+  expect(container.querySelector('[data-role="tr-plot"]')).not.toBeNull();
+});

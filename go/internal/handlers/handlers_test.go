@@ -362,6 +362,36 @@ func TestTrendPicksFinestUnitWhenCoarserRowsComeFirst(t *testing.T) {
 	}
 }
 
+func TestTrendHonoursRequestedUnitAndFallsBack(t *testing.T) {
+	dir := t.TempDir()
+	gold := filepath.Join(dir, "gold")
+	if err := os.MkdirAll(gold, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rows := `{"subject":"기준금리","axis":"KR","bucket_unit":"week","time_bucket":"2026-W26","raw_count":20,"normalized_share":0.9,"delta":0.0,"spark":[0.9]}
+{"subject":"기준금리","axis":"KR","bucket_unit":"day","time_bucket":"2026-06-23","raw_count":12,"normalized_share":0.8,"delta":0.0,"spark":[0.8]}
+{"subject":"기준금리","axis":"KR","bucket_unit":"hour","time_bucket":"2026-06-23T14","raw_count":10,"normalized_share":0.5,"delta":0.0,"spark":[0.5]}`
+	if err := os.WriteFile(filepath.Join(gold, "subject_trend.jsonl"), []byte(rows+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	for query, want := range map[string]string{
+		"?axis=KR&unit=day":   "day",
+		"?axis=KR&unit=week":  "week",
+		"?axis=KR&unit=hour":  "hour",
+		"?axis=KR&unit=bogus": "hour",
+		"?axis=KR":            "hour",
+	} {
+		if got := getTrend(t, dir, query); got.Basis.BucketUnit != want {
+			t.Errorf("%s: bucket_unit = %q, want %q", query, got.Basis.BucketUnit, want)
+		}
+	}
+	got := getTrend(t, dir, "?axis=KR&unit=day")
+	if len(got.Basis.Buckets) != 1 || got.Basis.Buckets[0] != "2026-06-23" {
+		t.Fatalf("buckets = %v, want only the day bucket", got.Basis.Buckets)
+	}
+}
+
 func getSentiment(t *testing.T, dir, query string) sentimentResponse {
 	t.Helper()
 	mux := http.NewServeMux()
