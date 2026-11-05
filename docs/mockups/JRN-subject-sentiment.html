@@ -1,0 +1,2184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>서술 대상 분위기 비율 조회 · 경제 여론 추세 모니터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   경제 여론 추세 모니터 — 공유 스타일 (디자인 시스템 토큰)
+   단일 소스: 모든 페이지(dashboard/trend/compare/sentiment/
+   fairness/trace/reprocess)가 이 파일을 링크한다.
+   docs/design-system/econ-opinion-monitor-design-system.md 와 1:1
+   ============================================================ */
+/* ============================================================
+   경제 여론 추세 모니터 — Design System Tokens
+   (docs/design-system/econ-opinion-monitor-design-system.md 와 1:1)
+   ============================================================ */
+:root{
+  /* surfaces (warm paper) */
+  --paper:#F4EFE6; --paper-2:#FAF6EE; --panel:#FFFFFF; --panel-2:#FBF9F4;
+  /* ink */
+  --ink:#221F1A; --ink-2:#5C564C; --ink-3:#8C8475; --ink-4:#B4AC9C;
+  /* lines */
+  --line:#E7E0D1; --line-2:#D9D0BD; --line-3:#CFC4AC;
+  /* brand / structure */
+  --primary:#173A5E; --primary-2:#0F2942; --primary-soft:#E2E8EE;
+  --accent:#B27518; --accent-2:#8F5C10; --accent-soft:#F2E5CB;
+  /* sentiment */
+  --pos:#2E7D5B; --pos-soft:#DCEBE2;
+  --neu:#7B7E85; --neu-soft:#E8E8EB;
+  --neg:#B23A2E; --neg-soft:#F2DEDA;
+  --mix:#C0871F; --mix-soft:#F4E7C9;
+  --na:#AEA697;  --na-soft:#EAE4D9;
+  /* axes (muted, distinct from sentiment) */
+  --ax-kr:#173A5E; --ax-kr-soft:#E2E8EE;
+  --ax-us:#5E7488; --ax-us-soft:#E5EAEF;
+  --ax-gl:#8A7752; --ax-gl-soft:#EFE8DA;
+  /* type */
+  --serif:'Spectral',Georgia,'Times New Roman',serif;
+  --sans:'IBM Plex Sans KR','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  /* radius */
+  --r-xs:2px; --r-sm:4px; --r-md:6px; --r-lg:10px;
+  /* shadow */
+  --sh-1:0 1px 2px rgba(34,31,26,.05),0 1px 1px rgba(34,31,26,.04);
+  --sh-2:0 4px 14px rgba(34,31,26,.07),0 2px 4px rgba(34,31,26,.04);
+  --sh-pop:0 10px 34px rgba(15,41,66,.16),0 3px 10px rgba(34,31,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:var(--accent-soft);color:var(--primary-2)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-feature-settings:"tnum" 1}
+.serif{font-family:var(--serif)}
+
+/* —— Layout shell —————————————————————————————— */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.sidebar{
+  background:var(--primary);color:#EAF0F6;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid rgba(255,255,255,.10)}
+.brand .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:#9DB2C7}
+.brand h1{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.15;
+  margin-top:7px;color:#fff;letter-spacing:.2px}
+.brand .en{font-family:var(--mono);font-size:10.5px;color:#8FA6BC;margin-top:6px;letter-spacing:.04em}
+.nav{flex:1;overflow-y:auto;padding:14px 12px 20px}
+.nav-group{margin-bottom:16px}
+.nav-group > .gl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:#7E97AE;padding:6px 10px 7px;display:flex;
+  align-items:center;gap:7px}
+.nav-group > .gl .vtag{margin-left:auto;font-size:9px;color:#6E879F;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--r-sm);color:#C7D5E3;font-size:13px;
+  line-height:1.25;transition:background .14s,color .14s;position:relative}
+.nav-item .ic{width:15px;height:15px;flex:none;opacity:.85}
+.nav-item .jn{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7E97AE;
+  letter-spacing:.04em}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-item.active::before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item.op{color:#A9BACB}
+.sidebar-foot{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.10);
+  font-family:var(--mono);font-size:10px;color:#8AA0B6;line-height:1.6}
+.sidebar-foot .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#5FB389;margin-right:6px;vertical-align:1px}
+
+/* —— Main column —————————————————————————————— */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(244,239,230,.86);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line-2);
+  padding:13px 26px;display:flex;align-items:center;gap:16px}
+.crumb{display:flex;align-items:baseline;gap:9px;min-width:0}
+.crumb .step{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent-2);text-transform:uppercase}
+.crumb h2{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .spacer{flex:1}
+.ctl{display:flex;align-items:center;gap:7px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--sh-1)}
+.seg button{padding:6px 11px;font-size:12px;color:var(--ink-2);font-weight:500;
+  border-right:1px solid var(--line);transition:.13s;white-space:nowrap}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--primary);color:#fff}
+.seg.axis button.on{background:var(--ink);color:#fff}
+.pill-ctl{display:inline-flex;align-items:center;gap:8px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px 11px;
+  font-size:12px;color:var(--ink-2);box-shadow:var(--sh-1);font-weight:500}
+.pill-ctl .ic{width:13px;height:13px;color:var(--ink-3)}
+.norm-toggle{display:inline-flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid #E4CF9F;border-radius:var(--r-sm);padding:5px 11px 5px 12px;
+  font-size:11.5px;color:var(--accent-2);font-weight:600}
+.norm-toggle .sw{width:30px;height:16px;border-radius:9px;background:var(--accent);
+  position:relative;flex:none;transition:.15s}
+.norm-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+  border-radius:50%;background:#fff;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.norm-toggle.raw{background:var(--panel);border-color:var(--line-2);color:var(--ink-3)}
+.norm-toggle.raw .sw{background:var(--ink-4)}
+.norm-toggle.raw .sw::after{left:16px}
+
+/* —— Canvas / sections —————————————————————————— */
+.canvas{padding:24px 26px 60px;flex:1;overflow:visible}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.lede{font-family:var(--serif);font-size:15.5px;font-style:italic;color:var(--ink-2);
+  max-width:78ch;line-height:1.6;margin-bottom:20px}
+.lede b{font-style:normal;font-weight:600;color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.g-12{grid-template-columns:repeat(12,1fr)}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+
+/* cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;
+  border-bottom:1px solid var(--line)}
+.card-h h3{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink)}
+.card-h .sub{font-size:11.5px;color:var(--ink-3)}
+.card-h .r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.card-b{padding:16px}
+.seclabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+
+/* metric tiles */
+.metric{padding:15px 16px}
+.metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.metric .mv{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--ink);
+  line-height:1.05;margin-top:8px;letter-spacing:-.5px}
+.metric .mv small{font-size:14px;color:var(--ink-3);font-weight:500;font-family:var(--sans)}
+.metric .md{margin-top:7px;font-size:11.5px;color:var(--ink-2);display:flex;
+  align-items:center;gap:5px}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 5px;
+  border-radius:var(--r-xs)}
+.delta.up{color:var(--pos);background:var(--pos-soft)}
+.delta.dn{color:var(--neg);background:var(--neg-soft)}
+.delta.fl{color:var(--neu);background:var(--neu-soft)}
+
+/* badges / chips */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-xs);font-family:var(--sans)}
+.badge .d{width:7px;height:7px;border-radius:2px;flex:none}
+.b-pos{color:#1F5B41;background:var(--pos-soft)}.b-pos .d{background:var(--pos)}
+.b-neu{color:#54575D;background:var(--neu-soft)}.b-neu .d{background:var(--neu)}
+.b-neg{color:#86281F;background:var(--neg-soft)}.b-neg .d{background:var(--neg)}
+.b-mix{color:#8A5F12;background:var(--mix-soft)}.b-mix .d{background:var(--mix)}
+.b-na{color:#6F685B;background:var(--na-soft);border:1px dashed var(--line-3)}.b-na .d{background:var(--na)}
+.axpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+  font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.ax-kr{color:#11456e;background:var(--ax-kr-soft)}
+.ax-us{color:#3f5366;background:var(--ax-us-soft)}
+.ax-gl{color:#6a5a39;background:var(--ax-gl-soft)}
+.axpill .fl{width:8px;height:8px;border-radius:50%}
+.ax-kr .fl{background:var(--ax-kr)}.ax-us .fl{background:var(--ax-us)}.ax-gl .fl{background:var(--ax-gl)}
+.tag{font-family:var(--mono);font-size:10px;color:var(--ink-3);border:1px solid var(--line-2);
+  padding:1px 6px;border-radius:var(--r-xs)}
+.norm-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--accent-2);background:var(--accent-soft);padding:2px 7px;border-radius:var(--r-xs);
+  font-weight:600;letter-spacing:.03em}
+.raw-flag{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;
+  color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line-2);
+  padding:1px 7px;border-radius:var(--r-xs)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column}
+.rankrow{display:grid;grid-template-columns:26px 1fr 116px 92px 56px;align-items:center;
+  gap:12px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+  transition:background .12s;border-radius:var(--r-sm)}
+.rankrow:hover{background:var(--panel-2)}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{font-family:var(--mono);font-size:13px;color:var(--ink-3);text-align:right;font-weight:500}
+.rankrow .nm{font-weight:600;font-size:13.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.rankrow .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-4);font-weight:400}
+.rankrow .share{display:flex;align-items:center;gap:8px}
+.rankrow .share .bar{flex:1;height:6px;background:var(--neu-soft);border-radius:3px;overflow:hidden}
+.rankrow .share .bar i{display:block;height:100%;background:var(--primary);border-radius:3px}
+.rankrow .share .pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);width:42px;
+  text-align:right;font-weight:600}
+.spark{width:88px;height:26px}
+.rankrow .dlt{font-family:var(--mono);font-size:11px;font-weight:600;text-align:right}
+.rankrow .dlt.up{color:var(--pos)}.rankrow .dlt.dn{color:var(--neg)}.rankrow .dlt.fl{color:var(--neu)}
+
+/* sentiment composition bar */
+.sentbar{display:flex;height:13px;border-radius:var(--r-xs);overflow:hidden;border:1px solid var(--line)}
+.sentbar i{display:block;height:100%}
+.sentbar .s-pos{background:var(--pos)}.sentbar .s-neu{background:var(--neu)}
+.sentbar .s-neg{background:var(--neg)}.sentbar .s-mix{background:var(--mix)}
+.sentbar .s-na{background:repeating-linear-gradient(45deg,var(--na),var(--na) 3px,#bdb6a8 3px,#bdb6a8 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2)}
+.legend .d{width:9px;height:9px;border-radius:2px}
+
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+table.tbl th.num,table.tbl td.num{text-align:right;font-family:var(--mono)}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr.click{cursor:pointer}
+table.tbl tr.click:hover td{background:var(--panel-2)}
+
+/* charts axis labels */
+.axlab{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--line);stroke-width:1}
+.gridline.zero{stroke:var(--line-3)}
+
+/* note / footnote */
+.note{display:flex;gap:9px;padding:11px 13px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  font-size:12px;color:var(--ink-2);line-height:1.55}
+.note .ic{width:15px;height:15px;color:var(--accent-2);flex:none;margin-top:1px}
+.note b{color:var(--ink);font-weight:600}
+.note.info{border-left-color:var(--primary)}.note.info .ic{color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:600;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);box-shadow:var(--sh-1);transition:.13s}
+.btn:hover{border-color:var(--line-3);background:var(--panel-2)}
+.btn .ic{width:14px;height:14px}
+.btn.pri{background:var(--primary);color:#fff;border-color:var(--primary-2)}
+.btn.pri:hover{background:var(--primary-2)}
+.btn.acc{background:var(--accent);color:#fff;border-color:var(--accent-2)}
+.btn.acc:hover{background:var(--accent-2)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;box-shadow:none;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+
+/* mockup footer mapping strip */
+.mapstrip{margin-top:26px;border-top:1px dashed var(--line-3);padding-top:14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:var(--ink-3)}
+.mapstrip .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase}
+.mapstrip .chip{font-family:var(--mono);font-size:10.5px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 8px;color:var(--ink-2)}
+.mapstrip .chip b{color:var(--primary);font-weight:600}
+.mapstrip .chip.v{color:var(--accent-2)}.mapstrip .chip.v b{color:var(--accent-2)}
+
+/* misc */
+.row{display:flex;align-items:center;gap:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:8px}
+.muted{color:var(--ink-3)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--ink-3);font-family:var(--mono);font-size:11px}
+.kv .v{color:var(--ink);font-weight:500;text-align:right}
+.scrolly{max-height:320px;overflow:auto}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:64px 1fr}
+  .brand h1,.brand .en,.brand .kicker,.nav .gl span:not(.vtag),.nav-item span,
+  .nav-item .jn,.sidebar-foot{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .col-3,.col-4,.col-5{grid-column:span 6}
+  .col-6,.col-7,.col-8,.col-9{grid-column:span 12}
+}
+
+/* —— Phone (≤720px) ——————————————————————————————
+   1180px 규칙은 사이드바를 64px 아이콘 레일로 접을 뿐이라, 폰 폭에서는
+   본문이 ~300px 로 줄어 12컬럼 그리드·랭킹 행의 고정 트랙이 이름 칸을 한 글자 폭으로 짓눌렀다.
+   폰에서는 사이드바를 상단 가로 아이콘 줄로 바꾸고, 카드는 한 줄에 하나(지표 타일만 2열),
+   랭킹 행은 2줄(순위·이름·변화 / 점유율 막대·스파크라인)로 재배치한다. */
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;flex-direction:row;align-items:center}
+  .brand{display:none}
+  .nav{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:6px 10px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-group{display:flex;align-items:center;gap:2px;margin:0}
+  .nav-group + .nav-group{padding-left:6px;margin-left:4px;border-left:1px solid rgba(255,255,255,.14)}
+  .nav-group > .gl{display:none}
+  .nav-item{width:42px;height:40px;flex:none;padding:0}
+  .nav-item.active::before{left:9px;right:9px;top:auto;bottom:-6px;width:auto;height:3px;
+    border-radius:3px 3px 0 0}
+
+  .topbar{padding:10px 16px;flex-wrap:wrap;row-gap:8px}
+  .topbar .spacer{display:none}
+  .ctl{flex-wrap:wrap}
+  .canvas{padding:16px 14px 48px}
+  .grid{gap:12px}
+  .col-4,.col-5{grid-column:span 12}
+  .card-h{flex-wrap:wrap}
+  .card-h .r{margin-left:0}
+  .metric .mv{font-size:26px}
+
+  .rankrow:not([style]){grid-template-columns:20px minmax(0,1fr) 88px;
+    grid-template-areas:"rk nm dlt" ". share spark";row-gap:7px;column-gap:10px}
+  .rankrow:not([style]) .rk{grid-area:rk}
+  .rankrow:not([style]) .nm{grid-area:nm}
+  .rankrow:not([style]) .share{grid-area:share}
+  .rankrow:not([style]) .spark{grid-area:spark}
+  .rankrow:not([style]) .dlt{grid-area:dlt}
+  .rankrow:not([style]) > .rk ~ .rk{grid-area:spark;font-size:11px}
+  .rankrow .nm{flex-wrap:wrap;gap:2px 6px;min-width:0}
+
+  .card,.card-b{min-width:0}
+  .card-b:has(> table.tbl),.card-b:has(> div > table.tbl),.scrolly{overflow-x:auto}
+  table.tbl th,table.tbl td{padding:8px 8px}
+  .formrow > *{flex:1 1 100%}
+}
+</style>
+<style>
+/* ---- 여정 페이지 전용(JRN-subject-sentiment) ---- */
+.jrail{display:flex;align-items:stretch;gap:0;margin:0 0 18px;padding:0;list-style:none;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);overflow:hidden}
+.jr-item{flex:1;display:flex;border-right:1px solid var(--line)}
+.jr-item:last-child{border-right:0}
+.jr-btn{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:10px 12px;background:none;border:0;cursor:pointer;text-align:left;color:var(--ink-2);font:inherit}
+.jr-btn:hover{background:rgba(0,0,0,.03)}
+.jr-n{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.jr-t{font-size:12.5px;font-weight:600}
+.jr-id{font-size:9.5px;color:var(--ink-3)}
+.jr-item.on{background:rgba(0,0,0,.04)}
+.jr-item.on .jr-btn{color:var(--ink)}
+.jr-item.on .jr-n{color:var(--brand)}
+.jr-item.done .jr-n::after{content:" ✓"}
+.jstep-h{margin:0 0 14px}
+.jstep-n{font-size:10px;color:var(--ink-3);display:block;margin-bottom:4px}
+.jstep-h h3{margin:0 0 4px;font-size:17px}
+.jstep-a{margin:0 0 3px;font-size:13px;color:var(--ink-2)}
+.jstep-tp{margin:0;font-size:10.5px;color:var(--ink-3)}
+.jstep-f{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.cta{padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--brand);
+  background:var(--brand);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cta:hover{filter:brightness(1.06)}
+.cta .ar{margin-left:2px}
+.jstep-nav{padding:9px 13px;border-radius:var(--r-sm);border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer}
+.jstep-nav[disabled]{opacity:.4;cursor:default}
+.jr-done{margin:0;font-size:12.5px;color:var(--ink-2)}
+.verdict{margin:0 0 6px;font-size:15px;font-weight:600}
+.vsub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.branches{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.branches h4{margin:0 0 4px;font-size:13px}
+.branches .bhint{margin:0 0 10px;font-size:11.5px;color:var(--ink-3)}
+.br-row{display:grid;grid-template-columns:1fr 1.4fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.br-row:last-child{border-bottom:0}
+.br-when{font-weight:600}
+.br-how{color:var(--ink-2)}
+.br-go{white-space:nowrap;font-size:11.5px}
+@media (max-width:900px){.jrail{flex-wrap:wrap}.jr-item{flex:1 1 50%}
+  .br-row{grid-template-columns:1fr}}
+
+/* ============================================================
+   여정 프로토타입 레이어 — 규칙 5 (b)~(e)
+   제품 화면이 지배면이고, 문서 메타는 접힌 보조 레이어로 내린다.
+   ============================================================ */
+[hidden]{display:none !important}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld .fl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fld input[type=search],.fld input[type=number],.fld select,.fld textarea{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:7px;padding:7px 10px;min-width:0}
+.fld textarea{min-height:74px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.radios{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.radios label,.chk{display:inline-flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.formrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.trow{display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;font:inherit;border-radius:6px}
+.trow:hover{background:var(--panel-2)}
+.trow[aria-pressed=true]{background:var(--primary-soft)}
+.trow:last-child{border-bottom:0}
+.banner{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:9px;
+  font-size:12.5px;line-height:1.55;margin-top:14px}
+.banner.warn{background:var(--accent-soft);border:1px solid var(--line-3);color:var(--ink)}
+.banner.err{background:#F6E3DE;border:1px solid #DBB6AC;color:#6B2E1C}
+.banner.good{background:var(--primary-soft);border:1px solid var(--line-3);color:var(--primary-2)}
+.banner b{font-weight:700}
+.banner .actions{margin-top:8px;display:flex;gap:8px}
+.emptybox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:13px;line-height:1.7}
+.loadbox{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.loadbox .bar{height:4px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px auto 0;max-width:220px}
+.loadbox .bar i{display:block;height:100%;width:45%;background:var(--primary);border-radius:3px}
+.thin{opacity:.35}
+.nabar{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;
+  border-top:1px solid var(--line);padding:12px 2px 2px;cursor:pointer;font:inherit;text-align:left}
+.nabar:hover{background:var(--panel-2)}
+.nabar .grow{flex:1}
+.stepact{margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepact .hint{font-size:12px;color:var(--ink-3)}
+/* .cta 는 정의되지 않은 --brand 토큰을 쓰고 있었다(배경 무효 + color:#fff → 사실상 안 보임).
+   이 디자인 시스템의 실제 토큰은 --primary 다. */
+.cta{background:var(--primary);border-color:var(--primary);color:#fff}
+.cta:hover{background:var(--primary-2);border-color:var(--primary-2);filter:none}
+.cta[disabled]{opacity:.4;cursor:not-allowed}
+.cta[disabled]:hover{background:var(--primary);border-color:var(--primary)}
+details.meta{margin-top:34px;border-top:1px solid var(--line-2);padding-top:12px}
+details.meta > summary{cursor:pointer;font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);
+  font-weight:600;text-transform:uppercase;list-style:none}
+details.meta > summary::-webkit-details-marker{display:none}
+details.meta > summary::before{content:"▸ ";color:var(--ink-4)}
+details.meta[open] > summary::before{content:"▾ "}
+details.meta .metabody{margin-top:14px;font-size:12.5px;color:var(--ink-2);line-height:1.65}
+details.meta table.tbl{margin-top:10px}
+</style>
+<style>
+/* ---- 구현 화면 sentiment 의 규칙 (web/src/tokens/tokens.css 그대로) ---- */
+.dash-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.placeholder-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+/* ---- PAT-donut / PAT-stacked-sentiment (sentiment screen) ---- */
+.sent-donut-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.sent-donut {
+  flex: none;
+}
+
+.sent-donut-v {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.sent-donut-l {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  fill: var(--ink-3);
+}
+
+.sent-donut-kv {
+  flex: 1;
+}
+
+.sent-donut-kv .k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+}
+
+.sent-donut-kv .v {
+  font-family: var(--mono);
+  color: var(--ink);
+}
+
+.sent-donut-kv .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-na {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.sent-na .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-warn {
+  margin-top: 12px;
+}
+
+.sent-split-bar {
+  margin-bottom: 14px;
+}
+
+.sent-split-kv .k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sent-split-kv .d {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.sent-split-chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.sent-split-note {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.sent-exit-lede {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+
+.sent-axisrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sent-axisrow:last-of-type {
+  border-bottom: none;
+}
+
+.sent-axisname {
+  flex: 0 0 54px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.sent-axisbar {
+  flex: 1;
+}
+
+.sent-axistotal {
+  flex: 0 0 52px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.sent-absent-inline {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.sent-legend {
+  padding-left: 6px;
+  margin-top: 12px;
+}
+
+.sent-net {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.sent-chart {
+  display: block;
+}
+
+.sent-empty {
+  margin-top: 14px;
+}
+
+.sent-absent {
+  margin-top: 4px;
+}
+
+/* ---- 구현에 아직 없는 표면(여정 문서·AC 근거) ---- */
+.sent-def{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line-2);font-size:11.5px;line-height:1.65;color:var(--ink-2)}
+.sent-def .seclabel{display:block;margin-bottom:4px}
+.sent-def b{color:var(--ink);font-weight:600}
+.sent-cause{margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.sent-exit-links{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.sent-bk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 4px;font-size:12px;color:var(--ink-2)}
+.sent-bk b{color:var(--ink)}
+.sent-chart g[data-bucket]{cursor:pointer}
+.sent-vol{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.sent-vol svg{display:block;margin-top:6px}
+.jstep{scroll-margin-top:64px}
+</style>
+</head>
+<body data-journey="JRN-subject-sentiment">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">Economic Opinion</div>
+      <h1>경제 여론<br/>추세 모니터</h1>
+      <div class="en">TREND MONITOR &middot; v0 mockup</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="gl"><span>관찰 &middot; Observer</span><span class="vtag">P1</span></div>
+        <a class="nav-item" data-id="dash" href="JRN-daily-scan.html#STP-open-brief">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 5h4v16h-4z"/></svg>
+          <span>추세 대시보드</span>
+        </a>
+        <a class="nav-item" data-id="trend" href="JRN-daily-scan.html#STP-drill-trend">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span>대상 추세 상세</span>
+        </a>
+        <a class="nav-item" data-id="compare" href="JRN-axis-contrast.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M12 4v16M20 4v16"/></svg>
+          <span>3축 비교</span>
+        </a>
+        <a class="nav-item" data-id="sentiment" href="JRN-sentiment-shift.html">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>분위기 분포</span>
+        </a>
+        <a class="nav-item" data-id="fairness" href="JRN-spike-verification.html#STP-check-normalized">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 7l7-4 7 4M5 7l-2 6a4 4 0 008 0L9 7M19 7l-2 6a4 4 0 008 0l-2-6"/></svg>
+          <span>공정성·원천 추적</span>
+        </a>
+        <a class="nav-item" data-id="trace" href="JRN-spike-verification.html#STP-open-origin">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M8 13h8M8 17h5"/><path d="M19 8v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h7z"/></svg>
+          <span>원문 추적 상세</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="gl"><span>운영 &middot; Operator</span><span class="vtag">P2</span></div>
+        <a class="nav-item op" data-id="reprocess" href="JRN-logic-backfill.html#STP-scope-range">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5"/></svg>
+          <span>재처리 콘솔</span>
+        </a>
+        <a class="nav-item op" data-id="debug" href="JRN-judgment-debug.html#STP-pin-record">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6M11 8v6"/></svg>
+          <span>판단 디버깅</span>
+        </a>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot"></span>수집 정상 &middot; 12개 소스<br/>
+      마지막 수집 14:00 KST
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <h2>분위기 분포</h2>
+      </div>
+      <div class="spacer"></div>
+    </header>
+
+    <div class="canvas">
+
+      <!-- ============ 단계 1 · 대상 분위기 분포 열기 — 화면 sentiment ============ -->
+      <section class="jstep" id="STP-open-subject-sentiment" data-step="STP-open-subject-sentiment" data-title="대상 분위기 분포 열기" hidden>
+
+      <div class="screen" data-screen="sentiment" data-title="분위기 분포" data-pill="off">
+        <form class="dash-controls" data-role="sent-controls" style="flex-wrap:wrap;row-gap:10px">
+          <div class="radios" data-role="sent-axis"><label><input type="radio" name="sent-axis-STP-open-subject-sentiment" value="KR" checked /> 한국</label><label><input type="radio" name="sent-axis-STP-open-subject-sentiment" value="US" /> 미국</label><label><input type="radio" name="sent-axis-STP-open-subject-sentiment" value="GLOBAL" /> 전세계</label></div>
+          <span class="axpill ax-kr" data-role="sent-axpill"><span class="fl"></span>KR</span>
+          <label class="fld"><span class="fl">서술 대상</span><select name="sent-subject-STP-open-subject-sentiment" data-role="sent-subject"><option>삼성전자</option></select></label>
+          <label class="chk"><input type="checkbox" name="sent-source-STP-open-subject-sentiment" data-role="sent-source" checked /> <span>출처 조건 유지 &middot; 한국경제</span></label>
+          <div class="radios" data-role="sent-norm" title="정규화 = 출처별 분포를 기사 수의 제곱근으로 가중한 분포"><label><input type="radio" name="sent-norm-STP-open-subject-sentiment" value="norm" checked /> 정규화 분포</label><label><input type="radio" name="sent-norm-STP-open-subject-sentiment" value="raw" /> 기사 수 그대로</label></div>
+          <span class="norm-flag" data-role="sent-flag">&#9635; 정규화 분포</span>
+          <span class="norm-flag">&#9635; 분석 완료분 기준</span>
+        </form>
+        <p class="hint" style="font-size:12px;color:var(--ink-3);margin:-6px 0 12px" data-role="sent-inherit"></p>
+
+        <p class="lede"><b data-role="lede-axis">한국</b> 축에서 고른 대상의 분위기 구성을 보고, 같은 버킷에서 <b>세 축이 어떻게 다른지</b> 대조한 뒤, 그 구성이 시간에 따라 움직이는지 확인합니다. <b>미분석</b>은 네 분류와 합치지 않고 따로 셉니다.</p>
+
+        <div class="note" data-role="diff-note" hidden>
+          <div><span data-role="diff-text"></span>
+            <div style="margin-top:8px"><a class="btn sm" data-role="diff-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">출처 구성 보러 원문 목록으로 &rarr;</a></div>
+          </div>
+        </div>
+
+        <div class="note" data-role="api-error" data-state="api-error" data-label="API 오류" data-replaces="sent-body" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="placeholder-note" data-role="loading" data-state="loading" data-label="첫 진입 · 축·대상 전환 로딩" data-replaces="sent-body" hidden>불러오는 중&hellip;</div>
+        <div class="placeholder-note sent-empty" data-role="no-bucket" data-state="no-bucket" data-label="집계된 분위기 버킷 없음" data-replaces="sent-body" hidden>
+          집계된 분위기 버킷이 없습니다. 빈 도넛을 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 모든 분위기가 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="sent-body">
+          <div class="grid g-12">
+
+            <div class="card col-5">
+              <div class="card-h">
+                <h3>분위기 구성</h3>
+                <span class="sub" data-role="dn-sub">2026-10-16 버킷 &middot; 한국</span>
+              </div>
+              <div class="card-b">
+                <div data-role="dn-present">
+                  <div class="sent-donut-row">
+                    <svg viewBox="0 0 120 120" width="128" height="128" class="sent-donut" role="img" aria-label="KR 축 분위기 구성" data-role="donut"></svg>
+                    <div class="sent-donut-kv" data-role="donut-kv"></div>
+                  </div>
+                  <div class="sent-na" data-cls="s-na">
+                    <span class="d" style="background:var(--na)"></span>
+                    미분석 <b data-role="na-pct">6.2%</b> &mdash; 위 네 비율은 이 몫을 뺀 <b>분석 완료분</b> 기준입니다.
+                  </div>
+                  <div class="note sent-warn" data-role="na-warn" data-state="unanalyzed-warning" data-label="미분석 비중 임계 초과 — 해석 보류 경고" hidden>
+                    <div>
+                      미분석 비중이 <span data-role="na-warn-pct">14%</span>입니다. 이 구간의 분위기 변화는 구성 변화가 만든 착시일 수 있으니 해석을 보류하세요.
+                      <div class="sent-cause" data-role="na-cause">원인 &mdash; 분석 실패 <b>13건</b> &middot; 저신뢰 <b>8건</b></div>
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="na-warn-go" href="#STP-sentiment-unanalyzed" data-goto="JRN-subject-sentiment#STP-sentiment-unanalyzed" data-jump="split-card">분리 전후 비율 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="note sent-warn" data-role="sm-warn" hidden>
+                    <div>
+                      이 대상은 분석 완료분이 <b data-role="sm-n">14</b>건뿐이라 분포가 크게 흔들릴 수 있습니다. 시계열에서 표본이 모자란 구간은 비율 대신 「표본 부족」으로 표기합니다.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="sm-go" href="#STP-sentiment-timeline">시계열에서 표본 부족 구간 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="dn-absent" data-state="axis-absent" data-label="고른 축의 집계 없음 (도넛 비움)" data-replaces="dn-present" hidden>
+                  <div>이 버킷에 <b data-role="dn-absent-axis">전세계</b> 축 집계가 없습니다. 0%로 그리면 「모두 중립」처럼 읽히므로 비워 둡니다.</div>
+                </div>
+                <div class="sent-def" data-role="class-def">
+                  <span class="seclabel">분류 기준</span>
+                  <b>혼합</b> 상반된 톤이 함께 있는 기사 &middot; <b>중립</b> 톤이 드러나지 않는 기사 &middot;
+                  <b>긍정 &middot; 부정</b> 한쪽 톤이 드러난 기사 &middot; <b>미분석</b> 본문이 부족하거나 판단을 확신하지 못해 분류를 채우지 않은 기사
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7">
+              <div class="card-h">
+                <h3>축별 분위기</h3>
+                <span class="sub">같은 버킷 &middot; 같은 기준</span>
+                <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+              </div>
+              <div class="card-b">
+                <div data-role="axisrows"></div>
+                <div class="legend sent-legend">
+                  <span><span class="d" style="background:var(--pos)"></span>긍정</span>
+                  <span><span class="d" style="background:var(--neu)"></span>중립</span>
+                  <span><span class="d" style="background:var(--neg)"></span>부정</span>
+                  <span><span class="d" style="background:var(--mix)"></span>혼합</span>
+                  <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7 sent-split" data-role="split-card">
+              <div class="card-h">
+                <h3>분리 전후 비율</h3>
+                <span class="sub">체크박스로 전환</span>
+              </div>
+              <div class="card-b">
+                <div data-role="split-present">
+                  <div class="sentbar sent-split-bar" data-role="split-bar"></div>
+                  <div class="sent-split-kv" data-role="split-kv"></div>
+                  <p class="sent-split-note" data-role="split-note"></p>
+                  <p class="sent-split-note" data-role="split-all-na" hidden>이 버킷은 전량 미분석이라 분모로 쓸 분석 완료분이 없습니다.</p>
+                </div>
+                <div class="note sent-absent" data-role="split-absent" hidden>
+                  <div><b data-role="split-absent-axis">전세계</b> 축 집계가 이 버킷에 없어 두 형태를 나란히 놓을 수 없습니다.</div>
+                </div>
+                <label class="sent-split-chk">
+                  <input type="checkbox" name="na-exclude-STP-open-subject-sentiment" data-role="na-split" checked />
+                  미분석 항목을 비율 분모에서 제외 (분리 표기)
+                </label>
+              </div>
+            </div>
+
+            <div class="card col-5 sent-exit">
+              <div class="card-h">
+                <h3>판별이 어렵다면</h3>
+                <span class="sub">다른 흐름으로 넘깁니다</span>
+              </div>
+              <div class="card-b">
+                <p class="sent-exit-lede">분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.</p>
+                <div class="sent-exit-links">
+                  <a class="btn ghost" data-role="exit-fairness" href="JRN-spike-verification.html#STP-check-normalized" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면(정규화 비율)">정규화 비율로 다시 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-origin" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-backfill" href="JRN-logic-backfill.html#STP-scope-range" data-offpath="로직 소급 여정 — 재처리 콘솔">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-h">
+                <h3>분위기 추세</h3>
+                <span class="sub" data-role="tl-sub">일 단위 &middot; 2026-10-03 ~ 2026-10-16</span>
+                <div class="r">
+                  <div class="radios" data-role="sent-unit" title="굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다"><label><input type="radio" name="sent-unit-STP-open-subject-sentiment" value="hour" /> 시간</label><label><input type="radio" name="sent-unit-STP-open-subject-sentiment" value="day" checked /> 일</label><label><input type="radio" name="sent-unit-STP-open-subject-sentiment" value="week" /> 주</label></div>
+                  <span class="sent-net">긍정 &minus; 부정 = 순분위기</span>
+                </div>
+              </div>
+              <div class="card-b">
+                <div class="loadbox" data-role="tl-reloading" hidden>
+                  고른 단위로 다시 집계하는 중&hellip;
+                  <div class="bar"><i></i></div>
+                </div>
+                <div data-role="tl-present">
+                  <svg viewBox="0 0 740 200" width="100%" class="sent-chart" role="img" aria-label="분위기 구성 추세" data-role="tl-chart"></svg>
+                  <div class="note" data-role="low-sample" style="margin:8px 0" hidden>
+                    <div>
+                      <b>표본이 부족한 구간이 <span data-role="ls-count">1</span>개 있습니다.</b>
+                      분석 완료 <span data-role="ls-min">20</span>건 미만 구간은 흐리게 두고 비율 대신 「표본 부족」으로 표기합니다 &mdash; 그 구간의 비율 변화는 읽지 마세요.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="ls-go" href="#" data-jump="tl-vol-wrap">구간별 건수 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sent-bk" data-role="bk-pick">
+                    <span data-role="bk-text">막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.</span>
+                    <a class="btn sm" data-role="bk-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list" hidden>이 구간의 기사 보기 &rarr;</a>
+                  </div>
+                  <div class="sent-vol" data-role="tl-vol-wrap">
+                    <span class="seclabel">구간별 건수 &mdash; 절대량</span>
+                    <svg viewBox="0 0 740 96" width="100%" role="img" aria-label="구간별 건수" data-role="tl-vol"></svg>
+                    <div class="legend">
+                      <span><span class="d" style="background:var(--ax-us)"></span>분석 완료</span>
+                      <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="series-empty" hidden>
+                  <div><b data-role="se-axis">전세계</b> 축에는 이 단위의 버킷이 없습니다 &mdash; 다른 축에는 있어 위의 축별 대조는 성립합니다.</div>
+                </div>
+                <div class="note" style="margin-top:14px">
+                  <div>이 막대는 <b data-role="unit-label">일 단위</b> 버킷으로 그려졌습니다. 굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-sentiment-unanalyzed">미분석 비중 확인하기 <span class="ar">&rarr;</span></button>
+          <span class="hint">네 비율이 어느 몫 위에 서 있는지 먼저 봅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 2 · 미분석 비중 확인 — 화면 sentiment ============ -->
+      <section class="jstep" id="STP-sentiment-unanalyzed" data-step="STP-sentiment-unanalyzed" data-title="미분석 비중 확인" hidden>
+
+      <div class="screen" data-screen="sentiment" data-title="분위기 분포" data-pill="off">
+        <form class="dash-controls" data-role="sent-controls" style="flex-wrap:wrap;row-gap:10px">
+          <div class="radios" data-role="sent-axis"><label><input type="radio" name="sent-axis-STP-sentiment-unanalyzed" value="KR" checked /> 한국</label><label><input type="radio" name="sent-axis-STP-sentiment-unanalyzed" value="US" /> 미국</label><label><input type="radio" name="sent-axis-STP-sentiment-unanalyzed" value="GLOBAL" /> 전세계</label></div>
+          <span class="axpill ax-kr" data-role="sent-axpill"><span class="fl"></span>KR</span>
+          <label class="fld"><span class="fl">서술 대상</span><select name="sent-subject-STP-sentiment-unanalyzed" data-role="sent-subject"><option>삼성전자</option></select></label>
+          <label class="chk"><input type="checkbox" name="sent-source-STP-sentiment-unanalyzed" data-role="sent-source" checked /> <span>출처 조건 유지 &middot; 한국경제</span></label>
+          <div class="radios" data-role="sent-norm" title="정규화 = 출처별 분포를 기사 수의 제곱근으로 가중한 분포"><label><input type="radio" name="sent-norm-STP-sentiment-unanalyzed" value="norm" checked /> 정규화 분포</label><label><input type="radio" name="sent-norm-STP-sentiment-unanalyzed" value="raw" /> 기사 수 그대로</label></div>
+          <span class="norm-flag" data-role="sent-flag">&#9635; 정규화 분포</span>
+          <span class="norm-flag">&#9635; 분석 완료분 기준</span>
+        </form>
+        <p class="hint" style="font-size:12px;color:var(--ink-3);margin:-6px 0 12px" data-role="sent-inherit"></p>
+
+        <p class="lede"><b data-role="lede-axis">한국</b> 축에서 고른 대상의 분위기 구성을 보고, 같은 버킷에서 <b>세 축이 어떻게 다른지</b> 대조한 뒤, 그 구성이 시간에 따라 움직이는지 확인합니다. <b>미분석</b>은 네 분류와 합치지 않고 따로 셉니다.</p>
+
+        <div class="note" data-role="diff-note" hidden>
+          <div><span data-role="diff-text"></span>
+            <div style="margin-top:8px"><a class="btn sm" data-role="diff-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">출처 구성 보러 원문 목록으로 &rarr;</a></div>
+          </div>
+        </div>
+
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="placeholder-note" data-role="loading" hidden>불러오는 중&hellip;</div>
+        <div class="placeholder-note sent-empty" data-role="no-bucket" hidden>
+          집계된 분위기 버킷이 없습니다. 빈 도넛을 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 모든 분위기가 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="sent-body">
+          <div class="grid g-12">
+
+            <div class="card col-5">
+              <div class="card-h">
+                <h3>분위기 구성</h3>
+                <span class="sub" data-role="dn-sub">2026-10-16 버킷 &middot; 한국</span>
+              </div>
+              <div class="card-b">
+                <div data-role="dn-present">
+                  <div class="sent-donut-row">
+                    <svg viewBox="0 0 120 120" width="128" height="128" class="sent-donut" role="img" aria-label="KR 축 분위기 구성" data-role="donut"></svg>
+                    <div class="sent-donut-kv" data-role="donut-kv"></div>
+                  </div>
+                  <div class="sent-na" data-cls="s-na">
+                    <span class="d" style="background:var(--na)"></span>
+                    미분석 <b data-role="na-pct">6.2%</b> &mdash; 위 네 비율은 이 몫을 뺀 <b>분석 완료분</b> 기준입니다.
+                  </div>
+                  <div class="note sent-warn" data-role="na-warn" hidden>
+                    <div>
+                      미분석 비중이 <span data-role="na-warn-pct">14%</span>입니다. 이 구간의 분위기 변화는 구성 변화가 만든 착시일 수 있으니 해석을 보류하세요.
+                      <div class="sent-cause" data-role="na-cause">원인 &mdash; 분석 실패 <b>13건</b> &middot; 저신뢰 <b>8건</b></div>
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="na-warn-go" href="#STP-sentiment-unanalyzed">분리 전후 비율 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="note sent-warn" data-role="sm-warn" data-state="thin-sample" data-label="표본이 적어 분포가 불안정" hidden>
+                    <div>
+                      이 대상은 분석 완료분이 <b data-role="sm-n">14</b>건뿐이라 분포가 크게 흔들릴 수 있습니다. 시계열에서 표본이 모자란 구간은 비율 대신 「표본 부족」으로 표기합니다.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="sm-go" href="#STP-sentiment-timeline" data-goto="JRN-subject-sentiment#STP-sentiment-timeline">시계열에서 표본 부족 구간 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="dn-absent" hidden>
+                  <div>이 버킷에 <b data-role="dn-absent-axis">전세계</b> 축 집계가 없습니다. 0%로 그리면 「모두 중립」처럼 읽히므로 비워 둡니다.</div>
+                </div>
+                <div class="sent-def" data-role="class-def">
+                  <span class="seclabel">분류 기준</span>
+                  <b>혼합</b> 상반된 톤이 함께 있는 기사 &middot; <b>중립</b> 톤이 드러나지 않는 기사 &middot;
+                  <b>긍정 &middot; 부정</b> 한쪽 톤이 드러난 기사 &middot; <b>미분석</b> 본문이 부족하거나 판단을 확신하지 못해 분류를 채우지 않은 기사
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7">
+              <div class="card-h">
+                <h3>축별 분위기</h3>
+                <span class="sub">같은 버킷 &middot; 같은 기준</span>
+                <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+              </div>
+              <div class="card-b">
+                <div data-role="axisrows"></div>
+                <div class="legend sent-legend">
+                  <span><span class="d" style="background:var(--pos)"></span>긍정</span>
+                  <span><span class="d" style="background:var(--neu)"></span>중립</span>
+                  <span><span class="d" style="background:var(--neg)"></span>부정</span>
+                  <span><span class="d" style="background:var(--mix)"></span>혼합</span>
+                  <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7 sent-split" data-role="split-card">
+              <div class="card-h">
+                <h3>분리 전후 비율</h3>
+                <span class="sub">체크박스로 전환</span>
+              </div>
+              <div class="card-b">
+                <div data-role="split-present">
+                  <div class="sentbar sent-split-bar" data-role="split-bar"></div>
+                  <div class="sent-split-kv" data-role="split-kv"></div>
+                  <p class="sent-split-note" data-role="split-note"></p>
+                  <p class="sent-split-note" data-role="split-all-na" data-state="all-unanalyzed" data-label="전량 미분석 — 분모 없음" data-replaces="split-note" hidden>이 버킷은 전량 미분석이라 분모로 쓸 분석 완료분이 없습니다.</p>
+                </div>
+                <div class="note sent-absent" data-role="split-absent" data-state="split-absent" data-label="고른 축의 집계 없음 (분리 전후 비움)" data-replaces="split-present" hidden>
+                  <div><b data-role="split-absent-axis">전세계</b> 축 집계가 이 버킷에 없어 두 형태를 나란히 놓을 수 없습니다.</div>
+                </div>
+                <label class="sent-split-chk">
+                  <input type="checkbox" name="na-exclude-STP-sentiment-unanalyzed" data-role="na-split" checked />
+                  미분석 항목을 비율 분모에서 제외 (분리 표기)
+                </label>
+              </div>
+            </div>
+
+            <div class="card col-5 sent-exit">
+              <div class="card-h">
+                <h3>판별이 어렵다면</h3>
+                <span class="sub">다른 흐름으로 넘깁니다</span>
+              </div>
+              <div class="card-b">
+                <p class="sent-exit-lede">분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.</p>
+                <div class="sent-exit-links">
+                  <a class="btn ghost" data-role="exit-fairness" href="JRN-spike-verification.html#STP-check-normalized" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면(정규화 비율)">정규화 비율로 다시 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-origin" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-backfill" href="JRN-logic-backfill.html#STP-scope-range" data-offpath="로직 소급 여정 — 재처리 콘솔">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-h">
+                <h3>분위기 추세</h3>
+                <span class="sub" data-role="tl-sub">일 단위 &middot; 2026-10-03 ~ 2026-10-16</span>
+                <div class="r">
+                  <div class="radios" data-role="sent-unit" title="굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다"><label><input type="radio" name="sent-unit-STP-sentiment-unanalyzed" value="hour" /> 시간</label><label><input type="radio" name="sent-unit-STP-sentiment-unanalyzed" value="day" checked /> 일</label><label><input type="radio" name="sent-unit-STP-sentiment-unanalyzed" value="week" /> 주</label></div>
+                  <span class="sent-net">긍정 &minus; 부정 = 순분위기</span>
+                </div>
+              </div>
+              <div class="card-b">
+                <div class="loadbox" data-role="tl-reloading" hidden>
+                  고른 단위로 다시 집계하는 중&hellip;
+                  <div class="bar"><i></i></div>
+                </div>
+                <div data-role="tl-present">
+                  <svg viewBox="0 0 740 200" width="100%" class="sent-chart" role="img" aria-label="분위기 구성 추세" data-role="tl-chart"></svg>
+                  <div class="note" data-role="low-sample" style="margin:8px 0" hidden>
+                    <div>
+                      <b>표본이 부족한 구간이 <span data-role="ls-count">1</span>개 있습니다.</b>
+                      분석 완료 <span data-role="ls-min">20</span>건 미만 구간은 흐리게 두고 비율 대신 「표본 부족」으로 표기합니다 &mdash; 그 구간의 비율 변화는 읽지 마세요.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="ls-go" href="#" data-jump="tl-vol-wrap">구간별 건수 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sent-bk" data-role="bk-pick">
+                    <span data-role="bk-text">막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.</span>
+                    <a class="btn sm" data-role="bk-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list" hidden>이 구간의 기사 보기 &rarr;</a>
+                  </div>
+                  <div class="sent-vol" data-role="tl-vol-wrap">
+                    <span class="seclabel">구간별 건수 &mdash; 절대량</span>
+                    <svg viewBox="0 0 740 96" width="100%" role="img" aria-label="구간별 건수" data-role="tl-vol"></svg>
+                    <div class="legend">
+                      <span><span class="d" style="background:var(--ax-us)"></span>분석 완료</span>
+                      <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="series-empty" hidden>
+                  <div><b data-role="se-axis">전세계</b> 축에는 이 단위의 버킷이 없습니다 &mdash; 다른 축에는 있어 위의 축별 대조는 성립합니다.</div>
+                </div>
+                <div class="note" style="margin-top:14px">
+                  <div>이 막대는 <b data-role="unit-label">일 단위</b> 버킷으로 그려졌습니다. 굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-sentiment-timeline">분위기 시계열 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint">미분석은 분모에서 빼고 비중을 따로 셉니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 3 · 분위기 시계열 보기 — 화면 sentiment ============ -->
+      <section class="jstep" id="STP-sentiment-timeline" data-step="STP-sentiment-timeline" data-title="분위기 시계열 보기" hidden>
+
+      <div class="screen" data-screen="sentiment" data-title="분위기 분포" data-pill="off">
+        <form class="dash-controls" data-role="sent-controls" style="flex-wrap:wrap;row-gap:10px">
+          <div class="radios" data-role="sent-axis"><label><input type="radio" name="sent-axis-STP-sentiment-timeline" value="KR" checked /> 한국</label><label><input type="radio" name="sent-axis-STP-sentiment-timeline" value="US" /> 미국</label><label><input type="radio" name="sent-axis-STP-sentiment-timeline" value="GLOBAL" /> 전세계</label></div>
+          <span class="axpill ax-kr" data-role="sent-axpill"><span class="fl"></span>KR</span>
+          <label class="fld"><span class="fl">서술 대상</span><select name="sent-subject-STP-sentiment-timeline" data-role="sent-subject"><option>삼성전자</option></select></label>
+          <label class="chk"><input type="checkbox" name="sent-source-STP-sentiment-timeline" data-role="sent-source" checked /> <span>출처 조건 유지 &middot; 한국경제</span></label>
+          <div class="radios" data-role="sent-norm" title="정규화 = 출처별 분포를 기사 수의 제곱근으로 가중한 분포"><label><input type="radio" name="sent-norm-STP-sentiment-timeline" value="norm" checked /> 정규화 분포</label><label><input type="radio" name="sent-norm-STP-sentiment-timeline" value="raw" /> 기사 수 그대로</label></div>
+          <span class="norm-flag" data-role="sent-flag">&#9635; 정규화 분포</span>
+          <span class="norm-flag">&#9635; 분석 완료분 기준</span>
+        </form>
+        <p class="hint" style="font-size:12px;color:var(--ink-3);margin:-6px 0 12px" data-role="sent-inherit"></p>
+
+        <p class="lede"><b data-role="lede-axis">한국</b> 축에서 고른 대상의 분위기 구성을 보고, 같은 버킷에서 <b>세 축이 어떻게 다른지</b> 대조한 뒤, 그 구성이 시간에 따라 움직이는지 확인합니다. <b>미분석</b>은 네 분류와 합치지 않고 따로 셉니다.</p>
+
+        <div class="note" data-role="diff-note" hidden>
+          <div><span data-role="diff-text"></span>
+            <div style="margin-top:8px"><a class="btn sm" data-role="diff-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">출처 구성 보러 원문 목록으로 &rarr;</a></div>
+          </div>
+        </div>
+
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="placeholder-note" data-role="loading" hidden>불러오는 중&hellip;</div>
+        <div class="placeholder-note sent-empty" data-role="no-bucket" hidden>
+          집계된 분위기 버킷이 없습니다. 빈 도넛을 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 모든 분위기가 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="sent-body">
+          <div class="grid g-12">
+
+            <div class="card col-5">
+              <div class="card-h">
+                <h3>분위기 구성</h3>
+                <span class="sub" data-role="dn-sub">2026-10-16 버킷 &middot; 한국</span>
+              </div>
+              <div class="card-b">
+                <div data-role="dn-present">
+                  <div class="sent-donut-row">
+                    <svg viewBox="0 0 120 120" width="128" height="128" class="sent-donut" role="img" aria-label="KR 축 분위기 구성" data-role="donut"></svg>
+                    <div class="sent-donut-kv" data-role="donut-kv"></div>
+                  </div>
+                  <div class="sent-na" data-cls="s-na">
+                    <span class="d" style="background:var(--na)"></span>
+                    미분석 <b data-role="na-pct">6.2%</b> &mdash; 위 네 비율은 이 몫을 뺀 <b>분석 완료분</b> 기준입니다.
+                  </div>
+                  <div class="note sent-warn" data-role="na-warn" hidden>
+                    <div>
+                      미분석 비중이 <span data-role="na-warn-pct">14%</span>입니다. 이 구간의 분위기 변화는 구성 변화가 만든 착시일 수 있으니 해석을 보류하세요.
+                      <div class="sent-cause" data-role="na-cause">원인 &mdash; 분석 실패 <b>13건</b> &middot; 저신뢰 <b>8건</b></div>
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="na-warn-go" href="#STP-sentiment-unanalyzed">분리 전후 비율 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="note sent-warn" data-role="sm-warn" hidden>
+                    <div>
+                      이 대상은 분석 완료분이 <b data-role="sm-n">14</b>건뿐이라 분포가 크게 흔들릴 수 있습니다. 시계열에서 표본이 모자란 구간은 비율 대신 「표본 부족」으로 표기합니다.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="sm-go" href="#STP-sentiment-timeline">시계열에서 표본 부족 구간 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="dn-absent" hidden>
+                  <div>이 버킷에 <b data-role="dn-absent-axis">전세계</b> 축 집계가 없습니다. 0%로 그리면 「모두 중립」처럼 읽히므로 비워 둡니다.</div>
+                </div>
+                <div class="sent-def" data-role="class-def">
+                  <span class="seclabel">분류 기준</span>
+                  <b>혼합</b> 상반된 톤이 함께 있는 기사 &middot; <b>중립</b> 톤이 드러나지 않는 기사 &middot;
+                  <b>긍정 &middot; 부정</b> 한쪽 톤이 드러난 기사 &middot; <b>미분석</b> 본문이 부족하거나 판단을 확신하지 못해 분류를 채우지 않은 기사
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7">
+              <div class="card-h">
+                <h3>축별 분위기</h3>
+                <span class="sub">같은 버킷 &middot; 같은 기준</span>
+                <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+              </div>
+              <div class="card-b">
+                <div data-role="axisrows"></div>
+                <div class="legend sent-legend">
+                  <span><span class="d" style="background:var(--pos)"></span>긍정</span>
+                  <span><span class="d" style="background:var(--neu)"></span>중립</span>
+                  <span><span class="d" style="background:var(--neg)"></span>부정</span>
+                  <span><span class="d" style="background:var(--mix)"></span>혼합</span>
+                  <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7 sent-split" data-role="split-card">
+              <div class="card-h">
+                <h3>분리 전후 비율</h3>
+                <span class="sub">체크박스로 전환</span>
+              </div>
+              <div class="card-b">
+                <div data-role="split-present">
+                  <div class="sentbar sent-split-bar" data-role="split-bar"></div>
+                  <div class="sent-split-kv" data-role="split-kv"></div>
+                  <p class="sent-split-note" data-role="split-note"></p>
+                  <p class="sent-split-note" data-role="split-all-na" hidden>이 버킷은 전량 미분석이라 분모로 쓸 분석 완료분이 없습니다.</p>
+                </div>
+                <div class="note sent-absent" data-role="split-absent" hidden>
+                  <div><b data-role="split-absent-axis">전세계</b> 축 집계가 이 버킷에 없어 두 형태를 나란히 놓을 수 없습니다.</div>
+                </div>
+                <label class="sent-split-chk">
+                  <input type="checkbox" name="na-exclude-STP-sentiment-timeline" data-role="na-split" checked />
+                  미분석 항목을 비율 분모에서 제외 (분리 표기)
+                </label>
+              </div>
+            </div>
+
+            <div class="card col-5 sent-exit">
+              <div class="card-h">
+                <h3>판별이 어렵다면</h3>
+                <span class="sub">다른 흐름으로 넘깁니다</span>
+              </div>
+              <div class="card-b">
+                <p class="sent-exit-lede">분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.</p>
+                <div class="sent-exit-links">
+                  <a class="btn ghost" data-role="exit-fairness" href="JRN-spike-verification.html#STP-check-normalized" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면(정규화 비율)">정규화 비율로 다시 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-origin" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-backfill" href="JRN-logic-backfill.html#STP-scope-range" data-offpath="로직 소급 여정 — 재처리 콘솔">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-h">
+                <h3>분위기 추세</h3>
+                <span class="sub" data-role="tl-sub">일 단위 &middot; 2026-10-03 ~ 2026-10-16</span>
+                <div class="r">
+                  <div class="radios" data-role="sent-unit" title="굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다"><label><input type="radio" name="sent-unit-STP-sentiment-timeline" value="hour" /> 시간</label><label><input type="radio" name="sent-unit-STP-sentiment-timeline" value="day" checked /> 일</label><label><input type="radio" name="sent-unit-STP-sentiment-timeline" value="week" /> 주</label></div>
+                  <span class="sent-net">긍정 &minus; 부정 = 순분위기</span>
+                </div>
+              </div>
+              <div class="card-b">
+                <div class="loadbox" data-role="tl-reloading" data-state="tl-reloading" data-label="고른 단위로 재집계 중" data-replaces="tl-present" hidden>
+                  고른 단위로 다시 집계하는 중&hellip;
+                  <div class="bar"><i></i></div>
+                </div>
+                <div data-role="tl-present">
+                  <svg viewBox="0 0 740 200" width="100%" class="sent-chart" role="img" aria-label="분위기 구성 추세" data-role="tl-chart"></svg>
+                  <div class="note" data-role="low-sample" data-state="low-sample" data-label="표본 부족 구간 — 흐리게 · 「표본 부족」" style="margin:8px 0" hidden>
+                    <div>
+                      <b>표본이 부족한 구간이 <span data-role="ls-count">1</span>개 있습니다.</b>
+                      분석 완료 <span data-role="ls-min">20</span>건 미만 구간은 흐리게 두고 비율 대신 「표본 부족」으로 표기합니다 &mdash; 그 구간의 비율 변화는 읽지 마세요.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="ls-go" href="#" data-jump="tl-vol-wrap">구간별 건수 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sent-bk" data-role="bk-pick">
+                    <span data-role="bk-text">막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.</span>
+                    <a class="btn sm" data-role="bk-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list" data-goto="JRN-subject-articles#STP-open-article-list" data-end="원문 목록 여정으로 인계" hidden>이 구간의 기사 보기 &rarr;</a>
+                  </div>
+                  <div class="sent-vol" data-role="tl-vol-wrap">
+                    <span class="seclabel">구간별 건수 &mdash; 절대량</span>
+                    <svg viewBox="0 0 740 96" width="100%" role="img" aria-label="구간별 건수" data-role="tl-vol"></svg>
+                    <div class="legend">
+                      <span><span class="d" style="background:var(--ax-us)"></span>분석 완료</span>
+                      <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="series-empty" data-state="series-empty" data-label="고른 축에 이 단위의 버킷 없음" data-replaces="tl-present" hidden>
+                  <div><b data-role="se-axis">전세계</b> 축에는 이 단위의 버킷이 없습니다 &mdash; 다른 축에는 있어 위의 축별 대조는 성립합니다.</div>
+                </div>
+                <div class="note" style="margin-top:14px">
+                  <div>이 막대는 <b data-role="unit-label">일 단위</b> 버킷으로 그려졌습니다. 굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <button type="button" class="cta" data-advance="STP-sentiment-raw">정규화 전/후 바꿔 보기 <span class="ar">&rarr;</span></button>
+          <span class="hint">비율은 누적 100% 막대로, 기사 수는 아래 막대로 따로 봅니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 단계 4 · 정규화 전/후 전환 — 화면 sentiment ============ -->
+      <section class="jstep" id="STP-sentiment-raw" data-step="STP-sentiment-raw" data-title="정규화 전/후 전환" hidden>
+
+      <div class="screen" data-screen="sentiment" data-title="분위기 분포" data-pill="off">
+        <form class="dash-controls" data-role="sent-controls" style="flex-wrap:wrap;row-gap:10px">
+          <div class="radios" data-role="sent-axis"><label><input type="radio" name="sent-axis-STP-sentiment-raw" value="KR" checked /> 한국</label><label><input type="radio" name="sent-axis-STP-sentiment-raw" value="US" /> 미국</label><label><input type="radio" name="sent-axis-STP-sentiment-raw" value="GLOBAL" /> 전세계</label></div>
+          <span class="axpill ax-kr" data-role="sent-axpill"><span class="fl"></span>KR</span>
+          <label class="fld"><span class="fl">서술 대상</span><select name="sent-subject-STP-sentiment-raw" data-role="sent-subject"><option>삼성전자</option></select></label>
+          <label class="chk"><input type="checkbox" name="sent-source-STP-sentiment-raw" data-role="sent-source" checked /> <span>출처 조건 유지 &middot; 한국경제</span></label>
+          <div class="radios" data-role="sent-norm" title="정규화 = 출처별 분포를 기사 수의 제곱근으로 가중한 분포"><label><input type="radio" name="sent-norm-STP-sentiment-raw" value="norm" checked /> 정규화 분포</label><label><input type="radio" name="sent-norm-STP-sentiment-raw" value="raw" /> 기사 수 그대로</label></div>
+          <span class="norm-flag" data-role="sent-flag">&#9635; 정규화 분포</span>
+          <span class="norm-flag">&#9635; 분석 완료분 기준</span>
+        </form>
+        <p class="hint" style="font-size:12px;color:var(--ink-3);margin:-6px 0 12px" data-role="sent-inherit"></p>
+
+        <p class="lede"><b data-role="lede-axis">한국</b> 축에서 고른 대상의 분위기 구성을 보고, 같은 버킷에서 <b>세 축이 어떻게 다른지</b> 대조한 뒤, 그 구성이 시간에 따라 움직이는지 확인합니다. <b>미분석</b>은 네 분류와 합치지 않고 따로 셉니다.</p>
+
+        <div class="note" data-role="diff-note" data-state="diff-large" data-label="정규화 전/후 분포가 크게 갈림 — 출처 구성 안내" hidden>
+          <div><span data-role="diff-text"></span>
+            <div style="margin-top:8px"><a class="btn sm" data-role="diff-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list">출처 구성 보러 원문 목록으로 &rarr;</a></div>
+          </div>
+        </div>
+
+        <div class="note" data-role="api-error" hidden>
+          <div><b>API 오류:</b> 서빙이 응답하지 않았습니다 &mdash; Go 서빙(:8080)이 떠 있고 파이프라인이 실행됐는지 확인하세요.</div>
+        </div>
+        <div class="placeholder-note" data-role="loading" hidden>불러오는 중&hellip;</div>
+        <div class="placeholder-note sent-empty" data-role="no-bucket" hidden>
+          집계된 분위기 버킷이 없습니다. 빈 도넛을 0%로 그리지 않고 <b>그리지 않습니다</b> &mdash; 집계가 없는 것과 모든 분위기가 0인 것은 다릅니다.
+        </div>
+
+        <div data-role="sent-body">
+          <div class="grid g-12">
+
+            <div class="card col-5">
+              <div class="card-h">
+                <h3>분위기 구성</h3>
+                <span class="sub" data-role="dn-sub">2026-10-16 버킷 &middot; 한국</span>
+              </div>
+              <div class="card-b">
+                <div data-role="dn-present">
+                  <div class="sent-donut-row">
+                    <svg viewBox="0 0 120 120" width="128" height="128" class="sent-donut" role="img" aria-label="KR 축 분위기 구성" data-role="donut"></svg>
+                    <div class="sent-donut-kv" data-role="donut-kv"></div>
+                  </div>
+                  <div class="sent-na" data-cls="s-na">
+                    <span class="d" style="background:var(--na)"></span>
+                    미분석 <b data-role="na-pct">6.2%</b> &mdash; 위 네 비율은 이 몫을 뺀 <b>분석 완료분</b> 기준입니다.
+                  </div>
+                  <div class="note sent-warn" data-role="na-warn" hidden>
+                    <div>
+                      미분석 비중이 <span data-role="na-warn-pct">14%</span>입니다. 이 구간의 분위기 변화는 구성 변화가 만든 착시일 수 있으니 해석을 보류하세요.
+                      <div class="sent-cause" data-role="na-cause">원인 &mdash; 분석 실패 <b>13건</b> &middot; 저신뢰 <b>8건</b></div>
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="na-warn-go" href="#STP-sentiment-unanalyzed">분리 전후 비율 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="note sent-warn" data-role="sm-warn" hidden>
+                    <div>
+                      이 대상은 분석 완료분이 <b data-role="sm-n">14</b>건뿐이라 분포가 크게 흔들릴 수 있습니다. 시계열에서 표본이 모자란 구간은 비율 대신 「표본 부족」으로 표기합니다.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="sm-go" href="#STP-sentiment-timeline">시계열에서 표본 부족 구간 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="dn-absent" hidden>
+                  <div>이 버킷에 <b data-role="dn-absent-axis">전세계</b> 축 집계가 없습니다. 0%로 그리면 「모두 중립」처럼 읽히므로 비워 둡니다.</div>
+                </div>
+                <div class="sent-def" data-role="class-def">
+                  <span class="seclabel">분류 기준</span>
+                  <b>혼합</b> 상반된 톤이 함께 있는 기사 &middot; <b>중립</b> 톤이 드러나지 않는 기사 &middot;
+                  <b>긍정 &middot; 부정</b> 한쪽 톤이 드러난 기사 &middot; <b>미분석</b> 본문이 부족하거나 판단을 확신하지 못해 분류를 채우지 않은 기사
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7">
+              <div class="card-h">
+                <h3>축별 분위기</h3>
+                <span class="sub">같은 버킷 &middot; 같은 기준</span>
+                <div class="r"><span class="norm-flag">&#9635; 정규화</span></div>
+              </div>
+              <div class="card-b">
+                <div data-role="axisrows"></div>
+                <div class="legend sent-legend">
+                  <span><span class="d" style="background:var(--pos)"></span>긍정</span>
+                  <span><span class="d" style="background:var(--neu)"></span>중립</span>
+                  <span><span class="d" style="background:var(--neg)"></span>부정</span>
+                  <span><span class="d" style="background:var(--mix)"></span>혼합</span>
+                  <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-7 sent-split" data-role="split-card">
+              <div class="card-h">
+                <h3>분리 전후 비율</h3>
+                <span class="sub">체크박스로 전환</span>
+              </div>
+              <div class="card-b">
+                <div data-role="split-present">
+                  <div class="sentbar sent-split-bar" data-role="split-bar"></div>
+                  <div class="sent-split-kv" data-role="split-kv"></div>
+                  <p class="sent-split-note" data-role="split-note"></p>
+                  <p class="sent-split-note" data-role="split-all-na" hidden>이 버킷은 전량 미분석이라 분모로 쓸 분석 완료분이 없습니다.</p>
+                </div>
+                <div class="note sent-absent" data-role="split-absent" hidden>
+                  <div><b data-role="split-absent-axis">전세계</b> 축 집계가 이 버킷에 없어 두 형태를 나란히 놓을 수 없습니다.</div>
+                </div>
+                <label class="sent-split-chk">
+                  <input type="checkbox" name="na-exclude-STP-sentiment-raw" data-role="na-split" checked />
+                  미분석 항목을 비율 분모에서 제외 (분리 표기)
+                </label>
+              </div>
+            </div>
+
+            <div class="card col-5 sent-exit">
+              <div class="card-h">
+                <h3>판별이 어렵다면</h3>
+                <span class="sub">다른 흐름으로 넘깁니다</span>
+              </div>
+              <div class="card-b">
+                <p class="sent-exit-lede">분류 자체가 미심쩍으면 원문을 직접 보고, 분류 기준을 바꿔야 한다면 재처리로 넘기세요.</p>
+                <div class="sent-exit-links">
+                  <a class="btn ghost" data-role="exit-fairness" href="JRN-spike-verification.html#STP-check-normalized" data-offpath="급등 검증 여정 — 공정성·원천 추적 화면(정규화 비율)">정규화 비율로 다시 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-origin" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article" data-goto="JRN-subject-articles#STP-open-article" data-end="원문 여정으로 인계">분류가 잘못된 것 같다 &mdash; 원문 확인 &rarr;</a>
+                  <a class="btn ghost" data-role="exit-backfill" href="JRN-logic-backfill.html#STP-scope-range" data-offpath="로직 소급 여정 — 재처리 콘솔">분류 기준을 바꿔야 한다 &mdash; 재처리 요청 &rarr;</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-h">
+                <h3>분위기 추세</h3>
+                <span class="sub" data-role="tl-sub">일 단위 &middot; 2026-10-03 ~ 2026-10-16</span>
+                <div class="r">
+                  <div class="radios" data-role="sent-unit" title="굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다"><label><input type="radio" name="sent-unit-STP-sentiment-raw" value="hour" /> 시간</label><label><input type="radio" name="sent-unit-STP-sentiment-raw" value="day" checked /> 일</label><label><input type="radio" name="sent-unit-STP-sentiment-raw" value="week" /> 주</label></div>
+                  <span class="sent-net">긍정 &minus; 부정 = 순분위기</span>
+                </div>
+              </div>
+              <div class="card-b">
+                <div class="loadbox" data-role="tl-reloading" hidden>
+                  고른 단위로 다시 집계하는 중&hellip;
+                  <div class="bar"><i></i></div>
+                </div>
+                <div data-role="tl-present">
+                  <svg viewBox="0 0 740 200" width="100%" class="sent-chart" role="img" aria-label="분위기 구성 추세" data-role="tl-chart"></svg>
+                  <div class="note" data-role="low-sample" style="margin:8px 0" hidden>
+                    <div>
+                      <b>표본이 부족한 구간이 <span data-role="ls-count">1</span>개 있습니다.</b>
+                      분석 완료 <span data-role="ls-min">20</span>건 미만 구간은 흐리게 두고 비율 대신 「표본 부족」으로 표기합니다 &mdash; 그 구간의 비율 변화는 읽지 마세요.
+                      <div style="margin-top:8px">
+                        <a class="btn sm" data-role="ls-go" href="#" data-jump="tl-vol-wrap">구간별 건수 보기 &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="sent-bk" data-role="bk-pick">
+                    <span data-role="bk-text">막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.</span>
+                    <a class="btn sm" data-role="bk-go" href="../reader.html?doc=user-journeys/JRN-subject-articles.md#STP-open-article-list" hidden>이 구간의 기사 보기 &rarr;</a>
+                  </div>
+                  <div class="sent-vol" data-role="tl-vol-wrap">
+                    <span class="seclabel">구간별 건수 &mdash; 절대량</span>
+                    <svg viewBox="0 0 740 96" width="100%" role="img" aria-label="구간별 건수" data-role="tl-vol"></svg>
+                    <div class="legend">
+                      <span><span class="d" style="background:var(--ax-us)"></span>분석 완료</span>
+                      <span><span class="d" style="background:var(--na)"></span>미분석</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="note sent-absent" data-role="series-empty" hidden>
+                  <div><b data-role="se-axis">전세계</b> 축에는 이 단위의 버킷이 없습니다 &mdash; 다른 축에는 있어 위의 축별 대조는 성립합니다.</div>
+                </div>
+                <div class="note" style="margin-top:14px">
+                  <div>이 막대는 <b data-role="unit-label">일 단위</b> 버킷으로 그려졌습니다. 굵은 단위는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아닙니다.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+        <div class="stepact">
+          <a class="btn sm" href="JRN-subject-share.html#STP-scan-ranking" data-goto="JRN-subject-share#STP-scan-ranking" data-end="다른 대상을 보러 순위로 복귀">다른 대상 보기 &mdash; 순위로 돌아가기</a>
+          <span class="hint" data-end="여정 완료">두 분포가 크게 갈리면 출처 구성을 보러 원문 목록으로 내려갈 수 있습니다.</span>
+        </div>
+      </section>
+
+      <!-- ============ 보조 레이어 (문서 메타) ============ -->
+      <details class="meta" data-meta-layer>
+        <summary>여정 문서 정보</summary>
+        <div class="metabody">
+          <p>이 프로토타입이 시각화하는 여정: <b>JRN-subject-sentiment</b> &mdash; 서술 대상 분위기 비율 조회.
+             <a href="../reader.html?doc=user-journeys/JRN-subject-sentiment.md">여정 문서 &rarr;</a></p>
+
+          <ol class="jrail" aria-label="여정 단계">
+            <li class="jr-item" data-rail="STP-open-subject-sentiment"><button type="button" class="jr-btn" data-goto-step="STP-open-subject-sentiment"><span class="jr-n">1</span><span class="jr-t">대상 분위기 분포 열기</span><span class="jr-id mono">STP-open-subject-sentiment</span></button></li>
+            <li class="jr-item" data-rail="STP-sentiment-unanalyzed"><button type="button" class="jr-btn" data-goto-step="STP-sentiment-unanalyzed"><span class="jr-n">2</span><span class="jr-t">미분석 비중 확인</span><span class="jr-id mono">STP-sentiment-unanalyzed</span></button></li>
+            <li class="jr-item" data-rail="STP-sentiment-timeline"><button type="button" class="jr-btn" data-goto-step="STP-sentiment-timeline"><span class="jr-n">3</span><span class="jr-t">분위기 시계열 보기</span><span class="jr-id mono">STP-sentiment-timeline</span></button></li>
+            <li class="jr-item" data-rail="STP-sentiment-raw"><button type="button" class="jr-btn" data-goto-step="STP-sentiment-raw"><span class="jr-n">4</span><span class="jr-t">정규화 전/후 전환</span><span class="jr-id mono">STP-sentiment-raw</span></button></li>
+          </ol>
+          <div class="jstep-f" style="margin-top:6px">
+            <button type="button" class="jstep-nav" id="jprev">&larr; 이전 단계</button>
+            <button type="button" class="jstep-nav" id="jnext">다음 단계 &rarr;</button>
+          </div>
+
+          <table class="tbl">
+            <thead><tr><th>단계</th><th>사용자 행동 (여정 문서)</th><th>터치포인트</th><th>연결 AC</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">STP-open-subject-sentiment</td><td>승계된 조건(축&middot;기간, 들어온 경로에 따라 출처)으로 그 대상의 긍정/중립/부정/혼합 비율을 연다</td><td>대상 분위기 화면 &mdash; 분포 도넛 &middot; 분위기 바 &middot; 조회 조건 표기</td><td class="mono">AC3.6 &middot; AC2.3</td></tr>
+              <tr><td class="mono">STP-sentiment-unanalyzed</td><td>저신뢰&middot;분석 불가 기사가 분포에서 분리돼 있는지 보고 그 비중을 확인한다</td><td>분포 옆 미분석 비중 표기 &middot; 범례</td><td class="mono">AC2.5 &middot; AC3.4</td></tr>
+              <tr><td class="mono">STP-sentiment-timeline</td><td>집계 단위(시간/일/주)로 분포를 펼쳐 언제부터 어떻게 바뀌었는지 본다</td><td>누적 100% 분위기 시계열 &middot; 칸별 기사 수</td><td class="mono">AC3.3 &middot; AC3.6</td></tr>
+              <tr><td class="mono">STP-sentiment-raw</td><td>정규화된 분포(출처별 분포를 기사 수 제곱근으로 가중)와 기사 수 그대로의 분포를 바꿔 본다</td><td>분위기 화면 머리의 정규화 전/후 전환</td><td class="mono">AC3.8</td></tr>
+            </tbody>
+          </table>
+
+          <table class="tbl">
+            <thead><tr><th>분기&middot;예외 (여정 문서 §4)</th><th>프로토타입에서의 위치</th><th>이어지는 단계</th></tr></thead>
+            <tbody>
+              <tr><td>미분석 비중이 임계 초과</td><td>화면 1 &middot; 분위기 구성 카드의 미분석 경고 &middot; 「분리 전후 비율 보기」</td><td class="mono">STP-sentiment-unanalyzed</td></tr>
+              <tr><td>표본이 너무 적어 분포가 불안정</td><td>화면 2 &middot; 분위기 구성 카드의 표본 안내 &middot; 「시계열에서 표본 부족 구간 보기」 &middot; 화면 3 &middot; 최소 표본 미만 칸은 「표본 부족」</td><td class="mono">STP-sentiment-timeline</td></tr>
+              <tr><td>분위기가 바뀐 구간의 기사를 보고 싶음</td><td>화면 3 &middot; 고른 구간 줄 &middot; 이 구간의 기사 보기 (여정 끝 표지)</td><td class="mono">JRN-subject-articles &middot; STP-open-article-list</td></tr>
+              <tr><td>분류가 잘못된 것으로 보임</td><td>화면 4 &middot; 판별이 어렵다면 카드 &middot; 원문 확인 (여정 끝 표지)</td><td class="mono">JRN-subject-articles &middot; STP-open-article</td></tr>
+              <tr><td>다른 대상을 보고 싶음</td><td>화면 4 &middot; 순위로 돌아가기 (여정 끝 표지)</td><td class="mono">JRN-subject-share &middot; STP-scan-ranking</td></tr>
+            </tbody>
+          </table>
+
+          <p style="margin-top:14px"><b>다른 여정 페이지로의 분기</b> &mdash; 원문 목록&middot;원문 여정은 아직 여정 페이지가 없다(규칙 1 미충족 상한이 관리한다).
+             그 분기 링크는 상대 여정의 <b>문서</b> 해당 단계로 착지하고, 상대 여정 페이지가 착지하는 PR 이 그 링크를 페이지 앵커로 바꾼다.
+             순위 여정(<code>JRN-subject-share</code>)은 페이지가 있어 파일 앵커로 착지한다.</p>
+
+          <div class="mapstrip" style="margin-top:16px">
+            <span class="lab">visualizes</span>
+            <span class="chip"><b>JRN-subject-sentiment</b></span>
+            <span class="chip"><b>STP-open-subject-sentiment</b></span>
+            <span class="chip"><b>STP-sentiment-unanalyzed</b></span>
+            <span class="chip"><b>STP-sentiment-timeline</b></span>
+            <span class="chip"><b>STP-sentiment-raw</b></span>
+            <span class="chip v"><b>V3</b> 분위기 분포</span>
+            <span class="chip v"><b>V4</b> 편차 보정 비교</span>
+            <span class="chip">AC2.3 &middot; AC2.5 &middot; AC3.3 &middot; AC3.4 &middot; AC3.6 &middot; AC3.8</span>
+          </div>
+        </div>
+      </details>
+
+
+    </div><!-- /canvas -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== jm-engine · 요건 9 화면·상태 엔진 (여정 페이지 공통 — 페이지마다 그대로 인라인) =====
+  붙이는 자리: </body> 직전, 페이지 자체 <script> 보다 앞.
+  규약
+    단계 안의 화면      .screen[data-screen][data-title]            기본 화면(구현 화면 그대로, data-state 없음)
+                        [data-pill="off"]                           토프바 pill 이 없는 화면
+    화면 교체 상태      .screen[data-screen][data-state][data-label] hidden
+    얹히는 상태         .screen 안의 [data-state][data-label] hidden
+                        [data-replaces="<role>"]                    딥링크로 열 때 같은 화면의 [data-role=<role>] 을 가린다
+    여정 밖 행동        [data-offpath="<어디로 가는지>"]           눌러도 여정이 움직이지 않고 안내만 뜬다
+    여정의 끝           [data-end="<끝의 의미>"]                   화면에 「여정 끝 · …」 표지가 붙는다
+  페이지 스크립트의 의무
+    go(step) 에서 섹션 표시를 바꾼 직후  JM.enter(step)  → 그 뒤에 페이지 렌더
+    fromHash 에서  var p = JM.parseHash();  go(유효하면 p.step 아니면 첫 단계);  if (p.state) JM.showState(p.step, p.state);
+-->
+<style id="jm-engine-css">
+.jstep{scroll-margin-top:64px}
+.jm-offnote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink,#1d1d1f);color:#fff;font-size:12px;line-height:1.4;padding:8px 12px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:min(92vw,520px)}
+[data-end]::after{content:"여정 끝 · " attr(data-end);display:inline-block;margin-left:8px;padding:2px 7px;
+  border-radius:999px;border:1px dashed var(--line-3,#bbb);font-size:10.5px;color:var(--ink-3,#777);
+  font-family:var(--mono,monospace);vertical-align:middle}
+.jm-inv{margin:6px 0 14px;font-size:12px}
+.jm-inv .jm-pos{font-weight:600;margin:0 0 6px}
+.jm-inv ul{margin:0;padding-left:18px}
+.jm-inv li{margin:2px 0}
+.jm-inv a{color:inherit}
+.jm-inv .jm-cur{font-weight:700}
+</style>
+<script id="jm-engine">
+(function(){
+  'use strict';
+  function q(sel, root){ return (root || document).querySelector(sel); }
+  function qa(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function sec(step){ return q('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+  function steps(){ return qa('section.jstep[data-step]').map(function(s){ return s.getAttribute('data-step'); }); }
+  function shownScreen(s){
+    var all = qa('.screen[data-screen]', s);
+    for (var i = 0; i < all.length; i++) if (!all[i].hidden) return all[i];
+    return all[0] || null;
+  }
+  function baseOf(s, sid){ return q('.screen[data-screen=' + JSON.stringify(sid) + ']:not([data-state])', s); }
+
+  function syncChrome(step){
+    var s = sec(step); if (!s) return;
+    var scr = shownScreen(s); if (!scr) return;
+    var id = scr.getAttribute('data-screen');
+    var base = baseOf(s, id) || scr;
+    qa('.sidebar .nav-item[data-id]').forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('data-id') === id);
+    });
+    var h2 = q('.topbar .crumb h2');
+    if (h2 && base.getAttribute('data-title')) h2.textContent = base.getAttribute('data-title');
+    var ctl = q('.topbar .ctl');
+    if (ctl) ctl.hidden = (base.getAttribute('data-pill') === 'off');
+  }
+
+  function invBox(){
+    var box = q('#jm-inv');
+    if (box) return box;
+    var layer = q('[data-meta-layer] .metabody') || q('[data-meta-layer]');
+    if (!layer) return null;
+    box = document.createElement('div');
+    box.id = 'jm-inv'; box.className = 'jm-inv';
+    layer.insertBefore(box, layer.firstChild);
+    return box;
+  }
+
+  function renderInv(step){
+    var box = invBox(), s = sec(step);
+    if (!box || !s) return;
+    var all = steps(), i = all.indexOf(step);
+    var cur = shownScreen(s);
+    var html = '<p class="jm-pos">' + (i + 1) + ' / ' + all.length + ' · '
+      + (s.getAttribute('data-title') || '') + ' <code>' + step + '</code></p><ul>';
+    qa('.screen[data-screen]:not([data-state])', s).forEach(function(scr){
+      var sid = scr.getAttribute('data-screen');
+      html += '<li><a href="#' + step + '"' + (cur === scr ? ' class="jm-cur"' : '') + '>화면 <code>'
+        + sid + '</code> · ' + (scr.getAttribute('data-title') || '') + '</a>';
+      var sts = qa('[data-state]', s).filter(function(el){
+        return el.matches('.screen') ? el.getAttribute('data-screen') === sid : el.closest('.screen') === scr;
+      });
+      if (sts.length) {
+        html += '<ul>';
+        sts.forEach(function(el){
+          var st = el.getAttribute('data-state');
+          html += '<li><a href="#' + step + '/' + st + '"' + (cur === el ? ' class="jm-cur"' : '') + '>'
+            + (el.getAttribute('data-label') || st) + ' <code>' + st + '</code> · '
+            + (el.matches('.screen') ? '화면 교체' : '얹힘') + '</a></li>';
+        });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    box.innerHTML = html + '</ul>';
+  }
+
+  var JM = {
+    parseHash: function(){
+      var h = (location.hash || '').replace(/^#/, '');
+      var k = h.indexOf('/');
+      return k < 0 ? { step: h, state: '' } : { step: h.slice(0, k), state: h.slice(k + 1) };
+    },
+    /* 단계에 들어갈 때 — 기본 화면만 보이게 되돌리고, 딥링크가 강제로 연 얹힘 상태를 거둔다. */
+    enter: function(step){
+      var s = sec(step); if (!s) return;
+      qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = scr.hasAttribute('data-state'); });
+      qa('[data-jm-forced]', s).forEach(function(el){ el.hidden = true; el.removeAttribute('data-jm-forced'); });
+      qa('[data-jm-replaced]', s).forEach(function(el){ el.hidden = false; el.removeAttribute('data-jm-replaced'); });
+      syncChrome(step);
+      renderInv(step);
+    },
+    /* 상태 하나를 연다 — 딥링크 #STP-x/<상태> 와 메타 레이어 목록이 쓴다. */
+    showState: function(step, state){
+      var s = sec(step); if (!s) return false;
+      var el = q('[data-state=' + JSON.stringify(state) + ']', s); if (!el) return false;
+      if (el.matches('.screen')) {
+        qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== el); });
+      } else {
+        var host = el.closest('.screen');
+        if (host && host.hidden) {
+          qa('.screen[data-screen]', s).forEach(function(scr){ scr.hidden = (scr !== host); });
+        }
+        el.hidden = false;
+        el.setAttribute('data-jm-forced', '');
+        var p = el.parentElement;
+        while (p && p !== host && p !== s) {
+          if (p.hidden) { p.hidden = false; p.setAttribute('data-jm-forced', ''); }
+          p = p.parentElement;
+        }
+        var rep = el.getAttribute('data-replaces');
+        if (rep && host) {
+          qa('[data-role=' + JSON.stringify(rep) + ']', host).forEach(function(r){
+            if (!r.hidden) { r.hidden = true; r.setAttribute('data-jm-replaced', ''); }
+          });
+        }
+      }
+      syncChrome(step);
+      renderInv(step);
+      return true;
+    }
+  };
+  window.JM = JM;
+
+  var note = null, noteTimer = null;
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-offpath]') : null;
+    if (!t) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'jm-offnote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = '이 여정 밖의 행동 — ' + t.getAttribute('data-offpath');
+    note.hidden = false;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(function(){ note.hidden = true; }, 2600);
+  }, true);
+})();
+</script>
+<!-- ===== /jm-engine ===== -->
+<script>
+/* ============================================================
+   JRN-subject-sentiment · 서술 대상 분위기 비율 프로토타입 런타임
+   외부 의존 없음(네트워크 호출 0건) — 모든 데이터는 아래 상수에서 온다.
+   네 단계 모두 구현 화면 `sentiment`(Sentiment.tsx) 하나를 같은 구조로 다시 그린다.
+   요소는 id 가 아니라 단계 섹션 안의 [data-role] 로 찾는다 — 같은 화면이 여러 단계에 있으므로.
+   ============================================================ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function sec(step){ return document.querySelector('section.jstep[data-step=' + JSON.stringify(step) + ']'); }
+function baseOf(s){ return s ? s.querySelector('.screen[data-screen]:not([data-state])') : null; }
+function R(root, role){ return root ? root.querySelector('[data-role=' + JSON.stringify(role) + ']') : null; }
+function show(el, on){ if(el) el.hidden = !on; }
+
+var ORDER = ['STP-open-subject-sentiment','STP-sentiment-unanalyzed','STP-sentiment-timeline','STP-sentiment-raw'];
+
+var AXES = {
+  KR:     { label: '한국',   pill: 'ax-kr', source: '한국경제' },
+  US:     { label: '미국',   pill: 'ax-us', source: 'Reuters' },
+  GLOBAL: { label: '전세계', pill: 'ax-gl', source: 'BBC' }
+};
+var CLASSES = [
+  { key: 'positive', cls: 's-pos', label: '긍정', color: 'var(--pos)' },
+  { key: 'neutral',  cls: 's-neu', label: '중립', color: 'var(--neu)' },
+  { key: 'negative', cls: 's-neg', label: '부정', color: 'var(--neg)' },
+  { key: 'mixed',    cls: 's-mix', label: '혼합', color: 'var(--mix)' }
+];
+var UNANALYZED = { key: 'unanalyzed', cls: 's-na', label: '미분석', color: 'var(--na)' };
+var UNIT_LABEL = { hour: '시간', day: '일', week: '주' };
+/* 구현의 고정 임계(Sentiment.tsx UNANALYZED_NOTICE) */
+var UNANALYZED_NOTICE = 0.1;
+/* 여정 문서 §4 2행의 「최소 표본」 — AC·계약에 값이 없어 이 프로토타입이 정한 가정값이다. */
+var MIN_SAMPLE = 20;
+/* 출처 조건을 달고 들어왔을 때: 그 출처의 기사만 남아 건수가 줄고 논조가 조금 다르다(가정). */
+var SRC_SCALE = 0.4, SRC_TILT = 0.04;
+
+var DAYS = ['10-03','10-04','10-05','10-06','10-07','10-08','10-09','10-10','10-11','10-12','10-13','10-14','10-15','10-16'];
+
+/* 대상 하나의 14일 일 단위 분포: from→to 로 움직이고, amp 는 정규화 전/후가 가장 갈리는 크기(10-14 가 정점). */
+function subject(name, o){
+  if(!o) return { name: name, days: [] };
+  var days = DAYS.map(function(d, i){
+    var t = i / (DAYS.length - 1), j = Math.sin(i * 1.7 + o.seed) * 0.012;
+    var pos = o.from[0] + (o.to[0] - o.from[0]) * t + j, neu = o.from[1] + (o.to[1] - o.from[1]) * t;
+    var neg = o.from[2] + (o.to[2] - o.from[2]) * t - j, mix = o.from[3] + (o.to[3] - o.from[3]) * t;
+    var sum = pos + neu + neg + mix;
+    var n = Math.max(1, Math.round((o.n0 + (o.n1 - o.n0) * t) * (1 + 0.06 * Math.sin(i * 2.3 + o.seed))));
+    if(o.nAt && o.nAt[i] !== undefined) n = o.nAt[i];
+    var bump = Math.max(0, 1 - Math.abs(i - 11) / 4);
+    return { label: d, n: n, amp: o.amp * (0.25 + 0.75 * bump),
+      dist: { positive: pos / sum, neutral: neu / sum, negative: neg / sum, mixed: mix / sum, unanalyzed: o.na0 + (o.na1 - o.na0) * t } };
+  });
+  return { name: name, days: days };
+}
+/* 한국 — 삼성전자는 미분석이 안정적인데 부정이 오른다(실제 논조 변화), 정규화 전/후가 크게 갈린다.
+   반도체 보조금은 기사가 몇 건 안 돼 표본이 모자라다. 미국 — Fed 금리 결정은 부정이 오르는 동안 미분석도 함께 올라
+   기준 버킷에서 14%(경고), 10-11 은 표본 6건. 전세계 — 이 단위의 버킷이 없다(기준 버킷 집계 없음). */
+var SUBJECTS = {
+  KR: [
+    subject('삼성전자',          { seed: 1, from: [.34,.36,.22,.08], to: [.20,.31,.41,.08], na0: .050, na1: .062, n0: 212, n1: 217, amp: .09 }),
+    subject('한국은행 기준금리', { seed: 2, from: [.25,.45,.22,.08], to: [.28,.40,.24,.08], na0: .060, na1: .070, n0: 180, n1: 190, amp: .03 }),
+    subject('원/달러 환율',      { seed: 3, from: [.22,.44,.26,.08], to: [.21,.43,.28,.08], na0: .055, na1: .060, n0: 150, n1: 160, amp: .02 }),
+    subject('반도체 보조금',     { seed: 4, from: [.30,.40,.22,.08], to: [.38,.34,.20,.08], na0: .080, na1: .090, n0: 4, n1: 16, amp: .04 })
+  ],
+  US: [
+    subject('Fed 금리 결정',     { seed: 5, from: [.30,.40,.22,.08], to: [.24,.36,.32,.08], na0: .050, na1: .140, n0: 164, n1: 132, amp: .05, nAt: { 8: 6 } }),
+    subject('CPI 발표',          { seed: 6, from: [.28,.42,.22,.08], to: [.27,.41,.24,.08], na0: .060, na1: .070, n0: 140, n1: 150, amp: .01 }),
+    subject('원/달러 환율',      { seed: 7, from: [.24,.44,.24,.08], to: [.22,.42,.28,.08], na0: .060, na1: .080, n0: 90, n1: 96, amp: .02 })
+  ],
+  GLOBAL: [
+    subject('원/달러 환율', null)
+  ]
+};
+
+var state = { axis: 'KR', subject: null, source: true, raw: false, unit: 'day', split: true,
+  loading: false, reloading: false, allNa: false, bucket: null };
+var cur = null;
+
+function subjectsOf(axis){ return SUBJECTS[axis || state.axis]; }
+function subjectOf(axis, name){
+  var l = subjectsOf(axis).filter(function(s){ return s.name === name; });
+  return l[0] || null;
+}
+function selSubject(){
+  return subjectOf(state.axis, state.subject) || subjectsOf(state.axis)[0];
+}
+
+/* 출처 조건: 건수를 줄이고 논조를 조금 비튼다. */
+function tilt(d){
+  if(!state.source) return d;
+  return { positive: d.positive, neutral: d.neutral - SRC_TILT, negative: d.negative + SRC_TILT, mixed: d.mixed, unanalyzed: d.unanalyzed };
+}
+/* 정규화 전/후: 정규화 분포(출처별 분포를 기사 수 제곱근으로 가중)와 기사 수 그대로의 분포 */
+function rawOf(d, amp){
+  var r = { positive: Math.max(.01, d.positive - amp * .4), neutral: Math.max(.01, d.neutral - amp * .6),
+    negative: d.negative + amp, mixed: d.mixed, unanalyzed: d.unanalyzed };
+  var sum = r.positive + r.neutral + r.negative + r.mixed;
+  ['positive','neutral','negative','mixed'].forEach(function(k){ r[k] = r[k] / sum; });
+  return r;
+}
+function shown(c){ return state.raw ? rawOf(c.dist, c.amp) : c.dist; }
+
+function dayCells(axis, name){
+  var s = subjectOf(axis, name);
+  if(!s || !s.days.length) return [];
+  return s.days.map(function(d){
+    return { label: d.label, n: state.source ? Math.max(1, Math.round(d.n * SRC_SCALE)) : d.n, amp: d.amp, dist: tilt(d.dist) };
+  });
+}
+function hourWeights(){
+  var w = [], sum = 0;
+  for(var h = 0; h < 24; h++){ var v = 0.3 + Math.pow(Math.sin(Math.PI * (h + 1) / 24), 2); w.push(v); sum += v; }
+  return w.map(function(v){ return v / sum; });
+}
+var HW = hourWeights();
+function pad(h){ return (h < 10 ? '0' : '') + h; }
+/* 단위별 칸. 굵은 단위의 분포는 칸 안에서 다시 정규화한 값이지 작은 칸의 합이 아니다. */
+function cellsOf(axis, name, unit){
+  var days = dayCells(axis, name), out = [];
+  if(!days.length) return out;
+  if(unit === 'day') return days;
+  if(unit === 'hour'){
+    days.forEach(function(c, di){
+      for(var h = 0; h < 24; h++){
+        var j = 0.02 * Math.sin(h * 0.7 + di);
+        out.push({ label: c.label + ' ' + pad(h) + '시', n: Math.round(c.n * HW[h]), amp: c.amp,
+          dist: { positive: c.dist.positive + j, neutral: c.dist.neutral, negative: c.dist.negative - j, mixed: c.dist.mixed, unanalyzed: c.dist.unanalyzed } });
+      }
+    });
+    return out;
+  }
+  for(var w = 0; w < 2; w++){
+    var seg = days.slice(w * 7, w * 7 + 7), N = 0, tot = 0, amp = 0;
+    var acc = { positive: 0, neutral: 0, negative: 0, mixed: 0 };
+    seg.forEach(function(c){
+      N += c.n; tot += c.n / (1 - c.dist.unanalyzed); amp += c.amp * c.n;
+      Object.keys(acc).forEach(function(k){ acc[k] += c.dist[k] * c.n; });
+    });
+    Object.keys(acc).forEach(function(k){ acc[k] /= N; });
+    acc.unanalyzed = 1 - N / tot;
+    out.push({ label: seg[0].label + ' ~ ' + seg[6].label, n: N, amp: amp / N, dist: acc });
+  }
+  return out;
+}
+
+/* /api/sentiment 응답 모양을 따른다: 고른 대상의 버킷 시계열 + 기준 버킷 하나에서의 세 축 대조(by_axis). */
+function response(){
+  var s = selSubject();
+  var by_axis = ['KR','US','GLOBAL'].map(function(a){
+    var d = dayCells(a, s.name), last = d.length ? d[d.length - 1] : null;
+    if(!last) return { axis: a, distribution: { positive: 0, neutral: 0, negative: 0, mixed: 0, unanalyzed: 0 }, analyzed_total: 0, present: false };
+    var row = { axis: a, distribution: shown(last), analyzed_total: last.n, present: true };
+    if(state.allNa && a === state.axis){
+      row = { axis: a, distribution: { positive: 0, neutral: 0, negative: 0, mixed: 0, unanalyzed: 1 }, analyzed_total: 0, present: true };
+    }
+    return row;
+  });
+  var series = cellsOf(state.axis, s.name, state.unit).map(function(c){
+    return { time_bucket: c.label, distribution: shown(c), analyzed_total: c.n };
+  });
+  return { axis: state.axis, subject: s.name, basis: { bucket_unit: state.unit, first_bucket: '2026-' + DAYS[0], latest_bucket: '2026-' + DAYS[DAYS.length - 1] },
+    series: series, by_axis: by_axis };
+}
+
+function pct(x, d){ return (x * 100).toFixed(d === undefined ? 1 : d) + '%'; }
+function segments(dist){
+  var analyzed = 1 - dist.unanalyzed;
+  return CLASSES.map(function(c){ return { cls: c.cls, label: c.label, color: c.color, share: dist[c.key] * analyzed }; })
+    .concat([{ cls: UNANALYZED.cls, label: UNANALYZED.label, color: UNANALYZED.color, share: dist.unanalyzed }]);
+}
+function unanalyzedCount(row){
+  var a = 1 - row.distribution.unanalyzed;
+  if(a <= 0) return null;
+  return Math.max(0, Math.round(row.analyzed_total / a) - row.analyzed_total);
+}
+function kv(c, share){
+  return '<div class="kv"><span class="k"><span class="d" style="background:' + c.color + '"></span>' + c.label
+    + '</span><span class="v" data-cls="' + c.cls + '">' + pct(share) + '</span></div>';
+}
+
+/* ---------------- 화면 sentiment (Sentiment.tsx) ---------------- */
+function renderDonut(b, row){
+  var Rr = 42, C = 2 * Math.PI * Rr, off = 0, arcs = '';
+  CLASSES.forEach(function(c){
+    var sh = row.distribution[c.key], dash = sh * C;
+    arcs += '<circle data-cls="' + c.cls + '" cx="60" cy="60" r="' + Rr + '" fill="none" stroke="' + c.color + '" stroke-width="16"'
+      + ' stroke-dasharray="' + dash.toFixed(2) + ' ' + (C - dash).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>';
+    off += dash;
+  });
+  var svg = R(b, 'donut');
+  svg.setAttribute('aria-label', row.axis + ' 축 분위기 구성');
+  svg.innerHTML = '<g transform="rotate(-90 60 60)"><circle cx="60" cy="60" r="' + Rr + '" fill="none" stroke="var(--line)" stroke-width="16"/>' + arcs + '</g>'
+    + '<text class="sent-donut-v" x="60" y="58" text-anchor="middle">' + row.analyzed_total + '</text>'
+    + '<text class="sent-donut-l" x="60" y="74" text-anchor="middle">분석 완료</text>';
+  R(b, 'donut-kv').innerHTML = CLASSES.map(function(c){ return kv(c, row.distribution[c.key]); }).join('');
+  R(b, 'na-pct').textContent = pct(row.distribution.unanalyzed);
+  var noisy = row.distribution.unanalyzed >= UNANALYZED_NOTICE;
+  show(R(b, 'na-warn'), noisy);
+  R(b, 'na-warn-pct').textContent = pct(row.distribution.unanalyzed, 0);
+  var naCount = unanalyzedCount(row), failN = naCount === null ? 0 : Math.round(naCount * 0.62);
+  R(b, 'na-cause').innerHTML = (state.allNa || naCount === null)
+    ? '원인 &mdash; 이 버킷의 전 항목이 분석되지 않았습니다'
+    : '원인 &mdash; 분석 실패 <b>' + failN + '건</b> &middot; 저신뢰 <b>' + (naCount - failN) + '건</b>';
+  var thin = !state.allNa && row.analyzed_total < MIN_SAMPLE;
+  show(R(b, 'sm-warn'), thin);
+  R(b, 'sm-n').textContent = String(row.analyzed_total);
+}
+
+function renderSplit(b, row){
+  var naCount = unanalyzedCount(row);
+  var shownSeg = state.split
+    ? CLASSES.map(function(c){ return { cls: c.cls, label: c.label, color: c.color, share: row.distribution[c.key] }; })
+    : segments(row.distribution);
+  R(b, 'split-bar').setAttribute('data-split', String(state.split));
+  R(b, 'split-bar').innerHTML = shownSeg.map(function(x){ return '<i class="' + x.cls + '" style="width:' + pct(x.share) + '"></i>'; }).join('');
+  R(b, 'split-kv').innerHTML = shownSeg.map(function(x){ return kv(x, x.share); }).join('');
+  var allNa = state.split && naCount === null;
+  show(R(b, 'split-note'), !allNa);
+  show(R(b, 'split-all-na'), allNa);
+  R(b, 'split-note').textContent = state.split
+    ? '지금 보는 비율은 분석된 ' + row.analyzed_total + '건만을 분모로 씁니다. 미분석 ' + naCount + '건은 분리해 따로 셉니다.'
+    : '미분석을 분모에 섞으면 각 비율이 그만큼 눌립니다 — 어느 쪽이 줄었는지 구분되지 않습니다.';
+}
+
+function renderAxisRows(b, data){
+  R(b, 'axisrows').innerHTML = data.by_axis.map(function(row){
+    var label = AXES[row.axis].label;
+    if(!row.present){
+      return '<div class="sent-axisrow" data-axis="' + row.axis + '" data-present="false"><span class="sent-axisname">' + label
+        + '</span><span class="sent-absent-inline">집계 없음</span></div>';
+    }
+    return '<div class="sent-axisrow" data-axis="' + row.axis + '" data-present="true"><span class="sent-axisname">' + label
+      + '</span><div class="sent-axisbar"><div class="sentbar">'
+      + segments(row.distribution).map(function(x){ return '<i class="' + x.cls + '" style="width:' + pct(x.share) + '"></i>'; }).join('')
+      + '</div></div><span class="sent-axistotal">' + row.analyzed_total + '건</span></div>';
+  }).join('');
+}
+
+/* PAT-stacked-sentiment — 누적 100% 막대. 표본 부족 구간(여정 문서 §4 2행)은 흐리게 두고
+   비율 대신 「표본 부족」을 얹는다. 막대를 누르면 그 구간을 고른다. */
+function renderTimeline(b, data){
+  var series = data.series, unit = data.basis.bucket_unit, n = series.length, fine = n <= 14;
+  var VIEW_W = 740, PLOT_L = 40, PLOT_R = 724, TOP = 14, BASELINE = 164, height = BASELINE - TOP;
+  var span = (PLOT_R - PLOT_L) / n, barW = fine ? Math.min(46, span * 0.62) : Math.max(1, span * 0.8);
+  var low = 0;
+  var svg = '<line class="gridline zero" x1="' + PLOT_L + '" y1="' + BASELINE + '" x2="' + PLOT_R + '" y2="' + BASELINE + '"/>';
+  series.forEach(function(p, i){
+    var cx = PLOT_L + span * (i + 0.5), y = TOP, thin = p.analyzed_total < MIN_SAMPLE;
+    if(thin) low++;
+    svg += '<g data-bucket="' + p.time_bucket + '">';
+    if(state.bucket === p.time_bucket){
+      svg += '<rect x="' + (cx - barW / 2 - 4).toFixed(2) + '" y="' + (TOP - 4) + '" width="' + (barW + 8).toFixed(2) + '" height="' + (height + 8)
+        + '" fill="none" stroke="var(--primary)" stroke-width="2" rx="3"/>';
+    }
+    segments(p.distribution).forEach(function(s){
+      var h = s.share * height;
+      svg += '<rect data-cls="' + s.cls + '"' + (thin ? ' class="thin"' : '') + ' x="' + (cx - barW / 2).toFixed(2) + '" y="' + y.toFixed(2)
+        + '" width="' + barW.toFixed(2) + '" height="' + Math.max(h, 0).toFixed(2) + '" fill="' + s.color + '"/>';
+      y += h;
+    });
+    if(fine){
+      if(thin) svg += '<text class="axlab" x="' + cx + '" y="' + (TOP + height / 2) + '" text-anchor="middle" style="fill:var(--ink)">표본 부족</text>';
+      svg += '<text class="axlab" x="' + cx + '" y="' + (BASELINE + 18) + '" text-anchor="middle">' + (unit === 'week' ? p.time_bucket : p.time_bucket.slice(0, 5)) + '</text>'
+        + '<text class="axlab" x="' + cx + '" y="' + (BASELINE + 32) + '" text-anchor="middle">' + p.analyzed_total + '건</text>';
+    } else if(i % 24 === 0){
+      svg += '<text class="axlab" x="' + cx + '" y="' + (BASELINE + 18) + '" text-anchor="middle">' + p.time_bucket.slice(0, 5) + '</text>';
+    }
+    svg += '</g>';
+  });
+  R(b, 'tl-chart').innerHTML = svg;
+  R(b, 'ls-count').textContent = String(low);
+  R(b, 'ls-min').textContent = String(MIN_SAMPLE);
+  show(R(b, 'low-sample'), low > 0);
+
+  /* 비율(누적 100%)과 절대량을 갈라 그린다 — 여정 문서 3단계 페인포인트의 대응 */
+  var counts = series.map(function(p){
+    var na = unanalyzedCount({ distribution: p.distribution, analyzed_total: p.analyzed_total }) || 0;
+    return { a: p.analyzed_total, na: na };
+  });
+  var peak = Math.max.apply(null, counts.map(function(c){ return c.a + c.na; }).concat([1]));
+  var VB = 74, VT = 14, vh = VB - VT;
+  var vol = '<line class="gridline zero" x1="' + PLOT_L + '" y1="' + VB + '" x2="' + PLOT_R + '" y2="' + VB + '"/>'
+    + '<text class="axlab" x="' + (PLOT_L - 6) + '" y="' + (VT + 3) + '" text-anchor="end">' + peak + '</text>'
+    + '<text class="axlab" x="' + (PLOT_L - 6) + '" y="' + (VB + 3) + '" text-anchor="end">0</text>';
+  counts.forEach(function(c, i){
+    var cx = PLOT_L + span * (i + 0.5), ha = c.a / peak * vh, hn = c.na / peak * vh;
+    vol += '<rect x="' + (cx - barW / 2).toFixed(2) + '" y="' + (VB - ha).toFixed(2) + '" width="' + barW.toFixed(2) + '" height="' + ha.toFixed(2) + '" fill="var(--ax-us)"/>'
+      + '<rect x="' + (cx - barW / 2).toFixed(2) + '" y="' + (VB - ha - hn).toFixed(2) + '" width="' + barW.toFixed(2) + '" height="' + hn.toFixed(2) + '" fill="var(--na)"/>';
+    if(fine){
+      vol += '<text class="axlab" x="' + cx + '" y="' + (VB - ha - hn - 4).toFixed(2) + '" text-anchor="middle">' + (c.a + c.na) + '</text>'
+        + '<text class="axlab" x="' + cx + '" y="' + (VB + 16) + '" text-anchor="middle">' + (unit === 'week' ? series[i].time_bucket : series[i].time_bucket.slice(0, 5)) + '</text>';
+    }
+  });
+  R(b, 'tl-vol').innerHTML = vol;
+
+  /* 고른 구간 */
+  var i = -1;
+  series.forEach(function(p, k){ if(p.time_bucket === state.bucket) i = k; });
+  var go = R(b, 'bk-go');
+  if(i < 0){
+    R(b, 'bk-text').textContent = '막대를 누르면 그 구간의 구성과, 그 구간을 이룬 기사로 내려가는 길이 열립니다.';
+    show(go, false);
+    return;
+  }
+  var p = series[i], prev = series[i - 1];
+  var txt = '<b>' + esc(p.time_bucket) + '</b> · 분석 완료 ' + p.analyzed_total + '건 · 미분석 ' + pct(p.distribution.unanalyzed) + ' · ';
+  if(p.analyzed_total < MIN_SAMPLE){
+    txt += '<b>표본 부족</b> — 비율을 읽지 않습니다';
+  } else {
+    txt += '부정 ' + pct(p.distribution.negative);
+    if(prev && prev.analyzed_total >= MIN_SAMPLE){
+      var d = (p.distribution.negative - prev.distribution.negative) * 100;
+      txt += ' (직전 구간 대비 ' + (d > 0.05 ? '&#9650; ' : d < -0.05 ? '&#9660; ' : '') + Math.abs(d).toFixed(1) + '%p)';
+    }
+  }
+  R(b, 'bk-text').innerHTML = txt;
+  show(go, true);
+}
+
+/* 정규화 전/후가 크게 갈리는 구간 — 기사 수 그대로 보는 중일 때 출처 구성을 보라고 안내한다. */
+var DIFF_NOTICE = 0.05;
+function renderDiff(b){
+  var s = selSubject(), days = dayCells(state.axis, s.name), best = null, gap = 0;
+  days.forEach(function(c){
+    var g = Math.abs(rawOf(c.dist, c.amp).negative - c.dist.negative);
+    if(g > gap){ gap = g; best = c; }
+  });
+  var on = state.raw && best !== null && gap >= DIFF_NOTICE;
+  show(R(b, 'diff-note'), on);
+  if(on){
+    R(b, 'diff-text').innerHTML = '두 분포가 크게 갈립니다 &mdash; 가장 갈리는 구간 <b>' + esc(best.label) + '</b> (부정 정규화 '
+      + pct(best.dist.negative) + ' ↔ 기사 수 그대로 ' + pct(rawOf(best.dist, best.amp).negative)
+      + '). 기사를 많이 낸 한 곳의 논조가 끌고 간 건 아닌지 출처 구성을 보세요.';
+  }
+}
+
+function render(step){
+  var s = sec(step), b = baseOf(s); if(!b) return;
+  var axisDef = AXES[state.axis], subj = selSubject();
+  state.subject = subj.name;
+  Array.prototype.forEach.call(R(b, 'sent-axis').querySelectorAll('input[type=radio]'), function(i){ i.checked = (i.value === state.axis); });
+  var sel = R(b, 'sent-subject');
+  sel.innerHTML = subjectsOf(state.axis).map(function(x){ return '<option value="' + esc(x.name) + '">' + esc(x.name) + '</option>'; }).join('');
+  sel.value = subj.name;
+  var src = R(b, 'sent-source');
+  src.checked = state.source;
+  src.parentNode.querySelector('span').innerHTML = '출처 조건 유지 &middot; ' + esc(axisDef.source);
+  Array.prototype.forEach.call(R(b, 'sent-norm').querySelectorAll('input[type=radio]'), function(i){ i.checked = (i.value === (state.raw ? 'raw' : 'norm')); });
+  Array.prototype.forEach.call(R(b, 'sent-unit').querySelectorAll('input[type=radio]'), function(i){ i.checked = (i.value === state.unit); });
+  var flag = R(b, 'sent-flag');
+  flag.className = state.raw ? 'raw-flag' : 'norm-flag';
+  flag.innerHTML = state.raw ? '&#9634; 기사 수 그대로' : '&#9635; 정규화 분포';
+  var pill = R(b, 'sent-axpill');
+  pill.className = 'axpill ' + axisDef.pill;
+  pill.innerHTML = '<span class="fl"></span>' + state.axis;
+  R(b, 'lede-axis').textContent = axisDef.label;
+  R(b, 'sent-inherit').textContent = '승계된 조건: ' + axisDef.label + ' 축 · 최근 14일 · ' + UNIT_LABEL[state.unit] + ' 단위 · '
+    + (state.source ? '출처 ‘' + axisDef.source + '’' : '전체 출처') + ' · ' + (state.raw ? '기사 수 그대로' : '정규화 분포') + ' · 대상 ‘' + subj.name + '’';
+  R(b, 'na-split').checked = state.split;
+
+  show(R(b, 'api-error'), false);
+  show(R(b, 'no-bucket'), false);
+  show(R(b, 'loading'), state.loading);
+  show(R(b, 'sent-body'), !state.loading);
+  show(R(b, 'diff-note'), false);
+  if(state.loading) return;
+  renderDiff(b);
+
+  var data = response();
+  var row = data.by_axis.filter(function(r){ return r.axis === data.axis; })[0];
+  R(b, 'dn-sub').textContent = data.basis.latest_bucket + ' 버킷 · ' + axisDef.label + ' · ' + subj.name;
+  show(R(b, 'dn-present'), row.present);
+  show(R(b, 'dn-absent'), !row.present);
+  R(b, 'dn-absent-axis').textContent = axisDef.label;
+  if(row.present) renderDonut(b, row);
+  else show(R(b, 'sm-warn'), false);
+
+  renderAxisRows(b, data);
+
+  show(R(b, 'split-present'), row.present);
+  show(R(b, 'split-absent'), !row.present);
+  R(b, 'split-absent-axis').textContent = axisDef.label;
+  if(row.present) renderSplit(b, row);
+
+  var unitLabel = UNIT_LABEL[data.basis.bucket_unit];
+  R(b, 'tl-sub').textContent = unitLabel + ' 단위 · ' + data.basis.first_bucket + ' ~ ' + data.basis.latest_bucket;
+  R(b, 'unit-label').textContent = unitLabel + ' 단위';
+  var has = data.series.length > 0;
+  show(R(b, 'tl-reloading'), state.reloading);
+  show(R(b, 'tl-present'), has && !state.reloading);
+  show(R(b, 'series-empty'), !has);
+  R(b, 'se-axis').textContent = axisDef.label;
+  if(has) renderTimeline(b, data);
+}
+
+/* 축·대상을 바꾸면 응답을 다시 받는 동안 「불러오는 중…」(구현: setData(null)) */
+var loadTimer = null;
+function reload(){
+  state.bucket = null; state.allNa = false;
+  state.loading = true;
+  render(cur);
+  clearTimeout(loadTimer);
+  loadTimer = setTimeout(function(){ state.loading = false; render(cur); }, 300);
+}
+/* 단위를 바꾸면 시계열이 재집계 상태를 거친다. */
+var reloadTimer = null;
+function applyUnit(unit){
+  state.unit = unit; state.bucket = null;
+  state.reloading = true;
+  render(cur);
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(function(){ state.reloading = false; render(cur); }, 300);
+}
+
+/* 데이터로 도달하는 상태를 딥링크로 열 때는 그 데이터 조건을 먼저 맞춘다(화면이 앞뒤가 맞도록). */
+var SETUP = {
+  'axis-absent':        function(){ state.axis = 'GLOBAL'; state.subject = null; },
+  'split-absent':       function(){ state.axis = 'GLOBAL'; state.subject = null; },
+  'series-empty':       function(){ state.axis = 'GLOBAL'; state.subject = null; },
+  'unanalyzed-warning': function(){ state.axis = 'US'; state.subject = null; },
+  'thin-sample':        function(){ state.axis = 'KR'; state.subject = '반도체 보조금'; },
+  'low-sample':         function(){ state.axis = 'KR'; state.subject = '반도체 보조금'; },
+  'all-unanalyzed':     function(){ state.allNa = true; state.split = true; },
+  'diff-large':         function(){ state.axis = 'KR'; state.subject = '삼성전자'; state.raw = true; }
+};
+
+/* ---------------- 여정 워커 ---------------- */
+(function(){
+  var rails = {};
+  ORDER.forEach(function(id){ rails[id] = document.querySelector('.jr-item[data-rail=' + JSON.stringify(id) + ']'); });
+  var prevBtn = document.getElementById('jprev'), nextBtn = document.getElementById('jnext');
+
+  function go(id, push){
+    if(ORDER.indexOf(id) < 0) return;
+    cur = id;
+    state.allNa = false;
+    var i = ORDER.indexOf(id);
+    ORDER.forEach(function(o, k){
+      sec(o).hidden = (o !== id);
+      if(rails[o]){ rails[o].classList.toggle('on', o === id); rails[o].classList.toggle('done', k < i); }
+    });
+    if(prevBtn) prevBtn.disabled = (i === 0);
+    if(nextBtn) nextBtn.disabled = (i === ORDER.length - 1);
+    JM.enter(id);
+    render(id);
+    if(push && location.hash !== '#' + id) location.hash = '#' + id;
+  }
+  window.__journeyGo = go;
+
+  function jump(role){
+    var t = R(baseOf(sec(cur)), role);
+    if(t && typeof t.scrollIntoView === 'function') t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-advance],[data-goto-step],[data-goto],[data-jump],[data-bucket]') : null;
+    if(!el) return;
+    if(el.hasAttribute('data-advance')){ if(!el.disabled) go(el.getAttribute('data-advance'), true); return; }
+    if(el.hasAttribute('data-goto-step')){ go(el.getAttribute('data-goto-step'), true); return; }
+    if(el.hasAttribute('data-goto')){
+      var p = el.getAttribute('data-goto').split('#');
+      if(p[0] === 'JRN-subject-sentiment'){
+        e.preventDefault();
+        go(p[1], true);
+        if(el.hasAttribute('data-jump')) jump(el.getAttribute('data-jump'));
+      }
+      return;
+    }
+    if(el.hasAttribute('data-jump')){ e.preventDefault(); jump(el.getAttribute('data-jump')); return; }
+    if(el.hasAttribute('data-bucket')){
+      var bk = el.getAttribute('data-bucket');
+      state.bucket = (state.bucket === bk) ? null : bk;
+      render(cur);
+    }
+  });
+
+  document.addEventListener('submit', function(e){ e.preventDefault(); });
+  document.addEventListener('change', function(e){
+    var el = e.target, role = el.getAttribute('data-role');
+    var host = el.closest('[data-role="sent-axis"],[data-role="sent-norm"],[data-role="sent-unit"]');
+    var hr = host && host.getAttribute('data-role');
+    if(hr === 'sent-axis'){ state.axis = el.value; state.subject = null; reload(); return; }
+    if(hr === 'sent-norm'){ state.raw = (el.value === 'raw'); render(cur); return; }
+    if(hr === 'sent-unit'){ applyUnit(el.value); return; }
+    if(role === 'sent-subject'){ state.subject = el.value; reload(); return; }
+    if(role === 'sent-source'){ state.source = el.checked; state.bucket = null; render(cur); return; }
+    if(role === 'na-split'){ state.split = el.checked; render(cur); }
+  });
+
+  if(prevBtn) prevBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i > 0) go(ORDER[i - 1], true); });
+  if(nextBtn) nextBtn.addEventListener('click', function(){ var i = ORDER.indexOf(cur); if(i < ORDER.length - 1) go(ORDER[i + 1], true); });
+
+  function fromHash(){
+    var p = JM.parseHash();
+    go(ORDER.indexOf(p.step) >= 0 ? p.step : ORDER[0], false);
+    if(p.state){
+      if(SETUP[p.state]){ SETUP[p.state](); render(cur); }
+      JM.showState(cur, p.state);
+    }
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+
+</script>
+</body>
+</html>

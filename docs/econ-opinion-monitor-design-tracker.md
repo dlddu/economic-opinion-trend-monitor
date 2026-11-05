@@ -9,9 +9,9 @@
 ## 현재 상태 요약
 - 정의된 가치: **5개** (V1~V5, 가치 문서에서 참조)
 - 사용자 여정: **13개** (`JRN-*`, 여정당 문서 하나 · 현행 9개 39단계 + 폐기 4개 19단계 · 가치 연결됨 13개 / 미연결 0개)
-- Mockup: **여정 페이지 9개 + 진입 리다이렉트 1개** (페이지별 자립형 HTML, CSS·JS 인라인)
+- Mockup: **여정 페이지 10개 + 진입 리다이렉트 1개** (페이지별 자립형 HTML, CSS·JS 인라인)
 - 디자인 시스템: **정의됨** (토큰 9 · 컴포넌트 19 · 패턴 9)
-- **건강 상태**: 🟡 **주의** — 2026-11-02 관찰자 여정을 기능 중심 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)로 재편했고, 새 여정은 아직 페이지가 거의 없다 — 허브 여정 `JRN-subject-share` 가 2026-11-04 에 첫 페이지로 착지하고 여정 페이지 보유 9/13 이며 「규칙 1 미충족 여정 상한」은 4 다(`JRN-subject-trend` 가 같은 날 두 번째 페이지로 착지). 대체된 네 여정(`JRN-daily-scan`·`JRN-spike-verification`·`JRN-axis-contrast`·`JRN-sentiment-shift`)은 폐기 상태로 문서·페이지를 남겨 두었고, 새 여정 페이지가 착지하는 PR 에서 걷어 낸다. 가치↔여정 연결은 끊김이 없다.
+- **건강 상태**: 🟡 **주의** — 2026-11-02 관찰자 여정을 기능 중심 6개(`JRN-subject-share`·`JRN-subject-sentiment`·`JRN-subject-articles`·`JRN-subject-trend`·`JRN-source-share`·`JRN-axis-share`)로 재편했고, 새 여정은 아직 페이지가 거의 없다 — 허브 여정 `JRN-subject-share` 가 2026-11-04 에 첫 페이지로 착지하고 여정 페이지 보유 10/13 이며 「규칙 1 미충족 여정 상한」은 3 이다(`JRN-subject-trend` 가 같은 날 두 번째, `JRN-subject-sentiment` 가 세 번째 페이지로 착지). 대체된 네 여정(`JRN-daily-scan`·`JRN-spike-verification`·`JRN-axis-contrast`·`JRN-sentiment-shift`)은 폐기 상태로 문서·페이지를 남겨 두었고, 새 여정 페이지가 착지하는 PR 에서 걷어 낸다. 가치↔여정 연결은 끊김이 없다.
 - **재편 이전 상태(이력)**: 가치↔여정 연결은 끊김이 없다. 옛 일곱 여정의 여정 단위 이관은 2026-09-24 에 끝났고(`JRN-sentiment-shift` 2026-08-30 · `JRN-axis-contrast` 2026-08-31 · `JRN-spike-verification` 2026-09-18 · `JRN-daily-scan` 2026-09-18 · `JRN-ingestion-recovery` 2026-09-19 · `JRN-logic-backfill` 2026-09-19 · `JRN-judgment-debug` 2026-09-24 — 여정 문서와 같은 날 페이지 착지), 화면 단위 mockup 은 남아 있지 않다. **미시각화 0단계 · 부분 시각화 0단계**이며, 두 래칫(「규칙 1 미충족 여정 상한」·「규칙 5 미충족 mockup 페이지 상한」)이 모두 0 이라 여정이 하나 늘고 페이지가 따라오지 않으면 그 즉시 PR 이 빨개진다. `JRN-judgment-debug` 페이지는 화면 id `debug` 로 좌측 네비에 들어갔고(2026-09-24), 구현 `Debug.tsx` 도 2026-09-28 에 서서 `BUILT` 에 들어갔다 — 그 페이지의 다섯 단계 중 두 단계의 목업↔구현 편차는 아래 허용목록이 받고 나머지는 후속이다.
   가치 측 전제 위험(제품 소유자 미지정)은 product-doc-engineer 영역으로 별도 추적된다.
 
@@ -21,7 +21,7 @@
 | 사용자 여정 | `user-journeys/JRN-*.md` (7개) + `user-journeys/README.md` (인덱스·구 식별자 매핑) |
 | 디자인 시스템 | `design-system/econ-opinion-monitor-design-system.md` |
 | Mockup 인덱스 | `mockups/econ-opinion-monitor-mockup-index.md` |
-| Mockup — 여정 페이지 | `mockups/JRN-subject-share.html` · `mockups/JRN-subject-trend.html` · `mockups/JRN-sentiment-shift.html` · `mockups/JRN-axis-contrast.html` · `mockups/JRN-spike-verification.html` · `mockups/JRN-daily-scan.html` · `mockups/JRN-ingestion-recovery.html` · `mockups/JRN-logic-backfill.html` · `mockups/JRN-judgment-debug.html` (여정 하나 = 페이지 하나, 클릭되는 제품 프로토타입) |
+| Mockup — 여정 페이지 | `mockups/JRN-subject-share.html` · `mockups/JRN-subject-trend.html` · `mockups/JRN-subject-sentiment.html` · `mockups/JRN-sentiment-shift.html` · `mockups/JRN-axis-contrast.html` · `mockups/JRN-spike-verification.html` · `mockups/JRN-daily-scan.html` · `mockups/JRN-ingestion-recovery.html` · `mockups/JRN-logic-backfill.html` · `mockups/JRN-judgment-debug.html` (여정 하나 = 페이지 하나, 클릭되는 제품 프로토타입) |
 | Mockup — 진입 리다이렉트 | `mockups/index.html` (`JRN-daily-scan.html` 로 보낸다). **화면 단위 mockup 은 0개다** — 마지막이던 `reprocess.html` 은 2026-09-19 `JRN-logic-backfill` 이관으로 흡수·삭제됐다(공유 화면이라 그 화면을 쓰는 여정이 전부 이관되는 시점까지 존속했다). 흡수된 `dashboard`·`trend`·`compare`·`sentiment`·`fairness`·`trace`·`reprocess` 는 파일이 삭제됐고 화면 id 는 인덱스의 「흡수된 화면의 표기 규약」에 따라 존속한다 |
 | 여정 mockup 게이트 | `scripts/check-journey-mockup.py`(정적 R1~R11 — R10 서술 숫자 ↔ 실측, R11 이 표의 mockup 등재 ↔ 실파일) · `scripts/check-journey-flow.js`(DOM 하네스) · `scripts/journey-scenarios/<여정 식별자>.js`(페이지별 조작) · `.github/workflows/docs-journey-mockup.yml` |
 | 설계·UX 상태 추적 | `econ-opinion-monitor-design-tracker.md` |
@@ -48,6 +48,7 @@
 |------|---------|--------|------|----------|
 | `JRN-subject-share` | 4 | 4 | 0 | 0 |
 | `JRN-subject-trend` | 4 | 4 | 0 | 0 |
+| `JRN-subject-sentiment` | 4 | 4 | 0 | 0 |
 | `JRN-daily-scan` | 4 | 4 | 0 | 0 |
 | `JRN-spike-verification` | 6 | 6 | 0 | 0 |
 | `JRN-axis-contrast` | 5 | 5 | 0 | 0 |
@@ -55,7 +56,7 @@
 | `JRN-ingestion-recovery` | 5 | 5 | 0 | 0 |
 | `JRN-logic-backfill` | 5 | 5 | 0 | 0 |
 | `JRN-judgment-debug` | 5 | 5 | 0 | 0 |
-| **합계** | **42** | **42** | **0** | **0** |
+| **합계** | **46** | **46** | **0** | **0** |
 
 ## 규칙 8 예외 등재 (mockup 을 두지 않기로 한 여정)
 
@@ -85,8 +86,8 @@
 
 ### 🔴 가치 측 위험 (존재 이유 불분명)
 - **고아 여정**: (없음) — 7개 여정 모두 존재하는 가치를 참조함.
-- **고아 mockup**: (없음) — 여정 페이지 9개(+ 진입 리다이렉트 1개) 모두 여정 단계·가치에 매핑됨.
-- **인덱스 누락 mockup**: (없음) — 실파일 10개(여정 페이지 9개 + 진입 리다이렉트 1개)가 모두 인덱스에 등재됨.
+- **고아 mockup**: (없음) — 여정 페이지 10개(+ 진입 리다이렉트 1개) 모두 여정 단계·가치에 매핑됨.
+- **인덱스 누락 mockup**: (없음) — 실파일 11개(여정 페이지 10개 + 진입 리다이렉트 1개)가 모두 인덱스에 등재됨.
 
 ### 🟢 시각화 누락 (해소됨)
 - **미시각화 단계 0개**: 2026-09-24 신설 `JRN-judgment-debug` 의 다섯 단계(`STP-pin-record`·`STP-read-exchange`·`STP-check-input`·`STP-scan-run`·`STP-route-cause`)는 여정 문서가 먼저 들어와 잠시 미시각화였다가 같은 날 여정 페이지로 해소됐다. 그 이전의 마지막 2건(`STP-dry-run`·`STP-publish`)이 2026-09-19 `JRN-logic-backfill` 이관으로 해소됐다 — 표본 실행을 전량 실행의 관문으로, 반영·롤백을 근거와 함께 남기는 결정 기록으로 그렸다. 앞선 해소: `STP-backfill`(2026-09-19 `JRN-ingestion-recovery`), `STP-judge`(2026-09-18 `JRN-spike-verification`), `STP-shortlist`(2026-09-18 `JRN-daily-scan`). 다만 이 단계들이 적은 **검증 이력·플래그 / 북마크·워치리스트 / 재처리 이력·소비자 주석의 영속화는 여정 문서가 파킹한 백로그** 그대로이고, 판정도 추림도 재처리 결정도 세션 안에서만 유지된다.
