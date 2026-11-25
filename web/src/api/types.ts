@@ -190,6 +190,11 @@ export interface ContributionRow {
   body_available: boolean;
   body_duplicate: boolean;
   body_shares: number;
+  // AC3.12: an article row carries the sentiment. Null (or absent) means the
+  // article has no analysed verdict — AC2.5 keeps low-confidence records aside
+  // rather than forcing them into one of the four classes.
+  sentiment?: string | null;
+  analysis_status?: string;
 }
 
 export interface ContributionSource {
@@ -279,6 +284,10 @@ export interface TraceSilver {
   sentiment_rationale: string | null;
   target_countries: string[];
   narrative_subjects: string[];
+  // AC3.12: the analysis result an opened article shows — 서술 대상 · 카테고리 ·
+  // 분위기. The contract makes categories optional, so this is an empty list
+  // when the analysis carries none.
+  subject_categories?: string[];
   confidence: number;
   analyzed_at: string;
   analyzer_version: string;
