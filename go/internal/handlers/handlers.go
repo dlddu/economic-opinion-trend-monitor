@@ -221,9 +221,14 @@ type traceSilver struct {
 	SentimentRationale *string  `json:"sentiment_rationale"`
 	TargetCountries    []string `json:"target_countries"`
 	NarrativeSubjects  []string `json:"narrative_subjects"`
-	Confidence         float64  `json:"confidence"`
-	AnalyzedAt         string   `json:"analyzed_at"`
-	AnalyzerVersion    string   `json:"analyzer_version"`
+	// SubjectCategories is the other half of an article's analysis result
+	// (AC3.12: 서술 대상·카테고리·분위기). The contract makes it optional —
+	// an analysis may carry only narrative subjects — so it is an empty list
+	// when the row has none, never a missing key.
+	SubjectCategories []string `json:"subject_categories"`
+	Confidence        float64  `json:"confidence"`
+	AnalyzedAt        string   `json:"analyzed_at"`
+	AnalyzerVersion   string   `json:"analyzer_version"`
 }
 
 type traceIngestion struct {
@@ -525,6 +530,12 @@ func silverSection(recordID string, analyses []gen.Analysis) (*traceSilver, bool
 		}
 		if out.NarrativeSubjects == nil {
 			out.NarrativeSubjects = []string{}
+		}
+		if a.SubjectCategories != nil {
+			out.SubjectCategories = *a.SubjectCategories
+		}
+		if out.SubjectCategories == nil {
+			out.SubjectCategories = []string{}
 		}
 		return &out, true
 	}

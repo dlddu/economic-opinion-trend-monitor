@@ -26,6 +26,13 @@ type contributionRow struct {
 	BodyAvailable bool   `json:"body_available"`
 	BodyDuplicate bool   `json:"body_duplicate"`
 	BodyShares    int    `json:"body_shares"`
+	// Sentiment and AnalysisStatus are the article's own verdict. AC3.12 asks
+	// an article row to carry the sentiment, and AC2.5 makes "not analyzed" a
+	// real outcome — so Sentiment is a pointer and nil means unanalyzed.
+	// The row read is the same one /api/trace shows for that record, so the
+	// row's badge and the opened article never disagree.
+	Sentiment      *string `json:"sentiment"`
+	AnalysisStatus string  `json:"analysis_status"`
 }
 
 // RawShare and NormalizedContribution are the AC3.12 source-composition
@@ -132,10 +139,11 @@ func (h *Handlers) contributions(w http.ResponseWriter, r *http.Request, db *sql
 func pickedArticles(ctx context.Context, db *sql.DB, axis string, unit gen.BucketUnit, bucket, subject string) ([]contributionRow, error) {
 	rs, err := db.QueryContext(ctx, `SELECT p.record_id, p.source_id, p.collected_at,
 		coalesce(n.title, ''), coalesce(n.source_url, ''), coalesce(n.body_hash, ''),
-		coalesce(n.body_available, 0), coalesce(b.shares, 0)
+		coalesce(n.body_available, 0), coalesce(b.shares, 0), a.sentiment, coalesce(a.analysis_status, '')
 		FROM article_pick AS p
 		LEFT JOIN news_item AS n ON n.seq = (SELECT max(m.seq) FROM news_item AS m WHERE m.record_id = p.record_id)
 		LEFT JOIN body_share AS b ON b.body_hash = n.body_hash
+		LEFT JOIN analysis AS a ON a.seq = (SELECT min(m.seq) FROM analysis AS m WHERE m.record_id = p.record_id)
 		WHERE p.axis = ? AND p.bucket_unit = ? AND p.time_bucket = ?
 		  AND EXISTS (SELECT 1 FROM json_each(p.counted_subjects) WHERE value = ?)
 		ORDER BY p.collected_at DESC, p.record_id`, axis, string(unit), bucket, subject)
@@ -146,9 +154,14 @@ func pickedArticles(ctx context.Context, db *sql.DB, axis string, unit gen.Bucke
 	out := []contributionRow{}
 	for rs.Next() {
 		var row contributionRow
+		var sentiment sql.NullString
 		if err := rs.Scan(&row.RecordID, &row.SourceID, &row.CollectedAt, &row.Title, &row.SourceURL,
-			&row.BodyHash, &row.BodyAvailable, &row.BodyShares); err != nil {
+			&row.BodyHash, &row.BodyAvailable, &row.BodyShares, &sentiment, &row.AnalysisStatus); err != nil {
 			return nil, err
+		}
+		if sentiment.Valid {
+			s := sentiment.String
+			row.Sentiment = &s
 		}
 		row.BodyDuplicate = row.BodyShares > 1
 		out = append(out, row)

@@ -12,6 +12,7 @@ import type {
   SpikeBaseline,
   SpikeRow,
   SpikesResponse,
+  TraceResponse,
 } from "../api/types";
 import { MapStrip } from "../shell/MapStrip";
 
@@ -59,6 +60,22 @@ function multipleLabel(row: SpikeRow | undefined, m: number | null): string {
   return row?.is_new ? "신규" : "—";
 }
 
+// AC3.12: 기사 행의 분위기. AC2.5 는 저신뢰 기록을 「미분석」으로 두므로
+// 분석 결과가 없으면 네 분류 중 어느 것으로도 칠하지 않는다.
+function sentimentLabel(sentiment: string): string {
+  if (sentiment === "positive") return "긍정";
+  if (sentiment === "negative") return "부정";
+  if (sentiment === "mixed") return "혼합";
+  return "중립";
+}
+
+function sentimentBadge(sentiment: string): string {
+  if (sentiment === "positive") return "b-pos";
+  if (sentiment === "negative") return "b-neg";
+  if (sentiment === "mixed") return "b-mix";
+  return "b-neu";
+}
+
 function axisFrom(value: string | null): Axis {
   return value === "US" || value === "GLOBAL" ? value : "KR";
 }
@@ -83,6 +100,11 @@ export function Fairness() {
   const [contribError, setContribError] = useState<string | null>(null);
   const [split, setSplit] = useState<SourceContributionsResponse | null>(null);
   const [splitError, setSplitError] = useState<string | null>(null);
+  // AC3.12: 기사를 열면 보존 원문 전체 · 원문 링크 · 분석 결과 · 판단 근거를
+  // 함께 보여 준다 — 목록을 떠나지 않고 그 자리에서 읽는다.
+  const [openArticle, setOpenArticle] = useState<string | null>(null);
+  const [detail, setDetail] = useState<TraceResponse | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   function writeParams(next: { axis?: Axis; subject?: string }) {
     const out = new URLSearchParams({ axis: next.axis ?? axis });
@@ -176,6 +198,24 @@ export function Fairness() {
       active = false;
     };
   }, [axis, subject, bucket, bucketUnit]);
+
+  useEffect(() => {
+    if (!openArticle) {
+      setDetail(null);
+      setDetailError(null);
+      return;
+    }
+    let active = true;
+    setDetail(null);
+    setDetailError(null);
+    api
+      .trace(openArticle)
+      .then((d) => active && setDetail(d))
+      .catch((e: unknown) => active && setDetailError(String(e)));
+    return () => {
+      active = false;
+    };
+  }, [openArticle]);
 
   // AC3.9 의 두 합 등식. 화면이 판정하는 것이 아니라 서빙이 실측한 네 수치를
   // 대조하는 것이다 — 그래서 어긋남이 관측 가능하다.
@@ -570,7 +610,29 @@ export function Fairness() {
                 {articles.map((row) => (
                   <div className="art-row" key={row.record_id}>
                     <div className="art-head">
-                      <span className="art-title">{row.title}</span>
+                      <button
+                        type="button"
+                        className="art-title art-open"
+                        aria-expanded={openArticle === row.record_id}
+                        data-testid={`art-open-${row.record_id}`}
+                        onClick={() =>
+                          setOpenArticle(openArticle === row.record_id ? null : row.record_id)
+                        }
+                      >
+                        {row.title}
+                      </button>
+                      {row.sentiment ? (
+                        <span
+                          className={`badge ${sentimentBadge(row.sentiment)} art-sent`}
+                          data-testid={`art-sent-${row.record_id}`}
+                        >
+                          {sentimentLabel(row.sentiment)}
+                        </span>
+                      ) : (
+                        <span className="badge b-neu art-sent" data-testid={`art-sent-${row.record_id}`}>
+                          미분석
+                        </span>
+                      )}
                       {row.body_duplicate && (
                         <span className="badge b-neu art-dup-badge">본문 중복 {row.body_shares}건</span>
                       )}
@@ -592,6 +654,61 @@ export function Fairness() {
                       </Link>
                       {!row.body_available && <span className="meta">수집 시점 본문 미확보</span>}
                     </div>
+                    {openArticle === row.record_id && (
+                      <div className="note art-detail" data-testid={`art-detail-${row.record_id}`}>
+                        <div>
+                          {detailError && (
+                            <>
+                              <b>기사 상세 조회 실패:</b> {detailError}
+                            </>
+                          )}
+                          {!detail && !detailError && <span>불러오는 중…</span>}
+                          {detail && !detail.found && <span>이 기록을 찾지 못했습니다.</span>}
+                          {detail && detail.found && detail.bronze && (
+                            <>
+                              <b>보존된 원문 전체</b>
+                              <p>
+                                {detail.bronze.body_text ||
+                                  "보존된 원문 텍스트가 없습니다 — 수집 시점 본문 미확보입니다."}
+                              </p>
+                              <p>
+                                <a
+                                  className="btn sm"
+                                  href={detail.bronze.source_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  원문 링크 ↗
+                                </a>{" "}
+                                <span className="meta">
+                                  {detail.bronze.body_preserved
+                                    ? "링크 상태와 무관하게 보존 원문으로 열람 가능"
+                                    : "보존 원문 없음 — 링크가 열려야만 원문을 볼 수 있습니다"}
+                                </span>
+                              </p>
+                              {detail.silver ? (
+                                <>
+                                  <b>분석 결과</b>
+                                  <p className="mono">
+                                    서술 대상 {detail.silver.narrative_subjects.join(", ") || "—"} · 카테고리{" "}
+                                    {(detail.silver.subject_categories ?? []).join(", ") || "—"} · 분위기{" "}
+                                    {detail.silver.sentiment ?? "미분석"}
+                                  </p>
+                                  {detail.silver.sentiment_rationale && (
+                                    <>
+                                      <b>판단 근거</b>
+                                      <p>{detail.silver.sentiment_rationale}</p>
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <p>이 기사는 분석되지 않았습니다.</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
